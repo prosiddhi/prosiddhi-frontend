@@ -1,0 +1,27 @@
+```mermaid
+flowchart TD
+  A[Content Posted] --> B[AI Content Scanning]
+  B --> C{Inappropriate Content?}
+  C -->|No| D[Content Approved]
+  C -->|Yes| E[Flag for Manual Review]
+  D --> F[Content Visible to Users]
+  E --> G[Admin Review Queue]
+  G --> H[Manual Content Review]
+  H --> I{Violates Guidelines?}
+  I -->|No| J[Remove Flag]
+  I -->|Minor Violation| K[Issue Warning]
+  I -->|Major Violation| L[Remove Content]
+  J --> D
+  K --> M[Log Warning]
+  L --> N[Notify Content Creator]
+  M --> O[Monitor User Activity]
+  N --> P{Repeat Offender?}
+  P -->|No| Q[Content Removed]
+  P -->|Yes| R[Suspend Account]
+  R --> S[Review Account History]
+  S --> T{Permanent Ban?}
+  T -->|No| U[Temporary Suspension]
+  T -->|Yes| V[Permanent Account Ban]
+  O --> W[User Report Received]
+  W --> E
+```

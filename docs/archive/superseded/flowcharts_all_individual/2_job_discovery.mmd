@@ -1,0 +1,28 @@
+```mermaid
+flowchart TD
+  A[Open Job Feed] --> B[View Location-Based Jobs]
+  B --> C{Want to Search?}
+  C -->|Yes| D[Use Search/Filter]
+  C -->|No| E[Browse Recommended Jobs]
+  D --> F[Enter Search Keywords]
+  F --> G[Apply Filters Distance/Salary/Type]
+  G --> H[View Search Results]
+  E --> H
+  H --> I[Select Job to View]
+  I --> J[View Job Details]
+  J --> K{Interested in Job?}
+  K -->|No| L[Go Back to Results]
+  K -->|Save for Later| M[Add to Saved Jobs]
+  K -->|Yes| N{Profile Complete Enough?}
+  N -->|No| O[Complete Profile Prompt]
+  O --> P[Update Required Fields]
+  P --> Q[One-Click Apply]
+  N -->|Yes| Q
+  Q --> R[Add Optional Voice Message]
+  R --> S[Confirm Application]
+  S --> T[Application Submitted]
+  T --> U[Add to My Applications]
+  U --> V[Receive Confirmation SMS]
+  L --> H
+  M --> H
+```

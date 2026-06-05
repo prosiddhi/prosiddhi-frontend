@@ -1,0 +1,28 @@
+```mermaid
+flowchart TD
+  A[Job Completed] --> B[Employer Confirms Work Done]
+  B --> C{Payment Method?}
+  C -->|Cash| D[Mark as Cash Payment]
+  C -->|Digital| E[Initiate Digital Payment]
+  D --> F[Payment Confirmation]
+  E --> G[Select Payment Gateway]
+  G --> H[Process Payment]
+  H --> I{Payment Successful?}
+  I -->|No| J[Payment Failed]
+  I -->|Yes| K[Payment Confirmed]
+  J --> L[Retry Payment]
+  L --> M{Max Retries Reached?}
+  M -->|No| G
+  M -->|Yes| N[Manual Payment Resolution]
+  K --> O[Platform Commission Deducted]
+  O --> P[Worker Payment Released]
+  P --> Q[Payment Notification Sent]
+  F --> R[Record Cash Transaction]
+  R --> S[Both Parties Rate Each Other]
+  Q --> S
+  S --> T[Update Profiles with Ratings]
+  T --> U[Job Marked as Complete]
+  N --> V[Admin Intervention]
+  V --> W[Resolve Payment Issue]
+  W --> O
+```

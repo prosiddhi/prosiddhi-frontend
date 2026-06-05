@@ -1,0 +1,24 @@
+```mermaid
+flowchart TD
+  A[New User Registration] --> B[Auto-Profile Check]
+  B --> C{Profile Complete?}
+  C -->|No| D[Send Completion Reminder]
+  C -->|Yes| E[Document Verification Check]
+  E --> F{Documents Uploaded?}
+  F -->|No| G[Request Document Upload]
+  F -->|Yes| H[AI Document Screening]
+  H --> I{AI Verification Pass?}
+  I -->|No| J[Manual Review Required]
+  I -->|Yes| K[Auto-Approve Account]
+  J --> L[Admin Agent Review]
+  L --> M{Manual Verification Pass?}
+  M -->|No| N[Request Document Resubmission]
+  M -->|Yes| K
+  K --> O[Send Approval Notification]
+  O --> P[Account Status: Active]
+  N --> Q[Send Rejection Notification]
+  Q --> R[Account Status: Pending]
+  D --> S[Monitor Profile Updates]
+  G --> S
+  S --> C
+```

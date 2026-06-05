@@ -1,0 +1,35 @@
+```mermaid
+flowchart TD
+  A[Message Initiated] --> B{Message Type?}
+  B -->|Text| C[Text Message]
+  B -->|Voice| D[Voice Message]
+  B -->|System| E[Automated Notification]
+  C --> F[Text Processing]
+  D --> G[Audio Processing]
+  E --> H[Template Selection]
+  F --> I{Inappropriate Content?}
+  G --> I
+  H --> J[Personalize Message]
+  I -->|Yes| K[Block Message]
+  I -->|No| L[Message Approved]
+  K --> M[Notify Sender]
+  L --> N{Recipient Online?}
+  N -->|Yes| O[Instant Delivery]
+  N -->|No| P[Queue for Delivery]
+  O --> Q[Mark as Delivered]
+  P --> R[Push Notification]
+  R --> S[SMS Backup if Critical]
+  S --> Q
+  Q --> T[Recipient Reads Message]
+  T --> U[Mark as Read]
+  U --> V[Update Conversation]
+  J --> W[Send Notification]
+  W --> X{User Preferences?}
+  X -->|SMS Enabled| Y[Send SMS]
+  X -->|Push Only| Z[Send Push Notification]
+  X -->|WhatsApp| AA[Send WhatsApp Message]
+  Y --> BB[Delivery Confirmation]
+  Z --> BB
+  AA --> BB
+  M --> CC[Log Blocked Message]
+```

@@ -1,0 +1,23 @@
+```mermaid
+flowchart TD
+  A[Employer Dashboard] --> B[Click Post New Job]
+  B --> C[Select Job Category]
+  C --> D[Choose Subcategory]
+  D --> E[Enter Job Title]
+  E --> F[Write Job Description]
+  F --> G[Add Job Requirements]
+  G --> H[Set Location & Radius]
+  H --> I[Define Salary Range]
+  I --> J[Select Payment Type]
+  J --> K{Hourly/Daily/Fixed?}
+  K --> L[Set Urgency Level]
+  L --> M[Add Job Duration]
+  M --> N[Review Job Details]
+  N --> O{Details Correct?}
+  O -->|No| P[Edit Job Details]
+  P --> N
+  O -->|Yes| Q[Publish Job]
+  Q --> R[Job Goes Live]
+  R --> S[Notify Relevant Workers]
+  S --> T[Job Added to Dashboard]
+```

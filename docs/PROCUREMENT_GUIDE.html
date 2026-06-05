@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azkashine Job Portal — Procurement & Integration Guide</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --text: #1a1a1a;
+    --muted: #666;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --border: #e5e7eb;
+    --why-bg: #fffbeb;
+    --why-border: #fbbf24;
+    --code-bg: #f3f4f6;
+    --warn-bg: #fef2f2;
+    --warn-border: #ef4444;
+    --ok-bg: #f0fdf4;
+    --ok-border: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+  nav.sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  nav.sidebar h1 {
+    font-size: 16px;
+    margin: 0 0 8px;
+    color: var(--accent);
+  }
+  nav.sidebar .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  nav.sidebar ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  nav.sidebar > ol > li {
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  nav.sidebar > ol > li > a {
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  nav.sidebar > ol > li > a:hover { background: var(--accent-soft); color: var(--accent); }
+  nav.sidebar ol ol {
+    list-style: none;
+    padding-left: 12px;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+  nav.sidebar ol ol li {
+    margin: 4px 0;
+    font-size: 12px;
+  }
+  nav.sidebar ol ol a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav.sidebar ol ol a:hover { color: var(--accent); }
+
+  main {
+    padding: 40px 56px;
+    max-width: 980px;
+  }
+  header.cover {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  header.cover h1 {
+    font-size: 32px;
+    margin: 0 0 8px;
+  }
+  header.cover .meta {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  section.major {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 28px 32px;
+    margin-bottom: 32px;
+  }
+  section.major > h2 {
+    font-size: 24px;
+    margin: 0 0 6px;
+    color: var(--accent);
+  }
+  section.major > .timebox {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  h3 {
+    margin: 28px 0 8px;
+    font-size: 18px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+  h4 {
+    margin: 18px 0 6px;
+    font-size: 15px;
+    color: #333;
+  }
+  p, li { font-size: 14px; }
+  ul, ol { padding-left: 22px; }
+  ul li, ol li { margin: 4px 0; }
+  a { color: var(--accent); }
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    font-family: "SF Mono", Consolas, monospace;
+    line-height: 1.5;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-soft); color: var(--accent); }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .why {
+    background: var(--why-bg);
+    border-left: 4px solid var(--why-border);
+    padding: 8px 12px;
+    margin: 6px 0 14px;
+    font-size: 13px;
+    border-radius: 0 6px 6px 0;
+  }
+  .why strong { color: #92400e; }
+
+  .warn {
+    background: var(--warn-bg);
+    border-left: 4px solid var(--warn-border);
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 13px;
+    border-radius: 0 6px 6px 0;
+  }
+  .ok {
+    background: var(--ok-bg);
+    border-left: 4px solid var(--ok-border);
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 13px;
+    border-radius: 0 6px 6px 0;
+  }
+  .gotchas {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 20px;
+  }
+  .gotchas h4 { margin-top: 0; color: #9a3412; }
+  .pill {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .pill.warn { background: #fef2f2; color: #b91c1c; }
+  .pill.ok { background: #f0fdf4; color: #16a34a; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<nav class="sidebar">
+  <h1>Procurement Guide</h1>
+  <div class="subtitle">Azkashine Job Portal · Integrations &amp; Onboarding</div>
+  <ol>
+    <li>
+      <a href="#overview">Overview &amp; Priority Order</a>
+    </li>
+    <li>
+      <a href="#oauth">1. Google OAuth (S1-04)</a>
+      <ol>
+        <li><a href="#oauth-1">Create GCP project</a></li>
+        <li><a href="#oauth-2">Enable API</a></li>
+        <li><a href="#oauth-3">OAuth consent screen</a></li>
+        <li><a href="#oauth-4">Create Client IDs</a></li>
+        <li><a href="#oauth-5">Store in vault</a></li>
+        <li><a href="#oauth-6">Hand off to BE team</a></li>
+        <li><a href="#oauth-gotchas">Gotchas</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#razorpay">2. Razorpay (Payments)</a>
+      <ol>
+        <li><a href="#rzp-1">Create account</a></li>
+        <li><a href="#rzp-2">Generate test keys</a></li>
+        <li><a href="#rzp-3">Webhook setup</a></li>
+        <li><a href="#rzp-4">Subscription plan</a></li>
+        <li><a href="#rzp-5">KYC for live mode</a></li>
+        <li><a href="#rzp-6">Live keys</a></li>
+        <li><a href="#rzp-7">Vault entry</a></li>
+        <li><a href="#rzp-8">Hand off to BE team</a></li>
+        <li><a href="#rzp-gotchas">Gotchas</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#dlt">3. DLT Registration (for SMS)</a>
+      <ol>
+        <li><a href="#dlt-1">Pick operator</a></li>
+        <li><a href="#dlt-2">Entity registration</a></li>
+        <li><a href="#dlt-3">Sender header</a></li>
+        <li><a href="#dlt-4">Templates</a></li>
+        <li><a href="#dlt-5">Map into MSG91</a></li>
+        <li><a href="#dlt-6">Vault entry</a></li>
+        <li><a href="#dlt-gotchas">Gotchas</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#msg91">4. MSG91 (SMS + WhatsApp + Email)</a>
+      <ol>
+        <li><a href="#msg-1">Create account</a></li>
+        <li><a href="#msg-2">Auth Key</a></li>
+        <li><a href="#msg-3">Wallet top-up</a></li>
+        <li><a href="#msg-sms">SMS channel</a></li>
+        <li><a href="#msg-wa">WhatsApp channel</a></li>
+        <li><a href="#msg-email">Email channel</a></li>
+        <li><a href="#msg-gotchas">Gotchas</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#multilang">5. Multi-Language Strategy &amp; Cost</a>
+      <ol>
+        <li><a href="#ml-summary">Channel-by-channel summary</a></li>
+        <li><a href="#ml-sms">SMS cost impact</a></li>
+        <li><a href="#ml-wa">WhatsApp cost impact</a></li>
+        <li><a href="#ml-email">Email cost impact</a></li>
+        <li><a href="#ml-recommend">Phased rollout recommendation</a></li>
+        <li><a href="#ml-budget">Monthly cost cheat-sheet</a></li>
+        <li><a href="#ml-flag">Flag for senior</a></li>
+      </ol>
+    </li>
+    <li>
+      <a href="#handoff">6. Final Hand-off Summary</a>
+    </li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="cover">
+  <h1>Azkashine Job Portal — Procurement &amp; Integration Guide</h1>
+  <div class="meta">
+    External services to onboard: Google OAuth · Razorpay · DLT · MSG91 (SMS · WhatsApp · Email)<br>
+    Audience: Procurement / Operations · Output goes to the BE team for wiring<br>
+    Status: Run-sheet for Sprint 1 external dependencies
+  </div>
+</header>
+
+<section class="major" id="overview">
+  <h2>Overview &amp; Priority Order</h2>
+  <div class="timebox">Read this first — it tells you what to start in parallel today vs. what waits.</div>
+
+  <p>The job portal depends on <strong>four external services</strong> being onboarded before the backend can finish wiring real authentication, real payments, and real notifications. Each has a different approval clock — some are 5-minute signups, others are 1–3 week regulatory reviews.</p>
+
+  <h3>Why this guide exists</h3>
+  <p>The BE team can <em>code</em> against all of these in minutes, but real-world traffic (real OTPs, real money, real WhatsApp messages) needs procurement-side approvals first. This guide tells the procurement / operations owner exactly what to click, what documents to upload, and what credentials to hand back to the BE team.</p>
+
+  <h3>The four services &amp; what blocks what</h3>
+  <table>
+    <tr>
+      <th>Service</th>
+      <th>What it does</th>
+      <th>Approval clock</th>
+      <th>Blocks which BE work</th>
+    </tr>
+    <tr>
+      <td>Google OAuth</td>
+      <td>"Sign in with Google" login</td>
+      <td>Instant (30 min clickwork)</td>
+      <td>S1-13 (BE Google OAuth wiring)</td>
+    </tr>
+    <tr>
+      <td>Razorpay</td>
+      <td>Payments — ₹50 lifetime (seeker) + ₹250/mo (employer)</td>
+      <td>Test: instant · Live: 3–4 days</td>
+      <td>S1-17 (Subscription module + webhooks)</td>
+    </tr>
+    <tr>
+      <td>DLT Registration</td>
+      <td>Government permit for sending SMS in India</td>
+      <td>1–3 weeks worst case</td>
+      <td>Real SMS OTP delivery (BE can mock until then)</td>
+    </tr>
+    <tr>
+      <td>MSG91</td>
+      <td>The actual sender for SMS + WhatsApp + Email</td>
+      <td>Account: instant · WhatsApp: 1–2 weeks (Meta verification)</td>
+      <td>All notification channels</td>
+    </tr>
+  </table>
+
+  <h3>Priority order (start everything Day 1)</h3>
+  <pre>DAY 1 — Morning (5 mins each)
+ 1. Google OAuth signup + web client → hand to BE team
+ 2. Razorpay signup + test keys + webhook + plan → hand to BE team
+ 3. MSG91 signup + Auth Key → hand to BE team
+ 4. Meta Business Manager signup + start verification (1–2 wk clock)
+ 5. DLT entity registration on Jio Trueconnect (1–3 wk clock)
+
+DAY 1 — Afternoon
+ 6. Razorpay KYC submission for live mode (3–4 day clock)
+ 7. DNS records for MSG91 Email domain (24h propagation)
+
+DAYS 2–4
+ 8. DLT entity approved → register AZKSHN header
+ 9. Meta verification approved → connect MSG91 to WhatsApp Business Account, add phone number
+10. Razorpay live keys issued → switch from test to live keys
+11. MSG91 Email domain verified → test send
+
+DAYS 5–10
+12. DLT header approved → submit 3 SMS templates
+13. WhatsApp display name approved → submit 12 WhatsApp templates
+14. As each template approves → paste IDs into MSG91 → update .env → notify BE team
+
+DAYS 10–14
+15. All templates approved → BE switches from mock-OTP to real sends
+16. Full end-to-end tests</pre>
+
+  <div class="ok"><strong>Bottom line:</strong> All five Day-1 tasks run in parallel. Don't wait for any of them to finish before starting the others.</div>
+</section>
+
+
+<section class="major" id="oauth">
+  <h2>1. Register Google OAuth Client <span class="pill">S1-04</span></h2>
+  <div class="timebox">Time: 30 min clickwork · Approval: none · Output: Client ID + Secret to BE team</div>
+  <p>All clickwork in Google Cloud Console — no code. Enables "Sign in with Google" on the website, mobile app, and admin panel.</p>
+
+  <h3 id="oauth-1">1.1 Create the GCP project</h3>
+  <div class="why"><strong>Why:</strong> Google's OAuth credentials always live inside a Cloud project. Creating it under the Azkashine Workspace org keeps ownership with the company instead of a personal Gmail.</div>
+  <ol>
+    <li>Go to <a href="https://console.cloud.google.com/" target="_blank">https://console.cloud.google.com/</a></li>
+    <li>Sign in with an <strong>Azkashine Google Workspace account</strong> (not personal Gmail — ownership stays with the org).</li>
+    <li>Top bar → project dropdown → <strong>New Project</strong>
+      <ul>
+        <li>Name: <code>Azkashine Job Portal</code></li>
+        <li>Organization: <code>azkashine.com</code> (must show up if you're signed in with workspace)</li>
+        <li>Location: same org</li>
+      </ul>
+    </li>
+    <li>Create → wait ~30s → switch into the new project.</li>
+  </ol>
+
+  <h3 id="oauth-2">1.2 Enable the required API</h3>
+  <div class="why"><strong>Why:</strong> OAuth login needs to fetch the user's email and name from Google. The People API is what exposes that.</div>
+  <ol>
+    <li>Left nav → <strong>APIs &amp; Services → Library</strong></li>
+    <li>Search <strong>People API</strong> → click <strong>Enable</strong>.</li>
+  </ol>
+  <p>You don't need Gmail API, Drive API, etc. — those are for accessing user data we never touch.</p>
+
+  <h3 id="oauth-3">1.3 Configure OAuth consent screen</h3>
+  <div class="why"><strong>Why:</strong> This is the "Azkashine wants to access your Google account" screen users see during login. Google needs us to declare what we're asking for before they let us ask.</div>
+  <ol>
+    <li>Left nav → <strong>APIs &amp; Services → OAuth consent screen</strong></li>
+    <li><strong>User Type:</strong>
+      <ul>
+        <li><strong>Internal</strong> for now (only @azkashine.com users can sign in — perfect for dev).</li>
+        <li>Switch to <strong>External</strong> before prod launch (lets any Google account sign in; requires Google verification if you exceed 100 users).</li>
+      </ul>
+    </li>
+    <li><strong>App information:</strong>
+      <ul>
+        <li>App name: <code>Azkashine Job Portal</code></li>
+        <li>User support email: <code>support@azkashine.com</code> (or whoever owns support)</li>
+        <li>App logo: optional for internal, required for external verification</li>
+      </ul>
+    </li>
+    <li><strong>App domain (external only):</strong>
+      <ul>
+        <li>Application home page: <code>https://azkashine.com</code> (or staging URL)</li>
+        <li>Privacy policy URL + Terms of service URL — required for external; skip for internal</li>
+      </ul>
+    </li>
+    <li>Developer contact: your email</li>
+    <li><strong>Scopes → Add:</strong>
+      <ul>
+        <li><code>openid</code></li>
+        <li><code>.../auth/userinfo.email</code></li>
+        <li><code>.../auth/userinfo.profile</code></li>
+      </ul>
+      <p>Don't add anything else — extra scopes trigger Google's sensitive/restricted scope review and slow you down weeks.</p>
+    </li>
+    <li>Test users (external + testing mode): add team Gmail addresses so they can log in before verification.</li>
+    <li>Save.</li>
+  </ol>
+
+  <h3 id="oauth-4">1.4 Create the OAuth 2.0 Client IDs</h3>
+  <div class="why"><strong>Why:</strong> Each platform (web / iOS / Android) needs its own Client ID so Google knows where login requests are coming from and where to redirect after the user signs in.</div>
+  <p>Left nav → <strong>APIs &amp; Services → Credentials → + Create Credentials → OAuth client ID</strong></p>
+
+  <h4>1.4a Web client <span class="pill ok">Do this first</span></h4>
+  <p><em>Unblocks the BE team immediately.</em></p>
+  <ul>
+    <li>Application type: <strong>Web application</strong></li>
+    <li>Name: <code>Azkashine Web</code></li>
+    <li><strong>Authorized JavaScript origins:</strong>
+      <ul>
+        <li><code>http://localhost:3000</code></li>
+        <li><code>http://localhost:5000</code> (BE dev port)</li>
+        <li><code>https://staging.azkashine.com</code> (confirm with senior)</li>
+        <li><code>https://azkashine.com</code> (prod — can add later)</li>
+      </ul>
+    </li>
+    <li><strong>Authorized redirect URIs:</strong>
+      <ul>
+        <li><code>http://localhost:5000/api/auth/google/callback</code></li>
+        <li><code>https://staging.azkashine.com/api/auth/google/callback</code></li>
+      </ul>
+      <p>Confirm exact path with the BE team before saving; safe default is <code>/api/auth/google/callback</code>.</p>
+    </li>
+    <li>Create → you'll get <strong>Client ID</strong> + <strong>Client Secret</strong>. Download the JSON too.</li>
+  </ul>
+
+  <h4>1.4b Android client <span class="pill warn">Blocked on S1-05</span></h4>
+  <div class="why"><strong>Why blocked:</strong> Need the mobile workspace to be set up first so the mobile dev can give you the package name + SHA-1 fingerprint.</div>
+  <p>When mobile dev has the workspace ready, you'll need from them:</p>
+  <ul>
+    <li>Package name (e.g. <code>com.azkashine.jobportal</code>)</li>
+    <li>SHA-1 fingerprint — they run: <code>keytool -list -v -keystore &lt;path&gt; -alias &lt;alias&gt;</code></li>
+    <li>Need both <strong>debug</strong> SHA-1 (dev builds) and <strong>release</strong> SHA-1 (Play Store builds).</li>
+  </ul>
+  <p>Then: Create Credentials → OAuth client ID → <strong>Android</strong> → paste package name + SHA-1. No secret for Android.</p>
+
+  <h4>1.4c iOS client <span class="pill warn">Blocked on S1-05</span></h4>
+  <p>From mobile dev: <strong>Bundle ID</strong> (e.g. <code>com.azkashine.jobportal</code>).</p>
+  <p>Create Credentials → OAuth client ID → <strong>iOS</strong> → paste bundle ID. No secret for iOS.</p>
+
+  <h4>1.4d Admin client</h4>
+  <p>Per the ticket: <strong>share the web client</strong> — the admin panel is a web app too. Just add its origin (e.g. <code>http://localhost:3001</code> or <code>https://admin.azkashine.com</code>) to the existing Web client's authorized origins/redirects. Don't make a separate one unless senior insists.</p>
+
+  <h3 id="oauth-5">1.5 Store secrets in the vault</h3>
+  <div class="why"><strong>Why:</strong> Client Secrets are like passwords for the app. If they leak on GitHub or chat, anyone can impersonate Azkashine to Google. They live ONLY in a secrets vault.</div>
+  <p>Confirm with senior which vault is used (1Password / Bitwarden / Vaultwarden / Doppler?). For each client, store:</p>
+  <pre>Service: Google OAuth — Azkashine Job Portal
+Environment: dev / staging / prod
+Client ID: &lt;id&gt;.apps.googleusercontent.com
+Client Secret: &lt;secret&gt;            ← web only; mobile clients have no secret
+Authorized origins: &lt;list&gt;
+Authorized redirect URIs: &lt;list&gt;
+GCP Project: azkashine-job-portal
+Owner: ops@azkashine.com</pre>
+  <p><strong>Do NOT commit to git.</strong> BE team will read these from <code>.env</code> (local) and from whatever secret manager staging/prod uses.</p>
+
+  <h3 id="oauth-6">1.6 Hand off to the BE team</h3>
+  <div class="why"><strong>Why:</strong> BE team can't wire login until they have these three values. Send them in a DM, not a public channel.</div>
+  <p>DM/email with:</p>
+  <ul>
+    <li><code>GOOGLE_CLIENT_ID=...</code></li>
+    <li><code>GOOGLE_CLIENT_SECRET=...</code></li>
+    <li>Redirect URI you registered (so they wire the exact same path)</li>
+    <li>Vault link for future rotation</li>
+  </ul>
+  <p>Ask them to confirm received → tick the last acceptance criterion on the ticket.</p>
+
+  <div class="gotchas" id="oauth-gotchas">
+    <h4>Gotchas</h4>
+    <ul>
+      <li><strong>Workspace account matters</strong> — if you create the project under a personal Gmail, you can't set User Type = Internal, and you'll lose Azkashine ownership when you leave. Use <code>@azkashine.com</code>.</li>
+      <li><strong>Redirect URI must match exactly</strong> — <code>http</code> vs <code>https</code>, trailing slash, port number all matter. Mismatch = <code>redirect_uri_mismatch</code> error in BE.</li>
+      <li><strong>Internal app + external user trying to log in</strong> = "Access blocked" — switch to External + add test users, or wait until prod-ready and submit for verification.</li>
+      <li><strong>SHA-1 for Android</strong> — debug builds and release builds have different SHA-1s. Add both to the Android client.</li>
+      <li><strong>Don't enable too many scopes</strong> — only <code>openid email profile</code>. Anything else triggers Google's restricted-scope verification — weeks of back-and-forth.</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="major" id="razorpay">
+  <h2>2. Register Razorpay (Payment Gateway)</h2>
+  <div class="timebox">Time: 30 min clickwork · Test mode: instant · Live mode: 3–4 working days (KYC) · Output: API keys + Plan ID + Webhook secret</div>
+  <p>BE team can integrate against test mode in ~10 minutes; live mode for real money takes 3–4 working days of KYC review.</p>
+
+  <h3 id="rzp-1">2.1 Create the Razorpay account</h3>
+  <div class="why"><strong>Why:</strong> Razorpay is the gateway between our checkout and the user's bank. Without an account, no money can flow. Signing up with the company domain keeps ownership with Azkashine, not an individual.</div>
+  <ol>
+    <li>Go to <a href="https://dashboard.razorpay.com/signup" target="_blank">https://dashboard.razorpay.com/signup</a></li>
+    <li>Sign up with an <strong>@azkashine.com</strong> email (not personal Gmail).</li>
+    <li>Enter:
+      <ul>
+        <li>Business name: <code>Azkashine</code> (must match PAN / GST exactly)</li>
+        <li>Mobile number (receives OTP)</li>
+        <li>Password</li>
+      </ul>
+    </li>
+    <li>Verify mobile OTP.</li>
+    <li>Dashboard loads. Top-right environment toggle defaults to <strong>Test Mode</strong> — keep it there for now.</li>
+  </ol>
+
+  <h3 id="rzp-2">2.2 Generate Test Mode API Keys</h3>
+  <div class="why"><strong>Why:</strong> Test mode lets the BE team wire and test the whole payment flow with fake card numbers, while live KYC is still being reviewed. No KYC needed for test keys.</div>
+  <ol>
+    <li>Left nav → <strong>Account &amp; Settings → Website and app settings → API Keys</strong>
+      <br>Direct link: <a href="https://dashboard.razorpay.com/app/website-app-settings/api-keys" target="_blank">https://dashboard.razorpay.com/app/website-app-settings/api-keys</a>
+    </li>
+    <li>Confirm top-right says <strong>Test Mode</strong>.</li>
+    <li>Click <strong>Generate Test Key</strong>.</li>
+    <li>You get:
+      <ul>
+        <li><code>Key ID</code> — starts with <code>rzp_test_...</code> (safe to share, even lives on frontend)</li>
+        <li><code>Key Secret</code> — shown <strong>ONCE only</strong>. Click "Download Key Details" to save a JSON, or copy immediately.</li>
+      </ul>
+    </li>
+    <li>Save both in the vault.</li>
+  </ol>
+  <div class="warn">If you lose the secret → click <strong>Regenerate Test Key</strong>. The old one stops working immediately.</div>
+
+  <h3 id="rzp-3">2.3 Set up the Razorpay Webhook</h3>
+  <div class="why"><strong>Why:</strong> When a customer pays, Razorpay needs to TELL our backend "payment succeeded — upgrade them to Pro." Without a webhook, BE has no reliable way to know. Webhooks also handle monthly auto-debits firing on their own.</div>
+  <ol>
+    <li>Left nav → <strong>Account &amp; Settings → Webhooks</strong>
+      <br>Direct link: <a href="https://dashboard.razorpay.com/app/webhooks" target="_blank">https://dashboard.razorpay.com/app/webhooks</a>
+    </li>
+    <li>Click <strong>+ Add New Webhook</strong>.</li>
+    <li>Fill in:
+      <ul>
+        <li><strong>Webhook URL:</strong> <code>https://staging.azkashine.com/api/webhooks/razorpay</code> (for staging) — for local dev BE team uses <strong>ngrok</strong> to expose <code>localhost:5000</code>; they'll give you the URL</li>
+        <li><strong>Secret:</strong> type any strong random string (e.g. <code>azk_rzp_whk_a7Xq92Lm</code>) — Razorpay signs every webhook with this so BE can verify it's actually from Razorpay</li>
+        <li><strong>Active Events</strong> → tick:
+          <ul>
+            <li><code>payment.captured</code> — one-time payment ₹50 succeeded</li>
+            <li><code>payment.failed</code></li>
+            <li><code>subscription.activated</code> — employer signed up for ₹250/month</li>
+            <li><code>subscription.charged</code> — monthly auto-debit succeeded (fires every month)</li>
+            <li><code>subscription.halted</code> — mandate failed too many times → downgrade</li>
+            <li><code>subscription.cancelled</code></li>
+            <li><code>subscription.pending</code></li>
+            <li><code>refund.created</code></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>Click <strong>Create Webhook</strong>.</li>
+    <li>Save the webhook secret as <code>RAZORPAY_WEBHOOK_SECRET</code> in the vault.</li>
+  </ol>
+  <p>Add a SECOND webhook for production later (same setup, different URL like <code>https://api.azkashine.com/api/webhooks/razorpay</code>).</p>
+
+  <h3 id="rzp-4">2.4 Create Subscription Plans (for employer ₹250/month)</h3>
+  <div class="why"><strong>Why:</strong> Recurring plans need a Plan object on Razorpay's side — that's the template every employer subscribes to. Once made, every new subscriber automatically uses the same billing rules.</div>
+  <ol>
+    <li>Left nav → <strong>Subscriptions → Plans</strong>
+      <br>Direct link: <a href="https://dashboard.razorpay.com/app/subscriptions/plans" target="_blank">https://dashboard.razorpay.com/app/subscriptions/plans</a>
+    </li>
+    <li>Click <strong>+ Create Plan</strong>.</li>
+    <li>Fill in:
+      <ul>
+        <li>Plan Name: <code>Azkashine Pro Monthly</code></li>
+        <li>Billing Frequency: Monthly</li>
+        <li>Billing Cycle: 1 month</li>
+        <li>Amount: ₹250 (Razorpay stores it as <code>25000</code> paise internally)</li>
+        <li>Currency: INR</li>
+        <li>GST: enable "Add GST" — Razorpay calculates 18% on top automatically (employer pays ₹250 + 18% = ₹295 total).</li>
+      </ul>
+    </li>
+    <li>Click <strong>Create Plan</strong>.</li>
+    <li>Save the <strong>Plan ID</strong> (e.g. <code>plan_NXyZ123abc</code>) — BE team puts it in <code>.env</code> as <code>RAZORPAY_PLAN_PRO_MONTHLY</code>.</li>
+  </ol>
+  <div class="warn"><strong>Note on ₹999 vs ₹250:</strong> CLAUDE.md says ₹250, newer SUBSCRIPTION_S1_PLAN.md says ₹999. Confirm the actual locked price with senior before creating the plan — wrong amount means every subscription has to be migrated later.</div>
+  <p>For the <strong>₹50 lifetime seeker plan</strong>: this is a one-time payment, NOT a recurring subscription. So you don't create a Plan for it — BE team will use Razorpay's Orders API per-purchase. No setup needed in the dashboard.</p>
+
+  <h3 id="rzp-5">2.5 Submit KYC for Live Mode</h3>
+  <div class="why"><strong>Why:</strong> Test mode only accepts fake cards. For real money to actually flow from real users into a real bank account, Razorpay (regulated by RBI) must verify Azkashine is a real business. This is the KYC step.</div>
+  <p>Takes 3–4 working days. Until KYC is approved, you can only accept test cards (e.g. <code>4111 1111 1111 1111</code>).</p>
+  <ol>
+    <li>Left nav → <strong>Account &amp; Settings → Activate Account</strong> (or KYC)</li>
+    <li><strong>Step 1 — Business Type:</strong> Pick the right entity (Proprietorship / Pvt Ltd / LLP / Partnership / Trust / NGO).</li>
+    <li><strong>Step 2 — Business Details:</strong>
+      <ul>
+        <li>Legal business name (must match PAN exactly)</li>
+        <li>Brand name: <code>Azkashine</code></li>
+        <li>Business category: <strong>Services → Employment Agencies &amp; Temporary Help Services</strong></li>
+        <li>MCC code: <code>7361</code> (filled automatically based on category)</li>
+        <li>Business description: e.g. "Online job portal connecting employers and job seekers in India"</li>
+        <li>Website URL: <code>https://azkashine.com</code> (must be live — Razorpay's bot crawls it)</li>
+      </ul>
+    </li>
+    <li><strong>Step 3 — Documents to Upload:</strong>
+      <table>
+        <tr><th>Document</th><th>All</th><th>Pvt Ltd</th><th>LLP</th><th>Proprietorship</th></tr>
+        <tr><td>Business PAN</td><td>✅</td><td></td><td></td><td>(personal PAN ok)</td></tr>
+        <tr><td>Signatory PAN</td><td>✅</td><td></td><td></td><td></td></tr>
+        <tr><td>Signatory Aadhaar</td><td>✅</td><td></td><td></td><td></td></tr>
+        <tr><td>Cancelled cheque OR bank statement</td><td>✅</td><td></td><td></td><td></td></tr>
+        <tr><td>GST certificate</td><td>recommended</td><td></td><td></td><td></td></tr>
+        <tr><td>Address proof</td><td>✅</td><td></td><td></td><td></td></tr>
+        <tr><td>Certificate of Incorporation</td><td></td><td>✅</td><td></td><td></td></tr>
+        <tr><td>CIN</td><td></td><td>✅</td><td></td><td></td></tr>
+        <tr><td>MOA/AOA</td><td></td><td>✅</td><td></td><td></td></tr>
+        <tr><td>Board resolution authorizing signatory</td><td></td><td>✅</td><td></td><td></td></tr>
+        <tr><td>LLP Agreement</td><td></td><td></td><td>✅</td><td></td></tr>
+        <tr><td>LLPIN</td><td></td><td></td><td>✅</td><td></td></tr>
+        <tr><td>Shop &amp; Establishment / Udyam</td><td></td><td></td><td></td><td>✅ (any 1)</td></tr>
+      </table>
+    </li>
+    <li><strong>Step 4 — Bank Account</strong> (where settlements land):
+      <ul>
+        <li>Account holder name (must match PAN)</li>
+        <li>Account number + IFSC</li>
+        <li>Razorpay does a <strong>penny drop</strong> — sends ₹1 → verifies the name from the bank — usually instant.</li>
+      </ul>
+    </li>
+    <li><strong>Step 5 — Website Compliance Check:</strong> Razorpay manually reviews the live site for these pages — must exist and be accessible <strong>before</strong> submitting:
+      <ul>
+        <li>Terms &amp; Conditions (<code>/terms</code>)</li>
+        <li>Privacy Policy (<code>/privacy</code>)</li>
+        <li>Refund / Cancellation Policy (<code>/refund</code>) — must explicitly state refund policy for ₹50 Elite + ₹250 Pro</li>
+        <li>Pricing page showing ₹250/month + ₹50 lifetime visibly</li>
+        <li>Contact page with address, phone, email</li>
+      </ul>
+      <div class="warn">If any page is missing or says "Coming Soon" → KYC rejected until added.</div>
+    </li>
+    <li>Submit → 3–4 business days for review.</li>
+  </ol>
+
+  <h3 id="rzp-6">2.6 Generate LIVE Mode API Keys (after KYC approved)</h3>
+  <div class="why"><strong>Why:</strong> Test keys never charge real cards — they're a separate sandbox. Once KYC clears, you have to generate a fresh set of LIVE keys to start accepting real money. Plans and webhooks don't carry over either.</div>
+  <ol>
+    <li>Top-right toggle → switch from <strong>Test Mode</strong> to <strong>Live Mode</strong></li>
+    <li>Settings → API Keys → <strong>Generate Live Key</strong></li>
+    <li>You get <code>rzp_live_...</code> keys — completely separate from test keys.</li>
+    <li>Save in vault under a <strong>Live Mode</strong> environment label.</li>
+  </ol>
+  <p>Repeat the Webhook setup (2.3) and Plan creation (2.4) <strong>inside Live Mode</strong> — they don't carry over from test mode.</p>
+
+  <h3 id="rzp-7">2.7 Store credentials in the vault</h3>
+  <pre>Service: Razorpay — Azkashine Job Portal
+Environment: TEST
+Key ID: rzp_test_...
+Key Secret: ...
+Webhook URL: https://staging.azkashine.com/api/webhooks/razorpay
+Webhook Secret: azk_rzp_whk_a7Xq92Lm
+Plan ID (Pro Monthly): plan_NXyZ123abc
+Owner: ops@azkashine.com
+
+Service: Razorpay — Azkashine Job Portal
+Environment: LIVE
+Key ID: rzp_live_...           ← only after KYC
+Key Secret: ...
+Webhook URL: https://api.azkashine.com/api/webhooks/razorpay
+Webhook Secret: azk_rzp_whk_prod_...
+Plan ID (Pro Monthly): plan_&lt;live&gt;...</pre>
+
+  <h3 id="rzp-8">2.8 Hand off to the BE team</h3>
+  <pre>RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=azk_rzp_whk_a7Xq92Lm
+RAZORPAY_PLAN_PRO_MONTHLY=plan_NXyZ123abc</pre>
+  <p>Confirm with them the webhook URL path (probably <code>/api/webhooks/razorpay</code>) so what you registered in the dashboard exactly matches what they wire.</p>
+
+  <div class="gotchas" id="rzp-gotchas">
+    <h4>Gotchas</h4>
+    <ul>
+      <li><strong>Entity name must be IDENTICAL on PAN, GST, bank account, and CIN.</strong> Razorpay rejects KYC if "Azkashine Pvt Ltd" on PAN vs "Azkashine Private Limited" on GST.</li>
+      <li><strong>Test keys ≠ Live keys</strong> — completely separate. Test mode accepts card <code>4111 1111 1111 1111</code> + any CVV / future expiry; real cards fail in test mode.</li>
+      <li><strong>Webhook secret is a string YOU choose</strong>, not Razorpay-generated. Pick something long and random.</li>
+      <li><strong>Webhook URL must be HTTPS in production</strong>. For local dev, BE team uses ngrok to tunnel <code>localhost:5000</code> to a public HTTPS URL.</li>
+      <li><strong>MCC 7361 (Employment Agencies)</strong> is medium-risk — expect possibly higher MDR (2.0–2.5% for cards) + small rolling reserve. Negotiable later.</li>
+      <li><strong>Refund policy MUST be on the site before KYC.</strong> Even a one-liner like "₹50 lifetime is non-refundable. ₹250/month is refundable within 7 days, pro-rata." is fine.</li>
+      <li><strong>For ₹250/month auto-debit:</strong> UPI Autopay has the highest success rate in India (95%+). Card e-mandate is fallback. RBI's 2026 e-mandate framework lets recurring debits ≤₹15,000 skip AFA after the first authorization.</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="major" id="dlt">
+  <h2>3. DLT Registration (for SMS via MSG91)</h2>
+  <div class="timebox">Time: 1 hour clickwork · Approval: 1–3 weeks worst case · Output: Entity ID + Header ID + Template IDs</div>
+  <p>DLT is a government-mandated SMS permit. Without it, Indian telcos silently block your OTP SMS. <strong>Start this on Day 1</strong> — the clock is the longest of any task in this guide.</p>
+
+  <div class="why"><strong>What is DLT?</strong> DLT = <em>Distributed Ledger Technology</em>. India's telecom regulator (TRAI) built a blockchain-backed registration system in 2020 to fight SMS spam. Every business sending commercial SMS must register itself, its sender name, and every template body. Telcos (Jio/Airtel/Vi) block any SMS that isn't pre-registered.</div>
+
+  <h3 id="dlt-1">3.1 Pick a DLT operator</h3>
+  <div class="why"><strong>Why:</strong> There are 5 government-authorized DLT portals. You only register on ONE — the blockchain shares your data with all other telcos automatically.</div>
+  <table>
+    <tr><th>Operator</th><th>Direct link</th><th>One-time fee</th></tr>
+    <tr><td>Jio Trueconnect ⭐</td><td><a href="https://trueconnect.jio.com/" target="_blank">trueconnect.jio.com</a></td><td>~₹5,900 + GST</td></tr>
+    <tr><td>Airtel SmartPing</td><td><a href="https://smartping.airtel.in/signup" target="_blank">smartping.airtel.in</a></td><td>~₹5,900 + GST</td></tr>
+    <tr><td>Vi Vilpower</td><td><a href="https://www.vilpower.in/" target="_blank">vilpower.in</a></td><td>~₹5,000 + GST</td></tr>
+    <tr><td>BSNL</td><td><a href="https://www.ucc-bsnl.co.in/" target="_blank">ucc-bsnl.co.in</a></td><td>~₹4,000 + GST</td></tr>
+    <tr><td>Tata Teleservices</td><td><a href="https://trai.tatacommunications.com/" target="_blank">trai.tatacommunications.com</a></td><td>~₹5,000 + GST</td></tr>
+  </table>
+  <p>Recommendation: <strong>Jio Trueconnect</strong> or <strong>Airtel SmartPing</strong> — biggest install base, smoothest UX, fewest rejections. Walkthrough below uses Jio Trueconnect.</p>
+
+  <h3 id="dlt-2">3.2 Create the Azkashine entity on DLT</h3>
+  <div class="why"><strong>Why:</strong> The "Principal Entity" registration tells TRAI "Azkashine is a legitimate business sending SMS." It's the parent record under which sender IDs and templates get registered.</div>
+  <ol>
+    <li>Go to <a href="https://trueconnect.jio.com/" target="_blank">https://trueconnect.jio.com/</a></li>
+    <li>Click <strong>Sign up as Principal Entity</strong> (PE = business sending SMS; "Telemarketer" is for agencies, not you).</li>
+    <li>Entity Type: Pvt Ltd / LLP / Partnership / Proprietorship / Trust / NGO / Government.</li>
+    <li>Fill in:
+      <ul>
+        <li>Legal Entity Name (must EXACTLY match PAN — this trips up 80% of applicants)</li>
+        <li>CIN / LLPIN / Firm Registration No.</li>
+        <li>Address (must match GST registered address)</li>
+        <li>Authorized Signatory: name, PAN, Aadhaar, mobile, email (becomes the DLT account owner — pick a founder/director)</li>
+        <li>Business Category (pick "Computer Software" or "E-Commerce" or "Recruitment Services" — closest fit)</li>
+      </ul>
+    </li>
+    <li>Upload documents (PDF/JPG, each &lt;2MB):
+      <table>
+        <tr><th>Entity</th><th>Required Documents</th></tr>
+        <tr><td>Pvt Ltd</td><td>PAN of company, Certificate of Incorporation, MOA/AOA, CIN, GST cert (if registered), Authorized signatory's PAN + Aadhaar, Authorization letter on company letterhead (template provided by operator)</td></tr>
+        <tr><td>LLP</td><td>PAN of LLP, LLP Agreement, LLPIN, GST cert, Designated partner's PAN + Aadhaar, Authorization letter</td></tr>
+        <tr><td>Proprietorship</td><td>PAN of proprietor, Shop &amp; Establishment OR Udyam OR GST cert (any 1), Aadhaar (Authorization not needed — proprietor IS the business)</td></tr>
+        <tr><td>Partnership</td><td>Firm PAN, Partnership Deed, Partner PANs + Aadhaars, Authorization letter signed by all partners</td></tr>
+        <tr><td>Trust / NGO</td><td>Trust Deed / Registration Cert, 12A + 80G certs (if applicable), PAN, Trustee Aadhaars</td></tr>
+      </table>
+    </li>
+    <li>Pay entity registration fee (~₹5,900 + GST via UPI/card).</li>
+    <li>Submit.</li>
+  </ol>
+  <p>You get an <strong>Entity ID</strong> like <code>1701234567890123456</code> (18–19 digit number — a blockchain hash).</p>
+  <p><strong>Timeline:</strong> 1–3 working days when docs are clean. 2–3 weeks if any name mismatch.</p>
+
+  <h3 id="dlt-3">3.3 Register your Sender Header</h3>
+  <div class="why"><strong>Why:</strong> The "header" is the 6-letter brand name shown on the recipient's phone instead of a random number. Telcos require pre-approval so spammers can't impersonate banks/brands.</div>
+  <p>For Azkashine, suggest <code>AZKSHN</code> or <code>AZKSJB</code> (exactly 6 alphabetic characters, no digits, no special chars).</p>
+  <ol>
+    <li>Inside Jio Trueconnect → <strong>Headers → + Add Header</strong></li>
+    <li>Choose Category:
+      <ul>
+        <li><strong>Transactional</strong> — OTP, payment confirmations, password reset (bypasses DND — what you need)</li>
+        <li>Service Implicit — transactional messages with implicit consent (e.g. "application accepted")</li>
+        <li>Service Explicit — promotional with opt-in</li>
+        <li>Promotional — pure marketing (10-digit numeric header, subject to DND)</li>
+      </ul>
+    </li>
+    <li>Enter the header: <code>AZKSHN</code></li>
+    <li>If the header doesn't exactly match the company name, attach a <strong>correlation document</strong>:
+      <ul>
+        <li>Domain WHOIS showing azkashine.com is owned by the entity</li>
+        <li>Website screenshot</li>
+        <li>Trademark certificate (if you have one)</li>
+      </ul>
+    </li>
+    <li>Submit → telco approval queue.</li>
+  </ol>
+  <p><strong>Timeline:</strong> 1–2 working days. You get a <strong>Header ID</strong> — save it.</p>
+
+  <h3 id="dlt-4">3.4 Register your message templates</h3>
+  <div class="why"><strong>Why:</strong> Telcos require every EXACT message body to be pre-approved so spammers can't send phishing through registered senders. Each variable slot (<code>{#var#}</code>) is filled at send-time but the surrounding text must match the approved template.</div>
+  <ol>
+    <li>Trueconnect → <strong>Templates → + Add Template</strong></li>
+    <li>For each template fill in:
+      <ul>
+        <li>Template Name (internal label, e.g. "OTP_LOGIN")</li>
+        <li>Template Type: Transactional / Service Implicit / Service Explicit / Promotional</li>
+        <li>Header: pick <code>AZKSHN</code></li>
+        <li>Template Content: paste the EXACT body, using <code>{#var#}</code> for variables</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h4>Templates to submit for Azkashine v1</h4>
+  <pre>Template 1: OTP_SIGNUP_LOGIN (Transactional)
+Body: Your Azkashine verification OTP is {#var#}. Valid for 10 mins. Do not share with anyone. -AZKSHN
+
+Template 2: PAYMENT_CONFIRMED (Service Implicit)
+Body: Payment of Rs {#var#} received for your Azkashine subscription. Active till {#var#}. Thank you. -AZKSHN
+
+Template 3: PASSWORD_RESET_OTP (Transactional)
+Body: Your Azkashine password reset OTP is {#var#}. Valid for 10 mins. Do not share. -AZKSHN</pre>
+  <ol start="3">
+    <li>Submit each. Telco reviews body for:
+      <ul>
+        <li>Spam / fraud language</li>
+        <li>Unregistered URLs (URLs must be pre-whitelisted separately — easiest: omit them)</li>
+        <li>Variable syntax: <strong>must be <code>{#var#}</code></strong>, NOT <code>{{var}}</code>, NOT <code>[var]</code></li>
+      </ul>
+    </li>
+    <li>After approval, each template gets a <strong>Template ID</strong> (long hash).</li>
+  </ol>
+  <p><strong>Timeline:</strong> 1–3 working days per template.</p>
+
+  <h3 id="dlt-5">3.5 Map approved templates into MSG91</h3>
+  <p>After you get the DLT Template IDs from Trueconnect, you map them into MSG91 (covered in Section 4 → 4.4).</p>
+
+  <h3 id="dlt-6">3.6 Save in vault for audit</h3>
+  <div class="why"><strong>Why:</strong> You don't directly hand the DLT IDs to the BE team — they get pasted into MSG91 and BE uses MSG91's internal template ID. But the vault keeps a record for annual renewal audits.</div>
+  <pre>DLT Operator: Jio Trueconnect
+Entity Name: &lt;legal name&gt;
+Entity ID: 1701234567890123456
+Header: AZKSHN (Transactional)
+Header ID: &lt;id&gt;
+Templates:
+  - OTP_SIGNUP_LOGIN — DLT Template ID: &lt;id&gt;
+  - PAYMENT_CONFIRMED — DLT Template ID: &lt;id&gt;
+  - PASSWORD_RESET_OTP — DLT Template ID: &lt;id&gt;
+Signatory: &lt;name&gt;, &lt;PAN&gt;
+Renewal: typically annual (~₹1,500/yr renewal fee)</pre>
+
+  <div class="gotchas" id="dlt-gotchas">
+    <h4>Gotchas</h4>
+    <ul>
+      <li><strong>Legal entity name on PAN vs GST vs CIN vs DLT — all must be IDENTICAL.</strong> Spelling, abbreviation, "Pvt Ltd" vs "Private Limited" — any difference = rejection.</li>
+      <li><strong>Variable syntax MUST be <code>{#var#}</code>.</strong> #1 template rejection reason.</li>
+      <li><strong>Don't put URLs in OTP messages.</strong> Each URL needs a separate URL whitelist registration.</li>
+      <li><strong>OTP = Transactional category, NOT Service.</strong> Wrong category = DND-blocked = OTPs fail for users on DND list.</li>
+      <li><strong>End SMS with the header in dashes</strong>, e.g. <code>-AZKSHN</code>. Reduces rejection chance.</li>
+      <li><strong>Don't pick fancy 6-char headers</strong> — <code>AZKJOB</code>, <code>BUYNOW</code>, <code>WINBIG</code> get rejected. Stick to brand-name-based.</li>
+      <li><strong>Annual renewal</strong> — DLT entity registration renews annually (~₹1,500/yr). Calendar reminder for 11 months out.</li>
+      <li><strong>TRAI fines</strong> — sending SMS without DLT = ₹5,000 per violation. Don't try to hack around it.</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="major" id="msg91">
+  <h2>4. MSG91 (SMS + WhatsApp + Email — all in one account)</h2>
+  <div class="timebox">Time: 5 min signup · WhatsApp prereq: Meta verification 1–2 weeks · One Auth Key for all 3 channels</div>
+  <p>MSG91 is the actual sender — they push SMS to telcos, push WhatsApp via Meta, push email via SMTP. <strong>One account handles all three channels with one Auth Key.</strong></p>
+
+  <h3 id="msg-1">4.1 Create the MSG91 account</h3>
+  <div class="why"><strong>Why:</strong> MSG91 is the courier. DLT and Meta give permission; MSG91 actually delivers. We need their account before any of the channels can work.</div>
+  <ol>
+    <li>Go to <a href="https://msg91.com" target="_blank">https://msg91.com</a> → top right <strong>Sign Up</strong>
+      <br>Direct signup: <a href="https://control.msg91.com/signup/" target="_blank">https://control.msg91.com/signup/</a>
+    </li>
+    <li>Sign up with <code>@azkashine.com</code> email.</li>
+    <li>Fill in:
+      <ul>
+        <li>Name: <code>Azkashine</code></li>
+        <li>Business email</li>
+        <li>Mobile number (gets OTP)</li>
+        <li>Country: India</li>
+      </ul>
+    </li>
+    <li>Verify OTP on mobile + email.</li>
+    <li>You land on <a href="https://control.msg91.com" target="_blank">https://control.msg91.com</a> — the main dashboard.</li>
+    <li>MSG91 drops <strong>free trial credits</strong> (~₹100 worth) so BE team can test against real numbers immediately.</li>
+  </ol>
+
+  <h3 id="msg-2">4.2 Grab the Auth Key</h3>
+  <div class="why"><strong>Why:</strong> This is the single credential the BE team uses to send anything — SMS, WhatsApp, or Email — through MSG91's API. One key = one bill = one debug surface.</div>
+  <ol>
+    <li>Top-right user menu → <strong>API → Auth Key</strong> (or left nav → API → Configure)
+      <br>Direct link: <a href="https://control.msg91.com/app/api" target="_blank">https://control.msg91.com/app/api</a>
+    </li>
+    <li>Copy the Auth Key (long alphanumeric like <code>438273AbcXyZ1234567890</code>)</li>
+    <li>Save in vault as <code>MSG91_AUTH_KEY</code>.</li>
+  </ol>
+  <div class="ok">⚠️ The same Auth Key works for SMS, WhatsApp, AND Email. You don't need 3 different keys.</div>
+
+  <h3 id="msg-3">4.3 Top up the wallet</h3>
+  <div class="why"><strong>Why:</strong> MSG91 is prepaid. After trial credits run out (~100 messages), sends silently fail with "Insufficient credits." Top up before going live.</div>
+  <ol>
+    <li>Left nav → <strong>Wallet → Recharge</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/wallet" target="_blank">https://control.msg91.com/app/wallet</a>
+    </li>
+    <li>Recharge ₹500–1000 to start (enough for thousands of test SMS + WhatsApp).</li>
+    <li>UPI/card/netbanking accepted.</li>
+  </ol>
+
+  <!-- SMS -->
+  <h3 id="msg-sms">4.4 Set up SMS channel</h3>
+  <div class="warn"><strong>Prerequisite:</strong> DLT registration done (Section 3). Without DLT IDs, you cannot configure SMS in MSG91.</div>
+
+  <h4>4.4a Add your DLT entity to MSG91</h4>
+  <div class="why"><strong>Why:</strong> MSG91 needs to know which DLT entity to "attach" to each SMS so telcos accept it.</div>
+  <ol>
+    <li>Left nav → <strong>SMS → Settings → DLT Info</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/sms/dlt" target="_blank">https://control.msg91.com/app/sms/dlt</a>
+    </li>
+    <li>Enter:
+      <ul>
+        <li>DLT Operator: Jio Trueconnect (or whichever you used)</li>
+        <li>Entity Name: &lt;legal entity name, EXACTLY as on DLT portal&gt;</li>
+        <li>Entity ID: &lt;18–19 digit number from DLT&gt;</li>
+      </ul>
+    </li>
+    <li>Save.</li>
+  </ol>
+
+  <h4>4.4b Add the approved header</h4>
+  <ol>
+    <li>SMS → Settings → Sender IDs</li>
+    <li>Click <strong>+ Add Sender ID</strong></li>
+    <li>Enter <code>AZKSHN</code>, category = Transactional, paste Header ID from DLT.</li>
+    <li>Save.</li>
+  </ol>
+
+  <h4>4.4c Add approved templates</h4>
+  <ol>
+    <li>SMS → Templates (or OTP → Templates for OTP-specific)
+      <br>Direct link: <a href="https://control.msg91.com/app/sms/templates" target="_blank">https://control.msg91.com/app/sms/templates</a>
+    </li>
+    <li>Click <strong>+ Add Template</strong></li>
+    <li>For each DLT-approved template:
+      <ul>
+        <li>Name: <code>OTP_SIGNUP_LOGIN</code> (internal)</li>
+        <li>DLT Template ID: paste from Trueconnect</li>
+        <li>Template Body: paste EXACT approved body (variable syntax stays <code>{#var#}</code>)</li>
+        <li>Header: pick <code>AZKSHN</code></li>
+        <li>Category: Transactional / Service Implicit</li>
+      </ul>
+    </li>
+    <li>Save.</li>
+    <li>MSG91 generates an <strong>internal template_id</strong> (short ID) — BE team uses THIS, not the DLT ID.</li>
+  </ol>
+
+  <h4>4.4d Test SMS</h4>
+  <ol>
+    <li>SMS → Send SMS (or API tester)</li>
+    <li>Send a test OTP to your own phone using template <code>OTP_SIGNUP_LOGIN</code>, variable = <code>123456</code></li>
+    <li>Should arrive within 5–30 seconds with sender <code>AZKSHN</code>.</li>
+  </ol>
+  <p>If it doesn't arrive: check wallet > 0, check DLT entity/header status = Active in MSG91, check template body matches DLT exactly (a stray space = silent block).</p>
+
+  <h4>4.4e Hand off to the BE team</h4>
+  <pre>MSG91_AUTH_KEY=...                                  ← from step 4.2
+MSG91_SENDER_ID=AZKSHN
+MSG91_OTP_TEMPLATE_ID=&lt;MSG91 internal template_id&gt;  ← NOT the DLT ID
+MSG91_PAYMENT_CONFIRM_TEMPLATE_ID=...
+MSG91_PASSWORD_RESET_TEMPLATE_ID=...
+MSG91_OTP_EXPIRY_MINUTES=10
+MSG91_OTP_LENGTH=6</pre>
+
+  <!-- WhatsApp -->
+  <h3 id="msg-wa">4.5 Set up WhatsApp channel</h3>
+  <div class="warn"><strong>Prerequisite:</strong> Meta Business Verification + a clean phone number. Walkthrough below.</div>
+
+  <h4>4.5a Get a clean WhatsApp number</h4>
+  <div class="why"><strong>Why:</strong> WhatsApp Business API requires a dedicated number. Once it's bound to the API, that number can't be used on regular WhatsApp anymore. So we need a fresh / freed-up number.</div>
+  <ul>
+    <li>Must be a number <strong>NOT currently active</strong> on regular WhatsApp or WhatsApp Business app.</li>
+    <li>Mobile, landline, or toll-free all work — must be able to receive 1 verification call/SMS from Meta.</li>
+    <li>If the number is currently on WhatsApp: open WhatsApp → Settings → Account → <strong>Delete My Account</strong> → wait 30 mins → number is free.</li>
+  </ul>
+
+  <h4>4.5b Set up Meta Business Manager</h4>
+  <div class="why"><strong>Why Meta Business Manager:</strong> Meta (owner of Facebook + WhatsApp) requires a verified business account before letting anyone send messages through the WhatsApp Business API. Business Manager is the parent container holding ad accounts, WhatsApp accounts, and ownership of FB Pages — all under one verified business identity.</div>
+  <ol>
+    <li>Go to <a href="https://business.facebook.com/" target="_blank">https://business.facebook.com/</a></li>
+    <li>Sign in with a Facebook account owned by Azkashine (NOT personal account of an employee).</li>
+    <li>Create Business Manager:
+      <ul>
+        <li>Business Name: <code>Azkashine</code></li>
+        <li>Your name + email</li>
+      </ul>
+    </li>
+    <li>Business Settings → Business Info → fill:
+      <ul>
+        <li>Legal business name (must match docs)</li>
+        <li>Address, Phone</li>
+        <li>Website: <code>https://azkashine.com</code></li>
+        <li>Tax ID: GST number</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h4>4.5c Submit Meta Business Verification</h4>
+  <div class="why"><strong>Why Business Verification:</strong> Meta won't let any business send WhatsApp Business API messages until they've verified the business is real (registered, legitimate, contactable). This is the longest-pole task — start TODAY.</div>
+  <ol>
+    <li>Business Settings → <strong>Security Center → Start Verification</strong>
+      <br>Direct link: <a href="https://business.facebook.com/settings/security" target="_blank">https://business.facebook.com/settings/security</a>
+    </li>
+    <li>Upload <strong>legal name proof</strong> (any ONE):
+      <ul>
+        <li>Certificate of Incorporation</li>
+        <li><strong>GST Registration Certificate</strong> (easiest, most accepted)</li>
+        <li>MSME / Udyam certificate</li>
+        <li>Shop &amp; Establishment licence</li>
+        <li>Partnership Deed</li>
+      </ul>
+    </li>
+    <li>Upload <strong>address/contact proof</strong> (any ONE):
+      <ul>
+        <li>Utility bill in company name (last 3 months)</li>
+        <li>Phone bill in company name</li>
+        <li>OR an <code>@azkashine.com</code> email (often sufficient on its own)</li>
+      </ul>
+    </li>
+    <li>Meta will: auto-check via data sources, sometimes call the business phone, rarely send a code by mail.</li>
+  </ol>
+  <p><strong>Timeline:</strong> 24–48h clean, 1–2 weeks realistic.</p>
+
+  <h4>4.5d Connect MSG91 as the BSP</h4>
+  <div class="why"><strong>Why BSP (Business Solution Provider):</strong> Meta doesn't expose the WhatsApp Business API directly to most companies. They route everything through approved BSPs — companies like MSG91 that handle the technical plumbing on Meta's behalf. We pick MSG91 as our BSP, and MSG91 connects to our Meta business account.</div>
+  <ol>
+    <li>MSG91 dashboard → Left nav → <strong>WhatsApp</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/whatsapp" target="_blank">https://control.msg91.com/app/whatsapp</a>
+    </li>
+    <li>Click <strong>Get Started / Connect WhatsApp</strong></li>
+    <li>MSG91 walks through Embedded Signup:
+      <ul>
+        <li>Click "Continue with Facebook"</li>
+        <li>Login with Azkashine Facebook account</li>
+        <li>Authorize MSG91 to access Business Manager</li>
+        <li><strong>Select / Create WhatsApp Business Account (WABA)</strong> inside Meta</li>
+        <li>Add the clean phone number from 4.5a</li>
+        <li>Meta sends OTP to that number (SMS or voice) → enter in flow</li>
+      </ul>
+    </li>
+    <li><strong>Display Name:</strong>
+      <ul>
+        <li>Enter <code>Azkashine</code> — what users see in WhatsApp instead of a number</li>
+        <li>Meta reviews: must closely match verified business name + brand on website/social</li>
+        <li>Rejection causes: generic words ("Service", "Info"), URLs, emojis, mismatch</li>
+      </ul>
+    </li>
+    <li>Meta approves display name in hours to 2 days.</li>
+  </ol>
+
+  <h4>4.5e Submit message templates</h4>
+  <div class="why"><strong>Why templates:</strong> Meta only lets businesses send pre-approved message bodies (templates / HSMs) for business-initiated WhatsApp. This stops spam. Each template gets reviewed by Meta and given an ID.</div>
+  <ol>
+    <li>MSG91 → <strong>WhatsApp → Templates → + Create New</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/whatsapp/templates" target="_blank">https://control.msg91.com/app/whatsapp/templates</a>
+    </li>
+    <li>For each template:
+      <ul>
+        <li>Template name (lowercase, underscores): e.g. <code>azkashine_otp_v1</code></li>
+        <li>Category:
+          <ul>
+            <li><strong>Authentication</strong> — OTP, password reset (cheapest, no marketing language)</li>
+            <li><strong>Utility</strong> — app status, interview reminders, payment confirmation (free inside 24h window)</li>
+            <li><strong>Marketing</strong> — promotional broadcasts (7x cost; avoid unless needed)</li>
+          </ul>
+        </li>
+        <li>Language: English (India)</li>
+        <li>Body: paste text, use <code>{{1}}, {{2}}</code> for variables (WhatsApp uses <code>{{n}}</code>, NOT <code>{#var#}</code> — different from SMS DLT)</li>
+        <li>Optional: header (text/image/document), footer, buttons (call/URL/quick-reply)</li>
+      </ul>
+    </li>
+    <li>Submit → Meta reviews → minutes to 24h.</li>
+  </ol>
+
+  <h4>Template list with suggested bodies</h4>
+  <table>
+    <tr><th>Key</th><th>Category</th><th>Body</th></tr>
+    <tr><td><code>azkashine_otp_v1</code></td><td>Authentication</td><td>{{1}} is your Azkashine verification code. Do not share this code with anyone.</td></tr>
+    <tr><td><code>app_accepted_v1</code></td><td>Utility</td><td>Good news! Your application for {{1}} at {{2}} has been accepted. The recruiter will reach out soon.</td></tr>
+    <tr><td><code>app_rejected_v1</code></td><td>Utility</td><td>Update on your application for {{1}} at {{2}}: the recruiter has decided to move forward with other candidates. Keep applying.</td></tr>
+    <tr><td><code>app_shortlisted_v1</code></td><td>Utility</td><td>You've been shortlisted for {{1}} at {{2}}! The recruiter may contact you for an interview.</td></tr>
+    <tr><td><code>interview_scheduled_v1</code></td><td>Utility</td><td>Interview scheduled for {{1}} at {{2}}. Date: {{3}}, Time: {{4}}. Mode: {{5}}.</td></tr>
+    <tr><td><code>interview_24h_v1</code></td><td>Utility</td><td>Reminder: Your interview with {{1}} for {{2}} is tomorrow at {{3}}. Be prepared!</td></tr>
+    <tr><td><code>interview_2h_v1</code></td><td>Utility</td><td>Final reminder: Your interview with {{1}} is in 2 hours at {{2}}.</td></tr>
+    <tr><td><code>payment_confirmed_v1</code></td><td>Utility</td><td>Payment of ₹{{1}} confirmed for your Azkashine {{2}} subscription. Active till {{3}}.</td></tr>
+    <tr><td><code>doc_approved_v1</code></td><td>Utility</td><td>Your document ({{1}}) has been verified on Azkashine. You can now apply to verified-only jobs.</td></tr>
+    <tr><td><code>doc_rejected_v1</code></td><td>Utility</td><td>Your document ({{1}}) could not be verified. Reason: {{2}}. Please re-upload from your Azkashine profile.</td></tr>
+    <tr><td><code>employer_message_v1</code></td><td>Utility</td><td>New message from {{1}} about {{2}}. Open Azkashine to reply.</td></tr>
+    <tr><td><code>password_reset_v1</code></td><td>Authentication</td><td>{{1}} is your Azkashine password reset code. Valid for 10 mins.</td></tr>
+  </table>
+  <p>After approval, each template returns a <strong>template name + namespace</strong> (e.g. namespace <code>abc123_de45_6789_xyz</code>, name <code>azkashine_otp_v1</code>). Save both.</p>
+
+  <h4>4.5f Configure WhatsApp webhooks</h4>
+  <div class="why"><strong>Why webhooks:</strong> Two reasons — (1) when a user replies to a WhatsApp message, BE needs to know so chat works; (2) BE needs delivery/read receipts to update message status in the app.</div>
+  <ol>
+    <li>MSG91 → <strong>WhatsApp → Webhook (New) → + Create</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/whatsapp/webhook" target="_blank">https://control.msg91.com/app/whatsapp/webhook</a>
+    </li>
+    <li>Add two webhooks:
+      <ul>
+        <li><strong>On Inbound Request Received:</strong> URL <code>https://staging.azkashine.com/api/webhooks/msg91/whatsapp/incoming</code></li>
+        <li><strong>On Inbound Report Received:</strong> URL <code>https://staging.azkashine.com/api/webhooks/msg91/whatsapp/status</code></li>
+      </ul>
+    </li>
+    <li>Method: POST. MSG91 retries up to 4 times if your server doesn't respond in 8 seconds.</li>
+  </ol>
+  <p>(BE team confirms exact URL paths — placeholders above.)</p>
+
+  <h4>4.5g Hand off to the BE team</h4>
+  <pre># WhatsApp (same auth key as SMS)
+MSG91_WA_INTEGRATED_NUMBER=+91XXXXXXXXXX        ← verified business number
+MSG91_WA_NAMESPACE=abc123_de45_6789_xyz         ← Meta's namespace string
+MSG91_WA_TEMPLATE_OTP=azkashine_otp_v1
+MSG91_WA_TEMPLATE_APP_ACCEPTED=app_accepted_v1
+MSG91_WA_TEMPLATE_APP_REJECTED=app_rejected_v1
+MSG91_WA_TEMPLATE_APP_SHORTLISTED=app_shortlisted_v1
+MSG91_WA_TEMPLATE_INTERVIEW_SCHEDULED=interview_scheduled_v1
+MSG91_WA_TEMPLATE_INTERVIEW_24H=interview_24h_v1
+MSG91_WA_TEMPLATE_INTERVIEW_2H=interview_2h_v1
+MSG91_WA_TEMPLATE_PAYMENT_CONFIRMED=payment_confirmed_v1
+MSG91_WA_TEMPLATE_DOC_APPROVED=doc_approved_v1
+MSG91_WA_TEMPLATE_DOC_REJECTED=doc_rejected_v1
+MSG91_WA_TEMPLATE_EMPLOYER_MESSAGE=employer_message_v1
+MSG91_WA_TEMPLATE_PASSWORD_RESET=password_reset_v1</pre>
+
+  <!-- Email -->
+  <h3 id="msg-email">4.6 Set up Email channel</h3>
+  <div class="why"><strong>Why Email through MSG91:</strong> Keeping email on the same vendor as SMS + WhatsApp means one dashboard, one bill, one debug surface. Password reset emails, payment receipts, and corporate-approval emails all flow through here.</div>
+
+  <h4>4.6a Add the domain in MSG91</h4>
+  <ol>
+    <li>MSG91 → <strong>Email → Domains</strong>
+      <br>Direct link: <a href="https://control.msg91.com/app/email/domains" target="_blank">https://control.msg91.com/app/email/domains</a>
+    </li>
+    <li>Click <strong>+ Add Domain</strong></li>
+    <li>Enter <code>azkashine.com</code></li>
+    <li>MSG91 generates 3 DNS records:
+      <ul>
+        <li><strong>SPF</strong> (TXT) — proves MSG91 can send on our behalf</li>
+        <li><strong>DKIM</strong> (TXT) — cryptographic signature, prevents spoofing</li>
+        <li><strong>DMARC</strong> (TXT) — policy for handling failures</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h4>4.6b Add DNS records on your domain</h4>
+  <div class="why"><strong>Why DNS records:</strong> They're proof to receiving email servers (Gmail, Outlook) that we authorized MSG91 to send on behalf of azkashine.com. Without them, our emails land in spam or get rejected.</div>
+  <p>Wherever azkashine.com DNS is managed (GoDaddy / Cloudflare / Route53 / etc.):</p>
+  <pre>Record 1 (SPF)
+Type: TXT
+Host: @
+Value: v=spf1 include:msg91.com ~all
+
+Record 2 (DKIM)
+Type: TXT
+Host: msg91._domainkey  (or whatever MSG91 specifies)
+Value: &lt;long crypto key MSG91 gives you&gt;
+
+Record 3 (DMARC) — optional but recommended
+Type: TXT
+Host: _dmarc
+Value: v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@azkashine.com</pre>
+  <p>Save. DNS propagation: 15 mins to 24 hours.</p>
+
+  <h4>4.6c Verify the domain</h4>
+  <ol>
+    <li>Back in MSG91 → Email → Domains → click <strong>Verify</strong></li>
+    <li>MSG91 queries DNS → if records match → status flips to <strong>Verified ✅</strong></li>
+  </ol>
+
+  <h4>4.6d Create email templates</h4>
+  <table>
+    <tr><th>Key</th><th>Subject</th><th>Use</th></tr>
+    <tr><td><code>email_otp_password_reset</code></td><td>Reset your Azkashine password</td><td>Password reset OTP</td></tr>
+    <tr><td><code>email_corporate_approved</code></td><td>Your Azkashine Business account is approved</td><td>Employer corporate account approval</td></tr>
+    <tr><td><code>email_corporate_rejected</code></td><td>Update on your Azkashine Business account</td><td>Employer corporate account rejection</td></tr>
+    <tr><td><code>email_payment_receipt</code></td><td>Payment receipt for your Azkashine subscription</td><td>Razorpay-confirmed payment</td></tr>
+  </table>
+  <p>Use <code>{{var}}</code> for variables. Plain text + HTML versions.</p>
+
+  <h4>4.6e Hand off to the BE team</h4>
+  <pre>MSG91_AUTH_KEY=...                              ← same as SMS/WA
+MSG91_EMAIL_FROM=noreply@azkashine.com
+MSG91_EMAIL_FROM_NAME=Azkashine
+MSG91_EMAIL_DOMAIN_ID=&lt;from MSG91 domain page&gt;
+MSG91_EMAIL_TEMPLATE_PASSWORD_RESET=email_otp_password_reset
+MSG91_EMAIL_TEMPLATE_CORP_APPROVED=email_corporate_approved
+MSG91_EMAIL_TEMPLATE_CORP_REJECTED=email_corporate_rejected
+MSG91_EMAIL_TEMPLATE_PAYMENT_RECEIPT=email_payment_receipt</pre>
+
+  <div class="gotchas" id="msg-gotchas">
+    <h4>Gotchas across MSG91</h4>
+    <ul>
+      <li><strong>One Auth Key for everything.</strong> Don't generate separate keys for SMS/WA/Email.</li>
+      <li><strong>Wallet runs dry silently</strong> — MSG91 keeps accepting API calls even with low balance, messages don't go out. Set balance alerts at ₹200.</li>
+      <li><strong>WhatsApp templates use <code>{{n}}</code> (numbered), DLT SMS templates use <code>{#var#}</code>.</strong> Don't mix syntaxes.</li>
+      <li><strong>Authentication category WhatsApp templates</strong> have strict rules (no marketing language, no URLs except OTP autofill). Misuse → Meta re-categorizes to Marketing → 7x cost.</li>
+      <li><strong>24-hour customer service window for WhatsApp:</strong> once a user messages YOU first, you can send free-form messages back for 24h. Outside that, only approved templates. Utility templates are FREE inside the window.</li>
+      <li><strong>Email deliverability tanks without DMARC</strong> — Gmail/Outlook increasingly require it.</li>
+      <li><strong>MSG91 charges a small platform fee for WhatsApp</strong> (~₹500/month per number, often waived first 2 months).</li>
+      <li><strong>BSP migration</strong> — once on MSG91 for WhatsApp, moving later takes 5–10 days + Meta approval.</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="major" id="multilang">
+  <h2>5. Multi-Language Strategy &amp; Cost</h2>
+  <div class="timebox">Languages in scope: 10 Indian languages (English, Hindi, Tamil, Telugu, Kannada, Malayalam, Bengali, Marathi, Gujarati, Punjabi) · Per project charter</div>
+
+  <p>Job seekers come from different states and we support 9–10 languages in the UI. But sending <strong>notifications</strong> in those same languages affects each channel differently — some are free, one is expensive.</p>
+
+  <h3 id="ml-summary">5.1 Channel-by-channel summary</h3>
+  <table>
+    <tr>
+      <th>Channel</th>
+      <th>Languages supported</th>
+      <th>Cost impact per language</th>
+      <th>Template approval burden</th>
+    </tr>
+    <tr>
+      <td><strong>SMS</strong></td>
+      <td>Unlimited (Unicode), each language = NEW DLT template to register</td>
+      <td><strong>1.5–2× more</strong> per send for non-English</td>
+      <td>3 base × 10 lang = 30 DLT templates</td>
+    </tr>
+    <tr>
+      <td><strong>WhatsApp</strong></td>
+      <td>60+ languages, each = NEW Meta-approved template</td>
+      <td><strong>Same cost</strong> as English</td>
+      <td>12 base × 10 lang = 120 Meta templates</td>
+    </tr>
+    <tr>
+      <td><strong>Email</strong></td>
+      <td>Unlimited (Unicode/UTF-8)</td>
+      <td><strong>Same cost</strong> as English</td>
+      <td>4 base × 10 lang = 40 templates (no external approval)</td>
+    </tr>
+  </table>
+  <div class="ok"><strong>Takeaway:</strong> WhatsApp + Email are language-neutral on cost. SMS is where multi-language gets expensive.</div>
+
+  <h3 id="ml-sms">5.2 SMS — the expensive one</h3>
+  <div class="why"><strong>Why SMS gets expensive in regional languages:</strong> English uses GSM-7 encoding (160 chars/segment). Indian scripts (Hindi/Tamil/Telugu/Bengali/Marathi/Gujarati/Kannada/Malayalam/Punjabi) all use Unicode UCS-2 encoding (only 70 chars/segment). So the same OTP message becomes 2–3 segments in regional languages, and you pay per segment.</div>
+
+  <h4>Cost example — typical OTP message</h4>
+  <p>"Your Azkashine verification OTP is 123456. Valid for 10 mins. Do not share. -AZKSHN" = ~85 characters</p>
+  <table>
+    <tr><th>Language</th><th>Encoding</th><th>Chars/segment</th><th>Segments</th><th>Rate/segment</th><th>Cost/SMS</th></tr>
+    <tr><td>English</td><td>GSM-7</td><td>160</td><td>1</td><td>~₹0.20</td><td><strong>~₹0.20</strong></td></tr>
+    <tr><td>Hindi (Devanagari)</td><td>Unicode</td><td>70</td><td>2</td><td>~₹0.20</td><td><strong>~₹0.40</strong></td></tr>
+    <tr><td>Tamil</td><td>Unicode</td><td>70</td><td>2</td><td>~₹0.20</td><td><strong>~₹0.40</strong></td></tr>
+    <tr><td>Telugu / Bengali / Marathi / Gujarati / Kannada / Malayalam / Punjabi</td><td>Unicode</td><td>70</td><td>2–3</td><td>~₹0.20</td><td><strong>~₹0.40–0.60</strong></td></tr>
+  </table>
+  <p>The same OTP costs <strong>2× in any regional language</strong> vs English. Longer messages (interview reminders, payment confirmations) can hit 3× because they spill to a 3rd segment.</p>
+
+  <h4>DLT registration burden</h4>
+  <ul>
+    <li>Every language needs a SEPARATE DLT-approved template</li>
+    <li>3 base templates (OTP, payment confirm, password reset) × 10 languages = <strong>30 DLT templates to register</strong></li>
+    <li>Each template approval = 1–3 working days</li>
+    <li>Direct cost: ₹0 per template (DLT entity fee already paid). Operational time: 2–4 weeks to file all 30.</li>
+  </ul>
+
+  <h3 id="ml-wa">5.3 WhatsApp — cost-neutral, best channel for multi-language</h3>
+  <div class="why"><strong>Why WhatsApp is the smart channel for an Indian regional-language portal:</strong> Cost per message is identical regardless of language. Native scripts render correctly. The 24-hour customer service window makes Utility messages FREE. That's why the project charter locks WhatsApp as the primary channel and SMS as fallback.</div>
+
+  <h4>Coverage</h4>
+  <ul>
+    <li>WhatsApp Business API supports <strong>60+ languages</strong> — way more than your 10</li>
+    <li>Each language version is submitted separately to Meta for approval</li>
+    <li>12 templates × 10 languages = <strong>120 template approvals</strong> (minutes to 24h each, can submit in batches)</li>
+  </ul>
+
+  <h4>Cost — same regardless of language</h4>
+  <table>
+    <tr><th>Template type</th><th>Cost in any language</th></tr>
+    <tr><td>Authentication (OTP, password reset)</td><td>~₹0.115/msg</td></tr>
+    <tr><td>Utility (job status, interview reminders, payment confirmation)</td><td><strong>FREE inside 24h customer-service window</strong>, else ~₹0.115/msg</td></tr>
+    <tr><td>Marketing</td><td>~₹0.78/msg (avoid)</td></tr>
+  </table>
+
+  <h3 id="ml-email">5.4 Email — also cost-neutral</h3>
+  <ul>
+    <li>UTF-8 handles all 10 Indian scripts natively — no encoding penalty</li>
+    <li>Same cost per email regardless of language: ~₹0.10–0.15/email</li>
+    <li>Templates: 4 base × 10 languages = 40 email templates in MSG91 dashboard (no external approval needed)</li>
+    <li>Operational lift: low — translate once, paste into MSG91, done</li>
+  </ul>
+
+  <h3 id="ml-recommend">5.5 Phased rollout recommendation</h3>
+  <div class="why"><strong>Why phase the rollout:</strong> Filing 30 DLT templates + 120 Meta templates simultaneously is a procurement bottleneck. Starting with 2 languages covers most of your user base in v1 and lets the rest land over the following weeks without blocking launch.</div>
+
+  <h4>Phase 1 — Launch (Sprint 1-3)</h4>
+  <ul>
+    <li><strong>English + Hindi only</strong> on all channels</li>
+    <li>Covers ~70% of users + diaspora</li>
+    <li>6 SMS DLT templates (3 × 2 languages)</li>
+    <li>24 WhatsApp templates (12 × 2 languages)</li>
+    <li>8 email templates (4 × 2 languages)</li>
+    <li><strong>~80% less procurement load</strong> than 10-language launch</li>
+  </ul>
+
+  <h4>Phase 2 — Post-launch (over 4–6 weeks)</h4>
+  <ul>
+    <li>Add Tamil, Telugu, Kannada, Malayalam, Bengali, Marathi, Gujarati, Punjabi</li>
+    <li>Roll out per-region as user base grows</li>
+    <li>Spread the DLT/Meta approval load across multiple weeks</li>
+    <li>Each new language unlocks per state's user adoption</li>
+  </ul>
+
+  <h3 id="ml-budget">5.6 Monthly cost cheat-sheet</h3>
+  <p>Realistic estimate at <strong>~10,000 active users</strong> (assumption: 2 OTPs + 3 Utility notifications per user per month):</p>
+  <table>
+    <tr><th>Scenario</th><th>SMS</th><th>WhatsApp</th><th>Email</th><th>Total / month</th></tr>
+    <tr><td>English-only</td><td>~₹4,000</td><td>~₹2,300</td><td>~₹500</td><td><strong>~₹6,800</strong></td></tr>
+    <tr><td>English + Hindi (Phase 1)</td><td>~₹5,400</td><td>~₹2,300</td><td>~₹500</td><td><strong>~₹8,200</strong></td></tr>
+    <tr><td>All 10 languages (Phase 2)</td><td>~₹6,800</td><td>~₹2,300</td><td>~₹500</td><td><strong>~₹9,600</strong></td></tr>
+  </table>
+  <p>Multi-language premium = roughly <strong>+₹2,800/month</strong> at 10K users, almost entirely from SMS Unicode penalty. WhatsApp + Email are essentially free to scale across languages.</p>
+
+  <h4>Scaling to 100K users</h4>
+  <ul>
+    <li>All 10 languages, 100K users → estimated <strong>~₹80,000–100,000/month</strong> total notification spend</li>
+    <li>Vast majority of that is SMS — strong financial case to push WhatsApp adoption (use SMS as fallback only)</li>
+  </ul>
+
+  <h3 id="ml-flag">5.7 Important note to flag for senior</h3>
+  <div class="warn">
+    <p>The 10-language launch promise from the <strong>project charter §4.1</strong> is mostly about <strong>UI strings</strong> — buttons, labels, error messages — which is a one-time translation cost already in scope.</p>
+    <p><strong>Notification templates are a SEPARATE deliverable</strong> that needs explicit ownership:</p>
+    <ul>
+      <li>DLT template registration: ~30 templates × 1–3 days approval each</li>
+      <li>WhatsApp template approval: ~120 submissions to Meta</li>
+      <li>Translation cost: budget for native-speaker review on every message body (a wrong word in a Tamil OTP gets reported as a scam — high reputational risk)</li>
+      <li>Recommended: <strong>launch with English + Hindi</strong> for v1, file the other 8 languages post-launch as user adoption grows in each region</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="major" id="handoff">
+  <h2>6. Final Hand-off Summary for the BE team</h2>
+  <div class="timebox">Paste this entire block into the vault / DM once all values are filled in.</div>
+
+  <pre>=== Google OAuth ===
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=https://staging.azkashine.com/api/auth/google/callback
+
+=== Razorpay (test) ===
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=azk_rzp_whk_a7Xq92Lm
+RAZORPAY_PLAN_PRO_MONTHLY=plan_NXyZ123abc
+
+=== Razorpay (live, after KYC) ===
+RAZORPAY_KEY_ID=rzp_live_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=azk_rzp_whk_prod_...
+RAZORPAY_PLAN_PRO_MONTHLY=plan_&lt;live&gt;...
+
+=== MSG91 (shared Auth Key for SMS + WhatsApp + Email) ===
+MSG91_AUTH_KEY=...
+
+# SMS
+MSG91_SENDER_ID=AZKSHN
+MSG91_OTP_TEMPLATE_ID=...
+MSG91_PAYMENT_CONFIRM_TEMPLATE_ID=...
+MSG91_PASSWORD_RESET_TEMPLATE_ID=...
+MSG91_OTP_EXPIRY_MINUTES=10
+MSG91_OTP_LENGTH=6
+
+# WhatsApp
+MSG91_WA_INTEGRATED_NUMBER=+91XXXXXXXXXX
+MSG91_WA_NAMESPACE=abc123_de45_6789_xyz
+MSG91_WA_TEMPLATE_OTP=azkashine_otp_v1
+MSG91_WA_TEMPLATE_APP_ACCEPTED=app_accepted_v1
+MSG91_WA_TEMPLATE_APP_REJECTED=app_rejected_v1
+MSG91_WA_TEMPLATE_APP_SHORTLISTED=app_shortlisted_v1
+MSG91_WA_TEMPLATE_INTERVIEW_SCHEDULED=interview_scheduled_v1
+MSG91_WA_TEMPLATE_INTERVIEW_24H=interview_24h_v1
+MSG91_WA_TEMPLATE_INTERVIEW_2H=interview_2h_v1
+MSG91_WA_TEMPLATE_PAYMENT_CONFIRMED=payment_confirmed_v1
+MSG91_WA_TEMPLATE_DOC_APPROVED=doc_approved_v1
+MSG91_WA_TEMPLATE_DOC_REJECTED=doc_rejected_v1
+MSG91_WA_TEMPLATE_EMPLOYER_MESSAGE=employer_message_v1
+MSG91_WA_TEMPLATE_PASSWORD_RESET=password_reset_v1
+
+# Email
+MSG91_EMAIL_FROM=noreply@azkashine.com
+MSG91_EMAIL_FROM_NAME=Azkashine
+MSG91_EMAIL_DOMAIN_ID=...
+MSG91_EMAIL_TEMPLATE_PASSWORD_RESET=email_otp_password_reset
+MSG91_EMAIL_TEMPLATE_CORP_APPROVED=email_corporate_approved
+MSG91_EMAIL_TEMPLATE_CORP_REJECTED=email_corporate_rejected
+MSG91_EMAIL_TEMPLATE_PAYMENT_RECEIPT=email_payment_receipt</pre>
+
+  <div class="ok"><strong>Done.</strong> Once every line above has a real value, the BE team is fully unblocked on Sprint 1 external integrations.</div>
+</section>
+
+</main>
+
+</div>
+
+</body>
+</html>

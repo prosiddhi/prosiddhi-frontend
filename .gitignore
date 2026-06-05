@@ -49,3 +49,8 @@ next-env.d.ts
 
 # Claude Code — personal/local settings (agents + CLAUDE.md ARE shared)
 .claude/settings.local.json
+
+# Binary reference docs — keep out of git (the .md sources are tracked; PDFs are rendered copies)
+*.pdf
+*.docx
+*.zip

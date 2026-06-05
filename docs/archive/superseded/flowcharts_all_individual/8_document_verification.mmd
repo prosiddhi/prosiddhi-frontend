@@ -1,0 +1,30 @@
+```mermaid
+flowchart TD
+  A[User Uploads Documents] --> B[File Format Check]
+  B --> C{Valid Format?}
+  C -->|No| D[Request Reupload]
+  C -->|Yes| E[OCR Text Extraction]
+  E --> F[Document Type Detection]
+  F --> G[AI Authenticity Check]
+  G --> H{Auto-Verification Pass?}
+  H -->|Yes| I[Mark as Verified]
+  H -->|No| J[Queue for Manual Review]
+  I --> K[Add Verification Badge]
+  K --> L[Notify User - Approved]
+  J --> M[Agent Manual Review]
+  M --> N[Cross-check with Database]
+  N --> O{Documents Valid?}
+  O -->|Yes| I
+  O -->|No| P[Request Additional Documents]
+  O -->|Unclear| Q[Request Phone Verification]
+  P --> R[Notify User - Resubmit]
+  Q --> S[Schedule Verification Call]
+  S --> T[Conduct Phone Verification]
+  T --> U{Phone Verification Pass?}
+  U -->|Yes| I
+  U -->|No| V[Mark as Unverified]
+  V --> W[Notify User - Rejected]
+  D --> X[User Resubmits]
+  R --> X
+  X --> A
+```
