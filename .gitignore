@@ -46,3 +46,6 @@ next-env.d.ts
 # Local database
 *.db
 *.db-journal
+
+# Claude Code — personal/local settings (agents + CLAUDE.md ARE shared)
+.claude/settings.local.json
