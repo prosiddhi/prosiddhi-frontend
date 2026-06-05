@@ -2,6 +2,17 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+
+  // Emit a self-contained server build (.next/standalone) for lean Docker images.
+  // Required by the Dockerfile in this repo. Has no effect on `next start` / `next dev`.
+  output: 'standalone',
+
+  // Do not fail the production build on ESLint errors — lint is run as a
+  // separate dev/CI step (`npm run lint`). TypeScript type-checking still
+  // runs during the build and WILL block on real type errors.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   
   // Performance optimizations
   compiler: {
