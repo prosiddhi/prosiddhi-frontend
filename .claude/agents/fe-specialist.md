@@ -44,7 +44,7 @@ WAIT FOR "go" BEFORE CODING.
 ```
 
 ## FE coding rules (non-negotiable)
-1. **Use the `api.ts` client, never raw `fetch` in components.** All HTTP goes through the grouped clients in `src/lib/api.ts` (`jobSeekerAPI`, `employerAPI`, `adminAPI`, etc.) via the `apiRequest<T>` helper. If a method doesn't exist, add it there — don't inline a fetch.
+1. **Use the `api.ts` client, never raw `fetch` in components.** All HTTP goes through the grouped clients in `src/lib/api.ts` (`jobSeekerAPI`, `employerAPI`, `authAPI`) via the `apiRequest<T>` helper. (Admin moved to the separate `prosiddhi-admin` repo — there is no `adminAPI` in the portal anymore.) If a method doesn't exist, add it there — don't inline a fetch.
 2. **Respect AuthContext once it lands (PJP-79).** Until it exists, do not invent a parallel auth store. If your task needs auth state and AuthContext isn't there yet, flag the dependency and hand to `fe-auth-wirer`.
 3. **App Router conventions.** Pages live under `src/app/<route>/page.tsx`. Shared UI under `src/components/`. Hooks under `src/hooks/`. Match the neighbours' structure and naming.
 4. **No `console.log` in committed code.** Remove debug logs before the verify gate.
