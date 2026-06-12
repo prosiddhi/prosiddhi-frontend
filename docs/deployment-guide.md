@@ -144,7 +144,7 @@ CMD ["node", "dist/index.js"]
 | `MAX_FILE_SIZE` | ✅ | `5242880` (5 MB) |
 | `UPLOAD_DIR` | ✅ | `uploads` (but see §7 — local disk is ephemeral on Cloud Run) |
 
-> **Integration keys** (MSG91, Razorpay, Google OAuth, OpenAI, FCM) — full list in `docs/technical/security-spec.md`. Add them only as those features are enabled; they're not required for the core API to boot.
+> **Integration keys** (MSG91, Razorpay, Google OAuth, OpenAI, FCM) — full list in `docs/security-spec.md`. Add them only as those features are enabled; they're not required for the core API to boot.
 
 ---
 

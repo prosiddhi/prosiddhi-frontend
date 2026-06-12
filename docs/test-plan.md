@@ -14,7 +14,7 @@
 
 - The Test Plan is **owned by Najeeb** as QA Lead (supported by Farhana, QA junior) from handover (2026-06-22) onward. This document is a starting point for them to fill in.
 - **Tooling choice is Najeeb's call.** Where this skeleton would otherwise prescribe a framework, it instead leaves a `[Najeeb to decide]` marker. A non-binding recommendation (Playwright) appears in the footnote — but the final call is QA's.
-- Scope: covers v1 only, per [`docs/_context/02-scope-locked.md`](../_context/02-scope-locked.md). v2 features are out of scope for testing — see Section 7.
+- Scope: covers v1 only, per [`docs/_context/02-scope-locked.md`](_context/02-scope-locked.md). v2 features are out of scope for testing — see Section 7.
 
 ---
 
@@ -109,16 +109,15 @@ The scenarios below are the must-pass set for QA handover on **2026-06-22**. The
 - **[Najeeb to confirm by 2026-05-20]** UAT scenarios — sign off the critical-path list in Section 5; flag any missing must-have.
 - **[Najeeb to decide by 2026-05-25, mid-S1]** **E2E tooling.** Recommended default: **Playwright** (cross-browser + can drive RN via Appium/Maestro alongside) — but the final call is yours. Hard deadline so test infra is ready before S2 features land.
 - **[Najeeb to decide by 2026-05-25]** **CI test gating** — run E2E on every PR, sprint-end only, or a tiered subset (smoke on PR, full nightly)?
-- **[Najeeb to write by 2026-06-01]** **Full test case list per module** — consumes the PRD; one file per module under `docs/managerial/test-cases/M01-...md` … `M15-...md` (path suggestion only, your call).
+- **[Najeeb to write by 2026-06-01]** **Full test case list per module** — consumes the PRD; one file per module under `docs/test-cases/M01-...md` … `M15-...md` (path suggestion only, your call).
 - **[Najeeb to confirm by 2026-06-08]** Staging readiness for the 48-hour pre-handover stability window — coordinate with Nayan.
 
 ---
 
 ## 9. Notes & references
 
-- Charter (success criteria): [`01-project-charter.md`](01-project-charter.md) Section 9.
-- Scope (canonical IN/OUT): [`docs/_context/02-scope-locked.md`](../_context/02-scope-locked.md).
-- Current board / status truth (what's done vs to-do): [`08-ticket-reconciliation.md`](08-ticket-reconciliation.md).
-- Per-ticket Definition of Done now lives in the execution playbook: [`10-portal-execution-playbook.md`](10-portal-execution-playbook.md). (The standalone DoD + standup-template + BE-sync-agenda docs were removed in the 2026-06-13 purge — in git history.)
+- Charter (success criteria): [`charter.md`](charter.md) Section 9.
+- Scope (canonical IN/OUT): [`_context/02-scope-locked.md`](_context/02-scope-locked.md).
+- Current board / status truth + per-ticket Definition of Done: [`execution-playbook.md`](execution-playbook.md) (status analysis in its Appendix A). The standalone DoD / standup-template / BE-sync-agenda docs were removed in the 2026-06-13 purge — in git history.
 
 > Footnote on tooling: Playwright is suggested as a non-binding default because it covers web cross-browser natively and pairs cleanly with Appium/Maestro for the React Native side, giving one assertion style across surfaces. All final calls — framework, runner, reporter, CI gating — are Najeeb's.

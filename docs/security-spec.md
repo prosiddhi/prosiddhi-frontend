@@ -2,7 +2,7 @@
 
 **Owner:** Nazir Hasan (FE + acting PM). **Sponsor:** Shaik Ishaq.
 **Author date:** 2026-05-11. **Target:** QA handover **2026-06-22**.
-**Anchors:** [02-scope-locked.md](../_context/02-scope-locked.md) (D2 + Q3 + module inventory) and the live BE code in `prosiddhi-backend/src/` (the authoritative "what is built today").
+**Anchors:** [02-scope-locked.md](_context/02-scope-locked.md) (D2 + Q3 + module inventory) and the live BE code in `prosiddhi-backend/src/` (the authoritative "what is built today").
 
 This is a project-specific security spec for the actual stack: **Express 5 + Prisma 6 + Zod 4 + JWT (HS256) + PBKDF2 + Multer + Winston** on the BE; Next.js 14 / React Native (Expo) on the clients. It is not a generic OWASP checklist — every line is tied to an existing file, an audit finding, or a locked decision.
 
@@ -124,7 +124,7 @@ Audio duration: FE enforces at record time, BE re-verifies on receipt using ffpr
 
 **A03 Injection** — Prisma 6 is parameterized by default; no raw SQL anywhere in the BE today. **Policy:** raw SQL via `$queryRaw` / `$executeRaw` is prohibited without an explicit security review note in the PR. Audit any new use.
 
-**A04 Insecure Design** — [02-scope-locked.md](../_context/02-scope-locked.md) is the design contract. PRs that introduce features not in the locked scope (Aadhaar, escrow, WebSockets, voice transcription, .ics invites) are scope drift and get rejected at review.
+**A04 Insecure Design** — [02-scope-locked.md](_context/02-scope-locked.md) is the design contract. PRs that introduce features not in the locked scope (Aadhaar, escrow, WebSockets, voice transcription, .ics invites) are scope drift and get rejected at review.
 
 **A05 Security Misconfiguration** — fix audit bug d: `JWT_SECRET` default literal removed; boot assertion added. `.env` files never committed (verify `.gitignore`). Production deploys must not use the example secrets in `.env.example`.
 
@@ -266,4 +266,4 @@ Templates are pre-registered with Meta; message bodies are built at send time by
 
 ## 14. Source of authority
 
-If anything here conflicts with [02-scope-locked.md](../_context/02-scope-locked.md), scope-locked wins and this file gets updated. If anything here conflicts with the BE code (`prosiddhi-backend/src/`), the BE code wins for "what is built today" and this file gets updated; this file wins for "what we are committing to build."
+If anything here conflicts with [02-scope-locked.md](_context/02-scope-locked.md), scope-locked wins and this file gets updated. If anything here conflicts with the BE code (`prosiddhi-backend/src/`), the BE code wins for "what is built today" and this file gets updated; this file wins for "what we are committing to build."

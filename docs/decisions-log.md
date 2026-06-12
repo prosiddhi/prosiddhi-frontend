@@ -1,6 +1,6 @@
 # Decisions Log — Azkashine Job Portal
 
-**Location locked 2026-05-13** as the shared decision-log master per [`docs/_context/02-scope-locked.md`](../_context/02-scope-locked.md) D6.
+**Location locked 2026-05-13** as the shared decision-log master per [`docs/_context/02-scope-locked.md`](_context/02-scope-locked.md) D6.
 
 All three repos (FE, BE, Mobile) write here. Entries are append-only — never delete, only supersede.
 
@@ -46,9 +46,9 @@ For headline scope locks (D1–D7, Q1–Q13 in `02-scope-locked.md`), this log h
 **Owner:** Nazir Hasan (Acting PM)
 **Affects:** All
 **Status:** Locked
-**Related:** Sprint Plan §8 #10 (archived), [02-scope-locked D6](../_context/02-scope-locked.md)
+**Related:** Sprint Plan §8 #10 (archived), [02-scope-locked D6](_context/02-scope-locked.md)
 
-**Decision:** Shared decision log lives at `docs/technical/decisions-log.md` in the FE repo (this file). FE + Mobile + BE all PR into it. Asrar's local `BACKEND_TASK_LIST.md` + `COMPLETED_TASKS.md` to be migrated here.
+**Decision:** Shared decision log lives at `docs/decisions-log.md` in the FE repo (this file). FE + Mobile + BE all PR into it. Asrar's local `BACKEND_TASK_LIST.md` + `COMPLETED_TASKS.md` to be migrated here.
 
 **Reasoning:** Notion considered; rejected because devs already work in git all day and a second tool / login adds friction. Git in FE repo (not BE repo) chosen because FE + Mobile do their daily work in this repo; BE devs already pull this repo for the OpenAPI contract per D7.
 
@@ -76,7 +76,7 @@ For headline scope locks (D1–D7, Q1–Q13 in `02-scope-locked.md`), this log h
 **Owner:** Nazir Hasan (decision); Asrar (proposal + implementation)
 **Affects:** BE + FE web + Mobile
 **Status:** Locked
-**Related:** Asrar BE sync §5, [02-scope-locked D6](../_context/02-scope-locked.md)
+**Related:** Asrar BE sync §5, [02-scope-locked D6](_context/02-scope-locked.md)
 
 **Decision:** Employer registration is now two steps:
 
@@ -138,7 +138,7 @@ Individual employers skip Step 2 entirely and auto-approve on email verify.
 **Owner:** Asrar (proposal); Nazir (acceptance)
 **Affects:** BE
 **Status:** Locked, pending Nazir's external-user audit
-**Related:** Asrar BE sync §5, [02-scope-locked D6](../_context/02-scope-locked.md)
+**Related:** Asrar BE sync §5, [02-scope-locked D6](_context/02-scope-locked.md)
 
 **Decision:** Production BE has zero real users — only `@test.local` test fixtures from Asrar's test scripts. `scripts/cleanup-tests.ts` wipes them before new-auth deploy. No data migration.
 

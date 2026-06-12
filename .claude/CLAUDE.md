@@ -20,20 +20,28 @@
 |---|---|---|
 | 0 — Discovery | FE/BE/UX audit, gaps identified | done |
 | 0.5 — Decision locking | D1–D7 + Q1–Q13 locked; primers written | done |
-| 1 — Managerial | Charter, BE sync, PRD, RTM, Sprint Plan, DoD, Standup, Test Plan | done (all 9 artifacts in `docs/managerial/`) |
+| 1 — Managerial | Charter, BE sync, PRD, RTM, Sprint Plan, DoD, Standup, Test Plan | done (Stage-1 artifacts consolidated/purged 2026-06-13; survivors flat in `docs/`) |
 | 2 — Technical | Security spec, OpenAPI scaffold, DB migrations spec | partly done (Security spec landed; OpenAPI + DB migrations deferred to Asrar in S1) |
 | 3 — Claude operating layer | Lean CLAUDE.md, slash commands, sub-agents, permissions | done (hooks deferred — not critical for v1) |
 | 4 — Execution | S1–S3 sprints; **CODING starts here**, not before | in progress — Sprint 1 (May 12–24) |
 
+## The three repos (standalone, siblings under `Prosiddhi/`)
+
+| Repo | What it is |
+|---|---|
+| **prosiddhi-frontend** | the **portal** — seeker + employer web app (this repo) |
+| **prosiddhi-admin** | the **admin** console (web-only, highest-privilege) |
+| **prosiddhi-backend** | the **API engine** (Express 5 + Prisma) — the real API contract, in `../prosiddhi-backend/src/routes/` |
+
 ## Always read primers first
 
 Before any non-trivial task, read in order:
-1. `docs/_context/README.md`
-2. `docs/_context/01-product-summary.md`
-3. `docs/_context/02-scope-locked.md`
-4. `docs/managerial/08-ticket-reconciliation.md` (current board/status truth) + `docs/managerial/10-portal-execution-playbook.md` (what to build next)
+1. `docs/_context/02-scope-locked.md` — **product summary + canonical locked scope** (D1–D7, Q1–Q13, IN/OUT, risks).
+2. `docs/execution-playbook.md` — the **live ticket tracker** (what's done / build next), with the status-reconciliation analysis as Appendix A.
 
-These replace re-ingesting the [Figma design file](https://www.figma.com/design/fzkZeIzkrU7MRLwunuYbTf/Job-Portal) ([mobile prototype view](https://www.figma.com/proto/fzkZeIzkrU7MRLwunuYbTf/Job-Portal?node-id=809-1687)) and the BE codebase. The repo PDFs (`Job Portal.pdf`, `Job_Portal_Mobile.pdf`) are May-2026 snapshots — Figma is canonical.
+These replace re-ingesting the [Figma design file](https://www.figma.com/design/fzkZeIzkrU7MRLwunuYbTf/Job-Portal) ([mobile prototype view](https://www.figma.com/proto/fzkZeIzkrU7MRLwunuYbTf/Job-Portal?node-id=809-1687)) and the BE codebase. Figma is canonical for visuals.
+
+**Deeper sources (read only when the task needs them):** `docs/security-spec.md` (auth/data handling) · `docs/decisions-log.md` (cross-team decisions) · `docs/deployment-guide.md` (GCP) · `docs/test-plan.md` (QA) · `docs/charter.md` (charter + pricing) · `docs/research.md` (market research). Session bootstrap: `.claude/FE-SESSION-START.md`; agent workflow: `.claude/AGENT-WORKFLOW.md`.
 
 ## Locked scope summary
 

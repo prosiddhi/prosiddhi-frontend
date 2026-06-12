@@ -16,13 +16,13 @@ The canonical map of **when each agent fires**. Agents live in `.claude/agents/`
 
 ## The development loop (per ticket): **Ticket → Plan → Execute → Explain → Close**
 
-1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/managerial/10-portal-execution-playbook.md`](../docs/managerial/10-portal-execution-playbook.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
+1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/execution-playbook.md`](../docs/execution-playbook.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
 2. **Plan** — `ticket-closer` (or `fe-auth-wirer` / `fe-specialist`) drafts a Template plan and **STOPS for the user's "go".**
 3. **Execute** — after "go", the doer implements (types → `api.ts` → context → component → page); type-check as it goes.
 4. **Review — the pre-commit GATE** — `code-reviewer` runs: type-check + hygiene + **correctness + FE↔BE contract + wired-vs-mock**. `security-reviewer` if auth/token/role touched; `scope-drift-checker` if a feature boundary moved. Verdict must be **GREEN** (or YELLOW with written justification).
 5. **Explain** — `teacher` (Mode D) walks the user through the change-set **high-level first**, then tells them **exactly what to manually test** in the browser (which URL, what to click, success vs failure). The user confirms they understand before closing.
 6. **Commit** — the **user** commits (conventional message, **no `Co-Authored-By: Claude`**); the pre-commit hook re-runs type-check.
-7. **Close** — `ticket-closer` posts the Jira closure + transitions status (with confirmation), and **ticks the ticket in `10-portal-execution-playbook.md`** (the live handbook).
+7. **Close** — `ticket-closer` posts the Jira closure + transitions status (with confirmation), and **ticks the ticket in `docs/execution-playbook.md`** (the live handbook).
 
 `teacher` can also run **out-of-band** any time — it's read-only and never blocks the loop.
 
