@@ -1,5 +1,6 @@
 'use client'
 
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -36,7 +37,7 @@ const jobsData = Array(10).fill({
   postedTime: '15 minutes ago'
 })
 
-export default function JobFeedPage() {
+function JobFeedPageContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -299,5 +300,13 @@ export default function JobFeedPage() {
       {/* Footer */}
       <Footer />
     </div>
+  )
+}
+
+export default function JobFeedPage() {
+  return (
+    <ProtectedRoute requiredRole="seeker">
+      <JobFeedPageContent />
+    </ProtectedRoute>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -18,7 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react'
 
-export default function EmployerLandingPage() {
+function EmployerLandingPageContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -471,5 +472,13 @@ export default function EmployerLandingPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function EmployerLandingPage() {
+  return (
+    <ProtectedRoute requiredRole="employer">
+      <EmployerLandingPageContent />
+    </ProtectedRoute>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -32,7 +33,7 @@ const savedJobsData = Array(5).fill({
   isSaved: true
 })
 
-export default function SavedJobsPage() {
+function SavedJobsPageContent() {
   const [savedJobs, setSavedJobs] = useState(savedJobsData)
 
   const handleUnsaveJob = (jobId: number) => {
@@ -208,5 +209,13 @@ export default function SavedJobsPage() {
       {/* Footer */}
       <Footer />
     </div>
+  )
+}
+
+export default function SavedJobsPage() {
+  return (
+    <ProtectedRoute requiredRole="seeker">
+      <SavedJobsPageContent />
+    </ProtectedRoute>
   )
 }

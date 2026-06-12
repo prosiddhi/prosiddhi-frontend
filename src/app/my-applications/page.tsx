@@ -1,5 +1,6 @@
 'use client'
 
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -33,7 +34,7 @@ const appliedJobsData = Array(5).fill(null).map((_, index) => ({
   status: 'Applied' // Could be: Applied, Under Review, Interview Scheduled, Rejected, Accepted
 }))
 
-export default function MyApplicationsPage() {
+function MyApplicationsPageContent() {
   const [appliedJobs, setAppliedJobs] = useState(appliedJobsData)
 
   return (
@@ -202,5 +203,13 @@ export default function MyApplicationsPage() {
       {/* Footer */}
       <Footer />
     </div>
+  )
+}
+
+export default function MyApplicationsPage() {
+  return (
+    <ProtectedRoute requiredRole="seeker">
+      <MyApplicationsPageContent />
+    </ProtectedRoute>
   )
 }

@@ -1,10 +1,11 @@
 'use client'
 
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Users } from 'lucide-react'
 
-export default function WorkersPage() {
+function WorkersPageContent() {
   const router = useRouter()
   const [showWelcome, setShowWelcome] = useState(true)
 
@@ -121,5 +122,13 @@ export default function WorkersPage() {
         </pre>
       </div>
     </div>
+  )
+}
+
+export default function WorkersPage() {
+  return (
+    <ProtectedRoute requiredRole="employer">
+      <WorkersPageContent />
+    </ProtectedRoute>
   )
 }

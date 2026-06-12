@@ -1,36 +1,205 @@
 // API Configuration
+//
+// Talks to the ProSiddhi backend (prosiddhi-backend). Every backend endpoint
+// wraps its payload in a standard envelope `{ success, message, data }` (see BE
+// utils/response.ts). `apiRequest` UNWRAPS `.data` and returns the typed
+// payload, so callers consume the real object directly.
+//
+// Auth: when an auth token is present in localStorage, `apiRequest` attaches
+// `Authorization: Bearer <token>`. On a 401 it clears auth storage and
+// dispatches a `auth:unauthorized` window event — AuthContext listens for this
+// and performs logout + redirect, keeping this module framework-free.
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
-// Helper function for API requests
+// localStorage keys — single source of truth, shared with AuthContext.
+export const AUTH_TOKEN_KEY = 'auth_token'
+export const AUTH_USER_KEY = 'auth_user'
+
+/** Window-guarded read of the stored auth token (null on server / when absent). */
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+}
+
+/** Standard backend response envelope. */
+interface ApiEnvelope<T> {
+  success: boolean
+  message: string
+  data: T
+}
+
+// Helper function for API requests. Returns the unwrapped `.data` payload.
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
-  
+
+  // FormData requests must NOT carry a JSON Content-Type — the browser sets the
+  // multipart boundary itself. Detect and preserve that.
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData
+
+  const headers: Record<string, string> = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...((options.headers as Record<string, string>) || {}),
+  }
+
+  // Attach Bearer token when present (works for JSON and FormData calls alike).
+  const token = getAuthToken()
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const config: RequestInit = {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   }
 
-  try {
-    const response = await fetch(url, config)
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: response.statusText,
-      }))
-      throw new Error(error.message || `HTTP error! status: ${response.status}`)
+  const response = await fetch(url, config)
+
+  if (response.status === 401) {
+    // Centralized auth-expiry handling. Clear storage and let AuthContext react.
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
-
-    return await response.json()
-  } catch (error) {
-    console.error(`API request failed for ${endpoint}:`, error)
-    throw error
   }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      message: response.statusText,
+    }))
+    throw new Error(error.message || `HTTP error! status: ${response.status}`)
+  }
+
+  // 204 / empty bodies: nothing to unwrap.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const json = (await response.json()) as ApiEnvelope<T> | T
+  // Unwrap the standard envelope when present; tolerate raw payloads.
+  if (json && typeof json === 'object' && 'data' in (json as ApiEnvelope<T>)) {
+    return (json as ApiEnvelope<T>).data
+  }
+  return json as T
+}
+
+// ==========================================
+// SHARED TYPES
+// ==========================================
+
+export type UserRole = 'JOB_SEEKER' | 'EMPLOYER_INDIVIDUAL' | 'EMPLOYER_BUSINESS'
+
+export interface AuthUser {
+  id: string
+  email: string
+  role: UserRole
+  accountStatus?: string
+  // Role profile (jobSeeker | employer) — shape varies; consumed loosely for now.
+  profile?: Record<string, unknown> | null
+}
+
+export interface LoginResult {
+  token: string
+  user: AuthUser
+}
+
+// Loosely aligned to real BE fields; consume-flow tickets tighten these later.
+export interface Job {
+  id: string
+  title: string
+  description?: string
+  location?: string
+  salary?: string
+  jobType?: string
+  category?: string
+  employerId?: string
+  createdAt?: string
+  [key: string]: unknown
+}
+
+export interface Application {
+  id: string
+  jobId?: string
+  status?: string
+  appliedAt?: string
+  [key: string]: unknown
+}
+
+// ==========================================
+// AUTH APIs (login — role-split + phone-OTP)
+// ==========================================
+//
+// Email/password and phone-OTP both POST to the role-specific login endpoint
+// (`/jobseekers/login` | `/employers/login`), which is role-gated server-side
+// (a seeker hitting the employer URL gets 403). The FE role toggle picks the
+// endpoint. Body is `{ identifier, password }` OR `{ identifier, otp }`.
+
+export type LoginRole = 'seeker' | 'employer'
+
+interface LoginCredentials {
+  identifier: string // email or E.164 phone
+  password?: string
+  otp?: string
+}
+
+function loginEndpoint(role: LoginRole): string {
+  return role === 'employer' ? '/employers/login' : '/jobseekers/login'
+}
+
+export const authAPI = {
+  // Email+password OR phone+otp login. Role selects the endpoint.
+  login: async (role: LoginRole, credentials: LoginCredentials) => {
+    return apiRequest<LoginResult>(loginEndpoint(role), {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    })
+  },
+
+  // Phone-OTP login step 1: request the login OTP. Step 2 is authAPI.login
+  // with { identifier: <phone>, otp }.
+  loginPhoneSend: async (phoneNumber: string) => {
+    return apiRequest('/auth/login-phone-send', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber }),
+    })
+  },
+}
+
+// Phone OTP (registration / generic) — POST /api/otp/{send,verify}
+export const otpAPI = {
+  send: async (phoneNumber: string) => {
+    return apiRequest('/otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber }),
+    })
+  },
+  verify: async (phoneNumber: string, otp: string) => {
+    return apiRequest('/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber, otp }),
+    })
+  },
+}
+
+// Email OTP — POST /api/email-otp/{send,verify}
+export const emailOtpAPI = {
+  send: async (email: string) => {
+    return apiRequest('/email-otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+  verify: async (email: string, otp: string) => {
+    return apiRequest('/email-otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    })
+  },
 }
 
 // ==========================================
@@ -54,173 +223,113 @@ export interface CompleteProfileData {
   languagePreference: string
 }
 
-export interface SelectCategoriesData {
-  categories: string[]
-}
-
-export interface AddExperienceData {
-  position: string
-  company: string
-  startDate: string
-  endDate: string
-  currentlyWorking: boolean
-}
-
-export interface Job {
-  id: string
-  title: string
-  company: string
-  location: string
-  salary: string
-  type: string
-  description: string
-  requirements: string[]
-  postedDate: string
-}
-
-export interface Application {
-  id: string
-  jobId: string
-  jobTitle: string
-  company: string
-  appliedDate: string
-  status: 'PENDING' | 'REVIEWED' | 'SHORTLISTED' | 'REJECTED'
-}
-
-// Job Seeker Registration Flow
 export const jobSeekerAPI = {
-  // Step 1: Register with phone number
+  // Registration — phone verification reuses the generic OTP endpoints.
+  // Step 1: send phone OTP (POST /api/otp/send).
   registerPhone: async (data: RegisterPhoneData) => {
-    return apiRequest('/job-seeker/register/phone', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+    return otpAPI.send(data.phoneNumber)
   },
 
-  // Step 2: Verify OTP
+  // Step 2: verify phone OTP (POST /api/otp/verify).
   verifyOTP: async (data: VerifyOTPData) => {
-    return apiRequest('/job-seeker/register/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+    return otpAPI.verify(data.phoneNumber, data.otp)
   },
 
-  // Step 3: Complete profile
+  // Step 3: register the seeker (POST /api/jobseekers/register).
+  // Multipart-capable on the BE; JSON is accepted for the no-file path.
   completeProfile: async (data: CompleteProfileData) => {
-    return apiRequest('/job-seeker/register/profile', {
+    return apiRequest('/jobseekers/register', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  // Step 4: Select job categories
-  selectCategories: async (data: SelectCategoriesData) => {
-    return apiRequest('/job-seeker/register/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+  // Login (email/password). Prefer authAPI.login for the new /login page.
+  login: async (credentials: { identifier: string; password: string }) => {
+    return authAPI.login('seeker', credentials)
   },
 
-  // Step 5: Add work experience
-  addExperience: async (data: AddExperienceData) => {
-    return apiRequest('/job-seeker/register/experience', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  // Login
-  login: async (credentials: { email: string; password: string }) => {
-    return apiRequest('/job-seeker/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    })
-  },
-
-  // Get job feed
+  // Get job feed (public). GET /api/jobs
   getJobFeed: async (filters?: {
     location?: string
     category?: string
     type?: string
     search?: string
   }) => {
-    const queryParams = new URLSearchParams(filters as any).toString()
+    const queryParams = new URLSearchParams(
+      filters as Record<string, string>
+    ).toString()
     return apiRequest<Job[]>(`/jobs${queryParams ? `?${queryParams}` : ''}`)
   },
 
-  // Get job details
+  // Get job details (public). GET /api/jobs/:id
   getJobDetails: async (jobId: string) => {
     return apiRequest<Job>(`/jobs/${jobId}`)
   },
 
-  // Apply for job
-  applyForJob: async (jobId: string, applicationData: {
-    resume?: File
-    coverLetter?: string
-  }) => {
+  // Recommended / nearby feeds (seeker-only). GET /api/jobs/{recommended,nearby}
+  getRecommendedJobs: async () => {
+    return apiRequest<Job[]>('/jobs/recommended')
+  },
+  getNearbyJobs: async () => {
+    return apiRequest<Job[]>('/jobs/nearby')
+  },
+
+  // Apply for job (multipart — optional audio cover letter). POST /api/applications
+  applyForJob: async (
+    jobId: string,
+    applicationData: { audio?: File; coverLetter?: string }
+  ) => {
     const formData = new FormData()
-    if (applicationData.resume) {
-      formData.append('resume', applicationData.resume)
+    formData.append('jobId', jobId)
+    if (applicationData.audio) {
+      formData.append('audio', applicationData.audio)
     }
     if (applicationData.coverLetter) {
       formData.append('coverLetter', applicationData.coverLetter)
     }
-
-    return apiRequest(`/jobs/${jobId}/apply`, {
+    return apiRequest('/applications', {
       method: 'POST',
       body: formData,
-      headers: {}, // Let browser set Content-Type for FormData
     })
   },
 
-  // Get my applications
+  // Get my applications. GET /api/applications/my
   getMyApplications: async () => {
-    return apiRequest<Application[]>('/job-seeker/applications')
+    return apiRequest<Application[]>('/applications/my')
   },
 
-  // Save job
-  saveJob: async (jobId: string) => {
-    return apiRequest(`/job-seeker/saved-jobs/${jobId}`, {
-      method: 'POST',
+  // Withdraw an application. PUT /api/applications/:id/withdraw
+  withdrawApplication: async (applicationId: string) => {
+    return apiRequest(`/applications/${applicationId}/withdraw`, {
+      method: 'PUT',
     })
   },
 
-  // Unsave job
+  // Saved jobs. GET/POST /api/saved-jobs, DELETE /api/saved-jobs/:jobId
+  getSavedJobs: async () => {
+    return apiRequest<Job[]>('/saved-jobs')
+  },
+  saveJob: async (jobId: string) => {
+    return apiRequest('/saved-jobs', {
+      method: 'POST',
+      body: JSON.stringify({ jobId }),
+    })
+  },
   unsaveJob: async (jobId: string) => {
-    return apiRequest(`/job-seeker/saved-jobs/${jobId}`, {
+    return apiRequest(`/saved-jobs/${jobId}`, {
       method: 'DELETE',
     })
   },
-
-  // Get saved jobs
-  getSavedJobs: async () => {
-    return apiRequest<Job[]>('/job-seeker/saved-jobs')
+  isJobSaved: async (jobId: string) => {
+    return apiRequest<{ saved: boolean }>(`/saved-jobs/check/${jobId}`)
   },
 
-  // Update profile
+  // Update profile. PUT /api/jobseekers/profile
   updateProfile: async (profileData: Partial<CompleteProfileData>) => {
-    return apiRequest('/job-seeker/profile', {
+    return apiRequest('/jobseekers/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
-    })
-  },
-
-  // Upload resume
-  uploadResume: async (file: File) => {
-    const formData = new FormData()
-    formData.append('resume', file)
-
-    return apiRequest('/job-seeker/resume', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Let browser set Content-Type for FormData
-    })
-  },
-
-  // Delete account
-  deleteAccount: async () => {
-    return apiRequest('/job-seeker/account', {
-      method: 'DELETE',
     })
   },
 }
@@ -229,267 +338,126 @@ export const jobSeekerAPI = {
 // EMPLOYER APIs
 // ==========================================
 
-export interface EmployerRegistrationData {
-  employerType: 'INDIVIDUAL' | 'CORPORATE'
-  companyName: string
-  contactPerson: string
-  email: string
-  phoneNumber: string
-  password: string
-  companyAddress: string
-  companySize?: string
-  industry?: string
-  website?: string
-}
-
 export interface PostJobData {
   title: string
   description: string
-  requirements: string[]
   location: string
   salary: string
   jobType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP'
-  experienceLevel: string
   category: string
-  skills: string[]
-  benefits?: string[]
-  applicationDeadline?: string
+  [key: string]: unknown
 }
 
 export interface JobApplication {
   id: string
-  applicantName: string
-  applicantEmail: string
-  appliedDate: string
-  status: 'PENDING' | 'REVIEWED' | 'SHORTLISTED' | 'REJECTED'
-  resumeUrl?: string
-  coverLetter?: string
+  applicantName?: string
+  status?: string
+  appliedAt?: string
+  [key: string]: unknown
 }
 
 export const employerAPI = {
-  // Register employer
-  register: async (data: EmployerRegistrationData) => {
-    return apiRequest('/employer/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+  // Login (email/password). Prefer authAPI.login for the new /login page.
+  login: async (credentials: { identifier: string; password: string }) => {
+    return authAPI.login('employer', credentials)
   },
 
-  // Login employer
-  login: async (credentials: { email: string; password: string }) => {
-    return apiRequest('/employer/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    })
-  },
-
-  // Get employer dashboard stats
+  // Dashboard. GET /api/employers/dashboard/{stats,jobs,recent-applications}
   getDashboardStats: async () => {
-    return apiRequest('/employer/dashboard/stats')
+    return apiRequest('/employers/dashboard/stats')
+  },
+  getDashboardJobs: async () => {
+    return apiRequest<Job[]>('/employers/dashboard/jobs')
+  },
+  getRecentApplications: async () => {
+    return apiRequest<JobApplication[]>(
+      '/employers/dashboard/recent-applications'
+    )
   },
 
-  // Post a new job
+  // Post a new job. POST /api/jobs
   postJob: async (jobData: PostJobData) => {
-    return apiRequest('/employer/jobs', {
+    return apiRequest('/jobs', {
       method: 'POST',
       body: JSON.stringify(jobData),
     })
   },
 
-  // Get employer's posted jobs
-  getMyJobs: async (filters?: {
-    status?: 'ACTIVE' | 'CLOSED' | 'DRAFT'
-    search?: string
-  }) => {
-    const queryParams = new URLSearchParams(filters as any).toString()
-    return apiRequest<Job[]>(`/employer/jobs${queryParams ? `?${queryParams}` : ''}`)
+  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs
+  getMyJobs: async () => {
+    return apiRequest<Job[]>('/jobs/employer/me/jobs')
   },
 
-  // Update job
+  // Update / delete job. PUT|DELETE /api/jobs/:id
   updateJob: async (jobId: string, jobData: Partial<PostJobData>) => {
-    return apiRequest(`/employer/jobs/${jobId}`, {
+    return apiRequest(`/jobs/${jobId}`, {
       method: 'PUT',
       body: JSON.stringify(jobData),
     })
   },
-
-  // Delete job
   deleteJob: async (jobId: string) => {
-    return apiRequest(`/employer/jobs/${jobId}`, {
+    return apiRequest(`/jobs/${jobId}`, {
       method: 'DELETE',
     })
   },
 
-  // Close job posting
-  closeJob: async (jobId: string) => {
-    return apiRequest(`/employer/jobs/${jobId}/close`, {
-      method: 'POST',
-    })
+  // Activate / deactivate job. POST /api/jobs/:id/{activate,deactivate}
+  activateJob: async (jobId: string) => {
+    return apiRequest(`/jobs/${jobId}/activate`, { method: 'POST' })
+  },
+  deactivateJob: async (jobId: string) => {
+    return apiRequest(`/jobs/${jobId}/deactivate`, { method: 'POST' })
   },
 
-  // Get applications for a specific job
+  // Applications for a specific job. GET /api/applications/job/:jobId
   getJobApplications: async (jobId: string) => {
-    return apiRequest<JobApplication[]>(`/employer/jobs/${jobId}/applications`)
+    return apiRequest<JobApplication[]>(`/applications/job/${jobId}`)
   },
 
-  // Update application status
-  updateApplicationStatus: async (
-    applicationId: string,
-    status: 'REVIEWED' | 'SHORTLISTED' | 'REJECTED'
-  ) => {
-    return apiRequest(`/employer/applications/${applicationId}/status`, {
+  // Update application status / accept / reject / bookmark.
+  // PUT /api/applications/:id/{status,accept,reject,bookmark}
+  updateApplicationStatus: async (applicationId: string, status: string) => {
+    return apiRequest(`/applications/${applicationId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     })
   },
+  acceptApplication: async (applicationId: string, body?: unknown) => {
+    return apiRequest(`/applications/${applicationId}/accept`, {
+      method: 'PUT',
+      body: JSON.stringify(body ?? {}),
+    })
+  },
+  rejectApplication: async (applicationId: string, body?: unknown) => {
+    return apiRequest(`/applications/${applicationId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify(body ?? {}),
+    })
+  },
+  toggleBookmark: async (applicationId: string) => {
+    return apiRequest(`/applications/${applicationId}/bookmark`, {
+      method: 'PUT',
+    })
+  },
 
-  // Update company profile
-  updateProfile: async (profileData: Partial<EmployerRegistrationData>) => {
-    return apiRequest('/employer/profile', {
+  // Update company profile. PUT /api/employers/profile
+  updateProfile: async (profileData: Record<string, unknown>) => {
+    return apiRequest('/employers/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     })
   },
-
-  // Upload company logo
-  uploadLogo: async (file: File) => {
-    const formData = new FormData()
-    formData.append('logo', file)
-
-    return apiRequest('/employer/logo', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Let browser set Content-Type for FormData
-    })
-  },
-
-  // Get payment history
-  getPaymentHistory: async () => {
-    return apiRequest('/employer/payments')
-  },
 }
 
-// ==========================================
-// ADMIN APIs
-// ==========================================
-
-export const adminAPI = {
-  // Admin login
-  login: async (credentials: { email: string; password: string }) => {
-    return apiRequest('/admin/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    })
-  },
-
-  // Dashboard stats
-  getDashboardStats: async () => {
-    return apiRequest('/admin/dashboard/stats')
-  },
-
-  // Employee Management
-  employees: {
-    getAll: async (filters?: {
-      status?: 'VERIFIED' | 'PENDING' | 'REJECTED'
-      location?: string
-      language?: string
-      search?: string
-    }) => {
-      const queryParams = new URLSearchParams(filters as any).toString()
-      return apiRequest(`/admin/employees${queryParams ? `?${queryParams}` : ''}`)
-    },
-
-    getById: async (employeeId: string) => {
-      return apiRequest(`/admin/employees/${employeeId}`)
-    },
-
-    verifyDocument: async (employeeId: string, documentId: string) => {
-      return apiRequest(`/admin/employees/${employeeId}/documents/${documentId}/verify`, {
-        method: 'POST',
-      })
-    },
-
-    rejectDocument: async (employeeId: string, documentId: string, reason?: string) => {
-      return apiRequest(`/admin/employees/${employeeId}/documents/${documentId}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      })
-    },
-
-    sendPaymentReminder: async (employeeId: string) => {
-      return apiRequest(`/admin/employees/${employeeId}/payment-reminder`, {
-        method: 'POST',
-      })
-    },
-  },
-
-  // Employer Management
-  employers: {
-    getAll: async (filters?: {
-      status?: 'VERIFIED' | 'PENDING' | 'REJECTED'
-      type?: 'INDIVIDUAL' | 'CORPORATE'
-      search?: string
-    }) => {
-      const queryParams = new URLSearchParams(filters as any).toString()
-      return apiRequest(`/admin/employers${queryParams ? `?${queryParams}` : ''}`)
-    },
-
-    getById: async (employerId: string) => {
-      return apiRequest(`/admin/employers/${employerId}`)
-    },
-
-    verifyDocument: async (employerId: string, documentId: string) => {
-      return apiRequest(`/admin/employers/${employerId}/documents/${documentId}/verify`, {
-        method: 'POST',
-      })
-    },
-
-    rejectDocument: async (employerId: string, documentId: string, reason?: string) => {
-      return apiRequest(`/admin/employers/${employerId}/documents/${documentId}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      })
-    },
-
-    sendPaymentReminder: async (employerId: string) => {
-      return apiRequest(`/admin/employers/${employerId}/payment-reminder`, {
-        method: 'POST',
-      })
-    },
-  },
-
-  // Post Moderation
-  posts: {
-    getAll: async (filters?: {
-      status?: 'PENDING' | 'APPROVED' | 'REJECTED'
-      search?: string
-    }) => {
-      const queryParams = new URLSearchParams(filters as any).toString()
-      return apiRequest(`/admin/posts${queryParams ? `?${queryParams}` : ''}`)
-    },
-
-    getById: async (postId: string) => {
-      return apiRequest(`/admin/posts/${postId}`)
-    },
-
-    approve: async (postId: string) => {
-      return apiRequest(`/admin/posts/${postId}/approve`, {
-        method: 'POST',
-      })
-    },
-
-    reject: async (postId: string, reason?: string) => {
-      return apiRequest(`/admin/posts/${postId}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      })
-    },
-  },
-}
+// TODO(thread-b): admin client (adminAPI) intentionally NOT defined here — the
+// admin console is moving to the standalone `prosiddhi-admin` repo (2026-06-08).
+// If the admin-removal thread touches this file, this marker is the seam.
 
 // Export everything
 export default {
+  authAPI,
+  otpAPI,
+  emailOtpAPI,
   jobSeekerAPI,
   employerAPI,
-  adminAPI,
 }
