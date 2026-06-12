@@ -1,53 +1,85 @@
 # FE Session Start — paste the block below
 
-Open a Claude Code session **rooted in `prosiddhi-frontend/`** (so the FE agents + FE `CLAUDE.md` + the FE memory namespace auto-load and git works natively), then paste this as your first message:
+Open a Claude Code session **rooted in `prosiddhi-frontend/`** (so the FE agents + `CLAUDE.md` + the git/hook auto-load), then paste this as your first message:
 
 ---
 
 ```
-FE ticket-closing session. I'm Nazir (FE + acting PM), FE-only today.
+Portal dev session. I'm Nazir (FE + acting PM).
 
-This is the standalone FE repo (extracted from the old job-portal-fe monorepo; repo root
-IS the app root — plain npm, no pnpm/workspace). BE is a separate repo (prosiddhi-backend).
+Standalone PORTAL repo (prosiddhi-frontend — seeker + employer), separate from the admin
+(prosiddhi-admin) and the backend (prosiddhi-backend) — siblings under c:\dev\Azkashine\Prosiddhi\.
+Repo root IS the app root (plain npm).
 
-Auto-loaded memory should cover: jira-connection (cloudId for MCP), jira-project-pjp
-(PJP, project 10033; Asrar=BE also uses Claude Code), repo-structure + label convention,
-local-run-setup, feedback-pointer-prompts, claude-setup-artifacts, plus the FE primers
-(locked scope, team/timeline, decisions). If any are missing, read them from the memory folder.
+Auto-loaded here:
+  .claude/CLAUDE.md         — locked scope, conventions, team, do-NOT-mention list
+  .claude/AGENT-WORKFLOW.md — agent roster + the dev loop + standing gates
+  + the agents + a pre-commit type-check hook (active)
+Commands: /run-kickoff (re-orient + pending-work list) · /check-scope (pre-commit drift audit)
+Live tracker: docs/managerial/10-portal-execution-playbook.md
+Status truth: docs/managerial/08-ticket-reconciliation.md
+Backend: LIVE + seeded at the URL in .env.local (ephemeral tunnel — tell me if it 502s).
+Jira: project PJP via the Atlassian MCP.
 
-Agents available here: fe-specialist, fe-auth-wirer, scope-drift-checker (FE), plus shared
-agents code-reviewer, security-reviewer, teacher, ticket-closer. Use them.
+→ FIRST: run /run-kickoff to load state + give me the pending-work list, then wait for me to pick.
 
-GOAL: close as many FE Sprint 1/2 tickets as we realistically can today, biased to the
-auth-foundation chain first. The audit is at docs/audit/sprint-audit-raw.json — verified
-fresh as of 2026-06-01 (file/line refs in it still use the old apps/web/ paths → they are
-now just src/...). Read the ticket's audit entry before planning.
+THE DEV LOOP (every ticket): Ticket → Plan → Execute → Explain → Close
+  1. TICKET  — read PJP-XX from Jira; note ACs + the verified BE path (playbook "Wires to").
+  2. PLAN    — fe-specialist / fe-auth-wirer / ticket-closer drafts a Template plan (B or D), then STOPS for my "go".
+  3. EXECUTE — doer wires types → api.ts → context → component → page; type-check as it goes.
+               GATE: code-reviewer GREEN; security-reviewer if auth/token/role; scope-drift-checker
+               (or /check-scope) if a feature boundary moved.
+  4. EXPLAIN — teacher (Mode D) walks me through the change-set high-level + tells me EXACTLY what to
+               test in the browser. I confirm I understand before we close.
+  5. CLOSE   — I commit (conventional msg, NO Co-Authored-By); ticket-closer posts the Jira closure +
+               moves the ticket; tick the ticket in the playbook (the live handbook).
 
-ATTACK ORDER (each unlocks the next — fe-auth-wirer owns the chain):
-  1. PJP-77  — api.ts fallback :8080→:5000, fix .env.example (:3001→:5000), add README dev note   (~30m, no dep)
-  2. PJP-78  — path renames /job-seeker/*→/api/jobseekers/*, /employer/*→/api/employers/*, /api prefix on admin+jobs  (needs 77)
-  3. PJP-79  — AuthContext + AuthProvider + Bearer interceptor in api.ts + 401→logout; centralize scattered localStorage  (needs 77,78)
-  4. PJP-81 (slice) — remove plaintext password from localStorage in src/app/employer/register/account/page.tsx:28 — SECURITY fix only  (independent)
-  5. PJP-80 / PJP-82 (partials) — ProtectedRoute + role redirects + login wiring MINUS Google OAuth (blocked on S1-04)  (needs 79)
-  6. PJP-86  — WhatsApp templates doc, pure drafting, fully closeable  (parallelizable; ticket-closer)
+STATE: the auth foundation (AuthContext, ProtectedRoute, /login 3-method, api.ts rewrite) is COMMITTED
+(69be6b0) but UNVERIFIED against the live BE.
+  ⭐ STEP 0 — verify it before building on it: npm run dev → /login → log in as a seeker against the live
+     BE; confirm token stored, a protected page loads, 401 bounces to /login. Fix first if broken.
 
-RULES:
-  • Plan-first on every ticket: have fe-auth-wirer / fe-specialist draft the Phase-1 plan and
-    WAIT for my "go" before any code. No silent additions.
-  • Type-check gate before "done": from the repo root run `npm run type-check` (exit 0).
-  • Use the api.ts client, never raw fetch. Stay in locked scope (no WebSockets/transcription/.ics/Aadhaar).
-  • BE is Asrar's separate repo (prosiddhi-backend); don't edit it. Flag any FE↔BE contract change for him.
-  • ⚠️ PARKED (awaiting Shaik, no confirmation as of 2026-06-01): root .claude/CLAUDE.md says
-    "Seeker = ₹50 lifetime Elite" but FE scope says "worker free forever." Do NOT code anything
-    pricing-adjacent until the ruling lands; don't re-raise it as open — it's blocked on Shaik.
+ATTACK ORDER (per docs/managerial/10-portal-execution-playbook.md):
+  Stage 0 — board cleanup (auth 77/78/79/80/82 → Done w/ "integration-unverified" caveat; close dup
+            tickets 132–137; confirm .env.local BE URL is live).
+  Stage 1 — auth finish: PJP-81 (registration screens), PJP-142 (forgot/reset password).
+  Stage 2 — seeker consume loop: PJP-138 feed → 139 details → 140 saved → 141 my-applications →
+            103 apply(2-min audio) → 113 contact-gate.
+  Stage 3 — employer: PJP-143 dashboard → 106 job posting → 104 candidate management.
+  Stage 4 — shared: PJP-105 chat → 112 profile → 109 i18n.
 
-Start by having fe-auth-wirer fetch PJP-77 from Jira and draft its Phase-1 plan. Stop at the gate.
+RULES (full set in .claude/AGENT-WORKFLOW.md + CLAUDE.md):
+  • Plan-first, WAIT for my "go". • api.ts client, never raw fetch. • type-check exit 0 (hook enforces).
+  • code-reviewer before every commit; security-reviewer for anything auth/token/role.
+  • Confirm every api.ts path against ../prosiddhi-backend/src/routes/*.routes.ts. Don't edit the BE.
+  • Stay in locked scope (no WebSockets / transcription / .ics / Aadhaar). Tick the playbook on close.
 ```
 
 ---
 
-## Why this is set up the way it is
-- **Rooted in `prosiddhi-frontend/`** so: (a) the FE agents auto-discover, (b) the FE `CLAUDE.md` (locked scope) auto-loads, (c) `git` works (this repo is its own git repo → `github.com/prosiddhi/prosiddhi-frontend`).
-- **Standalone repo:** extracted from the old `job-portal-fe` monorepo on 2026-06-05. Repo root is the app root; plain `npm` (no pnpm/workspace). Build: `npm run build`. Type-check: `npm run type-check`.
-- **Agents:** `fe-specialist`, `fe-auth-wirer`, `scope-drift-checker` + shared `code-reviewer`, `security-reviewer`, `teacher`, `ticket-closer` live in `.claude/agents/`.
-- **Audit at `docs/audit/sprint-audit-raw.json`** — its file/line references predate the extraction, so `apps/web/src/...` in it now maps to `src/...`.
+# Teacher / Explainer session — paste into a SECOND portal window
+
+Open another session **rooted in `prosiddhi-frontend/`**, then paste:
+
+```
+Portal teacher session — I'm Nazir (FE+PM), learning as we build. Use the teacher agent.
+
+As code gets wired in my execution session, I'll ask you to walk me through it — Mode A (one file) or
+Mode D (a whole change-set / git diff), high-level first, analogies, with a check-for-understanding.
+Read the ACTUAL files (git diff / the page), never guess; be honest about committed vs unverified vs
+still-mock.
+
+AFTER explaining a wired piece, tell me EXACTLY what to manually test in the browser to verify it:
+which URL, what to click, what success vs failure looks like — e.g. the job feed at
+http://localhost:3000/job-feed against the live BE. Start by asking me which piece I want explained.
+```
+
+## Running the portal app locally (for your manual testing)
+```
+cd c:\dev\Azkashine\Prosiddhi\prosiddhi-frontend
+npm run dev
+```
+- Opens on **http://localhost:3000** (admin lands on :3001 if you run both — Next prints the real URL).
+- Reads `.env.local` at startup (points at the live tunnel) — **restart** if that file changes.
+- Hot-reloads on code changes. Login needs a real account — ask Asrar for seeded seeker/employer creds, or
+  register via `/register` (phone-OTP path; dev mode returns the OTP in the API response, no real SMS).

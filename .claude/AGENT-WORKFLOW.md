@@ -14,18 +14,17 @@ The canonical map of **when each agent fires**. Agents live in `.claude/agents/`
 | **security-reviewer** | Paranoid security pass | after auth / payments / admin / OTP changes; pre-freeze | read-only |
 | **teacher** | Explainer — code / concept / **change-set (Mode D)** | "explain / walk me through / what is X" | read-only + web |
 
-## The development loop (per ticket)
+## The development loop (per ticket): **Ticket → Plan → Execute → Explain → Close**
 
-1. **Plan** — `ticket-closer` (or `fe-auth-wirer` / `fe-specialist` for FE work) reads the PJP ticket, drafts a Template plan, and **STOPS for approval**.
-2. **Build** — after "go", the doer implements in order (types → `api.ts` → context → component → page); type-check as it goes.
-3. **Review — the pre-commit GATE** — `code-reviewer` runs: type-check + hygiene + **correctness + FE↔BE contract + wired-vs-mock + verification gap**. Branch as needed:
-   - feature boundary moved → also `scope-drift-checker`
-   - auth / payments / admin / OTP touched → also `security-reviewer`
-   - Verdict must be **GREEN** (or YELLOW with written justification) before commit.
-4. **Commit** — the **human** commits (conventional message, **no `Co-Authored-By: Claude`**).
-5. **Close** — `ticket-closer` posts the Jira closure comment + transitions status (with confirmation).
+1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/managerial/10-portal-execution-playbook.md`](../docs/managerial/10-portal-execution-playbook.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
+2. **Plan** — `ticket-closer` (or `fe-auth-wirer` / `fe-specialist`) drafts a Template plan and **STOPS for the user's "go".**
+3. **Execute** — after "go", the doer implements (types → `api.ts` → context → component → page); type-check as it goes.
+4. **Review — the pre-commit GATE** — `code-reviewer` runs: type-check + hygiene + **correctness + FE↔BE contract + wired-vs-mock**. `security-reviewer` if auth/token/role touched; `scope-drift-checker` if a feature boundary moved. Verdict must be **GREEN** (or YELLOW with written justification).
+5. **Explain** — `teacher` (Mode D) walks the user through the change-set **high-level first**, then tells them **exactly what to manually test** in the browser (which URL, what to click, success vs failure). The user confirms they understand before closing.
+6. **Commit** — the **user** commits (conventional message, **no `Co-Authored-By: Claude`**); the pre-commit hook re-runs type-check.
+7. **Close** — `ticket-closer` posts the Jira closure + transitions status (with confirmation), and **ticks the ticket in `10-portal-execution-playbook.md`** (the live handbook).
 
-`teacher` runs **out-of-band** any time — it's read-only and never blocks the loop.
+`teacher` can also run **out-of-band** any time — it's read-only and never blocks the loop.
 
 ## Standing gates (non-negotiable before a commit)
 
@@ -57,7 +56,7 @@ The canonical map of **when each agent fires**. Agents live in `.claude/agents/`
 Two mechanisms, in order of reliability:
 
 1. **Description-driven auto-invocation (primary).** The main session reads each agent's `description:` and proactively delegates — e.g. code-reviewer's description says *"Use BEFORE every commit"*, so the main session invokes it before committing. Keep every `description:` trigger-explicit; that *is* the wiring.
-2. **Deterministic hook (optional, opt-in).** For a gate that can't be forgotten, a `PreToolUse` hook on `git commit` can run `npm run type-check` and block on failure. Proposed config lives in this repo's `.claude/settings.json` review — enable when ready. (Hooks add a few seconds per commit; that's the trade for never shipping a broken build.)
+2. **Deterministic hook (ACTIVE).** A `PreToolUse` hook on `git commit` runs `npm run type-check` and blocks on failure — the one gate that can't be forgotten. Config in `.claude/settings.json` (committed). A few seconds per commit; the trade for never committing a broken build.
 
 ## Maintenance
 
