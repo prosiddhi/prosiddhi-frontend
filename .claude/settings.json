@@ -8,7 +8,7 @@
             "type": "command",
             "if": "Bash(git commit*)",
             "shell": "bash",
-            "command": "npm run type-check || exit 2",
+            "command": "if [ -f package.json ]; then npm run type-check || exit 2; fi",
             "statusMessage": "Type-check gate before commit…",
             "timeout": 120
           }
