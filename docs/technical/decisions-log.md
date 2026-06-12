@@ -46,7 +46,7 @@ For headline scope locks (D1–D7, Q1–Q13 in `02-scope-locked.md`), this log h
 **Owner:** Nazir Hasan (Acting PM)
 **Affects:** All
 **Status:** Locked
-**Related:** [Sprint Plan §8 #10](../managerial/06-sprint-plan.md), [02-scope-locked D6](../_context/02-scope-locked.md)
+**Related:** Sprint Plan §8 #10 (archived), [02-scope-locked D6](../_context/02-scope-locked.md)
 
 **Decision:** Shared decision log lives at `docs/technical/decisions-log.md` in the FE repo (this file). FE + Mobile + BE all PR into it. Asrar's local `BACKEND_TASK_LIST.md` + `COMPLETED_TASKS.md` to be migrated here.
 
@@ -61,7 +61,7 @@ For headline scope locks (D1–D7, Q1–Q13 in `02-scope-locked.md`), this log h
 **Owner:** Nazir Hasan
 **Affects:** BE (integration), Ops (procurement + billing)
 **Status:** Locked
-**Related:** [Sprint Plan §8 #4](../managerial/06-sprint-plan.md), Asrar BE sync §9
+**Related:** Sprint Plan §8 #4 (archived), Asrar BE sync §9
 
 **Decision:** Use MSG91 Email for transactional email (password reset, employer approval outcome, etc.). Single-vendor with SMS + WhatsApp under one MSG91 account.
 
@@ -119,7 +119,7 @@ Individual employers skip Step 2 entirely and auto-approve on email verify.
 **Owner:** Asrar
 **Affects:** BE
 **Status:** Locked
-**Related:** Asrar BE sync §5, [Sprint Plan §8 #3](../managerial/06-sprint-plan.md)
+**Related:** Asrar BE sync §5, Sprint Plan §8 #3 (archived)
 
 **Decision:** Use Google's official `google-auth-library` package on BE. Not Passport.
 

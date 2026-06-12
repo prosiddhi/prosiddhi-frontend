@@ -31,7 +31,7 @@ Before any non-trivial task, read in order:
 1. `docs/_context/README.md`
 2. `docs/_context/01-product-summary.md`
 3. `docs/_context/02-scope-locked.md`
-4. `docs/_context/04-project-status.md`
+4. `docs/managerial/08-ticket-reconciliation.md` (current board/status truth) + `docs/managerial/10-portal-execution-playbook.md` (what to build next)
 
 These replace re-ingesting the [Figma design file](https://www.figma.com/design/fzkZeIzkrU7MRLwunuYbTf/Job-Portal) ([mobile prototype view](https://www.figma.com/proto/fzkZeIzkrU7MRLwunuYbTf/Job-Portal?node-id=809-1687)) and the BE codebase. The repo PDFs (`Job Portal.pdf`, `Job_Portal_Mobile.pdf`) are May-2026 snapshots — Figma is canonical.
 

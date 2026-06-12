@@ -118,8 +118,7 @@ The scenarios below are the must-pass set for QA handover on **2026-06-22**. The
 
 - Charter (success criteria): [`01-project-charter.md`](01-project-charter.md) Section 9.
 - Scope (canonical IN/OUT): [`docs/_context/02-scope-locked.md`](../_context/02-scope-locked.md).
-- BE bugs found in audit: [`02-be-sync-agenda.md`](02-be-sync-agenda.md) Section 4 — Najeeb should track these as regression items once Asrar confirms.
-- Definition of Done: [`07-definition-of-done.md`](07-definition-of-done.md).
-- Standup template (where test status is surfaced daily): [`08-standup-template.md`](08-standup-template.md).
+- Current board / status truth (what's done vs to-do): [`08-ticket-reconciliation.md`](08-ticket-reconciliation.md).
+- Per-ticket Definition of Done now lives in the execution playbook: [`10-portal-execution-playbook.md`](10-portal-execution-playbook.md). (The standalone DoD + standup-template + BE-sync-agenda docs were removed in the 2026-06-13 purge — in git history.)
 
 > Footnote on tooling: Playwright is suggested as a non-binding default because it covers web cross-browser natively and pairs cleanly with Appium/Maestro for the React Native side, giving one assertion style across surfaces. All final calls — framework, runner, reporter, CI gating — are Najeeb's.

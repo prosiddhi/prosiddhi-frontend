@@ -147,11 +147,11 @@ We use **MSG91** as our WhatsApp provider (already in our stack for SMS). Engine
 
 ## 7. Pricing — provisional Option B; awaiting your confirmation
 
-Pricing is the single most important decision for this product. The full analysis — competitor matrices, revenue projections at different scales, India-specific tax and regulatory factors, and the trade-offs of each pricing pattern — is in a separate Pricing Decision Memo:
+Pricing is the single most important decision for this product. The current working assumption (provisional Option B) is recorded in:
 
-📄 **[`docs/managerial/03-pricing-decision-memo.md`](03-pricing-decision-memo.md)**
+📄 **[`docs/managerial/03-pricing-decision-provisional.md`](03-pricing-decision-provisional.md)**
 
-The memo presents 3 concrete pricing options (A / B / C) with the data needed to choose between them, plus our recommendation.
+The full A/B/C options analysis (the Pricing Decision Memo) was removed in the 2026-06-13 doc purge — recoverable from git history if the analysis is needed again.
 
 **To unblock Sprint 1, we are proceeding with Option B as the working assumption** (worker free; employer ₹999/month with 14-day trial). This is documented in [`03-pricing-decision-provisional.md`](03-pricing-decision-provisional.md). If you want different numbers or a different option (A / C / a variant), please confirm by **2026-05-18** — anything you say will override the provisional state. If we don't hear back by then, Option B ships as v1 default and can still be revised in v1.1 based on first-launch month learnings.
 

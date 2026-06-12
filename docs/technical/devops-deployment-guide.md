@@ -1,7 +1,7 @@
 # ProSiddhi — DevOps Deployment Guide
 
 **Audience:** Cloud / DevOps team (Nayan + cloud team).
-**Purpose:** Exact configuration and step-by-step guidance to deploy ProSiddhi (Frontend + Backend + Database) to Google Cloud. This is the *actionable* companion to `gcp-deployment-info-prosiddhi.md` (which is the requirements/checklist input).
+**Purpose:** Exact configuration and step-by-step guidance to deploy ProSiddhi (Frontend + Backend + Database) to Google Cloud. The single deployment doc (the earlier `gcp-deployment-info` requirements-input was consolidated into this guide on 2026-06-13).
 **Prepared by:** Application team (Nazir, FE+PM). DevOps owns all cloud-architecture decisions; items marked **[DECIDE]** are yours.
 
 > **Source of truth:** values below come from the actual code in `prosiddhi-frontend` and `prosiddhi-backend`. Where a value is a recommendation, it's marked **[rec]**; where it's your call, **[DECIDE]**.
@@ -144,7 +144,7 @@ CMD ["node", "dist/index.js"]
 | `MAX_FILE_SIZE` | ✅ | `5242880` (5 MB) |
 | `UPLOAD_DIR` | ✅ | `uploads` (but see §7 — local disk is ephemeral on Cloud Run) |
 
-> **Integration keys** (MSG91, Razorpay, Google OAuth, OpenAI, FCM) are listed in `gcp-deployment-info-prosiddhi.md §7`. Add them only as those features are enabled; they're not required for the core API to boot.
+> **Integration keys** (MSG91, Razorpay, Google OAuth, OpenAI, FCM) — full list in `docs/technical/security-spec.md`. Add them only as those features are enabled; they're not required for the core API to boot.
 
 ---
 

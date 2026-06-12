@@ -75,6 +75,7 @@ Both seeker and employer roles ship on web AND mobile. Same BE API serves all cl
 - `documents/INSTALLATION.md` → moved to `docs/archive/stale/`
 - `.DS_Store` + `Archive.zip` added to `.gitignore`
 - **2026-05-08 (extension):** `documents/Job_Portal.md` (12-flow prose) and `documents/flowcharts_all_combined_design.md` (mermaid charts) → moved to `docs/archive/superseded/`. Both were pre-Aadhaar-lock spec containing v2 features (escrow + commission, AI document verification, skill assessment tests, WhatsApp, auto-moderation) and a 9-month phased plan conflicting with the locked 6-week v1. Each file has a SUPERSEDED banner at top pointing back here.
+- **2026-06-13 (purge):** `docs/archive/` plus all rendered PDFs, the marketing docs, and the Stage-1 managerial artifacts (PRD, RTM, sprint-plan, etc.) were **removed entirely** — recoverable from git history. The `docs/archive/...` paths referenced above no longer exist on disk; current status truth is `docs/managerial/08-ticket-reconciliation.md`.
 
 `documents/` now contains only **live spec**: `INPUT-FILES/` (job category seed data — needed by BE migrations).
 

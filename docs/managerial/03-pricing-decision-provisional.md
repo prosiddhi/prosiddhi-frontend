@@ -18,7 +18,7 @@ We are proceeding with **Option B from the Pricing Memo** as the working assumpt
 | **Free trial** | 14 days. In-app + WhatsApp check-ins on day 3 and day 7 to drive conversion (research showed 14-day with structured check-ins converts at 44%). |
 | **Renewal** | Manual — at month-end, employer is prompted to pay again. No RBI e-mandate flow in v1. |
 
-The full reasoning for Option B is in [`03-pricing-decision-memo.md`](03-pricing-decision-memo.md) Section 5.
+(The detailed Pricing Memo with the full A/B/C options analysis was removed in the 2026-06-13 doc purge — recoverable from git history; this summary is now the live record.)
 
 ---
 
@@ -54,7 +54,5 @@ A short WhatsApp / email is going to Shaik today (2026-05-11), summarising:
 
 ## Anchor links
 
-- Full options analysis: [`03-pricing-decision-memo.md`](03-pricing-decision-memo.md)
 - Locked scope reflecting provisional state: [`../_context/02-scope-locked.md`](../_context/02-scope-locked.md) (Q1 + Q5)
 - Charter Section 7 reflects this provisional state: [`01-project-charter.md`](01-project-charter.md)
-- PRD's M10 (Subscription) builds against these numbers: [`04-prd-v1.md`](04-prd-v1.md) (to be generated)
