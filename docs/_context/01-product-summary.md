@@ -23,7 +23,7 @@
 - **Individual** (e.g., household hiring a maid): instant approval after phone+OTP+password+email verification
 - **Corporate** (registered company): wait for **admin approval** after submitting business details (GST, CIN, ISO certs, etc.)
 - Uses **web AND mobile** (full parity per D3 revised 2026-05-09 — Dheeraj is mobile dev)
-- **Free trial + paid plan PO-pending** (Q1/Q5 — Pricing Memo at `docs/managerial/03-pricing-decision-memo.md` presents 3 options)
+- **Free trial + paid plan PO-pending** (Q1/Q5 — see [`docs/managerial/03-pricing-decision-provisional.md`](../managerial/03-pricing-decision-provisional.md))
 
 ### 3. Admin — internal team, "ABC CO"
 - Verifies seeker documents (uploaded ID, certificates) and employer registration (corporate approval queue)
@@ -47,7 +47,7 @@ Employer posts job → reviews applicants → shortlists / messages → schedule
 
 ## The 12 business flows (short form)
 
-Source: locked v1 scope in [`02-scope-locked.md`](02-scope-locked.md). The pre-Aadhaar-lock prose + mermaid docs that originally described these flows are archived at [`docs/archive/superseded/`](../archive/superseded/).
+Source: locked v1 scope in [`02-scope-locked.md`](02-scope-locked.md).
 
 1. **Job Seeker Registration & Onboarding** — v1, **phone OTP only** (no Aadhaar), multi-step, 10-language support
 2. **Job Discovery & Application** — v1, filtered feed + Recommended + Near By + Apply (with up to 2-min audio)

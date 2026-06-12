@@ -53,10 +53,6 @@ The following are scrubbed entirely — not "deferred", not "v2", just gone:
 - `.ics` calendar invites for interviews
 - Aadhaar verification of any kind (mock or real)
 
-## Saved session prompts
-
-`docs/_context/prompts/` holds copy-paste session prompts for each major artifact. Run each in a fresh session; don't chain them.
-
 ## Work agreement
 
 Propose then pause when scope is unclear; execute when scope is locked; **one major artifact per session**. Don't drift from locked scope — if tempted to defer a v1 feature or add a v2 feature, push back explicitly before changing anything.
