@@ -113,13 +113,52 @@ export interface Job {
   id: string
   title: string
   description?: string
+  companyName?: string | null
   location?: string
-  salary?: string
+  salaryMin?: number | null
+  salaryMax?: number | null
+  paymentType?: string
   jobType?: string
   category?: string
+  subcategory?: string | null
+  skillsRequired?: string[]
+  urgencyLevel?: string
   employerId?: string
+  employer?: { id?: string; employerType?: string; [key: string]: unknown } | null
   createdAt?: string
   [key: string]: unknown
+}
+
+export interface JobsPagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export interface JobsPage {
+  jobs: Job[]
+  pagination: JobsPagination
+}
+
+// Mirrors getJobsQuerySchema on the BE (GET /api/jobs).
+export interface JobFeedFilters {
+  search?: string
+  category?: string
+  jobType?: string // comma-separated, e.g. "FULL_TIME,PART_TIME"
+  paymentType?: string
+  minSalary?: number
+  maxSalary?: number
+  latitude?: number
+  longitude?: number
+  maxDistance?: number
+  skills?: string // comma-separated
+  sortBy?: 'postedAt' | 'salaryMin' | 'salaryMax' | 'urgencyLevel' | 'title'
+  sortOrder?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
 
 export interface Application {
@@ -332,17 +371,17 @@ export const jobSeekerAPI = {
     return authAPI.login('seeker', credentials)
   },
 
-  // Get job feed (public). GET /api/jobs
-  getJobFeed: async (filters?: {
-    location?: string
-    category?: string
-    type?: string
-    search?: string
-  }) => {
-    const queryParams = new URLSearchParams(
-      filters as Record<string, string>
-    ).toString()
-    return apiRequest<Job[]>(`/jobs${queryParams ? `?${queryParams}` : ''}`)
+  // Get job feed (public). GET /api/jobs → { jobs, pagination }.
+  // Only defined filter values are sent (undefined keys are skipped).
+  getJobFeed: async (filters: JobFeedFilters = {}) => {
+    const qs = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        qs.set(key, String(value))
+      }
+    })
+    const query = qs.toString()
+    return apiRequest<JobsPage>(`/jobs${query ? `?${query}` : ''}`)
   },
 
   // Get job details (public). GET /api/jobs/:id
@@ -350,12 +389,16 @@ export const jobSeekerAPI = {
     return apiRequest<Job>(`/jobs/${jobId}`)
   },
 
-  // Recommended / nearby feeds (seeker-only). GET /api/jobs/{recommended,nearby}
-  getRecommendedJobs: async () => {
-    return apiRequest<Job[]>('/jobs/recommended')
+  // Recommended feed (seeker-only, JWT). GET /api/jobs/recommended → { jobs, pagination }.
+  getRecommendedJobs: async (page = 1, limit = 10) => {
+    return apiRequest<JobsPage>(`/jobs/recommended?page=${page}&limit=${limit}`)
   },
-  getNearbyJobs: async () => {
-    return apiRequest<Job[]>('/jobs/nearby')
+
+  // Near By feed (seeker-only, JWT — uses the seeker's profile location).
+  // GET /api/jobs/nearby → { jobs, pagination }.
+  getNearbyJobs: async (params: { radius?: number; page?: number; limit?: number } = {}) => {
+    const { radius = 5, page = 1, limit = 10 } = params
+    return apiRequest<JobsPage>(`/jobs/nearby?radius=${radius}&page=${page}&limit=${limit}`)
   },
 
   // Apply for job (multipart — optional audio cover letter). POST /api/applications
