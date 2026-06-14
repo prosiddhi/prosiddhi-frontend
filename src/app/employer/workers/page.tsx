@@ -92,7 +92,7 @@ function EmployerDashboardContent() {
           </Link>
           <div className="flex items-center gap-3 sm:gap-5">
             <Link
-              href="/employer/post-job"
+              href="/employer/jobs/new"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
             >
               <Plus className="w-4 h-4" />
@@ -150,6 +150,7 @@ function EmployerDashboardContent() {
                 <section>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl sm:text-2xl font-semibold text-black">Your Jobs</h2>
+                    <Link href="/employer/jobs" className="text-sm text-primary-50 hover:underline">Manage all</Link>
                   </div>
                   {jobs.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">

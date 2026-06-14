@@ -132,6 +132,7 @@ export interface Job {
   salaryMax?: number | null
   paymentType?: string
   jobType?: string
+  status?: string
   category?: string
   subcategory?: string | null
   skillsRequired?: string[]
@@ -565,14 +566,34 @@ export const jobSeekerAPI = {
 // EMPLOYER APIs
 // ==========================================
 
+export type JobTypeValue = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY' | 'INTERNSHIP'
+export type PaymentTypeValue = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FIXED'
+export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+
+// Mirrors the BE createJobSchema (POST /api/jobs). Only `title/description/
+// category/location/jobType` are required server-side; the rest are optional.
 export interface PostJobData {
   title: string
   description: string
-  location: string
-  salary: string
-  jobType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP'
   category: string
-  [key: string]: unknown
+  subcategory?: string
+  requirements?: string
+  skillsRequired?: string[]
+  location: string
+  latitude?: number
+  longitude?: number
+  radius?: number
+  salaryMin?: number
+  salaryMax?: number
+  paymentType?: PaymentTypeValue
+  jobType: JobTypeValue
+  urgencyLevel?: UrgencyLevelValue
+  duration?: string
+  numberOfPositions?: number
+  expiresAt?: string // ISO datetime
+  showEmailToSeekers?: boolean
+  showPhoneToSeekers?: boolean
+  companyName?: string
 }
 
 export interface JobApplication {
@@ -718,22 +739,27 @@ export const employerAPI = {
     )
   },
 
-  // Post a new job. POST /api/jobs
+  // Post a new job. POST /api/jobs → created Job.
   postJob: async (jobData: PostJobData) => {
-    return apiRequest('/jobs', {
+    return apiRequest<Job>('/jobs', {
       method: 'POST',
       body: JSON.stringify(jobData),
     })
   },
 
-  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs
-  getMyJobs: async () => {
-    return apiRequest<Job[]>('/jobs/employer/me/jobs')
+  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs → { jobs, pagination }
+  getMyJobs: async (page = 1, limit = 10) => {
+    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}`)
+  },
+
+  // Get employer's expired/fulfilled jobs. GET /api/jobs/employer/me/expired → { jobs, pagination }
+  getMyExpiredJobs: async (page = 1, limit = 10) => {
+    return apiRequest<JobsPage>(`/jobs/employer/me/expired?page=${page}&limit=${limit}`)
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
   updateJob: async (jobId: string, jobData: Partial<PostJobData>) => {
-    return apiRequest(`/jobs/${jobId}`, {
+    return apiRequest<Job>(`/jobs/${jobId}`, {
       method: 'PUT',
       body: JSON.stringify(jobData),
     })
