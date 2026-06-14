@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
+import { showToast } from '@/lib/toast'
+import { InlineError } from '@/components/feedback/InlineError'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Mail,
@@ -20,7 +22,6 @@ import {
   IndianRupee,
   BookmarkCheck,
   Loader2,
-  AlertCircle,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -80,10 +81,14 @@ function SavedJobsPageContent() {
         // lands on a populated page rather than a blank one (re-fetches via effect).
         if (prevItems.length === 1 && page > 1) setPage((p) => p - 1)
       } catch (err) {
-        // Revert on failure.
+        // Revert on failure and surface a non-destructive toast (keeps the list
+        // visible rather than replacing the page with the load-error block).
         setItems(prevItems)
         setTotal(prevTotal)
-        setError(err instanceof Error ? err.message : 'Could not remove this job. Please try again.')
+        showToast(
+          err instanceof Error ? err.message : 'Could not remove this job. Please try again.',
+          'error'
+        )
       } finally {
         setRemoving((prev) => {
           const next = new Set(prev)
@@ -171,16 +176,7 @@ function SavedJobsPageContent() {
 
           {/* Error */}
           {!loading && error && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-              <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button
-                onClick={() => setReloadKey((k) => k + 1)}
-                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
+            <InlineError message={error} onRetry={() => setReloadKey((k) => k + 1)} />
           )}
 
           {/* Saved Jobs List */}

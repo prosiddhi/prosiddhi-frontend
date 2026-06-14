@@ -16,6 +16,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/a
 export const AUTH_TOKEN_KEY = 'auth_token'
 export const AUTH_USER_KEY = 'auth_user'
 
+// Tracks whether the last request failed at the network level, so we only
+// dispatch the paired `api:network-error` / `api:network-recovered` events on a
+// real transition (not on every successful call). The global OfflineBanner uses
+// the pair to show AND auto-clear the "can't reach the server" state.
+let hadNetworkError = false
+
 /** Window-guarded read of the stored auth token (null on server / when absent). */
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -70,7 +76,33 @@ async function apiRequest<T>(
     headers,
   }
 
-  const response = await fetch(url, config)
+  // A network-level failure (offline, DNS, the dev tunnel being down) makes
+  // fetch REJECT — distinct from an HTTP error response. Surface it app-wide via
+  // the `api:network-error` event (the global OfflineBanner listens) and re-throw
+  // a friendly Error so existing callers' catch blocks still receive a readable
+  // `.message` — no caller signature changes.
+  let response: Response
+  try {
+    response = await fetch(url, config)
+  } catch (err) {
+    // A deliberately aborted request (AbortController) is NOT a connectivity
+    // failure — let it propagate untouched without flagging the app offline.
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err
+    }
+    if (typeof window !== 'undefined') {
+      hadNetworkError = true
+      window.dispatchEvent(new CustomEvent('api:network-error'))
+    }
+    throw new Error("Can't reach the server. Check your connection and try again.")
+  }
+
+  // The request reached the server (any HTTP status counts as connectivity
+  // restored). Clear a prior network-error state exactly once on recovery.
+  if (hadNetworkError && typeof window !== 'undefined') {
+    hadNetworkError = false
+    window.dispatchEvent(new CustomEvent('api:network-recovered'))
+  }
 
   if (response.status === 401) {
     // Centralized auth-expiry handling. Clear storage and let AuthContext react.
