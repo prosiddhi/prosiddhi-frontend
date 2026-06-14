@@ -59,6 +59,13 @@
 - **Proposed contract:** guard `email` the same way phone is (`showEmailToSeekers && user.email`).
 - **FE workaround until then:** FE already treats falsy email as "not present" via truthiness — no FE change needed.
 
+### BR-8 — `GET /profile` leaks the User `password` hash  `[ ]`
+- **Surfaced by:** PJP-112 code-review (profile management), reading `authService.getUserProfile`.
+- **Need:** `getUserProfile` does `prisma.user.findUnique({ include: {...} })` with **no `select`**, so `GET /api/jobseekers/profile` and `GET /api/employers/profile` return the full `User` row — including the PBKDF2 `password` hash — to the authenticated client.
+- **Why:** A password hash (even the user's own, salt-prefixed PBKDF2) should never cross the wire. It widens the blast radius of any client-side leak (XSS, logging, shared device) for zero functional benefit.
+- **Proposed fix:** add an explicit `select`/`omit` on `getUserProfile` (and any other endpoint reusing it) that excludes `password` (and ideally `isDeleted`/internal admin fields).
+- **FE mitigation in place:** the FE `SeekerProfile`/`EmployerProfile` types intentionally omit `password`; the profile screens never read or store it. Server-side strip still required.
+
 ---
 
 ## Landed (move here when done, keep for history)

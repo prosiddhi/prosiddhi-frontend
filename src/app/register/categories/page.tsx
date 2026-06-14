@@ -6,24 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-
-// BR-3 (docs/be-requests.md) — curated static taxonomy until the BE exposes a
-// public categories lookup. Sectors/titles mirror the unskilled-labour domains
-// in docs/_context/02-scope-locked.md. preferredSector/preferredJobTitle are
-// free-text on the BE, so these just constrain input to sensible values.
-const SECTORS: { sector: string; jobTitles: string[] }[] = [
-  { sector: 'Construction', jobTitles: ['Mason', 'Helper', 'Carpenter', 'Painter', 'Electrician', 'Plumber', 'Welder', 'Bar Bender'] },
-  { sector: 'Manufacturing', jobTitles: ['Machine Operator', 'Assembly Line Worker', 'Packing Helper', 'Quality Checker', 'Loader'] },
-  { sector: 'Food Products', jobTitles: ['Kitchen Helper', 'Cook', 'Food Packer', 'Delivery Helper'] },
-  { sector: 'Automobile', jobTitles: ['Mechanic', 'Auto Electrician', 'Denter', 'Painter', 'Washing Boy'] },
-  { sector: 'Renewable Energy', jobTitles: ['Solar Panel Installer', 'Helper', 'Technician'] },
-  { sector: 'Medical Assistance', jobTitles: ['Ward Boy', 'Nursing Assistant', 'Caretaker', 'Ambulance Helper'] },
-  { sector: 'Repair Services', jobTitles: ['AC Technician', 'Electrician', 'Plumber', 'Mobile Repair Technician'] },
-  { sector: 'Domestic Help', jobTitles: ['House Maid', 'Cook', 'Babysitter', 'Elderly Caretaker', 'Driver'] },
-  { sector: 'Delivery', jobTitles: ['Delivery Boy', 'Courier', 'Loader', 'Rider'] },
-  { sector: 'Retail', jobTitles: ['Sales Assistant', 'Cashier', 'Store Helper', 'Security Guard'] },
-  { sector: 'Common Works', jobTitles: ['General Helper', 'Cleaner', 'Office Boy', 'Security Guard', 'Gardener'] },
-]
+import { SECTORS, jobTitlesForSector } from '@/lib/jobCategories'
 
 export default function RegisterCategoriesPage() {
   const router = useRouter()
@@ -37,7 +20,7 @@ export default function RegisterCategoriesPage() {
     if (!data.email) router.replace('/register/phone')
   }, [data.email, router])
 
-  const jobTitles = SECTORS.find((s) => s.sector === sector)?.jobTitles ?? []
+  const jobTitles = jobTitlesForSector(sector)
 
   const handleSectorChange = (value: string) => {
     setSector(value)

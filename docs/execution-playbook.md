@@ -95,12 +95,12 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 |---|---|---|---|---|
 | [~] | **PJP-138** | Job feed + search/filter/pagination + Recommended + Near By (replace 10 hardcoded jobs) | `GET /jobs`, `/jobs/recommended`, `/jobs/nearby` | code-complete `1fc43df`; ⏳ live-smoke |
 | [~] | **PJP-139** | Job details page — real data, related jobs, view count, real Save toggle | `GET /jobs/:id`, `/jobs/:id/related` | code-complete `97cbe90`; ⏳ live-smoke |
-| [ ] | **PJP-140** | Saved jobs — list / save / unsave / check, persisted | `GET/POST/DELETE /saved-jobs` | |
-| [ ] | **PJP-141** | My applications — list + detail + withdraw (replace mock) | `GET /applications/my`, `/applications/:id`, `PUT /applications/:id/withdraw` | |
-| [ ] | **PJP-103** | Apply modal with 2-min audio recorder (currently records but doesn't submit) | `POST /applications` (multipart: `audio` file + `jobId` in body; ≤3 MB) | |
-| [ ] | **PJP-113** | Contact-recruiter gated reveal | `GET /jobs/:id/recruiter-contact` | |
-| [ ] | **PJP-152** | Seeker "Report this job" action (free-text reason) — *added 2026-06-13* | `POST /jobs/:id/report` | |
-| [ ] | **PJP-153** | Seeker "My Interviews" view (scheduled interviews from accepted apps) — *added 2026-06-13* | interview data on `GET /applications/my` / accept-created `Interview` | |
+| [~] | **PJP-140** | Saved jobs — list / save / unsave / check, persisted | `GET/POST/DELETE /saved-jobs` | code-complete `af99f23`; ⏳ live-smoke |
+| [~] | **PJP-141** | My applications — list + detail + withdraw (replace mock) | `GET /applications/my`, `/applications/:id`, `PUT /applications/:id/withdraw` | code-complete `87c0d98`; ⏳ live-smoke |
+| [~] | **PJP-103** | Apply modal with 2-min audio recorder (currently records but doesn't submit) | `POST /applications` (multipart: `audio` file + `jobId` in body; ≤3 MB) | code-complete `231ada5`; ⏳ live-smoke |
+| [~] | **PJP-113** | Contact-recruiter gated reveal | `GET /jobs/:id/recruiter-contact` | code-complete `b2823e8`; ⏳ live-smoke |
+| [~] | **PJP-152** | Seeker "Report this job" action (free-text reason) — *added 2026-06-13* | `POST /jobs/:id/report` | code-complete `178a35e`; ⏳ live-smoke |
+| [~] | **PJP-153** | Seeker "My Interviews" view (scheduled interviews from accepted apps) — *added 2026-06-13* | interview data on `GET /applications/my` / accept-created `Interview` | code-complete `42c25a9`; ⚠️ blocked on **BR-4** (seeker reads must include `interview`) + live-smoke |
 
 ---
 
@@ -108,9 +108,9 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [ ] | **PJP-143** | Employer dashboard home — stats / jobs / recent applications (replace `/workers` "coming soon") | `GET /employers/dashboard/{stats,jobs,recent-applications}` | |
-| [ ] | **PJP-106** | Job posting + live preview (no posting screen exists yet) | `POST /jobs`, activate/deactivate routes | |
-| [ ] | **PJP-104** | Candidate list + detail + accept/reject/bookmark ("coming soon" stub today) | `GET /applications/employer/all` + `/applications/job/:jobId`; `PUT /applications/:id/{accept,reject,bookmark}` | |
+| [~] | **PJP-143** | Employer dashboard home — stats / jobs / recent applications (replace `/workers` "coming soon") | `GET /employers/dashboard/{stats,jobs,recent-applications}` | code-complete `9dcd658`; ⏳ live-smoke |
+| [~] | **PJP-106** | Job posting + live preview (no posting screen exists yet) | `POST /jobs`, activate/deactivate routes | code-complete `f1775d6`; ⏳ live-smoke |
+| [~] | **PJP-104** | Candidate list + detail + accept/reject/bookmark ("coming soon" stub today) | `GET /applications/employer/all` + `/applications/job/:jobId`; `PUT /applications/:id/{accept,reject,bookmark}` | code-complete `35ca44e`; ⏳ live-smoke |
 
 ---
 
@@ -118,8 +118,8 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [ ] | **PJP-105** | Chat UI — polling + text + 60s audio (both roles) | conversation endpoints, `after=` polling, audio | |
-| [ ] | **PJP-112** | Profile management screens (none wired today) | `GET/PUT /jobseekers/profile`, docs, skills, photo | |
+| [~] | **PJP-105** | Chat UI — polling + text + 60s audio (both roles) | conversation endpoints, `after=` polling, audio | code-complete `497fee9`; ⏳ live-smoke (2-user) |
+| [~] | **PJP-112** | Profile management screens (seeker + employer): photo, fields, work-exp, documents CRUD, skills | `GET/PUT /jobseekers/profile` + `/employers/profile`, `/me/{documents,skills,profile-photo}`, `GET /skills` | code-complete `pending`; ⏳ live-smoke |
 | [ ] | **PJP-109** | i18n wiring (next-i18next + EN + HI JSON) — pure FE, no BE dep | n/a | |
 
 ---

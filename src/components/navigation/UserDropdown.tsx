@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { User, Briefcase, Settings, LogOut } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface UserDropdownProps {
   userName?: string
@@ -16,6 +17,10 @@ export function UserDropdown({
 }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+
+  // Employers get the company-profile screen; everyone else the seeker profile.
+  const profileHref = user?.role?.startsWith('EMPLOYER') ? '/employer/profile' : '/profile'
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -94,7 +99,7 @@ export function UserDropdown({
           <div className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn">
             {/* Profile */}
             <Link
-              href="/profile"
+              href={profileHref}
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
             >

@@ -235,6 +235,153 @@ export interface ApplicationsPage {
 }
 
 // ==========================================
+// PROFILE / DOCUMENTS / SKILLS (PJP-112)
+// ==========================================
+
+// Mirrors the BE Prisma DocumentType enum. Seeker docs use the first four + OTHER;
+// employer docs use GST_CERTIFICATE / COMPANY_REGISTRATION / OTHER.
+export type DocumentType =
+  | 'IDENTITY_PROOF'
+  | 'ADDRESS_PROOF'
+  | 'EDUCATION_CERTIFICATE'
+  | 'SKILL_CERTIFICATE'
+  | 'GST_CERTIFICATE'
+  | 'COMPANY_REGISTRATION'
+  | 'OTHER'
+
+// A Document row (seeker or employer). BE field is `type` (NOT `documentType`).
+export interface UserDocument {
+  id: string
+  type: DocumentType
+  fileName: string
+  fileUrl: string
+  fileSize: number
+  mimeType: string
+  verified: boolean
+  verificationStatus?: string
+  createdAt?: string
+}
+
+export interface SkillCatalogItem {
+  id: string
+  name: string
+  category: string
+  description?: string | null
+  active?: boolean
+}
+
+export interface SkillsCatalogPage {
+  skills: SkillCatalogItem[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+// A seeker's own skill — a JobSeekerSkill link row joined to the catalog skill.
+// `id` is the LINK id (used for DELETE /me/skills/:linkId), not the skill id.
+export interface JobSeekerSkillLink {
+  id: string
+  skillId: string
+  jobSeekerId?: string
+  verified?: boolean
+  createdAt?: string
+  skill?: SkillCatalogItem
+}
+
+// Work-experience row in the PUT shape (BE: position/companyName/startDate/...).
+export interface ProfileWorkExperience {
+  id?: string
+  position: string
+  companyName?: string | null
+  startDate?: string
+  endDate?: string | null
+  currentlyWorking?: boolean
+  description?: string | null
+}
+
+// GET /jobseekers/profile — full user + nested jobSeeker. NOTE: the BE also
+// returns `user.password` (the hash — filed as BR-8) — intentionally omitted
+// here so it can never be read/stored on the FE.
+export interface SeekerProfile {
+  id: string
+  email: string
+  phoneNumber?: string | null
+  role: UserRole
+  accountStatus?: string
+  emailVerified?: boolean
+  preferredLanguage?: string
+  jobSeeker?: {
+    id: string
+    fullName?: string | null
+    profilePhoto?: string | null
+    bio?: string | null
+    location?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    preferredSector?: string | null
+    preferredJobTitle?: string | null
+    skills?: JobSeekerSkillLink[]
+    workExperience?: ProfileWorkExperience[]
+    documents?: UserDocument[]
+  } | null
+}
+
+// GET /employers/profile — full user + nested employer.
+export interface EmployerProfile {
+  id: string
+  email: string
+  phoneNumber?: string | null
+  role: UserRole
+  accountStatus?: string
+  emailVerified?: boolean
+  employer?: {
+    id: string
+    employerType?: string
+    profilePhoto?: string | null
+    fullName?: string | null
+    designation?: string | null
+    companyName?: string | null
+    companyEmail?: string | null
+    companyAddress?: string | null
+    companyFoundedDate?: string | null
+    companySize?: CompanySize | null
+    gstNumber?: string | null
+    registrationNumber?: string | null
+    verificationStatus?: string
+    documents?: UserDocument[]
+  } | null
+}
+
+// PUT /jobseekers/profile body. NEVER include email/phoneNumber/password — the BE
+// Zod schema rejects them (each has a dedicated endpoint). `workExperiences`, when
+// present, FULL-REPLACES the seeker's work history server-side.
+export interface SeekerProfileUpdate {
+  fullName?: string
+  bio?: string
+  location?: string
+  latitude?: number
+  longitude?: number
+  preferredSector?: string
+  preferredJobTitle?: string
+  preferredLanguage?: string
+  profilePhoto?: string
+  workExperiences?: ProfileWorkExperience[]
+}
+
+// PUT /employers/profile body. Changing gstNumber/registrationNumber resets the
+// employer's verificationStatus to PENDING server-side (T2 #20).
+export interface EmployerProfileUpdate {
+  fullName?: string
+  designation?: string
+  profilePhoto?: string
+  companyName?: string
+  companyEmail?: string
+  companyAddress?: string
+  companyFoundedDate?: string
+  companySize?: CompanySize
+  gstNumber?: string
+  registrationNumber?: string
+}
+
+// ==========================================
 // AUTH APIs (login — role-split + phone-OTP)
 // ==========================================
 //
@@ -559,12 +706,73 @@ export const jobSeekerAPI = {
     return apiRequest<{ isSaved: boolean; jobId: string }>(`/saved-jobs/check/${jobId}`)
   },
 
-  // Update profile. PUT /api/jobseekers/profile
-  updateProfile: async (profileData: Partial<SeekerRegisterData>) => {
-    return apiRequest('/jobseekers/profile', {
+  // Profile (PJP-112). GET /api/jobseekers/profile → full user + nested jobSeeker.
+  getProfile: async () => {
+    return apiRequest<SeekerProfile>('/jobseekers/profile')
+  },
+
+  // Update profile. PUT /api/jobseekers/profile (JSON). Do NOT send email/phone/
+  // password — the BE rejects them. workExperiences (when present) FULL-REPLACES.
+  // NOTE: the BE returns the BARE updated JobSeeker record (not the wrapped user
+  // shape that GET returns), so callers should re-fetch getProfile() to refresh.
+  updateProfile: async (data: SeekerProfileUpdate) => {
+    return apiRequest<unknown>('/jobseekers/profile', {
       method: 'PUT',
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(data),
     })
+  },
+
+  // Profile photo. POST /api/jobseekers/me/profile-photo (multipart field `profilePic`).
+  updateProfilePhoto: async (file: File) => {
+    const fd = new FormData()
+    fd.append('profilePic', file)
+    return apiRequest<{ profilePhoto: string }>('/jobseekers/me/profile-photo', {
+      method: 'POST',
+      body: fd,
+    })
+  },
+
+  // Documents. GET/POST/DELETE /api/jobseekers/me/documents[/:documentId].
+  // Upload is multipart: `file` + optional `type` (seeker DocumentType).
+  listDocuments: async () => {
+    return apiRequest<UserDocument[]>('/jobseekers/me/documents')
+  },
+  uploadDocument: async (file: File, type?: DocumentType) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    if (type) fd.append('type', type)
+    return apiRequest<UserDocument>('/jobseekers/me/documents', { method: 'POST', body: fd })
+  },
+  deleteDocument: async (documentId: string) => {
+    return apiRequest(`/jobseekers/me/documents/${documentId}`, { method: 'DELETE' })
+  },
+
+  // Skills (self-declared). GET/POST/DELETE /api/jobseekers/me/skills[/:linkId].
+  // getMySkills returns link rows (each with the joined catalog `skill`); the row
+  // `id` is the LINK id used for removeSkill.
+  getMySkills: async () => {
+    return apiRequest<JobSeekerSkillLink[]>('/jobseekers/me/skills')
+  },
+  addSkill: async (skillId: string) => {
+    return apiRequest<JobSeekerSkillLink>('/jobseekers/me/skills', {
+      method: 'POST',
+      body: JSON.stringify({ skillId }),
+    })
+  },
+  removeSkill: async (linkId: string) => {
+    return apiRequest(`/jobseekers/me/skills/${linkId}`, { method: 'DELETE' })
+  },
+
+  // Public skills catalog (for the picker). GET /api/skills → { skills, pagination }.
+  getSkillsCatalog: async (
+    params: { category?: string; search?: string; page?: number; limit?: number } = {}
+  ) => {
+    const qs = new URLSearchParams()
+    if (params.category) qs.set('category', params.category)
+    if (params.search) qs.set('search', params.search)
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 100))
+    return apiRequest<SkillsCatalogPage>(`/skills?${qs.toString()}`)
   },
 }
 
@@ -918,12 +1126,45 @@ export const employerAPI = {
     })
   },
 
-  // Update company profile. PUT /api/employers/profile
-  updateProfile: async (profileData: Record<string, unknown>) => {
-    return apiRequest('/employers/profile', {
+  // Profile (PJP-112). GET /api/employers/profile → full user + nested employer.
+  getProfile: async () => {
+    return apiRequest<EmployerProfile>('/employers/profile')
+  },
+
+  // Update company profile. PUT /api/employers/profile (JSON). Changing
+  // gstNumber/registrationNumber resets verificationStatus to PENDING on the BE.
+  // NOTE: the BE returns the BARE updated Employer record (not the wrapped user
+  // shape that GET returns), so callers should re-fetch getProfile() to refresh.
+  updateProfile: async (data: EmployerProfileUpdate) => {
+    return apiRequest<unknown>('/employers/profile', {
       method: 'PUT',
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(data),
     })
+  },
+
+  // Profile photo. POST /api/employers/me/profile-photo (multipart field `profilePic`).
+  updateProfilePhoto: async (file: File) => {
+    const fd = new FormData()
+    fd.append('profilePic', file)
+    return apiRequest<{ profilePhoto: string }>('/employers/me/profile-photo', {
+      method: 'POST',
+      body: fd,
+    })
+  },
+
+  // Documents. GET/POST/DELETE /api/employers/me/documents[/:documentId].
+  // DELETE enforces a min-1 invariant server-side (400 when removing the last doc).
+  listDocuments: async () => {
+    return apiRequest<UserDocument[]>('/employers/me/documents')
+  },
+  uploadDocument: async (file: File, type?: DocumentType) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    if (type) fd.append('type', type)
+    return apiRequest<UserDocument>('/employers/me/documents', { method: 'POST', body: fd })
+  },
+  deleteDocument: async (documentId: string) => {
+    return apiRequest(`/employers/me/documents/${documentId}`, { method: 'DELETE' })
   },
 }
 
