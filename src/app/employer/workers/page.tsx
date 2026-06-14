@@ -2,133 +2,238 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { CheckCircle2, Users } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { UserDropdown } from '@/components/navigation/UserDropdown'
+import {
+  employerAPI,
+  type EmployerDashboardStats,
+  type EmployerDashboardJob,
+  type RecentApplication,
+} from '@/lib/api'
+import { relativeTime, initials } from '@/lib/jobFormat'
+import { statusMeta } from '@/lib/applicationStatus'
+import {
+  Plus,
+  Briefcase,
+  Users,
+  Clock,
+  CheckCircle2,
+  Star,
+  Loader2,
+  AlertCircle,
+  MapPin,
+} from 'lucide-react'
 
-function WorkersPageContent() {
-  const router = useRouter()
-  const [showWelcome, setShowWelcome] = useState(true)
-
-  useEffect(() => {
-    // Hide welcome message after 3 seconds
-    const timer = setTimeout(() => {
-      setShowWelcome(false)
-    }, 3000)
-
-    return () => clearTimeout(timer)
-  }, [])
-
+function StatTile({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      {/* Welcome Message */}
-      {showWelcome && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slideInRight z-50">
-          <CheckCircle2 className="w-5 h-5" />
-          <span className="font-medium">Registration Successful!</span>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Icon */}
-          <div className="mb-8 flex justify-center">
-            <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center">
-              <Users className="w-12 h-12 text-white" />
-            </div>
-          </div>
-
-          {/* Welcome Text */}
-          <h1 className="text-4xl sm:text-5xl font-bold text-black mb-6">
-            Welcome to Workers Dashboard
-          </h1>
-          
-          <p className="text-xl text-gray-600 mb-12">
-            Your employer account has been created successfully!
-          </p>
-
-          {/* Info Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 border border-gray-200">
-            <h2 className="text-2xl font-semibold text-black mb-4">
-              Coming Soon
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              The workers page is currently under development. You will soon be able to:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left max-w-2xl mx-auto">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-black mb-1">Post Jobs</h3>
-                  <p className="text-sm text-gray-600">Create and manage job listings</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-black mb-1">Find Workers</h3>
-                  <p className="text-sm text-gray-600">Search through candidate database</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-black mb-1">Review Applications</h3>
-                  <p className="text-sm text-gray-600">Manage candidate applications</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-black mb-1">Contact Candidates</h3>
-                  <p className="text-sm text-gray-600">Message or call applicants directly</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => router.push('/employer')}
-              className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium"
-            >
-              Go to Employer Dashboard
-            </button>
-            <button
-              onClick={() => router.push('/')}
-              className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-base font-medium"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
+    <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
+      <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
+        {icon}
       </div>
-
-      {/* Registration Details (for debugging) */}
-      <div className="fixed bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200 max-w-xs hidden">
-        <h3 className="font-semibold text-sm mb-2">Registration Info:</h3>
-        <pre className="text-xs text-gray-600 overflow-auto">
-          {JSON.stringify({
-            companyType: typeof window !== 'undefined' ? localStorage.getItem('companyType') : null,
-            phone: typeof window !== 'undefined' ? localStorage.getItem('employerPhone') : null,
-            otpVerified: typeof window !== 'undefined' ? localStorage.getItem('otpVerified') : null,
-            complete: typeof window !== 'undefined' ? localStorage.getItem('registrationComplete') : null,
-          }, null, 2)}
-        </pre>
+      <div className="min-w-0">
+        <p className="text-2xl font-bold text-black leading-tight">{value}</p>
+        <p className="text-xs sm:text-sm text-[#717182] truncate">{label}</p>
       </div>
     </div>
   )
 }
 
-export default function WorkersPage() {
+function EmployerDashboardContent() {
+  const [stats, setStats] = useState<EmployerDashboardStats | null>(null)
+  const [jobs, setJobs] = useState<EmployerDashboardJob[]>([])
+  const [recent, setRecent] = useState<RecentApplication[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    let ignore = false
+    const run = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        // Fetch the three panels in parallel; tolerate partial failures so one
+        // slow/erroring panel doesn't blank the whole dashboard.
+        const [s, j, r] = await Promise.allSettled([
+          employerAPI.getDashboardStats(),
+          employerAPI.getDashboardJobs(1, 5),
+          employerAPI.getRecentApplications(5),
+        ])
+        if (ignore) return
+        if (s.status === 'fulfilled') setStats(s.value)
+        if (j.status === 'fulfilled') setJobs(j.value.jobs)
+        if (r.status === 'fulfilled') setRecent(r.value.applications)
+        // Only treat it as a page error if everything failed.
+        if (s.status === 'rejected' && j.status === 'rejected' && r.status === 'rejected') {
+          setError(s.reason instanceof Error ? s.reason.message : 'Failed to load your dashboard.')
+        }
+      } catch (err) {
+        if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load your dashboard.')
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [reloadKey])
+
+  return (
+    <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
+          <Link href="/employer" className="flex items-center">
+            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
+              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+            </div>
+          </Link>
+          <div className="flex items-center gap-3 sm:gap-5">
+            <Link
+              href="/employer/post-job"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4" />
+              Post a Job
+            </Link>
+            <UserDropdown />
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 py-8 sm:py-10 lg:py-12">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">
+            Dashboard
+          </h1>
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
+              <p>Loading your dashboard...</p>
+            </div>
+          )}
+
+          {/* Error (only when everything failed) */}
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+              <p className="text-red-600 mb-4 max-w-md">{error}</p>
+              <button
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <>
+              {/* Stats */}
+              {stats && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8 sm:mb-10">
+                  <StatTile label="Total Jobs" value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
+                  <StatTile label="Active Jobs" value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
+                  <StatTile label="Applications" value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
+                  <StatTile label="Pending" value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
+                  <StatTile label="Shortlisted" value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
+                  <StatTile label="Accepted" value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                {/* Your Jobs */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-black">Your Jobs</h2>
+                  </div>
+                  {jobs.length > 0 ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      {jobs.map((job) => (
+                        <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <h3 className="text-base sm:text-lg font-semibold text-black min-w-0 truncate">{job.title}</h3>
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                                job.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {job.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
+                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> applicants</span>
+                            <span><span className="font-semibold text-black">{job.pendingCount}</span> pending</span>
+                            <span><span className="font-semibold text-black">{job.shortlistedCount}</span> shortlisted</span>
+                            <span><span className="font-semibold text-black">{job.acceptedCount}</span> accepted</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
+                      <Briefcase className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                      <p className="mb-4">You haven&apos;t posted any jobs yet.</p>
+                      <Link href="/employer/post-job" className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
+                        <Plus className="w-4 h-4" /> Post your first job
+                      </Link>
+                    </div>
+                  )}
+                </section>
+
+                {/* Recent Applications */}
+                <section>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-black mb-4">Recent Applications</h2>
+                  {recent.length > 0 ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      {recent.map((app) => {
+                        const meta = statusMeta(app.status)
+                        return (
+                          <div key={app.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
+                            <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant.name)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant.name || 'Applicant'}</p>
+                              <p className="text-xs sm:text-sm text-[#717182] truncate">{app.job.title}</p>
+                              {app.applicant.location && (
+                                <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3 h-3" /> {app.applicant.location}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
+                              <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
+                      <Users className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                      <p>No applications yet. They&apos;ll appear here as candidates apply.</p>
+                    </div>
+                  )}
+                </section>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export default function EmployerDashboardPage() {
   return (
     <ProtectedRoute requiredRole="employer">
-      <WorkersPageContent />
+      <EmployerDashboardContent />
     </ProtectedRoute>
   )
 }

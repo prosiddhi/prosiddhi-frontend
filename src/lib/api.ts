@@ -583,6 +583,59 @@ export interface JobApplication {
   [key: string]: unknown
 }
 
+// Employer dashboard shapes (GET /api/employers/dashboard/*).
+export interface EmployerDashboardStats {
+  totalJobPosts: number
+  totalApplications: number
+  acceptedApplications: number
+  rejectedApplications: number
+  pendingApplications: number
+  shortlistedApplications: number
+  activeJobs: number
+  reviewedApplications: number
+}
+
+export interface EmployerDashboardJob {
+  id: string
+  title: string
+  description?: string
+  category?: string
+  subcategory?: string | null
+  location?: string
+  status?: string
+  postedAt?: string
+  expiresAt?: string | null
+  viewCount?: number
+  applicationCount?: number
+  acceptedCount: number
+  rejectedCount: number
+  pendingCount: number
+  shortlistedCount: number
+  reviewedCount: number
+}
+
+export interface EmployerDashboardJobsPage {
+  jobs: EmployerDashboardJob[]
+  pagination: JobsPagination
+}
+
+export interface RecentApplication {
+  id: string
+  applicant: {
+    id: string
+    name?: string | null
+    email?: string
+    phone?: string
+    profilePhoto?: string | null
+    location?: string | null
+  }
+  job: { id: string; title: string; category?: string; subcategory?: string | null }
+  status: string
+  message?: string | null
+  appliedAt?: string
+  reviewedAt?: string | null
+}
+
 // Employer registration is JSON-only for both types (docs are uploaded
 // separately after email-verify per the 2026-05-13 split). Both register calls
 // auto-send the email-verification OTP and return no token — the caller must
@@ -652,14 +705,16 @@ export const employerAPI = {
 
   // Dashboard. GET /api/employers/dashboard/{stats,jobs,recent-applications}
   getDashboardStats: async () => {
-    return apiRequest('/employers/dashboard/stats')
+    return apiRequest<EmployerDashboardStats>('/employers/dashboard/stats')
   },
-  getDashboardJobs: async () => {
-    return apiRequest<Job[]>('/employers/dashboard/jobs')
+  getDashboardJobs: async (page = 1, limit = 10) => {
+    return apiRequest<EmployerDashboardJobsPage>(
+      `/employers/dashboard/jobs?page=${page}&limit=${limit}`
+    )
   },
-  getRecentApplications: async () => {
-    return apiRequest<JobApplication[]>(
-      '/employers/dashboard/recent-applications'
+  getRecentApplications: async (limit = 10) => {
+    return apiRequest<{ applications: RecentApplication[]; count: number }>(
+      `/employers/dashboard/recent-applications?limit=${limit}`
     )
   },
 
