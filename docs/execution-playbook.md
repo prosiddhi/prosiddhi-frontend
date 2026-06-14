@@ -1,12 +1,32 @@
 # Portal Execution Playbook — `prosiddhi-frontend`
 
-**Owner:** Nazir (FE) · **Created:** 2026-06-13 · **Repo:** `prosiddhi-frontend` (Portal app — seeker + employer)
+**Owner:** Nazir (FE) · **Created:** 2026-06-13 · **Last board sync:** 2026-06-13 (Stage 0 executed; PJP-144–154 folded in; board verified PJP-45→154) · **Repo:** `prosiddhi-frontend` (Portal app — seeker + employer)
 **Derived from:** the verified status reconciliation (folded in as **Appendix A** below) + status report (2026-06-12)
 **Companion:** Admin has its own playbook in `prosiddhi-admin/docs/admin-execution-playbook.md`
 
 > **How to use this doc:** This is the single source you follow to ship the Portal **one ticket at a time**.
 > Do not start a ticket until the previous one is **pushed + its Jira moved**. Work top-to-bottom.
 > This doc IS the live tracker — update the checkbox and the "Done" stamp as you close each ticket.
+
+---
+
+## 📍 Current status (2026-06-15)
+
+**Active branch:** `pjp-81-registration-rework` (local, **not pushed**). **BE tunnel:** DOWN — refresh the trycloudflare URL from Asrar into `.env.local` + restart dev server before any live smoke.
+
+| Ticket | State | Commit(s) |
+|---|---|---|
+| PJP-81 — registration (seeker + employer) | `[~]` code-complete · seeker live-verified · employer smoke pending | `c8acead`, `b97a2af` |
+| PJP-142 — forgot/reset password | `[~]` code-complete · smoke pending | `bb17d98` |
+| PJP-138 — job feed | `[~]` code-complete · smoke pending | `1fc43df` |
+| PJP-139 — job details + Save | `[~]` code-complete · smoke pending | `97cbe90` |
+
+**Next ticket:** PJP-140 (saved jobs). After it: 141 → 103 → 113 → 152 → 153.
+
+**How we track (3 layers, kept in sync):**
+- **Jira (canonical status)** — each ticket transitioned (To Do → In Progress → Done) with an evidence comment (commit SHA + what was gated/verified).
+- **This playbook (human handbook)** — the `[~]`/`[x]` markers below. **`[~]` = code-complete + gated + committed but NOT live-smoke-verified** → do NOT flip to `[x]` Done until the end-to-end run against the live BE passes.
+- **`memory/next_session_pickup.md`** — cross-session pickup (branch, debt, next ticket, standing rules).
 
 ---
 
@@ -44,17 +64,17 @@ code pushed · Jira transitioned to Done with evidence comment · checkbox flipp
 
 ---
 
-## STAGE 0 — Board cleanup (do this first, ~30 min, no code)
+## STAGE 0 — Board cleanup (✅ DONE 2026-06-13)
 
-The board lags reality. Fix it before coding so the tracker is honest.
+The board lagged reality; fixed so the tracker is honest.
 
 | ✓ | Action | Detail | Done |
 |---|---|---|---|
-| [ ] | **Move auth foundation → Done (with caveat)** | PJP-77, 78, 79, 80, 82 are **code-complete** (commit `69be6b0`): Bearer interceptor + 401 logout in `api.ts`, `AuthContext`, `ProtectedRoute`, 3-method `/login`. Transition each → Done; comment: *"code-complete; integration-unverified vs live BE."* | |
-| [ ] | **Close 6 duplicate tickets** | PJP-132–137 and PJP-138–143 are identical sets. Keep **138–143**, close **132–137** as duplicates (link to the survivor). | |
-| [ ] | **Confirm `.env.local` BE URL is live** | This is the real PJP-77. Verify the trycloudflare tunnel responds; if dead, get a fresh URL from Asrar. Without a live BE you cannot verify any ticket below. | |
+| [x] | **Move auth foundation → Done (with caveat)** | PJP-77, 78, 79, 80, 82 transitioned → Done; code verified present (`AuthContext.tsx`, `ProtectedRoute.tsx`, Bearer/401 in `api.ts`). Each carries the *"code-complete; integration-unverified vs live BE"* comment. | 2026-06-13 |
+| [x] | **Close 6 duplicate tickets** | PJP-132–137 closed → Done, each linked as **Duplicate of** its survivor (132→138, 133→139, 134→140, 135→141, 136→142, 137→143). Survivors **138–143** stay open. | 2026-06-13 |
+| [x] | **Confirm `.env.local` BE URL is live** | **LIVE 2026-06-13** — tunnel refreshed to `https://prepared-guidance-log-records.trycloudflare.com`; verified `GET /api/jobs` → 200 with seeded data. (Tunnel rotates ~daily — re-ask Asrar each morning.) | 2026-06-13 |
 
-> After Stage 0, PJP-81 (registration screens) is the only auth-chain ticket left genuinely open.
+> After Stage 0, PJP-81 (registration screens) is the only auth-chain ticket left genuinely open. BE is reachable — ready to code.
 
 ---
 
@@ -62,8 +82,8 @@ The board lags reality. Fix it before coding so the tracker is honest.
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [ ] | **PJP-81** | Rework registration screens onto corrected auth/paths (seeker + employer). *api paths already fixed; screens unconfirmed.* | `/jobseekers/register`, `/employers/register/{individual,business}`, `/auth/login-phone-send` | |
-| [ ] | **PJP-142** | Forgot / reset password (real email-OTP + reset) | `email-otp/send|verify`, `auth/reset-password` | |
+| [~] | **PJP-81** | Rework registration screens onto corrected auth/paths (seeker + employer). | `/jobseekers/register`, `/employers/register/{individual,business}`, `/auth/login-phone-send` | code-complete `c8acead` (+fix `b97a2af`); seeker verified live; ⏳ employer live-smoke |
+| [~] | **PJP-142** | Forgot / reset password (real email-OTP + reset) | `email-otp/send|verify`, `auth/reset-password` | code-complete `bb17d98`; ⏳ live-smoke |
 
 ---
 
@@ -73,12 +93,14 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [ ] | **PJP-138** | Job feed + search/filter/pagination + Recommended + Near By (replace 10 hardcoded jobs) | `GET /jobs`, `/jobs/recommended`, `/jobs/nearby` | |
-| [ ] | **PJP-139** | Job details page — real data, related jobs, view count, real Save toggle | `GET /jobs/:id`, `/jobs/:id/related` | |
+| [~] | **PJP-138** | Job feed + search/filter/pagination + Recommended + Near By (replace 10 hardcoded jobs) | `GET /jobs`, `/jobs/recommended`, `/jobs/nearby` | code-complete `1fc43df`; ⏳ live-smoke |
+| [~] | **PJP-139** | Job details page — real data, related jobs, view count, real Save toggle | `GET /jobs/:id`, `/jobs/:id/related` | code-complete `97cbe90`; ⏳ live-smoke |
 | [ ] | **PJP-140** | Saved jobs — list / save / unsave / check, persisted | `GET/POST/DELETE /saved-jobs` | |
 | [ ] | **PJP-141** | My applications — list + detail + withdraw (replace mock) | `GET /applications/my`, `/applications/:id`, `PUT /applications/:id/withdraw` | |
 | [ ] | **PJP-103** | Apply modal with 2-min audio recorder (currently records but doesn't submit) | `POST /applications` (multipart: `audio` file + `jobId` in body; ≤3 MB) | |
 | [ ] | **PJP-113** | Contact-recruiter gated reveal | `GET /jobs/:id/recruiter-contact` | |
+| [ ] | **PJP-152** | Seeker "Report this job" action (free-text reason) — *added 2026-06-13* | `POST /jobs/:id/report` | |
+| [ ] | **PJP-153** | Seeker "My Interviews" view (scheduled interviews from accepted apps) — *added 2026-06-13* | interview data on `GET /applications/my` / accept-created `Interview` | |
 
 ---
 
@@ -112,12 +134,26 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 ---
 
+## STAGE 6 — FE hardening (S3 — do after the core loop works; *added to board 2026-06-13*)
+
+Portal-repo quality pass. None block the core loop; schedule for the S3 window (Jun 15–19).
+
+| ✓ | Ticket | Delivers | Wires to | Done |
+|---|---|---|---|---|
+| [ ] | **PJP-148** | Global network/error handling + offline banner | n/a (FE) | |
+| [ ] | **PJP-149** | Low-literacy usability pass (tap targets, icon-first, voice affordances) | n/a (FE) | |
+| [ ] | **PJP-150** | Playwright smoke tests (login / apply / post-job) | n/a (FE) | |
+| [ ] | **PJP-151** | Wire Sentry error monitoring | n/a (FE) | |
+| [ ] | **PJP-154** | Low-end-device performance pass (bundle + images) | n/a (FE) | |
+
+---
+
 ## Out of FE scope (tracked elsewhere — do not pick up here)
 
 - **BE (Asrar):** PJP-72/73/74/75/76, 92, 93, 94, 95, 96, 97, 98, 99, 102, 86, 127.
 - **Procurement/infra:** PJP-61 (MSG91 DLT), PJP-62 (Razorpay KYC), PJP-87 (staging + CI).
 - **Mobile (UNOWNED, not started):** PJP-83/84/85, 114–120.
-- **Admin:** PJP-65/107/108 → see the admin playbook in `prosiddhi-admin`.
+- **Admin (`prosiddhi-admin` repo — NOT this repo):** PJP-65/107/108, and **new 2026-06-13:** PJP-144 (admin dashboard), PJP-145 (payment-status override), PJP-146 (soft-delete + deleted listings), PJP-147 (skills catalog CRUD) → see the admin playbook in `prosiddhi-admin`.
 
 ---
 
