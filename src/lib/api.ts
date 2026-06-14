@@ -453,22 +453,32 @@ export const jobSeekerAPI = {
   },
 
   // Apply for job (multipart — optional audio cover letter). POST /api/applications
+  // Body: jobId (required) + message? (BE field name, ≤1000) + audioDuration? (≤120s).
+  // Audio file goes in the `audio` field (3 MB cap, webm/mp4/m4a/ogg/opus).
   applyForJob: async (
     jobId: string,
-    applicationData: { audio?: File; coverLetter?: string }
+    applicationData: { audio?: File; message?: string; audioDuration?: number }
   ) => {
     const formData = new FormData()
     formData.append('jobId', jobId)
     if (applicationData.audio) {
       formData.append('audio', applicationData.audio)
     }
-    if (applicationData.coverLetter) {
-      formData.append('coverLetter', applicationData.coverLetter)
+    if (applicationData.message) {
+      formData.append('message', applicationData.message)
     }
-    return apiRequest('/applications', {
+    if (applicationData.audioDuration != null) {
+      formData.append('audioDuration', String(applicationData.audioDuration))
+    }
+    return apiRequest<Application>('/applications', {
       method: 'POST',
       body: formData,
     })
+  },
+
+  // Check if the seeker has already applied. GET /api/applications/check/:jobId
+  checkIfApplied: async (jobId: string) => {
+    return apiRequest<{ hasApplied: boolean; jobId: string }>(`/applications/check/${jobId}`)
   },
 
   // Get my applications. GET /api/applications/my → { applications, pagination }.

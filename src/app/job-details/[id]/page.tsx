@@ -42,6 +42,7 @@ function JobDetailsContent() {
   const [isSaved, setIsSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [hasApplied, setHasApplied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
@@ -56,14 +57,16 @@ function JobDetailsContent() {
         const j = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
         setJob(j)
-        // Related + saved status are non-critical — don't fail the page on them.
-        const [rel, saved] = await Promise.allSettled([
+        // Related + saved + applied status are non-critical — don't fail the page on them.
+        const [rel, saved, applied] = await Promise.allSettled([
           jobSeekerAPI.getRelatedJobs(jobId),
           jobSeekerAPI.isJobSaved(jobId),
+          jobSeekerAPI.checkIfApplied(jobId),
         ])
         if (ignore) return
         if (rel.status === 'fulfilled') setRelated(rel.value.relatedJobs ?? [])
         if (saved.status === 'fulfilled') setIsSaved(!!saved.value.isSaved)
+        if (applied.status === 'fulfilled') setHasApplied(!!applied.value.hasApplied)
       } catch (err) {
         if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load this job.')
       } finally {
@@ -237,9 +240,10 @@ function JobDetailsContent() {
                       </button>
                       <button
                         onClick={() => setIsApplyModalOpen(true)}
-                        className="px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base"
+                        disabled={hasApplied}
+                        className="px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        Apply
+                        {hasApplied ? 'Applied' : 'Apply'}
                       </button>
                     </div>
                     {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
@@ -287,9 +291,10 @@ function JobDetailsContent() {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 lg:mb-20">
                 <button
                   onClick={() => setIsApplyModalOpen(true)}
-                  className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
+                  disabled={hasApplied}
+                  className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Apply
+                  {hasApplied ? 'Applied' : 'Apply'}
                 </button>
                 {/* Contact-recruiter gating is PJP-113 — placeholder for now. */}
                 <button
@@ -354,8 +359,10 @@ function JobDetailsContent() {
         <ApplyModal
           isOpen={isApplyModalOpen}
           onClose={() => setIsApplyModalOpen(false)}
+          jobId={job.id}
           jobTitle={job.title}
           companyName={companyOf(job)}
+          onApplied={() => setHasApplied(true)}
         />
       )}
     </div>

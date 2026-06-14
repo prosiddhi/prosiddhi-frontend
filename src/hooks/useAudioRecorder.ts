@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 
+// Application voice cover-letter cap (Q10, revised 2026-05-09): 2 minutes,
+// standard across web + mobile. The recorder hard-stops here client-side; the
+// BE re-measures with ffprobe and rejects anything over 120s as a backstop.
+export const MAX_RECORDING_SECONDS = 120
+
 interface UseAudioRecorderReturn {
   isRecording: boolean
   isPaused: boolean
   recordingTime: number
+  maxDuration: number
   audioURL: string | null
   audioBlob: Blob | null
   startRecording: () => Promise<void>
@@ -141,6 +147,16 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     chunksRef.current = []
   }
 
+  // Hard stop at the 2-minute cap (Q10). Auto-stops while actively recording so
+  // the seeker can never exceed the cap, which the BE would otherwise reject.
+  useEffect(() => {
+    if (isRecording && !isPaused && recordingTime >= MAX_RECORDING_SECONDS) {
+      stopRecording()
+    }
+    // stopRecording is stable enough for this guard; re-running on time tick is intended.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingTime, isRecording, isPaused])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -155,6 +171,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     isRecording,
     isPaused,
     recordingTime,
+    maxDuration: MAX_RECORDING_SECONDS,
     audioURL,
     audioBlob,
     startRecording,
