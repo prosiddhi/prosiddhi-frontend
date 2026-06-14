@@ -12,6 +12,7 @@ import {
   MapPin,
   IndianRupee,
   Clock,
+  Users,
   Eye,
   Pencil,
   Power,
@@ -177,6 +178,9 @@ function MyJobsContent() {
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                          <Users className="w-4 h-4" /> Candidates
+                        </Link>
                         <Link href={`/job-details/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                           <Eye className="w-4 h-4" /> View
                         </Link>

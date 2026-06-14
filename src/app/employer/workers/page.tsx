@@ -194,7 +194,7 @@ function EmployerDashboardContent() {
                       {recent.map((app) => {
                         const meta = statusMeta(app.status)
                         return (
-                          <div key={app.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
+                          <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 hover:shadow-lg transition-shadow">
                             <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant.name)}</span>
                             </div>
@@ -211,7 +211,7 @@ function EmployerDashboardContent() {
                               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
                               <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
                             </div>
-                          </div>
+                          </Link>
                         )
                       })}
                     </div>

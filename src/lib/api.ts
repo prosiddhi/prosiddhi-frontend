@@ -657,6 +657,52 @@ export interface RecentApplication {
   reviewedAt?: string | null
 }
 
+// Candidate management (GET /api/applications/employer/all + /candidate/:id).
+export interface CandidateSkill {
+  id?: string
+  skill?: { id?: string; name?: string }
+}
+export interface CandidateWorkExperience {
+  id?: string
+  position?: string
+  company?: string | null
+  startDate?: string
+  endDate?: string | null
+}
+export interface CandidateDocument {
+  id?: string
+  documentType?: string | null
+  fileUrl?: string
+  verified?: boolean
+}
+export interface EmployerApplicationItem {
+  id: string
+  status: string
+  appliedAt?: string
+  message?: string | null
+  audioUrl?: string | null
+  audioDuration?: number | null
+  jobSeeker?: {
+    id: string
+    fullName?: string | null
+    location?: string | null
+    profilePhoto?: string | null
+    bio?: string | null
+    user?: { email?: string; phoneNumber?: string }
+    skills?: CandidateSkill[]
+    workExperience?: CandidateWorkExperience[]
+    documents?: CandidateDocument[]
+    [key: string]: unknown
+  } | null
+  job?: { id: string; title: string; category?: string; subcategory?: string | null; jobType?: string; location?: string; status?: string }
+  interview?: Interview | null
+  [key: string]: unknown
+}
+export interface EmployerApplicationsPage {
+  applications: EmployerApplicationItem[]
+  pagination: JobsPagination
+}
+
 // Employer registration is JSON-only for both types (docs are uploaded
 // separately after email-verify per the 2026-05-13 split). Both register calls
 // auto-send the email-verification OTP and return no token — the caller must
@@ -781,6 +827,25 @@ export const employerAPI = {
   // Applications for a specific job. GET /api/applications/job/:jobId
   getJobApplications: async (jobId: string) => {
     return apiRequest<JobApplication[]>(`/applications/job/${jobId}`)
+  },
+
+  // Candidate management — all applications across the employer's jobs.
+  // GET /api/applications/employer/all → { applications, pagination }
+  getEmployerAllApplications: async (
+    params: { page?: number; limit?: number; jobId?: string; status?: string; search?: string } = {}
+  ) => {
+    const qs = new URLSearchParams()
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 20))
+    if (params.jobId) qs.set('jobId', params.jobId)
+    if (params.status) qs.set('status', params.status)
+    if (params.search) qs.set('search', params.search)
+    return apiRequest<EmployerApplicationsPage>(`/applications/employer/all?${qs.toString()}`)
+  },
+
+  // Full candidate detail (employer-gated). GET /api/applications/candidate/:applicationId
+  getCandidateDetails: async (applicationId: string) => {
+    return apiRequest<EmployerApplicationItem>(`/applications/candidate/${applicationId}`)
   },
 
   // Update application status / accept / reject / bookmark.
