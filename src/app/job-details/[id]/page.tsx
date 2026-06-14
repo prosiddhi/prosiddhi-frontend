@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
+import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { jobSeekerAPI, type Job } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
@@ -25,6 +26,7 @@ import {
   Phone,
   BookmarkCheck,
   Eye,
+  Flag,
   Loader2,
   AlertCircle,
 } from 'lucide-react'
@@ -48,6 +50,7 @@ function JobDetailsContent() {
   const [error, setError] = useState('')
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
   useEffect(() => {
     if (!jobId) return
@@ -290,7 +293,7 @@ function JobDetailsContent() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 lg:mb-20">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
                 <button
                   onClick={() => setIsApplyModalOpen(true)}
                   disabled={hasApplied}
@@ -310,6 +313,15 @@ function JobDetailsContent() {
                   </button>
                 )}
               </div>
+
+              {/* Report this job (PJP-152) — trust affordance for scam/abusive posts. */}
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors mb-12 sm:mb-16 lg:mb-20"
+              >
+                <Flag className="w-4 h-4" />
+                Report this job
+              </button>
 
               {/* Related Jobs */}
               {related.length > 0 && (
@@ -376,6 +388,15 @@ function JobDetailsContent() {
           onClose={() => setIsContactModalOpen(false)}
           jobId={job.id}
           companyName={companyOf(job)}
+        />
+      )}
+
+      {job && (
+        <ReportJobModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          jobId={job.id}
+          jobTitle={job.title}
         />
       )}
     </div>

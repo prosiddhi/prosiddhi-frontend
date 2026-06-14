@@ -490,6 +490,15 @@ export const jobSeekerAPI = {
     return apiRequest<{ email?: string; phoneNumber?: string }>(`/jobs/${jobId}/recruiter-contact`)
   },
 
+  // Report a job (T2 #12). POST /api/jobs/:id/report — reason 5–1000 chars.
+  // BE returns 429 (rate-limited: 5/day per seeker, 1/hr per job) — message surfaced to the user.
+  reportJob: async (jobId: string, reason: string) => {
+    return apiRequest(`/jobs/${jobId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  },
+
   // Get my applications. GET /api/applications/my → { applications, pagination }.
   getMyApplications: async (page = 1, limit = 10, status?: string) => {
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
