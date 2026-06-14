@@ -138,6 +138,12 @@ export interface Job {
   skillsRequired?: string[]
   requirements?: string | null
   urgencyLevel?: string
+  duration?: string | null
+  numberOfPositions?: number | null
+  expiresAt?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  radius?: number | null
   viewCount?: number
   // Per-job recruiter-contact reveal toggles (NC-5/Q51) — gate the Contact button.
   showEmailToSeekers?: boolean
@@ -503,7 +509,7 @@ export const jobSeekerAPI = {
   },
 
   // Report a job (T2 #12). POST /api/jobs/:id/report — reason 5–1000 chars.
-  // BE returns 429 (rate-limited: 5/day per seeker, 1/hr per job) — message surfaced to the user.
+  // BE returns 429 (rate-limited: 5/day per seeker, 1/hr per seeker per job) — message surfaced to the user.
   reportJob: async (jobId: string, reason: string) => {
     return apiRequest(`/jobs/${jobId}/report`, {
       method: 'POST',

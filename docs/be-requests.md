@@ -38,6 +38,27 @@
 - **Proposed contract:** add `interview: true` to the `include` in `applicationService.getMyApplications` + `getApplicationById`. Shape per schema: `{ id, date (ISO), time (string), interviewerTime?, notes? }` (or `null` when none).
 - **FE workaround until then:** FE reads `application.interview` defensively — the "My Interviews" list (`/my-interviews`) and the interview card on `my-applications/[id]` render only when the field is present, so they light up automatically once BE adds the include. No FE change needed when it lands. Tagged `// Q-FE — see docs/be-requests.md#br-4`.
 
+### BR-5 — Allow clearing `skillsRequired` on job update  `[ ]`
+- **Surfaced by:** PJP-106 code-review pass (2026-06-15), job edit flow.
+- **Need:** `updateJobSchema.skillsRequired` is `z.array(z.string()).min(1)...optional()`, so an empty array is rejected. The create schema allows `[]` (default). The asymmetry means an employer **cannot remove all skills** from an existing job via edit.
+- **Why:** On the edit form, deleting every skill yields `[]`; the FE then omits the field (to avoid a 400), and the BE keeps the old skills — silent data bug, no error shown.
+- **Proposed contract:** drop `.min(1)` on `updateJobSchema.skillsRequired` (allow `[]` to clear) for parity with create.
+- **FE workaround until then:** FE omits `skillsRequired` when empty; skills cannot be cleared via edit (documented limitation).
+
+### BR-6 — Add `INACTIVE` to the `JobStatus` Zod enum  `[ ]`
+- **Surfaced by:** PJP-106 code-review pass (2026-06-15).
+- **Need:** `deactivateJob` writes `status: 'INACTIVE'` (and the Prisma `JobStatus` enum includes it), but `job.validator.ts`'s `JobStatus` Zod enum omits `INACTIVE` (`DRAFT,ACTIVE,CLOSED,FILLED,CANCELLED`). Any PUT that echoed `status: 'INACTIVE'` would 400.
+- **Why:** Latent contract bug. The FE job form does **not** send `status`, so it isn't hit today, but it's a trap for any future status-carrying update.
+- **Proposed contract:** add `INACTIVE` to the validator enum to match Prisma + service behaviour.
+- **FE workaround until then:** none needed — FE never sends `status`.
+
+### BR-7 — Null-guard `email` in recruiter-contact reveal  `[ ]`
+- **Surfaced by:** PJP-113 code-review pass (2026-06-15).
+- **Need:** In `getRecruiterContact`, `result.email` is assigned whenever `showEmailToSeekers` is true with no null-guard, whereas `phoneNumber` is guarded (`&& ...phoneNumber`). Minor asymmetry.
+- **Why:** `User.email` is generally non-null so it's not live-breaking, but the FE relies on truthiness; an empty/null email should be omitted like phone is.
+- **Proposed contract:** guard `email` the same way phone is (`showEmailToSeekers && user.email`).
+- **FE workaround until then:** FE already treats falsy email as "not present" via truthiness — no FE change needed.
+
 ---
 
 ## Landed (move here when done, keep for history)

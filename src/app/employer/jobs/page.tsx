@@ -25,6 +25,12 @@ import {
 
 type Tab = 'active' | 'expired'
 
+// BE getEmployerJobs (the "active" feed) has no status filter — it returns every
+// job the employer owns, including the FILLED/CLOSED/CANCELLED ones that also show
+// under the Expired tab. Filter those out client-side so a job never appears in
+// both tabs and the "Active" label stays honest.
+const EXPIRED_STATUSES = new Set(['FILLED', 'CLOSED', 'CANCELLED'])
+
 function MyJobsContent() {
   const [tab, setTab] = useState<Tab>('active')
   const [jobs, setJobs] = useState<Job[]>([])
@@ -42,7 +48,10 @@ function MyJobsContent() {
         const res = tab === 'active'
           ? await employerAPI.getMyJobs(1, 50)
           : await employerAPI.getMyExpiredJobs(1, 50)
-        if (!ignore) setJobs(res.jobs)
+        const list = tab === 'active'
+          ? res.jobs.filter((j) => !EXPIRED_STATUSES.has((j.status ?? '').toUpperCase()))
+          : res.jobs
+        if (!ignore) setJobs(list)
       } catch (err) {
         if (!ignore) {
           setError(err instanceof Error ? err.message : 'Failed to load your jobs. Please try again.')

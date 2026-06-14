@@ -179,7 +179,7 @@ function EmployerDashboardContent() {
                     <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
                       <Briefcase className="w-8 h-8 mx-auto mb-3 text-gray-300" />
                       <p className="mb-4">You haven&apos;t posted any jobs yet.</p>
-                      <Link href="/employer/post-job" className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
+                      <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
                         <Plus className="w-4 h-4" /> Post your first job
                       </Link>
                     </div>

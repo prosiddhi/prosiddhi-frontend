@@ -117,6 +117,7 @@ export function useAudioRecorder(maxSeconds: number = MAX_RECORDING_SECONDS): Us
       setIsPaused(false)
       if (timerRef.current) {
         clearInterval(timerRef.current)
+        timerRef.current = null
       }
     }
   }
@@ -128,6 +129,7 @@ export function useAudioRecorder(maxSeconds: number = MAX_RECORDING_SECONDS): Us
       setIsPaused(true)
       if (timerRef.current) {
         clearInterval(timerRef.current)
+        timerRef.current = null
       }
     }
   }
