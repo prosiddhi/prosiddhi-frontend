@@ -17,6 +17,7 @@ import {
   Home,
   Briefcase,
   Bookmark,
+  BookmarkCheck,
   Languages,
   VolumeX,
   Clock,
@@ -90,6 +91,58 @@ function JobFeedPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+
+  // Persisted saved-job state (PJP-140). Fetched once on mount so each card's
+  // Save toggle reflects what's already saved; mutated optimistically on toggle.
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let ignore = false
+    jobSeekerAPI
+      // High limit so the feed knows about effectively all saved jobs in one call.
+      .getSavedJobs(1, 100)
+      .then((res) => {
+        if (!ignore) setSavedIds(new Set(res.savedJobs.map((it) => it.jobId)))
+      })
+      .catch(() => {
+        // Non-fatal: the feed still works, toggles just start from "not saved".
+      })
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const toggleSave = async (jobId: string) => {
+    if (savingIds.has(jobId)) return
+    const wasSaved = savedIds.has(jobId)
+    setSavingIds((prev) => new Set(prev).add(jobId))
+    // Optimistic flip.
+    setSavedIds((prev) => {
+      const next = new Set(prev)
+      if (wasSaved) next.delete(jobId)
+      else next.add(jobId)
+      return next
+    })
+    try {
+      if (wasSaved) await jobSeekerAPI.unsaveJob(jobId)
+      else await jobSeekerAPI.saveJob(jobId)
+    } catch {
+      // Revert on failure.
+      setSavedIds((prev) => {
+        const next = new Set(prev)
+        if (wasSaved) next.add(jobId)
+        else next.delete(jobId)
+        return next
+      })
+    } finally {
+      setSavingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(jobId)
+        return next
+      })
+    }
+  }
 
   // Fetch on tab/page/filter change. The `ignore` flag drops stale responses
   // when the user switches tab/page before an in-flight request resolves.
@@ -441,10 +494,22 @@ function JobFeedPageContent() {
                     <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
                       <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
-                        {/* Save toggle is wired in PJP-140 (saved jobs). */}
-                        <button className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px]" title="Saved jobs — coming soon">
-                          <Bookmark className="w-5 h-5" />
-                          <span className="text-sm sm:text-base">Save the Job</span>
+                        {/* Save toggle (PJP-140) — persists via /saved-jobs. */}
+                        <button
+                          onClick={() => toggleSave(job.id)}
+                          disabled={savingIds.has(job.id)}
+                          className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {savingIds.has(job.id) ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : savedIds.has(job.id) ? (
+                            <BookmarkCheck className="w-5 h-5 text-primary-50" />
+                          ) : (
+                            <Bookmark className="w-5 h-5" />
+                          )}
+                          <span className="text-sm sm:text-base">
+                            {savedIds.has(job.id) ? 'Saved' : 'Save the Job'}
+                          </span>
                         </button>
                         <Link href={`/job-details/${job.id}`} className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center">
                           View the Job

@@ -1,11 +1,13 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
+import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Mail,
   Bell,
@@ -16,29 +18,84 @@ import {
   Clock,
   MapPin,
   IndianRupee,
-  BookmarkCheck
+  BookmarkCheck,
+  Loader2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
-// Sample saved jobs data
-const savedJobsData = Array(5).fill({
-  id: 1,
-  title: 'Engine Operator',
-  company: 'TATA Steel and Iron Power Plant',
-  companyInitials: 'TA',
-  salary: '15,000 - 25,000',
-  location: 'Bangalore, India',
-  type: 'Full Time',
-  industry: 'Steel Industry',
-  postedTime: '15 minutes ago',
-  isSaved: true
-})
+const PAGE_SIZE = 10
 
 function SavedJobsPageContent() {
-  const [savedJobs, setSavedJobs] = useState(savedJobsData)
+  const [items, setItems] = useState<SavedJobItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  // Jobs whose unsave is mid-flight — disables the button to prevent double-fire.
+  const [removing, setRemoving] = useState<Set<string>>(new Set())
 
-  const handleUnsaveJob = (jobId: number) => {
-    setSavedJobs(savedJobs.filter(job => job.id !== jobId))
-  }
+  useEffect(() => {
+    let ignore = false
+    const run = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await jobSeekerAPI.getSavedJobs(page, PAGE_SIZE)
+        if (!ignore) {
+          setItems(res.savedJobs)
+          setTotal(res.pagination.total)
+          setTotalPages(res.pagination.totalPages || 1)
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load saved jobs. Please try again.')
+          setItems([])
+        }
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [page, reloadKey])
+
+  const handleUnsave = useCallback(
+    async (jobId: string) => {
+      if (removing.has(jobId)) return
+      setRemoving((prev) => new Set(prev).add(jobId))
+      // Optimistic removal — keep a copy so we can restore on failure.
+      const prevItems = items
+      const prevTotal = total
+      setItems((list) => list.filter((it) => it.jobId !== jobId))
+      setTotal((t) => Math.max(0, t - 1))
+      try {
+        await jobSeekerAPI.unsaveJob(jobId)
+        // If that was the last row on a non-first page, step back so the user
+        // lands on a populated page rather than a blank one (re-fetches via effect).
+        if (prevItems.length === 1 && page > 1) setPage((p) => p - 1)
+      } catch (err) {
+        // Revert on failure.
+        setItems(prevItems)
+        setTotal(prevTotal)
+        setError(err instanceof Error ? err.message : 'Could not remove this job. Please try again.')
+      } finally {
+        setRemoving((prev) => {
+          const next = new Set(prev)
+          next.delete(jobId)
+          return next
+        })
+      }
+    },
+    [items, total, page, removing]
+  )
+
+  const countLabel = total > 0 ? String(total).padStart(2, '0') : '00'
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -99,17 +156,39 @@ function SavedJobsPageContent() {
             <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
               Saved Jobs by you
             </h1>
-            <p className="text-sm sm:text-base text-[#717182]">
-              {savedJobs.length > 0 ? `0${savedJobs.length}` : '00'} Job saved
-            </p>
+            {!loading && !error && (
+              <p className="text-sm sm:text-base text-[#717182]">{countLabel} Job saved</p>
+            )}
           </div>
 
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
+              <p>Loading saved jobs...</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+              <p className="text-red-600 mb-4 max-w-md">{error}</p>
+              <button
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Saved Jobs List */}
-          {savedJobs.length > 0 ? (
+          {!loading && !error && items.length > 0 && (
             <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-              {savedJobs.map((job, index) => (
+              {items.map(({ id, jobId, job }) => (
                 <div
-                  key={index}
+                  key={id}
                   className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6 lg:p-8 hover:shadow-lg transition-shadow"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
@@ -117,7 +196,7 @@ function SavedJobsPageContent() {
                     <div className="flex items-start lg:items-center gap-4 flex-1">
                       <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-[24px] font-semibold text-[#236987]">
-                          {job.companyInitials}
+                          {initials(job.companyName || job.title)}
                         </span>
                       </div>
 
@@ -127,31 +206,37 @@ function SavedJobsPageContent() {
                           {job.title}
                         </h3>
                         <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
-                          {job.company}
+                          {job.companyName || 'Company'}
                         </p>
 
                         {/* Salary */}
                         <div className="flex items-center gap-1 mb-3 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
                           <span className="text-xs sm:text-sm lg:text-[14px]">
-                            {job.salary} Rupee/Monthly
+                            {formatSalary(job.salaryMin, job.salaryMax)} / Month
                           </span>
                         </div>
 
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
-                          <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-[#3386a9]" />
-                            <span className="text-xs text-black">{job.type}</span>
-                          </div>
-                          <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                            <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                            <span className="text-xs text-black">{job.industry}</span>
-                          </div>
-                          <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#3386a9]" />
-                            <span className="text-xs text-black">{job.location}</span>
-                          </div>
+                          {job.jobType && (
+                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{humanizeJobType(job.jobType)}</span>
+                            </div>
+                          )}
+                          {job.category && (
+                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
+                              <Briefcase className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{job.category}</span>
+                            </div>
+                          )}
+                          {job.location && (
+                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{job.location}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -159,20 +244,25 @@ function SavedJobsPageContent() {
                     {/* Right Side - Time and Actions */}
                     <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
                       <span className="text-sm sm:text-base text-black">
-                        {job.postedTime}
+                        {relativeTime(job.createdAt)}
                       </span>
 
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
                         <button
-                          onClick={() => handleUnsaveJob(job.id)}
-                          className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px]"
+                          onClick={() => handleUnsave(jobId)}
+                          disabled={removing.has(jobId)}
+                          className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          <BookmarkCheck className="w-5 h-5" />
-                          <span className="text-sm sm:text-base">Saved</span>
+                          {removing.has(jobId) ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <BookmarkCheck className="w-5 h-5" />
+                          )}
+                          <span className="text-sm sm:text-base">{removing.has(jobId) ? 'Removing...' : 'Saved'}</span>
                         </button>
                         <Link
-                          href={`/job-details/${job.id}`}
+                          href={`/job-details/${jobId}`}
                           className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
                         >
                           View the Job
@@ -183,8 +273,10 @@ function SavedJobsPageContent() {
                 </div>
               ))}
             </div>
-          ) : (
-            /* Empty State */
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 lg:py-24">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                 <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
@@ -193,7 +285,7 @@ function SavedJobsPageContent() {
                 No Saved Jobs Yet
               </h2>
               <p className="text-sm sm:text-base text-[#717182] mb-6 text-center max-w-md">
-                Start browsing jobs and save the ones you're interested in to view them here.
+                Start browsing jobs and save the ones you&apos;re interested in to view them here.
               </p>
               <Link
                 href="/job-feed"
@@ -201,6 +293,43 @@ function SavedJobsPageContent() {
               >
                 Browse Jobs
               </Link>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && !error && items.length > 0 && totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10 lg:mt-12">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="w-8 h-8 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {totalPages <= 10 ? (
+                Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`w-8 h-8 flex items-center justify-center rounded text-base transition-colors ${
+                      page === i + 1 ? 'bg-primary-50 text-white' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))
+              ) : (
+                <span className="px-3 text-sm text-[#717182]">Page {page} of {totalPages}</span>
+              )}
+
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="w-8 h-8 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>

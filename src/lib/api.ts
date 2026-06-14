@@ -152,6 +152,19 @@ export interface JobsPage {
   pagination: JobsPagination
 }
 
+// A saved-jobs row: the BE wraps the job in a SavedJob record (GET /api/saved-jobs).
+export interface SavedJobItem {
+  id: string
+  jobId: string
+  savedAt?: string
+  job: Job
+}
+
+export interface SavedJobsPage {
+  savedJobs: SavedJobItem[]
+  pagination: JobsPagination
+}
+
 // Mirrors getJobsQuerySchema on the BE (GET /api/jobs).
 export interface JobFeedFilters {
   search?: string
@@ -449,8 +462,10 @@ export const jobSeekerAPI = {
   },
 
   // Saved jobs. GET/POST /api/saved-jobs, DELETE /api/saved-jobs/:jobId
-  getSavedJobs: async () => {
-    return apiRequest<Job[]>('/saved-jobs')
+  // BE returns { savedJobs, pagination } — each item wraps the job (see SavedJobItem).
+  getSavedJobs: async (page = 1, limit = 10) => {
+    const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
+    return apiRequest<SavedJobsPage>(`/saved-jobs?${qs.toString()}`)
   },
   saveJob: async (jobId: string) => {
     return apiRequest('/saved-jobs', {
