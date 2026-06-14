@@ -22,6 +22,19 @@ export function getAuthToken(): string | null {
   return window.localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
+/**
+ * Resolve a BE-relative upload path (e.g. `/uploads/applications/x.webm`) to an
+ * absolute URL. Static uploads are served off the server ORIGIN, not under the
+ * `/api` base, so we strip a trailing `/api` from API_BASE_URL. Absolute URLs
+ * (http...) and empty values pass through unchanged.
+ */
+export function resolveMediaUrl(path?: string | null): string {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path)) return path
+  const origin = API_BASE_URL.replace(/\/api\/?$/, '')
+  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
 /** Standard backend response envelope. */
 interface ApiEnvelope<T> {
   success: boolean
@@ -187,8 +200,17 @@ export interface Application {
   id: string
   jobId?: string
   status?: string
+  message?: string | null
+  audioUrl?: string | null
   appliedAt?: string
+  updatedAt?: string
+  job?: Job
   [key: string]: unknown
+}
+
+export interface ApplicationsPage {
+  applications: Application[]
+  pagination: JobsPagination
 }
 
 // ==========================================
@@ -449,12 +471,20 @@ export const jobSeekerAPI = {
     })
   },
 
-  // Get my applications. GET /api/applications/my
-  getMyApplications: async () => {
-    return apiRequest<Application[]>('/applications/my')
+  // Get my applications. GET /api/applications/my → { applications, pagination }.
+  getMyApplications: async (page = 1, limit = 10, status?: string) => {
+    const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
+    if (status) qs.set('status', status)
+    return apiRequest<ApplicationsPage>(`/applications/my?${qs.toString()}`)
+  },
+
+  // Get a single application (owner-gated). GET /api/applications/:id
+  getApplicationById: async (applicationId: string) => {
+    return apiRequest<Application>(`/applications/${applicationId}`)
   },
 
   // Withdraw an application. PUT /api/applications/:id/withdraw
+  // BE rejects withdraw of an ACCEPTED or already-WITHDRAWN application.
   withdrawApplication: async (applicationId: string) => {
     return apiRequest(`/applications/${applicationId}/withdraw`, {
       method: 'PUT',
