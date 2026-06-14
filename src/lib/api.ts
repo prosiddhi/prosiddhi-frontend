@@ -122,9 +122,18 @@ export interface Job {
   category?: string
   subcategory?: string | null
   skillsRequired?: string[]
+  requirements?: string | null
   urgencyLevel?: string
+  viewCount?: number
   employerId?: string
-  employer?: { id?: string; employerType?: string; [key: string]: unknown } | null
+  employer?: {
+    id?: string
+    employerType?: string
+    companyName?: string | null
+    fullName?: string | null
+    companyEmail?: string | null
+    [key: string]: unknown
+  } | null
   createdAt?: string
   [key: string]: unknown
 }
@@ -384,9 +393,16 @@ export const jobSeekerAPI = {
     return apiRequest<JobsPage>(`/jobs${query ? `?${query}` : ''}`)
   },
 
-  // Get job details (public). GET /api/jobs/:id
+  // Get job details (public). GET /api/jobs/:id (BE increments viewCount).
   getJobDetails: async (jobId: string) => {
     return apiRequest<Job>(`/jobs/${jobId}`)
+  },
+
+  // Related jobs (public). GET /api/jobs/:id/related → { jobId, relatedJobs, count }.
+  getRelatedJobs: async (jobId: string, limit = 6) => {
+    return apiRequest<{ jobId: string; relatedJobs: Job[]; count: number }>(
+      `/jobs/${jobId}/related?limit=${limit}`
+    )
   },
 
   // Recommended feed (seeker-only, JWT). GET /api/jobs/recommended → { jobs, pagination }.
@@ -448,7 +464,8 @@ export const jobSeekerAPI = {
     })
   },
   isJobSaved: async (jobId: string) => {
-    return apiRequest<{ saved: boolean }>(`/saved-jobs/check/${jobId}`)
+    // BE returns { isSaved, jobId }.
+    return apiRequest<{ isSaved: boolean; jobId: string }>(`/saved-jobs/check/${jobId}`)
   },
 
   // Update profile. PUT /api/jobseekers/profile
