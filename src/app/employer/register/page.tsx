@@ -4,18 +4,18 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, User, Building2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import { useEmployerRegistration } from './EmployerRegistrationContext'
 
 export default function EmployerRegistrationPage() {
   const router = useRouter()
-  const [selectedType, setSelectedType] = useState<'individual' | 'corporate' | null>(null)
+  const { data, update } = useEmployerRegistration()
+  const [selectedType, setSelectedType] = useState<'individual' | 'corporate' | null>(
+    data.companyType || null
+  )
 
   const handleNext = () => {
     if (selectedType) {
-      // Save company type
-      localStorage.setItem('companyType', selectedType)
-      console.log('Company type:', selectedType)
-      
-      // Navigate to phone number step
+      update({ companyType: selectedType })
       router.push('/employer/register/phone')
     }
   }

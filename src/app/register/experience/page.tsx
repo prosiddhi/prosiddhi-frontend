@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef, ChangeEvent } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { Volume2, ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 interface Experience {
   id: string
@@ -15,11 +16,19 @@ interface Experience {
 
 export default function RegisterExperiencePage() {
   const router = useRouter()
-  const [experiences, setExperiences] = useState<Experience[]>([
-    { id: '1', designation: '', fromYear: '', toYear: '' }
-  ])
-  const [document, setDocument] = useState<File | null>(null)
+  const { data, update } = useSeekerRegistration()
+  const [experiences, setExperiences] = useState<Experience[]>(
+    data.workExperiences.length
+      ? data.workExperiences.map((e, i) => ({ id: String(i + 1), ...e }))
+      : [{ id: '1', designation: '', fromYear: '', toYear: '' }]
+  )
+  const [document, setDocument] = useState<File | null>(data.document ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Guard: must have chosen a sector (categories step) first.
+  useEffect(() => {
+    if (!data.preferredSector) router.replace('/register/phone')
+  }, [data.preferredSector, router])
 
   const handleAddExperience = () => {
     const newExperience: Experience = {
@@ -55,24 +64,24 @@ export default function RegisterExperiencePage() {
   }
 
   const handleNext = () => {
-    // Save experience data
-    const validExperiences = experiences.filter(exp => 
-      exp.designation.trim() || exp.fromYear.trim() || exp.toYear.trim()
-    )
-    
-    localStorage.setItem('experiences', JSON.stringify(validExperiences))
-    if (document) {
-      localStorage.setItem('documentName', document.name)
-    }
-    
-    console.log('Experience data:', { experiences: validExperiences, document: document?.name })
-    
-    // Navigate to success page
-    router.push('/register/success')
+    // Experience is optional — keep only rows with a designation (BE stores
+    // workExperiences as {designation, fromYear, toYear}; drop the local id).
+    const validExperiences = experiences
+      .filter((exp) => exp.designation.trim())
+      .map(({ designation, fromYear, toYear }) => ({ designation, fromYear, toYear }))
+
+    update({
+      workExperiences: validExperiences,
+      document: document ?? undefined,
+      documentName: document?.name ?? '',
+    })
+
+    // Password is the final input step; account creation fires there.
+    router.push('/register/password')
   }
 
   const handleBack = () => {
-    router.push('/register/profile')
+    router.push('/register/categories')
   }
 
   return (

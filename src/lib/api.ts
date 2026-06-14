@@ -168,6 +168,16 @@ export const authAPI = {
       body: JSON.stringify({ phoneNumber }),
     })
   },
+
+  // Email verification (6-digit OTP). POST /api/auth/verify-email-otp.
+  // Required before a registered user can log in — BE login rejects unverified
+  // emails (auth.service login + phone-OTP login both gate on emailVerified).
+  verifyEmailOtp: async (email: string, otp: string) => {
+    return apiRequest('/auth/verify-email-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    })
+  },
 }
 
 // Phone OTP (registration / generic) — POST /api/otp/{send,verify}
@@ -186,18 +196,22 @@ export const otpAPI = {
   },
 }
 
-// Email OTP — POST /api/email-otp/{send,verify}
+// Generic Email OTP — POST /api/email-otp/{send,verify}. The BE keys OTPs by
+// (email, purpose), so `purpose` is required on both calls (used by forgot-
+// password etc.). Registration email-verify uses authAPI.verifyEmailOtp instead.
+export type EmailOtpPurpose = 'REGISTRATION' | 'CHANGE_EMAIL' | 'FORGOT_PASSWORD'
+
 export const emailOtpAPI = {
-  send: async (email: string) => {
+  send: async (email: string, purpose: EmailOtpPurpose) => {
     return apiRequest('/email-otp/send', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, purpose }),
     })
   },
-  verify: async (email: string, otp: string) => {
+  verify: async (email: string, otp: string, purpose: EmailOtpPurpose) => {
     return apiRequest('/email-otp/verify', {
       method: 'POST',
-      body: JSON.stringify({ email, otp }),
+      body: JSON.stringify({ email, otp, purpose }),
     })
   },
 }
@@ -215,12 +229,36 @@ export interface VerifyOTPData {
   otp: string
 }
 
-export interface CompleteProfileData {
-  name: string
+export interface SeekerWorkExperience {
+  designation: string
+  fromYear: string
+  toYear: string
+}
+
+// Matches BE jobSeekerRegisterSchema (auth.validator.ts). NOTE: dateOfBirth +
+// gender are intentionally NOT here — the BE has no field for them yet
+// (tracked as BR-1 in docs/be-requests.md). The UI still collects them; they're
+// held client-side until the BE accepts them.
+export interface SeekerRegisterData {
+  fullName: string
   email: string
-  dateOfBirth: string
-  gender: string
-  languagePreference: string
+  phoneNumber: string // E.164
+  preferredSector: string
+  preferredJobTitle: string
+  preferredLanguage?: string
+  latitude?: number
+  longitude?: number
+  location?: string
+  workExperiences?: SeekerWorkExperience[]
+  profilePic?: File
+  document?: File
+}
+
+export interface SeekerRegisterResult {
+  userId: string
+  email: string
+  // `otp` present only in non-production (BE returns it for dev/QA); always has expiresIn.
+  emailVerification?: { otp?: string; expiresIn?: number }
 }
 
 export const jobSeekerAPI = {
@@ -235,12 +273,37 @@ export const jobSeekerAPI = {
     return otpAPI.verify(data.phoneNumber, data.otp)
   },
 
-  // Step 3: register the seeker (POST /api/jobseekers/register).
-  // Multipart-capable on the BE; JSON is accepted for the no-file path.
-  completeProfile: async (data: CompleteProfileData) => {
-    return apiRequest('/jobseekers/register', {
+  // Step 3: register the seeker (POST /api/jobseekers/register). Always sent as
+  // multipart (the BE route uses multer; files are optional, workExperiences is
+  // a JSON string the controller JSON.parses). BE auto-sends the email-OTP and
+  // returns emailVerification. No token yet — caller must verifyEmailOtp → login.
+  register: async (data: SeekerRegisterData) => {
+    const fd = new FormData()
+    fd.append('fullName', data.fullName)
+    fd.append('email', data.email)
+    fd.append('phoneNumber', data.phoneNumber)
+    fd.append('preferredSector', data.preferredSector)
+    fd.append('preferredJobTitle', data.preferredJobTitle)
+    fd.append('preferredLanguage', data.preferredLanguage ?? 'en')
+    if (data.latitude != null) fd.append('latitude', String(data.latitude))
+    if (data.longitude != null) fd.append('longitude', String(data.longitude))
+    if (data.location) fd.append('location', data.location)
+    if (data.workExperiences?.length) {
+      fd.append('workExperiences', JSON.stringify(data.workExperiences))
+    }
+    if (data.profilePic) fd.append('profilePic', data.profilePic)
+    if (data.document) fd.append('document', data.document)
+    return apiRequest<SeekerRegisterResult>('/jobseekers/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: fd,
+    })
+  },
+
+  // Step 4: set the account password (POST /api/jobseekers/set-password).
+  setPassword: async (email: string, password: string) => {
+    return apiRequest('/jobseekers/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
     })
   },
 
@@ -326,7 +389,7 @@ export const jobSeekerAPI = {
   },
 
   // Update profile. PUT /api/jobseekers/profile
-  updateProfile: async (profileData: Partial<CompleteProfileData>) => {
+  updateProfile: async (profileData: Partial<SeekerRegisterData>) => {
     return apiRequest('/jobseekers/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
@@ -356,7 +419,68 @@ export interface JobApplication {
   [key: string]: unknown
 }
 
+// Employer registration is JSON-only for both types (docs are uploaded
+// separately after email-verify per the 2026-05-13 split). Both register calls
+// auto-send the email-verification OTP and return no token — the caller must
+// verifyEmailOtp → login, same as the seeker flow.
+export type CompanySize =
+  | 'SIZE_1_10'
+  | 'SIZE_11_50'
+  | 'SIZE_51_200'
+  | 'SIZE_201_500'
+  | 'SIZE_501_1000'
+  | 'SIZE_1000_PLUS'
+
+export interface EmployerIndividualData {
+  email: string
+  fullName: string
+  phoneNumber: string // E.164
+  designation?: string
+}
+
+export interface EmployerBusinessData {
+  email: string
+  phoneNumber: string // E.164
+  companyName: string
+  companyEmail: string
+  companyAddress: string
+  companyFoundedDate: string // ISO date
+  companySize: CompanySize
+  gstNumber: string // exactly 15 chars
+  registrationNumber: string
+}
+
+export interface EmployerRegisterResult {
+  userId: string
+  email: string
+  emailVerification?: { otp?: string; expiresIn?: number }
+}
+
 export const employerAPI = {
+  // Register an individual employer (JSON). POST /api/employers/register/individual.
+  registerIndividual: async (data: EmployerIndividualData) => {
+    return apiRequest<EmployerRegisterResult>('/employers/register/individual', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // Register a business employer (JSON). POST /api/employers/register/business.
+  registerBusiness: async (data: EmployerBusinessData) => {
+    return apiRequest<EmployerRegisterResult>('/employers/register/business', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // Set the account password. POST /api/employers/set-password.
+  setPassword: async (email: string, password: string) => {
+    return apiRequest('/employers/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+  },
+
   // Login (email/password). Prefer authAPI.login for the new /login page.
   login: async (credentials: { identifier: string; password: string }) => {
     return authAPI.login('employer', credentials)

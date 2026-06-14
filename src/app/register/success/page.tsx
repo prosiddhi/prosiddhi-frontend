@@ -11,16 +11,11 @@ export default function RegisterSuccessPage() {
   const [showTutorial, setShowTutorial] = useState(true)
 
   const handleStartExplore = () => {
-    // Save tutorial preference
+    // Remember the tutorial preference (non-sensitive UI flag).
     localStorage.setItem('showTutorial', showTutorial.toString())
-    console.log('Show tutorial:', showTutorial)
-    
-    // Navigate to job explore or dashboard
-    if (showTutorial) {
-      router.push('/tutorial')
-    } else {
-      router.push('/jobs')
-    }
+    // The seeker is authenticated by now (handoff happened on email-verify).
+    // Land on the job feed — the seeker home. (/tutorial is a v2 backlog screen.)
+    router.push('/job-feed')
   }
 
   return (

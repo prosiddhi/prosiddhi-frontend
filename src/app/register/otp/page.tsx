@@ -6,25 +6,25 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
+import { useSeekerRegistration } from '../SeekerRegistrationContext'
+
+const OTP_LENGTH = 6
 
 export default function RegisterOTPPage() {
   const router = useRouter()
-  const [otp, setOtp] = useState(['', '', '', ''])
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const { data, update } = useSeekerRegistration()
+  const phoneNumber = data.phoneNumber
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [canResend, setCanResend] = useState(false)
   const [countdown, setCountdown] = useState(30)
 
+  // Guard: in-memory flow — a refresh/deep-link loses the phone; restart.
   useEffect(() => {
-    const phone = localStorage.getItem('phoneNumber')
-    if (!phone) {
-      router.push('/register/phone')
-      return
-    }
-    setPhoneNumber(phone)
-  }, [router])
+    if (!phoneNumber) router.replace('/register/phone')
+  }, [phoneNumber, router])
 
   useEffect(() => {
     if (countdown > 0) {
@@ -37,16 +37,17 @@ export default function RegisterOTPPage() {
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return
-    
+    if (value && !/^\d$/.test(value)) return
+
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
-    
-    if (value && index < 3) {
+
+    if (value && index < OTP_LENGTH - 1) {
       const nextInput = document.getElementById(`otp-${index + 1}`)
       nextInput?.focus()
     }
-    
+
     if (error) setError('')
   }
 
@@ -59,30 +60,24 @@ export default function RegisterOTPPage() {
 
   const handleVerify = async () => {
     const otpCode = otp.join('')
-    
-    if (otpCode.length !== 4) {
-      setError('Please enter the complete OTP')
+
+    if (otpCode.length !== OTP_LENGTH) {
+      setError('Please enter the complete 6-digit code')
       return
     }
 
     try {
       setLoading(true)
       setError('')
-      
-      // Call API to verify OTP
-      await jobSeekerAPI.verifyOTP({
-        phoneNumber,
-        otp: otpCode
-      })
-      
-      console.log('✅ OTP verified successfully')
-      
-      // Navigate to profile completion
+
+      // Verify the phone OTP (POST /api/otp/verify).
+      await jobSeekerAPI.verifyOTP({ phoneNumber, otp: otpCode })
+
+      update({ phoneVerified: true })
       router.push('/register/profile')
     } catch (err) {
-      console.error('❌ Verification error:', err)
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
-      setOtp(['', '', '', ''])
+      setOtp(Array(OTP_LENGTH).fill(''))
       document.getElementById('otp-0')?.focus()
     } finally {
       setLoading(false)
@@ -95,15 +90,12 @@ export default function RegisterOTPPage() {
     try {
       setResendLoading(true)
       setError('')
-      
-      // Call API to resend OTP
+
       await jobSeekerAPI.registerPhone({ phoneNumber })
-      
-      console.log('✅ OTP resent successfully')
+
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
-      console.error('❌ Resend error:', err)
       setError(err instanceof Error ? err.message : 'Failed to resend OTP')
     } finally {
       setResendLoading(false)
@@ -168,7 +160,7 @@ export default function RegisterOTPPage() {
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
               </div>
-              <span className="text-[#767676] text-[16px] ml-2">Step 2 of 5</span>
+              <span className="text-[#767676] text-[16px] ml-2">Step 3 of 7</span>
             </div>
 
             <div className="max-w-[1200px]">
@@ -226,7 +218,7 @@ export default function RegisterOTPPage() {
               <div className="flex justify-end max-w-[953px]">
                 <button
                   onClick={handleVerify}
-                  disabled={otp.join('').length !== 4 || loading}
+                  disabled={otp.join('').length !== OTP_LENGTH || loading}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-[20px]">{loading ? 'Verifying...' : 'Verify'}</span>
@@ -261,7 +253,7 @@ export default function RegisterOTPPage() {
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
           </div>
-          <span className="text-sm text-gray-600">Step 2 of 5</span>
+          <span className="text-sm text-gray-600">Step 3 of 7</span>
         </div>
 
         <div className="flex-1 bg-white px-4 py-8 overflow-auto">
@@ -309,7 +301,7 @@ export default function RegisterOTPPage() {
 
           <button
             onClick={handleVerify}
-            disabled={otp.join('').length !== 4 || loading}
+            disabled={otp.join('').length !== OTP_LENGTH || loading}
             className="w-full flex items-center justify-center gap-2 bg-primary-50 text-white px-6 py-3 rounded-lg disabled:opacity-50"
           >
             <span className="text-lg">{loading ? 'Verifying...' : 'Verify'}</span>

@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Volume2, ChevronRight, X } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSeekerRegistration } from './SeekerRegistrationContext'
 
 const languages = [
   { value: 'en', label: 'English' },
@@ -21,18 +21,15 @@ const languages = [
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const { data, update } = useSeekerRegistration()
+  const [selectedLanguage, setSelectedLanguage] = useState(data.language)
 
   const handleLanguageSelect = (value: string) => {
     setSelectedLanguage(value)
   }
 
   const handleNext = () => {
-    // Save language to localStorage or state management
-    localStorage.setItem('selectedLanguage', selectedLanguage)
-    console.log('Selected language:', selectedLanguage)
-    
-    // Navigate to phone number step
+    update({ language: selectedLanguage })
     router.push('/register/phone')
   }
 

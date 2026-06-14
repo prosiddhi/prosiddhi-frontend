@@ -6,9 +6,25 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
+import { useSeekerRegistration } from '../SeekerRegistrationContext'
+
+// Normalise user input to E.164 (BE jobSeekerRegisterSchema requires it).
+// Bare 10-digit numbers are assumed Indian (+91); an explicit +<country> is kept.
+function toE164(raw: string): string | null {
+  const trimmed = raw.trim()
+  if (trimmed.startsWith('+')) {
+    const digits = trimmed.slice(1).replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null
+  }
+  const digits = trimmed.replace(/\D/g, '')
+  if (digits.length === 10) return `+91${digits}`
+  if (digits.length > 10 && digits.length <= 15) return `+${digits}`
+  return null
+}
 
 export default function RegisterPhonePage() {
   const router = useRouter()
+  const { update } = useSeekerRegistration()
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -19,21 +35,24 @@ export default function RegisterPhonePage() {
       return
     }
 
+    const e164 = toE164(phoneNumber)
+    if (!e164) {
+      setError('Enter a valid phone number (10 digits, or +<country code><number>)')
+      return
+    }
+
     try {
       setLoading(true)
       setError('')
-      
-      // Call API to register phone number
-      await jobSeekerAPI.registerPhone({ phoneNumber })
-      
-      // Save phone number for OTP verification
-      localStorage.setItem('phoneNumber', phoneNumber)
-      console.log('✅ Phone registered:', phoneNumber)
-      
-      // Navigate to OTP verification
+
+      // Send the registration phone OTP (POST /api/otp/send).
+      await jobSeekerAPI.registerPhone({ phoneNumber: e164 })
+
+      // Hold the normalised number in memory for the OTP + register steps.
+      update({ phoneNumber: e164, phoneVerified: false })
+
       router.push('/register/otp')
     } catch (err) {
-      console.error('❌ Registration error:', err)
       setError(err instanceof Error ? err.message : 'Failed to register. Please try again.')
     } finally {
       setLoading(false)
@@ -105,7 +124,7 @@ export default function RegisterPhonePage() {
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
               </div>
-              <span className="text-[#767676] text-[16px] ml-2">Step 1 of 5</span>
+              <span className="text-[#767676] text-[16px] ml-2">Step 2 of 7</span>
             </div>
 
             {/* Main Content */}
@@ -196,7 +215,7 @@ export default function RegisterPhonePage() {
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
           </div>
-          <span className="text-sm text-gray-600">Step 1 of 5</span>
+          <span className="text-sm text-gray-600">Step 2 of 7</span>
         </div>
 
         {/* Content */}
