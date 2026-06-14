@@ -297,8 +297,19 @@ export const jobSeekerAPI = {
     if (data.latitude != null) fd.append('latitude', String(data.latitude))
     if (data.longitude != null) fd.append('longitude', String(data.longitude))
     if (data.location) fd.append('location', data.location)
+    // Map the UI shape (designation/fromYear/toYear) to the BE WorkExperience
+    // shape (position/startDate/endDate). The BE requires position + a parseable
+    // startDate, so only rows with both a designation AND a fromYear are sent.
     if (data.workExperiences?.length) {
-      fd.append('workExperiences', JSON.stringify(data.workExperiences))
+      const mapped = data.workExperiences
+        .filter((e) => e.designation.trim() && e.fromYear.trim())
+        .map((e) => ({
+          position: e.designation.trim(),
+          startDate: e.fromYear.trim(),
+          endDate: e.toYear.trim() || undefined,
+          currentlyWorking: !e.toYear.trim(),
+        }))
+      if (mapped.length) fd.append('workExperiences', JSON.stringify(mapped))
     }
     if (data.profilePic) fd.append('profilePic', data.profilePic)
     if (data.document) fd.append('document', data.document)

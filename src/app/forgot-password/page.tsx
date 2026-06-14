@@ -47,26 +47,21 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  // Stage 2 — confirm the OTP is valid before asking for a new password.
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  // Stage 2 — collect the code and advance. We do NOT pre-verify here: the BE
+  // reset-password endpoint verifies the OTP itself (and verifyOTP throws
+  // "already verified" if called twice), so a separate /email-otp/verify call
+  // would make the final reset fail. The code is validated at the reset step.
+  const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault()
     if (otp.length !== 6) {
       setError('Enter the 6-digit code')
       return
     }
-    try {
-      setLoading(true)
-      setError('')
-      await emailOtpAPI.verify(email.trim(), otp, 'FORGOT_PASSWORD')
-      setStage('reset')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid or expired code.')
-    } finally {
-      setLoading(false)
-    }
+    setError('')
+    setStage('reset')
   }
 
-  // Stage 3 — set the new password (BE re-checks the OTP, then consumes it).
+  // Stage 3 — set the new password (BE verifies the OTP, then consumes it).
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!PASSWORD_RULE.test(newPassword)) {
