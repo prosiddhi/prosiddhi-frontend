@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Mic, Square, Pause, Play, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { useAudioRecorder, audioExtForMime } from '@/hooks/useAudioRecorder'
 import { jobSeekerAPI } from '@/lib/api'
 
 interface ApplyModalProps {
@@ -27,6 +27,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
     maxDuration,
     audioURL,
     audioBlob,
+    audioMimeType,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -61,15 +62,16 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
     setSubmitting(true)
     setSubmitError('')
     try {
-      // The recorder always produces a clean `audio/webm` blob — name + type it so
-      // the multipart Content-Type matches the BE's exact MIME allowlist.
+      // Name + type the blob with the recorder's clean base MIME so the multipart
+      // Content-Type exactly matches the BE allowlist (webm/mp4/m4a/ogg/opus).
       const audioFile = audioBlob
-        ? new File([audioBlob], 'voice-message.webm', { type: 'audio/webm' })
+        ? new File([audioBlob], `voice-message.${audioExtForMime(audioMimeType)}`, { type: audioMimeType })
         : undefined
       await jobSeekerAPI.applyForJob(jobId, {
         audio: audioFile,
         message: textMessage.trim() || undefined,
-        audioDuration: audioBlob ? recordingTime : undefined,
+        // BE requires a positive int; a sub-second clip would round to 0.
+        audioDuration: audioBlob ? Math.max(1, recordingTime) : undefined,
       })
       setSuccess(true)
       onApplied?.()

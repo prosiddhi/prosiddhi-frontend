@@ -703,6 +703,44 @@ export interface EmployerApplicationsPage {
   pagination: JobsPagination
 }
 
+// Chat / messaging (M8). senderId + readBy entries are User.id values.
+export type MessageType = 'TEXT' | 'AUDIO' | 'IMAGE' | 'SYSTEM'
+export interface ChatMessage {
+  id: string
+  conversationId: string
+  senderId: string
+  type: MessageType
+  content: string
+  audioUrl?: string | null
+  audioDuration?: number | null
+  readBy?: string[]
+  createdAt: string
+}
+export interface ConversationParty {
+  id: string
+  fullName?: string | null
+  companyName?: string | null
+  employerType?: string
+  profilePhoto?: string | null
+  user?: { id: string; email?: string }
+}
+export interface Conversation {
+  id: string
+  employer?: ConversationParty | null
+  jobSeeker?: ConversationParty | null
+  job?: { id: string; title: string; companyName?: string | null } | null
+  lastMessage?: ChatMessage | null
+  unreadCount?: number
+  lastMessageAt?: string | null
+  otherPartyLastSeenAt?: string | null
+}
+export interface MessagesPayload {
+  conversationId: string
+  job?: { id: string; title: string; companyName?: string | null } | null
+  otherParty: { userId: string | null; lastSeenAt: string | null }
+  messages: ChatMessage[]
+}
+
 // Employer registration is JSON-only for both types (docs are uploaded
 // separately after email-verify per the 2026-05-13 split). Both register calls
 // auto-send the email-verification OTP and return no token — the caller must
@@ -883,6 +921,60 @@ export const employerAPI = {
   },
 }
 
+// ==========================================
+// CHAT / MESSAGING APIs (M8 — polling-based)
+// ==========================================
+export const chatAPI = {
+  // GET /api/conversations → list (with lastMessage, unreadCount, otherPartyLastSeenAt).
+  getConversations: async () => {
+    return apiRequest<Conversation[]>('/conversations')
+  },
+
+  // POST /api/conversations → start or return the existing conversation.
+  startConversation: async (recipientId: string, jobId?: string) => {
+    return apiRequest<Conversation>('/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId, ...(jobId ? { jobId } : {}) }),
+    })
+  },
+
+  // GET /api/conversations/:id/messages?after=<msgId> → incremental polling payload.
+  getMessages: async (conversationId: string, after?: string) => {
+    const qs = after ? `?after=${encodeURIComponent(after)}` : ''
+    return apiRequest<MessagesPayload>(`/conversations/${conversationId}/messages${qs}`)
+  },
+
+  // POST /api/conversations/:id/messages (TEXT — JSON).
+  sendTextMessage: async (conversationId: string, content: string) => {
+    return apiRequest<ChatMessage>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'TEXT', content }),
+    })
+  },
+
+  // POST /api/conversations/:id/messages (AUDIO — multipart, 60s/2 MB cap server-side).
+  sendAudioMessage: async (conversationId: string, audio: File, audioDuration?: number) => {
+    const formData = new FormData()
+    formData.append('type', 'AUDIO')
+    formData.append('audio', audio)
+    if (audioDuration != null) formData.append('audioDuration', String(audioDuration))
+    return apiRequest<ChatMessage>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: formData,
+    })
+  },
+
+  // PATCH /api/messages/:id/read — mark one message read by the current user.
+  markMessageRead: async (messageId: string) => {
+    return apiRequest(`/messages/${messageId}/read`, { method: 'PATCH' })
+  },
+
+  // GET /api/notifications/unread-count → { count } (badge).
+  getUnreadNotificationCount: async () => {
+    return apiRequest<{ count: number }>('/notifications/unread-count')
+  },
+}
+
 // TODO(thread-b): admin client (adminAPI) intentionally NOT defined here — the
 // admin console is moving to the standalone `prosiddhi-admin` repo (2026-06-08).
 // If the admin-removal thread touches this file, this marker is the seam.
@@ -894,4 +986,5 @@ export default {
   emailOtpAPI,
   jobSeekerAPI,
   employerAPI,
+  chatAPI,
 }
