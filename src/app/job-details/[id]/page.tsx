@@ -7,6 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
+import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { jobSeekerAPI, type Job } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
@@ -46,6 +47,7 @@ function JobDetailsContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 
   useEffect(() => {
     if (!jobId) return
@@ -296,15 +298,17 @@ function JobDetailsContent() {
                 >
                   {hasApplied ? 'Applied' : 'Apply'}
                 </button>
-                {/* Contact-recruiter gating is PJP-113 — placeholder for now. */}
-                <button
-                  disabled
-                  title="Contact recruiter — coming soon"
-                  className="px-6 sm:px-8 py-3 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <Phone className="w-5 h-5" />
-                  Contact the Recruiter
-                </button>
+                {/* Contact-recruiter gated reveal (PJP-113) — shown only when the
+                    employer toggled email and/or phone for this job (NC-5/Q51). */}
+                {(job.showEmailToSeekers || job.showPhoneToSeekers) && (
+                  <button
+                    onClick={() => setIsContactModalOpen(true)}
+                    className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    <Phone className="w-5 h-5" />
+                    Contact the Recruiter
+                  </button>
+                )}
               </div>
 
               {/* Related Jobs */}
@@ -363,6 +367,15 @@ function JobDetailsContent() {
           jobTitle={job.title}
           companyName={companyOf(job)}
           onApplied={() => setHasApplied(true)}
+        />
+      )}
+
+      {job && (
+        <ContactRecruiterModal
+          isOpen={isContactModalOpen}
+          onClose={() => setIsContactModalOpen(false)}
+          jobId={job.id}
+          companyName={companyOf(job)}
         />
       )}
     </div>

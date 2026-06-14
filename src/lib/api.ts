@@ -138,6 +138,9 @@ export interface Job {
   requirements?: string | null
   urgencyLevel?: string
   viewCount?: number
+  // Per-job recruiter-contact reveal toggles (NC-5/Q51) — gate the Contact button.
+  showEmailToSeekers?: boolean
+  showPhoneToSeekers?: boolean
   employerId?: string
   employer?: {
     id?: string
@@ -479,6 +482,12 @@ export const jobSeekerAPI = {
   // Check if the seeker has already applied. GET /api/applications/check/:jobId
   checkIfApplied: async (jobId: string) => {
     return apiRequest<{ hasApplied: boolean; jobId: string }>(`/applications/check/${jobId}`)
+  },
+
+  // Gated recruiter-contact reveal (NC-5/Q51). GET /api/jobs/:id/recruiter-contact
+  // Returns only the fields the employer toggled on; {} when both are off.
+  getRecruiterContact: async (jobId: string) => {
+    return apiRequest<{ email?: string; phoneNumber?: string }>(`/jobs/${jobId}/recruiter-contact`)
   },
 
   // Get my applications. GET /api/applications/my → { applications, pagination }.
