@@ -1,61 +1,64 @@
 # Agent Workflow — ProSiddhi Frontend
 
-The canonical map of **when each agent fires**. Agents live in `.claude/agents/`. The main Claude session reads their `description:` fields **plus this map** and delegates accordingly. Keep this in sync when agents change.
+The canonical map of **when each gate fires**. Some gates are sub-agents (`.claude/agents/`); the two review gates are **slash-command skills** (`/code-review`, `/security-review`). The main Claude session reads this map + each agent's `description:` and delegates accordingly. Keep this in sync when agents change.
+
+> **Reality note (2026-06-15):** Only `fe-auth-wirer`, `fe-specialist`, and `scope-drift-checker` are reliably available as spawnable sub-agents this environment. The legacy `code-reviewer` / `security-reviewer` / `ticket-closer` / `teacher` agent files are **not registered as sub-agents** — so:
+> - **Review gates run via the `/code-review` and `/security-review` SKILLS** (not the `code-reviewer`/`security-reviewer` agents).
+> - **Ticket-closer work** (implement + Jira close) is done by the **main session directly**.
+> - **Explain** is done inline by the main session (or the `claude`/`general-purpose` agent), not a `teacher` agent.
 
 ## The roster
 
-| Agent | Role | Invoke when | Mode |
+| Gate | Role | Invoke when | Mode |
 |---|---|---|---|
-| **ticket-closer** | Main worker — end-to-end ticket closure | "close / work on / implement PJP-XX" | edit + Jira |
-| **fe-auth-wirer** | Auth-foundation specialist (PJP-77→82) | auth / login / token / guards work | edit |
-| **fe-specialist** | General FE pages, components, `api.ts` | any non-auth FE ticket | edit |
-| **scope-drift-checker** | Drift gate vs `docs/_context/02-scope-locked.md` | a feature boundary moved | read-only |
-| **code-reviewer** | Pre-commit gate: hygiene **+ correctness + FE↔BE contract** | **BEFORE every commit** | read-only |
-| **security-reviewer** | Paranoid security pass | after auth / payments / admin / OTP changes; pre-freeze | read-only |
-| **teacher** | Explainer — code / concept / **change-set (Mode D)** | "explain / walk me through / what is X" | read-only + web |
+| main session | Main worker — implement + Jira close + playbook tick | "close / work on / implement PJP-XX" | edit + Jira |
+| **fe-auth-wirer** | Auth-foundation specialist (PJP-77→82) | auth / login / token / guards work | sub-agent (edit) |
+| **fe-specialist** | General FE pages, components, `api.ts` | any non-auth FE ticket | sub-agent (edit) |
+| **scope-drift-checker** | Drift gate vs `docs/_context/02-scope-locked.md` | a feature boundary moved | sub-agent (read-only) |
+| **`/code-review`** | Pre-commit gate: correctness + FE↔BE contract + wired-vs-mock | **BEFORE every commit** | skill |
+| **`/security-review`** | Security pass | after auth / payments / admin / OTP changes; pre-freeze | skill |
+| inline explain | Change-set walkthrough + manual-test script | after the gate, before/at close | main session |
 
 ## The development loop (per ticket): **Ticket → Plan → Execute → Explain → Close**
 
 1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/execution-playbook.md`](../docs/execution-playbook.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
-2. **Plan** — `ticket-closer` (or `fe-auth-wirer` / `fe-specialist`) drafts a Template plan and **STOPS for the user's "go".**
-3. **Execute** — after "go", the doer implements (types → `api.ts` → context → component → page); type-check as it goes.
-4. **Review — the pre-commit GATE** — `code-reviewer` runs: type-check + hygiene + **correctness + FE↔BE contract + wired-vs-mock**. `security-reviewer` if auth/token/role touched; `scope-drift-checker` if a feature boundary moved. Verdict must be **GREEN** (or YELLOW with written justification).
-5. **Explain** — `teacher` (Mode D) walks the user through the change-set **high-level first**, then tells them **exactly what to manually test** in the browser (which URL, what to click, success vs failure). The user confirms they understand before closing.
-6. **Commit** — the **user** commits (conventional message, **no `Co-Authored-By: Claude`**); the pre-commit hook re-runs type-check.
-7. **Close** — `ticket-closer` posts the Jira closure + transitions status (with confirmation), and **ticks the ticket in `docs/execution-playbook.md`** (the live handbook).
-
-`teacher` can also run **out-of-band** any time — it's read-only and never blocks the loop.
+2. **Plan** — draft a Template plan, post it as a Jira comment, and **STOP for the user's "go"** *unless* the user has given a standing "work the queue / complete all tickets" — then proceed without pausing per-ticket.
+3. **Execute** — implement (types → `api.ts` → context → component → page); type-check as you go.
+4. **Review — the pre-commit GATE** — run **`/code-review`** (correctness + FE↔BE contract + wired-vs-mock); run **`/security-review`** if auth/token/role/OTP touched; spawn **`scope-drift-checker`** if a feature boundary moved. Fix everything HIGH/MEDIUM before committing. (When the named skills are unavailable, approximate with `general-purpose` finder + verifier agents.)
+5. **Explain** — inline: walk the user through the change-set **high-level first**, then tell them **exactly what to manually test** (which URL, what to click, success vs failure).
+6. **Commit** — **Claude commits** per ticket: conventional message, reference the PJP ticket, **NO `Co-Authored-By: Claude` trailer** (project override of the harness default, locked 2026-06-15). The pre-commit hook re-runs type-check.
+7. **Close** — post the Jira closure comment + transition status (with confirmation), and **tick the ticket in `docs/execution-playbook.md`** once it's truly Done (live-smoke-verified, not just code-complete).
 
 ## Standing gates (non-negotiable before a commit)
 
 - ✅ `npm run type-check` exits 0
-- ✅ `code-reviewer` verdict GREEN (or YELLOW justified) — incl. **FE↔BE contract OK** and **not-still-mock**
+- ✅ **`/code-review`** clean (no unaddressed HIGH/MEDIUM) — incl. **FE↔BE contract OK** and **not-still-mock**
 - ✅ `scope-drift-checker` clean if a feature boundary moved
-- ✅ `security-reviewer` clean if auth / payments / admin / OTP touched
-- ✅ no `Co-Authored-By: Claude`, no secrets, no person-names, no stray `console.log`
+- ✅ **`/security-review`** clean if auth / payments / admin / OTP touched
+- ✅ commit message: **no `Co-Authored-By: Claude` trailer**, no secrets, no person-names, no stray `console.log`
 
 ## Handoff graph
 
 ```
-  fe-auth-wirer / fe-specialist / ticket-closer   (doers — build)
+  main session (+ fe-auth-wirer / fe-specialist)   (doers — build)
                       │  build done
                       ▼
-                code-reviewer  ──(feature boundary)──▶ scope-drift-checker
+                /code-review  ──(feature boundary)──▶ scope-drift-checker
                       │
-                      ├────────(auth/pay/admin/OTP)──▶ security-reviewer
+                      ├────────(auth/pay/admin/OTP)──▶ /security-review
                       ▼
-                 human commits
+                Claude commits (no Co-Authored-By)
                       ▼
-              ticket-closer  (Jira close + status)
+              main session  (Jira close + status + playbook tick)
 
-  teacher  ⟂  orthogonal — invoke any time to understand, never gates
+  inline explain  ⟂  walk the user through the change-set + manual-test script
 ```
 
 ## How the "wiring" actually works
 
 Two mechanisms, in order of reliability:
 
-1. **Description-driven auto-invocation (primary).** The main session reads each agent's `description:` and proactively delegates — e.g. code-reviewer's description says *"Use BEFORE every commit"*, so the main session invokes it before committing. Keep every `description:` trigger-explicit; that *is* the wiring.
+1. **Discipline-driven gating (primary).** The main session runs the GATE before every commit — `/code-review` always, `/security-review` for auth/OTP/token, `scope-drift-checker` on boundary moves. This is enforced by the standing rule in memory (`feedback-full-review-gate`), because skipping it once already shipped real contract bugs. Treat it as non-optional, not "auto-invoked."
 2. **Deterministic hook (ACTIVE).** A `PreToolUse` hook on `git commit` runs `npm run type-check` and blocks on failure — the one gate that can't be forgotten. Config in `.claude/settings.json` (committed). A few seconds per commit; the trade for never committing a broken build.
 
 ## Maintenance
