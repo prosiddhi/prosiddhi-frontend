@@ -178,6 +178,15 @@ export const authAPI = {
       body: JSON.stringify({ email, otp }),
     })
   },
+
+  // Reset password with the FORGOT_PASSWORD email OTP. POST /api/auth/reset-password.
+  // Pair with emailOtpAPI.send(email, 'FORGOT_PASSWORD') then verify.
+  resetPassword: async (email: string, otp: string, newPassword: string) => {
+    return apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, newPassword }),
+    })
+  },
 }
 
 // Phone OTP (registration / generic) — POST /api/otp/{send,verify}
