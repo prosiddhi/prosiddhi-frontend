@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import {
   Search,
   MapPin,
@@ -13,7 +14,6 @@ import {
   User,
   Building2,
   Languages,
-  Volume2,
   Facebook,
   Instagram,
   Github,
@@ -162,9 +162,7 @@ export default function EmployeeLandingPage() {
               </Link>
 
               {/* Voice Search */}
-              <button className="p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <Volume2 className="w-6 h-6 text-gray-600" />
-              </button>
+              <VoiceButton label="Search jobs by voice" iconClassName="w-6 h-6 text-gray-600" className="p-3" />
             </div>
           </div>
         </div>

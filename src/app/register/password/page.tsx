@@ -162,7 +162,7 @@ export default function RegisterPasswordPage() {
                 <button
                   onClick={handleCreate}
                   disabled={loading}
-                  className="flex items-center gap-2 bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
                   <span className="text-base lg:text-[20px]">{loading ? 'Creating account...' : 'Create account'}</span>
                   <ChevronRight className="w-6 h-6" />

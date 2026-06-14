@@ -310,14 +310,14 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                 <button
                   onClick={handleClose}
                   disabled={submitting}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-base font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center min-h-[48px] px-6 py-3 border border-gray-300 rounded-lg text-base font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Close
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || isRecording}
-                  className="flex-1 px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
                   {submitting ? 'Submitting...' : 'Apply the Job'}

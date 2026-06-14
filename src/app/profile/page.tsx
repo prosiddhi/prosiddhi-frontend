@@ -15,8 +15,8 @@ import {
   type SkillCatalogItem,
 } from '@/lib/api'
 import { SECTORS, jobTitlesForSector, LANGUAGES } from '@/lib/jobCategories'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import {
-  Volume2,
   Camera,
   Plus,
   Trash2,
@@ -297,9 +297,7 @@ function SeekerProfileContent() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg sm:text-xl font-semibold text-black flex items-center gap-2">
                     Work Experience
-                    <button type="button" aria-label="Play audio" className="p-1 hover:bg-gray-100 rounded">
-                      <Volume2 className="w-4 h-4 text-gray-500" />
-                    </button>
+                    <VoiceButton label="Work experience" iconClassName="w-4 h-4 text-gray-500" className="p-1" />
                   </h2>
                   <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:text-primary-60">
                     <Plus className="w-4 h-4" /> Add

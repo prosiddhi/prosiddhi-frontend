@@ -1,7 +1,8 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Volume2, Eye, EyeOff, X } from 'lucide-react'
+import { Eye, EyeOff, X } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -232,9 +233,7 @@ export default function LoginPage() {
                     className="flex-1 h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                     required
                   />
-                  <button type="button" className="p-2 hover:bg-gray-100 rounded transition-colors flex-shrink-0" aria-label="Play audio">
-                    <Volume2 className="w-6 h-6 text-gray-600" />
-                  </button>
+                  <VoiceButton label="Email" iconClassName="w-6 h-6 text-gray-600" className="p-2" />
                 </div>
               </div>
 
@@ -262,9 +261,7 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
                     </button>
                   </div>
-                  <button type="button" className="p-2 hover:bg-gray-100 rounded transition-colors flex-shrink-0" aria-label="Play audio">
-                    <Volume2 className="w-6 h-6 text-gray-600" />
-                  </button>
+                  <VoiceButton label="Password" iconClassName="w-6 h-6 text-gray-600" className="p-2" />
                 </div>
               </div>
 

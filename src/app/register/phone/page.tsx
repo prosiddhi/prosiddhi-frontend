@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Volume2, ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -150,9 +151,7 @@ export default function RegisterPhonePage() {
                   <label htmlFor="phone" className="text-[20px] font-medium text-black">
                     Phone number *
                   </label>
-                  <button className="flex items-center gap-2 text-primary-50 hover:text-primary-60">
-                    <Volume2 className="w-5 h-5" />
-                  </button>
+                  <VoiceButton label="Phone number" iconClassName="w-5 h-5 text-primary-50" className="p-1" />
                 </div>
                 <input
                   id="phone"
@@ -236,9 +235,7 @@ export default function RegisterPhonePage() {
           <div className="mb-8">
             <label htmlFor="phone-mobile" className="text-base font-medium text-black mb-4 block flex items-center gap-2">
               Phone number *
-              <button className="text-primary-50">
-                <Volume2 className="w-4 h-4" />
-              </button>
+              <VoiceButton label="Phone number" iconClassName="w-4 h-4 text-primary-50" className="p-1" />
             </label>
             <input
               id="phone-mobile"
@@ -257,7 +254,7 @@ export default function RegisterPhonePage() {
           <button
             onClick={handleNext}
             disabled={!phoneNumber.trim() || loading}
-            className="w-full flex items-center justify-center gap-2 bg-primary-50 text-white px-6 py-3 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white px-6 py-3 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">{loading ? 'Sending...' : 'Next'}</span>
             <ChevronRight className="w-5 h-5" />

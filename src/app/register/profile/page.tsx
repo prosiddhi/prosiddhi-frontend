@@ -187,7 +187,7 @@ export default function RegisterProfilePage() {
               <div className="flex justify-end max-w-[953px]">
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60"
                 >
                   <span className="text-[20px]">Next</span>
                   <ChevronRight className="w-6 h-6" />
@@ -268,7 +268,7 @@ export default function RegisterProfilePage() {
 
           <button
             onClick={handleNext}
-            className="w-full flex items-center justify-center gap-2 bg-primary-50 text-white py-3 rounded-lg"
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white py-3 rounded-lg"
           >
             <span>Next</span>
             <ChevronRight className="w-5 h-5" />

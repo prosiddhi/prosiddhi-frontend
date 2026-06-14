@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
-import { Volume2, ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
+import { ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -190,12 +191,7 @@ export default function RegisterExperiencePage() {
                   <h2 className="text-[28px] font-medium text-black">
                     Add Work Experiences (Optional)
                   </h2>
-                  <button
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
-                    aria-label="Play audio"
-                  >
-                    <Volume2 className="w-[22px] h-[22px] text-gray-600" />
-                  </button>
+                  <VoiceButton label="Add work experiences" iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
                 {/* Experience Entries */}
@@ -263,12 +259,7 @@ export default function RegisterExperiencePage() {
                   <label className="text-[20px] font-medium text-black">
                     Upload Document (Optional)
                   </label>
-                  <button
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
-                    aria-label="Play audio"
-                  >
-                    <Volume2 className="w-[22px] h-[22px] text-gray-600" />
-                  </button>
+                  <VoiceButton label="Upload document" iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
                 {/* Upload Area */}
@@ -413,12 +404,7 @@ export default function RegisterExperiencePage() {
               <h2 className="text-xl font-medium text-black">
                 Add Work Experiences (Optional)
               </h2>
-              <button
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label="Play audio"
-              >
-                <Volume2 className="w-5 h-5 text-gray-600" />
-              </button>
+              <VoiceButton label="Add work experiences" iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             {/* Experience Entries */}
@@ -489,12 +475,7 @@ export default function RegisterExperiencePage() {
               <label className="text-base font-medium text-black">
                 Upload Document (Optional)
               </label>
-              <button
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label="Play audio"
-              >
-                <Volume2 className="w-5 h-5 text-gray-600" />
-              </button>
+              <VoiceButton label="Upload document" iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             <input

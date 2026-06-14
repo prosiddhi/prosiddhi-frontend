@@ -246,7 +246,7 @@ function JobDetailsContent() {
                       <button
                         onClick={() => setIsApplyModalOpen(true)}
                         disabled={hasApplied}
-                        className="px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {hasApplied ? 'Applied' : 'Apply'}
                       </button>
@@ -297,7 +297,7 @@ function JobDetailsContent() {
                 <button
                   onClick={() => setIsApplyModalOpen(true)}
                   disabled={hasApplied}
-                  className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {hasApplied ? 'Applied' : 'Apply'}
                 </button>

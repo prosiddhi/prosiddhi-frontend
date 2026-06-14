@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Volume2, ChevronRight, X } from 'lucide-react'
+import { ChevronRight, X } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from './SeekerRegistrationContext'
@@ -65,12 +66,7 @@ export default function RegisterPage() {
               <label className="text-base sm:text-lg font-medium text-black">
                 Select the Language *
               </label>
-              <button
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label="Play audio"
-              >
-                <Volume2 className="w-5 h-5 text-gray-600" />
-              </button>
+              <VoiceButton label="Select the language" iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             {/* Language Grid - Responsive */}

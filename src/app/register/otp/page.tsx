@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Volume2, ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -184,9 +185,7 @@ export default function RegisterOTPPage() {
                   <label className="text-[20px] font-medium text-black">
                     Verification code *
                   </label>
-                  <button className="flex items-center gap-2 text-primary-50 hover:text-primary-60">
-                    <Volume2 className="w-5 h-5" />
-                  </button>
+                  <VoiceButton label="Verification code" iconClassName="w-5 h-5 text-primary-50" className="p-1" />
                 </div>
                 
                 <div className="flex items-center gap-4 mb-6">
@@ -302,7 +301,7 @@ export default function RegisterOTPPage() {
           <button
             onClick={handleVerify}
             disabled={otp.join('').length !== OTP_LENGTH || loading}
-            className="w-full flex items-center justify-center gap-2 bg-primary-50 text-white px-6 py-3 rounded-lg disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white px-6 py-3 rounded-lg disabled:opacity-50"
           >
             <span className="text-lg">{loading ? 'Verifying...' : 'Verify'}</span>
             <ChevronRight className="w-5 h-5" />
