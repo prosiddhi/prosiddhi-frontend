@@ -30,6 +30,19 @@ export function relativeTime(iso?: string): string {
   return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
+// Human date like "Mon, 16 Jun 2026" from an ISO string. Empty on invalid input.
+export function formatDate(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 export function initials(name?: string | null): string {
   if (!name) return 'JB'
   return name.trim().slice(0, 2).toUpperCase()

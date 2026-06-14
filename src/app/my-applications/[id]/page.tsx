@@ -8,7 +8,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { jobSeekerAPI, resolveMediaUrl, type Application } from '@/lib/api'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
   Mail,
@@ -21,6 +21,7 @@ import {
   MapPin,
   IndianRupee,
   ChevronLeft,
+  CalendarClock,
   Loader2,
   AlertCircle,
   XCircle,
@@ -225,6 +226,41 @@ function ApplicationDetailsContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Interview Details (PJP-153) — shown once an employer schedules.
+                  Reads application.interview (populated by BR-4; see docs/be-requests.md#br-4). */}
+              {application.interview && (
+                <section className="mb-8 sm:mb-10 lg:mb-12">
+                  <div className="border border-[#d0e8f0] bg-[#f0f9fc] rounded-[10px] p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CalendarClock className="w-5 h-5 text-[#236987]" />
+                      <h2 className="text-lg sm:text-xl font-semibold text-[#164e65]">Interview Scheduled</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Date</p>
+                        <p className="text-sm sm:text-base font-medium text-black">
+                          {formatDate(application.interview.date) || 'To be confirmed'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Time</p>
+                        <p className="text-sm sm:text-base font-medium text-black">
+                          {application.interview.time || 'To be confirmed'}
+                        </p>
+                      </div>
+                    </div>
+                    {application.interview.notes && (
+                      <div className="mt-4">
+                        <p className="text-xs text-gray-500 mb-0.5">Notes from the employer</p>
+                        <p className="text-sm sm:text-base text-black whitespace-pre-line">
+                          {application.interview.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* Your Application */}
               <section className="mb-8 sm:mb-10 lg:mb-12">

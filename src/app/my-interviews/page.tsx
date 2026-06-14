@@ -7,8 +7,7 @@ import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { jobSeekerAPI, type Application } from '@/lib/api'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta } from '@/lib/applicationStatus'
+import { formatSalary, formatDate, initials } from '@/lib/jobFormat'
 import {
   Mail,
   Bell,
@@ -16,23 +15,21 @@ import {
   Briefcase,
   Bookmark,
   Languages,
-  Clock,
   MapPin,
   IndianRupee,
+  CalendarClock,
+  Clock,
   Loader2,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  CalendarClock,
 } from 'lucide-react'
 
-const PAGE_SIZE = 10
+// Pull a wide page so interviews on any application surface in one shot — a
+// seeker realistically has few. Interviews appear once BR-4 lands on the BE
+// (docs/be-requests.md#br-4) so getMyApplications includes the interview.
+const FETCH_LIMIT = 100
 
-function MyApplicationsPageContent() {
-  const [items, setItems] = useState<Application[]>([])
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [page, setPage] = useState(1)
+function MyInterviewsPageContent() {
+  const [interviews, setInterviews] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -43,16 +40,12 @@ function MyApplicationsPageContent() {
       setLoading(true)
       setError('')
       try {
-        const res = await jobSeekerAPI.getMyApplications(page, PAGE_SIZE)
-        if (!ignore) {
-          setItems(res.applications)
-          setTotal(res.pagination.total)
-          setTotalPages(res.pagination.totalPages || 1)
-        }
+        const res = await jobSeekerAPI.getMyApplications(1, FETCH_LIMIT)
+        if (!ignore) setInterviews(res.applications.filter((a) => a.interview))
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load your applications. Please try again.')
-          setItems([])
+          setError(err instanceof Error ? err.message : 'Failed to load your interviews. Please try again.')
+          setInterviews([])
         }
       } finally {
         if (!ignore) setLoading(false)
@@ -62,29 +55,19 @@ function MyApplicationsPageContent() {
     return () => {
       ignore = true
     }
-  }, [page, reloadKey])
-
-  const countLabel = total > 0 ? String(total).padStart(2, '0') : '00'
+  }, [reloadKey])
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header/Navbar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image
-                src="/assets/logo.png"
-                alt="Job Portal Logo"
-                fill
-                className="object-contain"
-                priority
-              />
+              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
             </div>
           </Link>
 
-          {/* Navigation */}
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
@@ -104,7 +87,6 @@ function MyApplicationsPageContent() {
             </button>
           </nav>
 
-          {/* Right side - User profile */}
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
             <button className="hidden sm:block hover:text-primary-50 transition-colors">
               <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -121,29 +103,22 @@ function MyApplicationsPageContent() {
       <main className="flex-1 py-8 sm:py-12 lg:py-16">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           {/* Page Header */}
-          <div className="mb-8 sm:mb-10 lg:mb-12 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
-                My Applications
-              </h1>
-              {!loading && !error && (
-                <p className="text-sm sm:text-base text-[#717182]">{countLabel} Applications</p>
-              )}
-            </div>
-            <Link
-              href="/my-interviews"
-              className="inline-flex items-center gap-2 px-4 py-2 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors text-sm sm:text-base self-start"
-            >
-              <CalendarClock className="w-4 h-4" />
+          <div className="mb-8 sm:mb-10 lg:mb-12">
+            <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
               My Interviews
-            </Link>
+            </h1>
+            {!loading && !error && (
+              <p className="text-sm sm:text-base text-[#717182]">
+                {interviews.length > 0 ? `${String(interviews.length).padStart(2, '0')} scheduled` : 'No interviews scheduled'}
+              </p>
+            )}
           </div>
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your applications...</p>
+              <p>Loading your interviews...</p>
             </div>
           )}
 
@@ -161,27 +136,25 @@ function MyApplicationsPageContent() {
             </div>
           )}
 
-          {/* Applied Jobs List */}
-          {!loading && !error && items.length > 0 && (
+          {/* List */}
+          {!loading && !error && interviews.length > 0 && (
             <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-              {items.map((app) => {
+              {interviews.map((app) => {
                 const job = app.job
-                const meta = statusMeta(app.status)
+                const iv = app.interview!
                 return (
-                  <div
+                  <Link
                     key={app.id}
-                    className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6 lg:p-8 hover:shadow-lg transition-shadow"
+                    href={`/my-applications/${app.id}`}
+                    className="block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6 lg:p-8 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
-                      {/* Company Logo */}
                       <div className="flex items-start lg:items-center gap-4 flex-1">
                         <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
                           <span className="text-[24px] font-semibold text-[#236987]">
                             {initials(job?.companyName || job?.title)}
                           </span>
                         </div>
-
-                        {/* Job Details */}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">
                             {job?.title || 'Job'}
@@ -189,29 +162,13 @@ function MyApplicationsPageContent() {
                           <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
                             {job?.companyName || 'Company'}
                           </p>
-
-                          {/* Salary */}
-                          <div className="flex items-center gap-1 mb-3 sm:mb-4">
-                            <IndianRupee className="w-4 h-4" />
-                            <span className="text-xs sm:text-sm lg:text-[14px]">
-                              {formatSalary(job?.salaryMin, job?.salaryMax)} / Month
-                            </span>
-                          </div>
-
-                          {/* Tags */}
                           <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
-                            {job?.jobType && (
+                            {job?.salaryMin != null || job?.salaryMax != null ? (
                               <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-[#3386a9]" />
-                                <span className="text-xs text-black">{humanizeJobType(job.jobType)}</span>
+                                <IndianRupee className="w-3 h-3 text-[#3386a9]" />
+                                <span className="text-xs text-black">{formatSalary(job?.salaryMin, job?.salaryMax)}</span>
                               </div>
-                            )}
-                            {job?.category && (
-                              <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                                <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                                <span className="text-xs text-black">{job.category}</span>
-                              </div>
-                            )}
+                            ) : null}
                             {job?.location && (
                               <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                                 <MapPin className="w-3 h-3 text-[#3386a9]" />
@@ -222,102 +179,63 @@ function MyApplicationsPageContent() {
                         </div>
                       </div>
 
-                      {/* Right Side - Time and Actions */}
-                      <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
-                        <span className="text-sm sm:text-base text-black">
-                          {relativeTime(app.appliedAt)}
-                        </span>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full lg:w-auto">
-                          <span className={`px-4 py-3 rounded-lg flex items-center justify-center min-w-[140px] text-sm sm:text-base font-medium ${meta.pill}`}>
-                            {meta.label}
-                          </span>
-                          <Link
-                            href={`/my-applications/${app.id}`}
-                            className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
-                          >
-                            View Details
-                          </Link>
+                      {/* Interview date/time */}
+                      <div className="lg:min-w-[280px] border-t lg:border-t-0 lg:border-l border-[#d0e8f0] lg:pl-6 pt-4 lg:pt-0">
+                        <div className="flex items-center gap-2 mb-2 text-[#164e65]">
+                          <CalendarClock className="w-5 h-5" />
+                          <span className="font-semibold">Interview</span>
                         </div>
+                        <div className="flex items-center gap-1 text-sm text-black mb-1">
+                          <CalendarClock className="w-4 h-4 text-[#3386a9]" />
+                          <span>{formatDate(iv.date) || 'Date to be confirmed'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-black">
+                          <Clock className="w-4 h-4 text-[#3386a9]" />
+                          <span>{iv.time || 'Time to be confirmed'}</span>
+                        </div>
+                        {iv.notes && (
+                          <p className="text-xs text-gray-500 mt-2 line-clamp-2">{iv.notes}</p>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
           )}
 
           {/* Empty State */}
-          {!loading && !error && items.length === 0 && (
+          {!loading && !error && interviews.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 lg:py-24">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <Briefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
+                <CalendarClock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-black mb-3">
-                No Applications Yet
+                No Interviews Yet
               </h2>
               <p className="text-sm sm:text-base text-[#717182] mb-6 text-center max-w-md">
-                Start applying to jobs and track your applications here.
+                When an employer shortlists you and schedules an interview, the date and time will show up here.
               </p>
               <Link
-                href="/job-feed"
+                href="/my-applications"
                 className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Browse Jobs
+                View My Applications
               </Link>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {!loading && !error && items.length > 0 && totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10 lg:mt-12">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="w-8 h-8 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {totalPages <= 10 ? (
-                Array.from({ length: totalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`w-8 h-8 flex items-center justify-center rounded text-base transition-colors ${
-                      page === i + 1 ? 'bg-primary-50 text-white' : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))
-              ) : (
-                <span className="px-3 text-sm text-[#717182]">Page {page} of {totalPages}</span>
-              )}
-
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="w-8 h-8 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
           )}
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   )
 }
 
-export default function MyApplicationsPage() {
+export default function MyInterviewsPage() {
   return (
     <ProtectedRoute requiredRole="seeker">
-      <MyApplicationsPageContent />
+      <MyInterviewsPageContent />
     </ProtectedRoute>
   )
 }

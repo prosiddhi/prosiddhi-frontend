@@ -199,6 +199,16 @@ export interface JobFeedFilters {
   limit?: number
 }
 
+// Interview scheduled by an employer on Accept (M7). 1-1 with an application.
+// NOTE: seeker reads only expose this once BR-4 lands (docs/be-requests.md#br-4).
+export interface Interview {
+  id?: string
+  date?: string // ISO datetime
+  time?: string // free-text slot, e.g. "10:00 AM"
+  interviewerTime?: string | null
+  notes?: string | null
+}
+
 export interface Application {
   id: string
   jobId?: string
@@ -208,6 +218,7 @@ export interface Application {
   appliedAt?: string
   updatedAt?: string
   job?: Job
+  interview?: Interview | null
   [key: string]: unknown
 }
 

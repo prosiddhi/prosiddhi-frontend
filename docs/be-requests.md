@@ -31,6 +31,13 @@
 - **Proposed contract:** `GET /api/categories` → `[{ sector, category, jobTitles: string[] }]` (ACTIVE only).
 - **FE workaround until then:** ship the Categories step with a **curated static list** derived from the seed data (committed in the FE repo), free-text fallback allowed. Swap to the endpoint when it exists.
 
+### BR-4 — Include `interview` on seeker application reads  `[ ]`
+- **Surfaced by:** PJP-153 (seeker "My Interviews" view).
+- **Need:** `GET /api/applications/my` and `GET /api/applications/:id` should `include: { interview: true }` so the seeker can see an interview scheduled for them.
+- **Why:** The `Interview` model is 1-1 on `JobApplication` and is created when an employer Accepts→Schedules (PJP-104). Today only the **employer-only** `getCandidateDetails` includes it; the seeker has **no read path** that returns interview data, so they can't see date/time/notes.
+- **Proposed contract:** add `interview: true` to the `include` in `applicationService.getMyApplications` + `getApplicationById`. Shape per schema: `{ id, date (ISO), time (string), interviewerTime?, notes? }` (or `null` when none).
+- **FE workaround until then:** FE reads `application.interview` defensively — the "My Interviews" list (`/my-interviews`) and the interview card on `my-applications/[id]` render only when the field is present, so they light up automatically once BE adds the include. No FE change needed when it lands. Tagged `// Q-FE — see docs/be-requests.md#br-4`.
+
 ---
 
 ## Landed (move here when done, keep for history)
