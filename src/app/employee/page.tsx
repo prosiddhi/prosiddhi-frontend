@@ -80,7 +80,7 @@ export default function EmployeeLandingPage() {
             </button>
 
             <Link
-              href="/employer"
+              href="/employer/welcome"
               className="flex items-center gap-1 text-base text-black hover:text-primary-50 transition-colors"
             >
               <User className="w-4 h-4" />

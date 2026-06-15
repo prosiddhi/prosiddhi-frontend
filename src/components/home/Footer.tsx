@@ -49,8 +49,8 @@ export function Footer() {
             <div>
               <h3 className="text-[18px] mb-4">For Employers</h3>
               <ul className="space-y-2 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/employer" className="hover:text-white transition-colors">Post a Job</Link></li>
-                <li><Link href="/employer#candidates" className="hover:text-white transition-colors">Browse Candidates</Link></li>
+                <li><Link href="/employer/welcome" className="hover:text-white transition-colors">Post a Job</Link></li>
+                <li><Link href="/employer/welcome#candidates" className="hover:text-white transition-colors">Browse Candidates</Link></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link href="/employer-resources" className="hover:text-white transition-colors">Employer Resources</Link></li>
               </ul>

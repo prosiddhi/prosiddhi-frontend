@@ -64,7 +64,7 @@ export function LanguageSection() {
       if (selectedUserType === 'employee') {
         router.push('/employee')
       } else {
-        router.push('/employer')
+        router.push('/employer/welcome')
       }
     }
   }
