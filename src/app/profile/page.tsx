@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
@@ -52,6 +53,7 @@ let rowSeq = 0
 const newKey = () => `row-${rowSeq++}`
 
 function SeekerProfileContent() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -103,7 +105,7 @@ function SeekerProfileContent() {
         const p = await jobSeekerAPI.getProfile()
         if (!ignore) hydrate(p)
       } catch (err) {
-        if (!ignore) setLoadError(err instanceof Error ? err.message : 'Failed to load your profile.')
+        if (!ignore) setLoadError(err instanceof Error ? err.message : t('profile:seeker.loadError'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -124,7 +126,7 @@ function SeekerProfileContent() {
       const res = await jobSeekerAPI.updateProfilePhoto(file)
       setPhoto(res.profilePhoto)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update photo.')
+      setSaveError(err instanceof Error ? err.message : t('profile:seeker.photoError'))
     } finally {
       setPhotoUploading(false)
     }
@@ -175,7 +177,7 @@ function SeekerProfileContent() {
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save your profile.')
+      setSaveError(err instanceof Error ? err.message : t('profile:seeker.saveError'))
     } finally {
       setSaving(false)
     }
@@ -198,12 +200,12 @@ function SeekerProfileContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">My Profile</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('profile:seeker.heading')}</h1>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your profile…</p>
+              <p>{t('profile:seeker.loading')}</p>
             </div>
           )}
 
@@ -237,20 +239,20 @@ function SeekerProfileContent() {
                       className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
                     >
                       {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                      {photoUploading ? 'Uploading…' : 'Change Photo'}
+                      {photoUploading ? t('profile:seeker.uploading') : t('profile:seeker.changePhoto')}
                     </button>
-                    <p className="text-xs text-[#717182] mt-1">JPG, PNG or WebP.</p>
+                    <p className="text-xs text-[#717182] mt-1">{t('profile:seeker.photoHint')}</p>
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Full Name">
-                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" className={inputCls} />
+                  <Field label={t('profile:seeker.fullName')}>
+                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
                   </Field>
-                  <Field label="Location">
-                    <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City / area" className={inputCls} />
+                  <Field label={t('profile:seeker.location')}>
+                    <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t('profile:seeker.locationPlaceholder')} className={inputCls} />
                   </Field>
-                  <Field label="Preferred Sector">
+                  <Field label={t('profile:seeker.preferredSector')}>
                     <select
                       value={sector}
                       onChange={(e) => {
@@ -259,7 +261,7 @@ function SeekerProfileContent() {
                       }}
                       className={inputCls}
                     >
-                      <option value="">Select a sector</option>
+                      <option value="">{t('profile:seeker.selectSector')}</option>
                       {SECTORS.map((s) => (
                         <option key={s.sector} value={s.sector}>
                           {s.sector}
@@ -267,9 +269,9 @@ function SeekerProfileContent() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Preferred Job Title">
+                  <Field label={t('profile:seeker.preferredJobTitle')}>
                     <select value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} disabled={!sector} className={inputCls}>
-                      <option value="">{sector ? 'Select a job title' : 'Pick a sector first'}</option>
+                      <option value="">{sector ? t('profile:seeker.selectJobTitle') : t('profile:seeker.pickSectorFirst')}</option>
                       {titleOptions.map((t) => (
                         <option key={t} value={t}>
                           {t}
@@ -277,7 +279,7 @@ function SeekerProfileContent() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Preferred Language">
+                  <Field label={t('profile:seeker.preferredLanguage')}>
                     <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
                       {LANGUAGES.map((l) => (
                         <option key={l.value} value={l.value}>
@@ -286,8 +288,8 @@ function SeekerProfileContent() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="About You" full>
-                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder="A short introduction (max 500 chars)" className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
+                  <Field label={t('profile:seeker.aboutYou')} full>
+                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
                   </Field>
                 </div>
               </section>
@@ -296,15 +298,15 @@ function SeekerProfileContent() {
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg sm:text-xl font-semibold text-black flex items-center gap-2">
-                    Work Experience
-                    <VoiceButton label="Work experience" iconClassName="w-4 h-4 text-gray-500" className="p-1" />
+                    {t('profile:seeker.workExperience')}
+                    <VoiceButton label={t('profile:seeker.workExperienceVoiceLabel')} iconClassName="w-4 h-4 text-gray-500" className="p-1" />
                   </h2>
                   <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:text-primary-60">
-                    <Plus className="w-4 h-4" /> Add
+                    <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
                   </button>
                 </div>
                 {experiences.length === 0 ? (
-                  <p className="text-sm text-[#717182]">No work experience added yet.</p>
+                  <p className="text-sm text-[#717182]">{t('profile:seeker.noExperience')}</p>
                 ) : (
                   <div className="space-y-5">
                     {experiences.map((exp) => (
@@ -313,21 +315,21 @@ function SeekerProfileContent() {
                           type="button"
                           onClick={() => removeExp(exp.key)}
                           className="absolute top-3 right-3 text-gray-400 hover:text-red-500"
-                          aria-label="Remove experience"
+                          aria-label={t('profile:seeker.removeExperience')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <Field label="Position">
-                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} placeholder="e.g. Mason" className={inputCls} />
+                          <Field label={t('profile:seeker.position')}>
+                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} placeholder={t('profile:seeker.positionPlaceholder')} className={inputCls} />
                           </Field>
-                          <Field label="Company (optional)">
-                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} placeholder="Company name" className={inputCls} />
+                          <Field label={t('profile:seeker.company')}>
+                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
                           </Field>
-                          <Field label="Start Date">
+                          <Field label={t('profile:seeker.startDate')}>
                             <input type="date" value={exp.startDate ?? ''} onChange={(e) => setExp(exp.key, 'startDate', e.target.value)} className={inputCls} />
                           </Field>
-                          <Field label="End Date">
+                          <Field label={t('profile:seeker.endDate')}>
                             <input
                               type="date"
                               value={exp.endDate ?? ''}
@@ -344,13 +346,13 @@ function SeekerProfileContent() {
                             onChange={(e) => setExp(exp.key, 'currentlyWorking', e.target.checked)}
                             className="w-4 h-4 accent-primary-50"
                           />
-                          I currently work here
+                          {t('profile:seeker.currentlyWorking')}
                         </label>
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-[#717182] mt-3">Only rows with a position and start date are saved.</p>
+                <p className="text-xs text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>
               </section>
 
               {/* Save bar for profile + experience */}
@@ -361,11 +363,11 @@ function SeekerProfileContent() {
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {saving ? 'Saving…' : 'Save Changes'}
+                  {saving ? t('profile:seeker.saving') : t('buttons.saveChanges')}
                 </button>
                 {saved && (
                   <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-                    <CheckCircle2 className="w-4 h-4" /> Saved
+                    <CheckCircle2 className="w-4 h-4" /> {t('profile:seeker.saved')}
                   </span>
                 )}
                 {saveError && (
@@ -377,7 +379,7 @@ function SeekerProfileContent() {
 
               {/* Documents */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">Documents</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('profile:seeker.documents')}</h2>
                 <DocumentsSection
                   allowedTypes={[...SEEKER_DOC_TYPES]}
                   accept=".pdf,.jpg,.jpeg,.png"
@@ -389,9 +391,9 @@ function SeekerProfileContent() {
 
               {/* Skills */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">Skills</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('profile:seeker.skills')}</h2>
                 {jobSeekerId === null ? (
-                  <p className="text-sm text-[#717182]">Complete your profile to add skills.</p>
+                  <p className="text-sm text-[#717182]">{t('profile:seeker.skillsLocked')}</p>
                 ) : (
                   <SkillsSection />
                 )}
@@ -406,6 +408,7 @@ function SeekerProfileContent() {
 
 // ---- Skills (my skills + catalog picker) ----------------------------------
 function SkillsSection() {
+  const { t } = useTranslation()
   const [mine, setMine] = useState<JobSeekerSkillLink[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -422,11 +425,11 @@ function SkillsSection() {
       const res = await jobSeekerAPI.getMySkills()
       setMine(Array.isArray(res) ? res : [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load your skills.')
+      setError(err instanceof Error ? err.message : t('profile:seeker.skillsError'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadMine()
@@ -462,7 +465,7 @@ function SkillsSection() {
       await jobSeekerAPI.addSkill(skillId)
       await loadMine()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add skill.')
+      setError(err instanceof Error ? err.message : t('profile:seeker.addSkillError'))
     } finally {
       setBusyId(null)
     }
@@ -475,7 +478,7 @@ function SkillsSection() {
       await jobSeekerAPI.removeSkill(link.id)
       setMine((prev) => prev.filter((m) => m.id !== link.id))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove skill.')
+      setError(err instanceof Error ? err.message : t('profile:seeker.removeSkillError'))
     } finally {
       setBusyId(null)
     }
@@ -492,20 +495,20 @@ function SkillsSection() {
 
       {loading ? (
         <div className="flex items-center gap-2 text-[#717182] py-4">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading skills…
+          <Loader2 className="w-5 h-5 animate-spin" /> {t('profile:seeker.skillsLoading')}
         </div>
       ) : mine.length === 0 ? (
-        <p className="text-sm text-[#717182] mb-3">No skills added yet.</p>
+        <p className="text-sm text-[#717182] mb-3">{t('profile:seeker.noSkills')}</p>
       ) : (
         <div className="flex flex-wrap gap-2 mb-3">
           {mine.map((m) => (
             <span key={m.id} className="inline-flex items-center gap-1.5 bg-[#eaf6fd] text-[#236987] rounded-full pl-3 pr-2 py-1.5 text-sm">
-              {m.skill?.name ?? 'Skill'}
+              {m.skill?.name ?? t('profile:seeker.skillFallback')}
               <button
                 type="button"
                 onClick={() => remove(m)}
                 disabled={busyId === m.id}
-                aria-label="Remove skill"
+                aria-label={t('profile:seeker.removeSkill')}
                 className="hover:text-red-600 disabled:opacity-50"
               >
                 {busyId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
@@ -517,7 +520,7 @@ function SkillsSection() {
 
       {!showPicker ? (
         <button type="button" onClick={() => setShowPicker(true)} className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:text-primary-60">
-          <Plus className="w-4 h-4" /> Add a skill
+          <Plus className="w-4 h-4" /> {t('profile:seeker.addSkill')}
         </button>
       ) : (
         <div className="border border-[#eee] rounded-lg p-3 mt-2">
@@ -527,20 +530,20 @@ function SkillsSection() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search skills…"
+                placeholder={t('profile:seeker.searchSkills')}
                 className="w-full h-10 pl-9 pr-3 border border-[#b5b5b5] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
             <button type="button" onClick={() => setShowPicker(false)} className="text-sm text-[#717182] hover:text-black px-2">
-              Done
+              {t('profile:seeker.done')}
             </button>
           </div>
           {catalogLoading ? (
             <div className="flex items-center gap-2 text-[#717182] py-3 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" /> Searching…
+              <Loader2 className="w-4 h-4 animate-spin" /> {t('profile:seeker.searching')}
             </div>
           ) : catalog.length === 0 ? (
-            <p className="text-sm text-[#717182] py-2">No skills found.</p>
+            <p className="text-sm text-[#717182] py-2">{t('profile:seeker.noSkillsFound')}</p>
           ) : (
             <div className="flex flex-wrap gap-2 max-h-48 overflow-auto">
               {catalog.map((s) => {
@@ -555,7 +558,7 @@ function SkillsSection() {
                   >
                     {busyId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                     {s.name}
-                    {already && <span className="text-xs text-[#717182]">(added)</span>}
+                    {already && <span className="text-xs text-[#717182]">{t('profile:seeker.added')}</span>}
                   </button>
                 )
               })}

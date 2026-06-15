@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -42,6 +43,7 @@ function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessag
 }
 
 function ChatContent() {
+  const { t } = useTranslation()
   const params = useParams()
   const conversationId = Array.isArray(params.conversationId) ? params.conversationId[0] : (params.conversationId as string)
   const { user } = useAuth()
@@ -114,7 +116,7 @@ function ChatContent() {
         setMeta({ job: res.job, otherParty: res.otherParty })
         markIncomingRead(res.messages)
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load this conversation.')
+        if (!ignore) setError(err instanceof Error ? err.message : t('chat:conversation.loadError'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -166,7 +168,7 @@ function ChatContent() {
       appendSent(m)
       setText('')
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Message failed to send.')
+      setSendError(err instanceof Error ? err.message : t('chat:conversation.sendTextError'))
     } finally {
       setSending(false)
     }
@@ -183,7 +185,7 @@ function ChatContent() {
       appendSent(m)
       deleteRecording()
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Voice message failed to send.')
+      setSendError(err instanceof Error ? err.message : t('chat:conversation.sendAudioError'))
     } finally {
       setSending(false)
     }
@@ -205,8 +207,8 @@ function ChatContent() {
             </div>
           </Link>
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            <p className="text-sm font-semibold text-black truncate">{meta?.job?.title ? `Re: ${meta.job.title}` : 'Conversation'}</p>
-            {lastSeen && <p className="text-xs text-[#717182]">Last seen {relativeTime(lastSeen)}</p>}
+            <p className="text-sm font-semibold text-black truncate">{meta?.job?.title ? t('chat:conversation.jobRef', { title: meta.job.title }) : t('chat:conversation.fallbackTitle')}</p>
+            {lastSeen && <p className="text-xs text-[#717182]">{t('chat:conversation.lastSeen', { time: relativeTime(lastSeen) })}</p>}
           </div>
           <UserDropdown />
         </div>
@@ -216,7 +218,7 @@ function ChatContent() {
         {loading && (
           <div className="flex-1 flex flex-col items-center justify-center text-[#717182]">
             <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-            <p>Loading conversation...</p>
+            <p>{t('chat:conversation.loading')}</p>
           </div>
         )}
 
@@ -238,7 +240,7 @@ function ChatContent() {
               className="flex-1 space-y-3 overflow-y-auto pb-4"
             >
               {messages.length === 0 && (
-                <p className="text-center text-sm text-[#717182] py-10">No messages yet. Say hello 👋</p>
+                <p className="text-center text-sm text-[#717182] py-10">{t('chat:conversation.emptyHello')}</p>
               )}
               {messages.map((m) => {
                 if (m.type === 'SYSTEM') {
@@ -287,10 +289,10 @@ function ChatContent() {
                 <>
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <audio controls src={audioURL} className="flex-1 h-10 min-w-0" />
-                  <button onClick={deleteRecording} disabled={sending} className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50" title="Discard">
+                  <button onClick={deleteRecording} disabled={sending} className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50" title={t('chat:conversation.discard')}>
                     <Trash2 className="w-5 h-5" />
                   </button>
-                  <button onClick={handleSendAudio} disabled={sending} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-60" title="Send voice message">
+                  <button onClick={handleSendAudio} disabled={sending} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-60" title={t('chat:conversation.sendVoice')}>
                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                   </button>
                 </>
@@ -299,9 +301,9 @@ function ChatContent() {
                 <>
                   <span className="flex items-center gap-2 flex-1 px-2 text-sm text-red-600">
                     <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                    Recording {fmtTime(recordingTime)} / {fmtTime(maxDuration)}
+                    {t('chat:conversation.recording', { current: fmtTime(recordingTime), max: fmtTime(maxDuration) })}
                   </span>
-                  <button onClick={stopRecording} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600" title="Stop">
+                  <button onClick={stopRecording} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600" title={t('chat:conversation.stop')}>
                     <Square className="w-5 h-5" />
                   </button>
                 </>
@@ -312,13 +314,13 @@ function ChatContent() {
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendText())}
-                    placeholder="Type a message..."
+                    placeholder={t('chat:conversation.typePlaceholder')}
                     className="flex-1 h-10 px-3 text-sm bg-transparent focus:outline-none"
                   />
-                  <button onClick={() => { startRecording() }} className="p-2 text-[#4d4d4d] hover:bg-gray-100 rounded-lg" title="Record voice message (max 60s)">
+                  <button onClick={() => { startRecording() }} className="p-2 text-[#4d4d4d] hover:bg-gray-100 rounded-lg" title={t('chat:conversation.recordTooltip')}>
                     <Mic className="w-5 h-5" />
                   </button>
-                  <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title="Send">
+                  <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title={t('buttons.send')}>
                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                   </button>
                 </>

@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
@@ -50,7 +51,17 @@ function toDateInput(iso?: string | null): string {
   return d.toISOString().slice(0, 10)
 }
 
+const SIZE_KEYS: Record<CompanySize, string> = {
+  SIZE_1_10: 'profile:employer.size_1_10',
+  SIZE_11_50: 'profile:employer.size_11_50',
+  SIZE_51_200: 'profile:employer.size_51_200',
+  SIZE_201_500: 'profile:employer.size_201_500',
+  SIZE_501_1000: 'profile:employer.size_501_1000',
+  SIZE_1000_PLUS: 'profile:employer.size_1000_plus',
+}
+
 function EmployerProfileContent() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -108,7 +119,7 @@ function EmployerProfileContent() {
         const p = await employerAPI.getProfile()
         if (!ignore) hydrate(p)
       } catch (err) {
-        if (!ignore) setLoadError(err instanceof Error ? err.message : 'Failed to load your profile.')
+        if (!ignore) setLoadError(err instanceof Error ? err.message : t('profile:employer.loadError'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -129,7 +140,7 @@ function EmployerProfileContent() {
       const res = await employerAPI.updateProfilePhoto(file)
       setPhoto(res.profilePhoto)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to update photo.')
+      setSaveError(err instanceof Error ? err.message : t('profile:employer.photoError'))
     } finally {
       setPhotoUploading(false)
     }
@@ -144,14 +155,11 @@ function EmployerProfileContent() {
   const handleSave = async () => {
     // BE requires GST to be exactly 15 chars; guard before the round-trip.
     if (isBusiness && gstNumber.trim() && gstNumber.trim().length !== 15) {
-      setSaveError('GST number must be exactly 15 characters.')
+      setSaveError(t('profile:employer.gstLengthError'))
       return
     }
     if (gstCinChanged) {
-      const ok = window.confirm(
-        'Changing your GST or Registration number will send your account for admin re-verification. ' +
-          'You may be unable to post new jobs until it is approved again. Continue?'
-      )
+      const ok = window.confirm(t('profile:employer.reverifyConfirm'))
       if (!ok) return
     }
     setSaving(true)
@@ -179,7 +187,7 @@ function EmployerProfileContent() {
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save your profile.')
+      setSaveError(err instanceof Error ? err.message : t('profile:employer.saveError'))
     } finally {
       setSaving(false)
     }
@@ -200,12 +208,12 @@ function EmployerProfileContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">Company Profile</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('profile:employer.heading')}</h1>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your profile…</p>
+              <p>{t('profile:employer.loading')}</p>
             </div>
           )}
 
@@ -239,11 +247,11 @@ function EmployerProfileContent() {
                       className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
                     >
                       {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                      {photoUploading ? 'Uploading…' : 'Change Logo'}
+                      {photoUploading ? t('profile:employer.uploading') : t('profile:employer.changeLogo')}
                     </button>
                     {verificationStatus && (
                       <p className="text-xs text-[#717182] mt-1">
-                        Verification: <span className="font-medium">{verificationStatus}</span>
+                        {t('profile:employer.verification')} <span className="font-medium">{verificationStatus}</span>
                       </p>
                     )}
                   </div>
@@ -251,42 +259,42 @@ function EmployerProfileContent() {
 
                 {isBusiness ? (
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="Company Name">
-                      <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Company name" className={inputCls} />
+                    <Field label={t('profile:employer.companyName')}>
+                      <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t('profile:employer.companyNamePlaceholder')} className={inputCls} />
                     </Field>
-                    <Field label="Company Email">
-                      <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder="company@example.com" className={inputCls} />
+                    <Field label={t('profile:employer.companyEmail')}>
+                      <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder={t('profile:employer.companyEmailPlaceholder')} className={inputCls} />
                     </Field>
-                    <Field label="Company Address" full>
-                      <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder="Registered address" className={inputCls} />
+                    <Field label={t('profile:employer.companyAddress')} full>
+                      <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder={t('profile:employer.companyAddressPlaceholder')} className={inputCls} />
                     </Field>
-                    <Field label="Founded Date">
+                    <Field label={t('profile:employer.foundedDate')}>
                       <input type="date" value={companyFoundedDate} onChange={(e) => setCompanyFoundedDate(e.target.value)} className={inputCls} />
                     </Field>
-                    <Field label="Company Size">
+                    <Field label={t('profile:employer.companySize')}>
                       <select value={companySize} onChange={(e) => setCompanySize(e.target.value as CompanySize)} className={inputCls}>
-                        <option value="">Select size</option>
+                        <option value="">{t('profile:employer.selectSize')}</option>
                         {COMPANY_SIZES.map((s) => (
                           <option key={s.value} value={s.value}>
-                            {s.label}
+                            {t(SIZE_KEYS[s.value])}
                           </option>
                         ))}
                       </select>
                     </Field>
-                    <Field label="GST Number (15 characters)">
-                      <input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} maxLength={15} placeholder="15-character GSTIN" className={inputCls} />
+                    <Field label={t('profile:employer.gstNumber')}>
+                      <input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} maxLength={15} placeholder={t('profile:employer.gstPlaceholder')} className={inputCls} />
                     </Field>
-                    <Field label="Registration Number (CIN)">
-                      <input value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} placeholder="Company registration number" className={inputCls} />
+                    <Field label={t('profile:employer.registrationNumber')}>
+                      <input value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} placeholder={t('profile:employer.registrationPlaceholder')} className={inputCls} />
                     </Field>
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="Full Name">
-                      <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" className={inputCls} />
+                    <Field label={t('profile:employer.fullName')}>
+                      <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:employer.fullNamePlaceholder')} className={inputCls} />
                     </Field>
-                    <Field label="Designation">
-                      <input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="e.g. Owner, HR Manager" className={inputCls} />
+                    <Field label={t('profile:employer.designation')}>
+                      <input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder={t('profile:employer.designationPlaceholder')} className={inputCls} />
                     </Field>
                   </div>
                 )}
@@ -294,10 +302,7 @@ function EmployerProfileContent() {
                 {gstCinChanged && (
                   <div className="flex items-start gap-2 mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>
-                      Changing your GST or Registration number sends your account for admin re-verification.
-                      You may be unable to post new jobs until it&apos;s approved again.
-                    </span>
+                    <span>{t('profile:employer.reverifyWarning')}</span>
                   </div>
                 )}
 
@@ -308,11 +313,11 @@ function EmployerProfileContent() {
                     className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
                   >
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {saving ? 'Saving…' : 'Save Changes'}
+                    {saving ? t('profile:employer.saving') : t('buttons.saveChanges')}
                   </button>
                   {saved && (
                     <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-                      <CheckCircle2 className="w-4 h-4" /> Saved
+                      <CheckCircle2 className="w-4 h-4" /> {t('profile:employer.saved')}
                     </span>
                   )}
                   {saveError && (
@@ -325,10 +330,8 @@ function EmployerProfileContent() {
 
               {/* Documents */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-black mb-1">Documents</h2>
-                <p className="text-sm text-[#717182] mb-4">
-                  Business verification documents (GST certificate, company registration, etc.).
-                </p>
+                <h2 className="text-lg sm:text-xl font-semibold text-black mb-1">{t('profile:employer.documents')}</h2>
+                <p className="text-sm text-[#717182] mb-4">{t('profile:employer.documentsHint')}</p>
                 <DocumentsSection
                   allowedTypes={[...EMPLOYER_DOC_TYPES]}
                   accept=".pdf,.jpg,.jpeg,.png"

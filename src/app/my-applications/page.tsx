@@ -2,10 +2,12 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
@@ -15,7 +17,6 @@ import {
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   Clock,
   MapPin,
   IndianRupee,
@@ -29,6 +30,7 @@ import {
 const PAGE_SIZE = 10
 
 function MyApplicationsPageContent() {
+  const { t } = useTranslation()
   const [items, setItems] = useState<Application[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -51,7 +53,7 @@ function MyApplicationsPageContent() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load your applications. Please try again.')
+          setError(err instanceof Error ? err.message : t('seeker:myApplications.loadError'))
           setItems([])
         }
       } finally {
@@ -62,9 +64,7 @@ function MyApplicationsPageContent() {
     return () => {
       ignore = true
     }
-  }, [page, reloadKey])
-
-  const countLabel = total > 0 ? String(total).padStart(2, '0') : '00'
+  }, [page, reloadKey, t])
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -88,20 +88,17 @@ function MyApplicationsPageContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
 
           {/* Right side - User profile */}
@@ -124,10 +121,10 @@ function MyApplicationsPageContent() {
           <div className="mb-8 sm:mb-10 lg:mb-12 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
-                My Applications
+                {t('seeker:myApplications.title')}
               </h1>
               {!loading && !error && (
-                <p className="text-sm sm:text-base text-[#717182]">{countLabel} Applications</p>
+                <p className="text-sm sm:text-base text-[#717182]">{t('seeker:myApplications.count', { count: total })}</p>
               )}
             </div>
             <Link
@@ -135,7 +132,7 @@ function MyApplicationsPageContent() {
               className="inline-flex items-center gap-2 px-4 py-2 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors text-sm sm:text-base self-start"
             >
               <CalendarClock className="w-4 h-4" />
-              My Interviews
+              {t('seeker:myApplications.myInterviews')}
             </Link>
           </div>
 
@@ -143,7 +140,7 @@ function MyApplicationsPageContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your applications...</p>
+              <p>{t('seeker:myApplications.loading')}</p>
             </div>
           )}
 
@@ -156,7 +153,7 @@ function MyApplicationsPageContent() {
                 onClick={() => setReloadKey((k) => k + 1)}
                 className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -184,17 +181,17 @@ function MyApplicationsPageContent() {
                         {/* Job Details */}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">
-                            {job?.title || 'Job'}
+                            {job?.title || t('seeker:myApplications.job')}
                           </h3>
                           <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
-                            {job?.companyName || 'Company'}
+                            {job?.companyName || t('seeker:jobCard.company')}
                           </p>
 
                           {/* Salary */}
                           <div className="flex items-center gap-1 mb-3 sm:mb-4">
                             <IndianRupee className="w-4 h-4" />
                             <span className="text-xs sm:text-sm lg:text-[14px]">
-                              {formatSalary(job?.salaryMin, job?.salaryMax)} / Month
+                              {t('seeker:jobCard.perMonth', { salary: formatSalary(job?.salaryMin, job?.salaryMax) })}
                             </span>
                           </div>
 
@@ -231,13 +228,13 @@ function MyApplicationsPageContent() {
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full lg:w-auto">
                           <span className={`px-4 py-3 rounded-lg flex items-center justify-center min-w-[140px] text-sm sm:text-base font-medium ${meta.pill}`}>
-                            {meta.label}
+                            {t(`seeker:status.${app.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
                           </span>
                           <Link
                             href={`/my-applications/${app.id}`}
                             className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
                           >
-                            View Details
+                            {t('buttons.viewDetails')}
                           </Link>
                         </div>
                       </div>
@@ -255,16 +252,16 @@ function MyApplicationsPageContent() {
                 <Briefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-black mb-3">
-                No Applications Yet
+                {t('seeker:myApplications.emptyTitle')}
               </h2>
               <p className="text-sm sm:text-base text-[#717182] mb-6 text-center max-w-md">
-                Start applying to jobs and track your applications here.
+                {t('seeker:myApplications.emptyBody')}
               </p>
               <Link
                 href="/job-feed"
                 className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Browse Jobs
+                {t('seeker:myApplications.browseJobs')}
               </Link>
             </div>
           )}
@@ -293,7 +290,7 @@ function MyApplicationsPageContent() {
                   </button>
                 ))
               ) : (
-                <span className="px-3 text-sm text-[#717182]">Page {page} of {totalPages}</span>
+                <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
               )}
 
               <button

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -25,6 +26,7 @@ function toE164(raw: string): string | null {
 
 export default function RegisterPhonePage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { update } = useSeekerRegistration()
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,13 +34,13 @@ export default function RegisterPhonePage() {
 
   const handleNext = async () => {
     if (!phoneNumber.trim()) {
-      setError('Please enter your phone number')
+      setError(t('auth:phone.errorEmpty'))
       return
     }
 
     const e164 = toE164(phoneNumber)
     if (!e164) {
-      setError('Enter a valid phone number (10 digits, or +<country code><number>)')
+      setError(t('auth:phone.errorInvalid'))
       return
     }
 
@@ -54,7 +56,7 @@ export default function RegisterPhonePage() {
 
       router.push('/register/otp')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to register. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:phone.errorFailed'))
     } finally {
       setLoading(false)
     }
@@ -74,7 +76,7 @@ export default function RegisterPhonePage() {
             {/* Text Content */}
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Your Next Opportunity Is Just a Click Away
+                {t('auth:phone.panelHeading')}
               </h2>
             </div>
 
@@ -108,7 +110,7 @@ export default function RegisterPhonePage() {
                 />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-5 py-3 rounded-lg hover:bg-error-600 transition-colors">
-                <span className="text-[18px]">Close</span>
+                <span className="text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -125,17 +127,17 @@ export default function RegisterPhonePage() {
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
               </div>
-              <span className="text-[#767676] text-[16px] ml-2">Step 2 of 7</span>
+              <span className="text-[#767676] text-[16px] ml-2">{t('auth:phone.stepLabel')}</span>
             </div>
 
             {/* Main Content */}
             <div className="max-w-[1200px]">
               <div className="mb-16">
                 <h1 className="text-[56px] font-bold text-black leading-tight mb-4">
-                  Enter your phone number
+                  {t('auth:phone.title')}
                 </h1>
                 <p className="text-[24px] text-[#767676]">
-                  We'll send you a verification code
+                  {t('auth:phone.subtitle')}
                 </p>
               </div>
 
@@ -149,9 +151,9 @@ export default function RegisterPhonePage() {
               <div className="mb-12">
                 <div className="flex items-center gap-3 mb-6">
                   <label htmlFor="phone" className="text-[20px] font-medium text-black">
-                    Phone number *
+                    {t('auth:phone.phoneLabel')}
                   </label>
-                  <VoiceButton label="Phone number" iconClassName="w-5 h-5 text-primary-50" className="p-1" />
+                  <VoiceButton label={t('auth:phone.phoneVoice')} iconClassName="w-5 h-5 text-primary-50" className="p-1" />
                 </div>
                 <input
                   id="phone"
@@ -161,7 +163,7 @@ export default function RegisterPhonePage() {
                     setPhoneNumber(e.target.value)
                     if (error) setError('')
                   }}
-                  placeholder="Enter your phone number"
+                  placeholder={t('auth:phone.phonePlaceholder')}
                   disabled={loading}
                   className="w-full max-w-[953px] h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
                 />
@@ -174,7 +176,7 @@ export default function RegisterPhonePage() {
                   disabled={!phoneNumber.trim() || loading}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-[20px]">{loading ? 'Sending...' : 'Next'}</span>
+                  <span className="text-[20px]">{loading ? t('auth:phone.sending') : t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
@@ -200,7 +202,7 @@ export default function RegisterPhonePage() {
             />
           </div>
           <Link href="/" className="flex items-center gap-1 bg-error-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-error-600">
-            <span>Close</span>
+            <span>{t('auth:register.close')}</span>
             <X className="w-4 h-4" />
           </Link>
         </div>
@@ -214,16 +216,16 @@ export default function RegisterPhonePage() {
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
           </div>
-          <span className="text-sm text-gray-600">Step 2 of 7</span>
+          <span className="text-sm text-gray-600">{t('auth:phone.stepLabel')}</span>
         </div>
 
         {/* Content */}
         <div className="flex-1 bg-white px-4 py-8 overflow-auto">
           <h1 className="text-3xl sm:text-4xl font-bold text-black mb-4">
-            Enter your phone number
+            {t('auth:phone.title')}
           </h1>
           <p className="text-base text-gray-600 mb-8">
-            We'll send you a verification code
+            {t('auth:phone.subtitle')}
           </p>
 
           {error && (
@@ -234,8 +236,8 @@ export default function RegisterPhonePage() {
 
           <div className="mb-8">
             <label htmlFor="phone-mobile" className="text-base font-medium text-black mb-4 block flex items-center gap-2">
-              Phone number *
-              <VoiceButton label="Phone number" iconClassName="w-4 h-4 text-primary-50" className="p-1" />
+              {t('auth:phone.phoneLabel')}
+              <VoiceButton label={t('auth:phone.phoneVoice')} iconClassName="w-4 h-4 text-primary-50" className="p-1" />
             </label>
             <input
               id="phone-mobile"
@@ -245,7 +247,7 @@ export default function RegisterPhonePage() {
                 setPhoneNumber(e.target.value)
                 if (error) setError('')
               }}
-              placeholder="Enter your phone number"
+              placeholder={t('auth:phone.phonePlaceholder')}
               disabled={loading}
               className="w-full h-14 px-3 border border-gray-300 rounded-lg text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"
             />
@@ -256,7 +258,7 @@ export default function RegisterPhonePage() {
             disabled={!phoneNumber.trim() || loading}
             className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white px-6 py-3 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50"
           >
-            <span className="text-lg">{loading ? 'Sending...' : 'Next'}</span>
+            <span className="text-lg">{loading ? t('auth:phone.sending') : t('buttons.next')}</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -264,7 +266,7 @@ export default function RegisterPhonePage() {
         {/* Blue Section */}
         <div className="bg-primary-50 py-8 px-4">
           <h2 className="text-2xl font-bold text-white leading-tight mb-4">
-            Your Next Opportunity Is Just a Click Away
+            {t('auth:phone.panelHeading')}
           </h2>
           <div className="relative w-full h-48">
             <Image

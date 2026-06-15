@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Mail, Phone, Copy, Check, Loader2, AlertCircle } from 'lucide-react'
 import { jobSeekerAPI } from '@/lib/api'
 
@@ -12,6 +13,7 @@ interface ContactRecruiterModalProps {
 }
 
 export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: ContactRecruiterModalProps) {
+  const { t } = useTranslation()
   const [contact, setContact] = useState<{ email?: string; phoneNumber?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -31,7 +33,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
         if (!ignore) setContact(res)
       })
       .catch((err) => {
-        if (!ignore) setError(err instanceof Error ? err.message : 'Could not load contact details.')
+        if (!ignore) setError(err instanceof Error ? err.message : t('seeker:contactModal.loadError'))
       })
       .finally(() => {
         if (!ignore) setLoading(false)
@@ -39,7 +41,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
     return () => {
       ignore = true
     }
-  }, [isOpen, jobId])
+  }, [isOpen, jobId, t])
 
   // Lock body scroll while open.
   useEffect(() => {
@@ -77,13 +79,13 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
         </button>
 
         <div className="p-6 sm:p-8">
-          <h2 className="text-2xl font-bold text-black mb-1">Contact the Recruiter</h2>
+          <h2 className="text-2xl font-bold text-black mb-1">{t('seeker:contactModal.title')}</h2>
           <p className="text-sm text-gray-600 mb-6">{companyName}</p>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-10 text-[#717182]">
               <Loader2 className="w-8 h-8 animate-spin mb-3 text-primary-50" />
-              <p className="text-sm">Loading contact details...</p>
+              <p className="text-sm">{t('seeker:contactModal.loading')}</p>
             </div>
           )}
 
@@ -97,7 +99,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
           {!loading && !error && !hasAny && (
             <div className="flex flex-col items-center justify-center py-10 text-center text-[#717182]">
               <AlertCircle className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm">The recruiter hasn&apos;t shared contact details for this job.</p>
+              <p className="text-sm">{t('seeker:contactModal.noContact')}</p>
             </div>
           )}
 
@@ -109,7 +111,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
                     <Phone className="w-5 h-5 text-[#236987]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500">Phone</p>
+                    <p className="text-xs text-gray-500">{t('seeker:contactModal.phone')}</p>
                     <a href={`tel:${contact.phoneNumber}`} className="text-sm sm:text-base font-medium text-black hover:text-primary-50 break-all">
                       {contact.phoneNumber}
                     </a>
@@ -117,7 +119,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
                   <button
                     onClick={() => copy(contact.phoneNumber!, 'phone')}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                    title="Copy phone number"
+                    title={t('seeker:contactModal.copyPhone')}
                   >
                     {copied === 'phone' ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5 text-gray-500" />}
                   </button>
@@ -130,7 +132,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
                     <Mail className="w-5 h-5 text-[#236987]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="text-xs text-gray-500">{t('seeker:contactModal.email')}</p>
                     <a href={`mailto:${contact.email}`} className="text-sm sm:text-base font-medium text-black hover:text-primary-50 break-all">
                       {contact.email}
                     </a>
@@ -138,7 +140,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
                   <button
                     onClick={() => copy(contact.email!, 'email')}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                    title="Copy email"
+                    title={t('seeker:contactModal.copyEmail')}
                   >
                     {copied === 'email' ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5 text-gray-500" />}
                   </button>

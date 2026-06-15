@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { otpAPI } from '@/lib/api'
@@ -9,6 +10,7 @@ import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
 export default function EmployerOTPPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useEmployerRegistration()
   const phoneNumber = data.phoneNumber
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -66,7 +68,7 @@ export default function EmployerOTPPage() {
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend OTP')
+      setError(err instanceof Error ? err.message : t('employerRegister:otp.resendFailed'))
     }
   }
 
@@ -81,7 +83,7 @@ export default function EmployerOTPPage() {
       // Both types collect account email + password next.
       router.push('/employer/register/account')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+      setError(err instanceof Error ? err.message : t('employerRegister:otp.invalid'))
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } finally {
@@ -97,14 +99,14 @@ export default function EmployerOTPPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl">
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label="Close">
+        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label={t('employerRegister:closeAria')}>
           <X className="w-6 h-6 text-gray-600" />
         </button>
 
         <div className="w-full">
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">Employer Registration</h1>
-            <p className="text-sm sm:text-base text-gray-600">We sent a 6-digit code to {phoneNumber}</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">{t('employerRegister:title')}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{t('employerRegister:otp.sentTo', { phone: phoneNumber })}</p>
           </div>
 
           {error && (
@@ -114,7 +116,7 @@ export default function EmployerOTPPage() {
           )}
 
           <div className="mb-8">
-            <label className="block text-base sm:text-lg font-medium text-black mb-4">Enter the OTP Number</label>
+            <label className="block text-base sm:text-lg font-medium text-black mb-4">{t('employerRegister:otp.label')}</label>
             <div className="flex gap-2 sm:gap-3 justify-center mb-4">
               {otp.map((digit, index) => (
                 <input
@@ -135,31 +137,31 @@ export default function EmployerOTPPage() {
             <div className="text-left">
               {canResend ? (
                 <button onClick={handleResend} className="text-sm sm:text-base text-primary-50 hover:text-primary-60 font-medium transition-colors">
-                  Resend the OTP?
+                  {t('employerRegister:otp.resendQuestion')}
                 </button>
               ) : (
-                <p className="text-sm sm:text-base text-gray-500">Resend the OTP? {timer}s</p>
+                <p className="text-sm sm:text-base text-gray-500">{t('employerRegister:otp.resendIn', { seconds: timer })}</p>
               )}
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <button onClick={handleBack} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-base font-medium min-w-[100px]">
-              Back
+              {t('buttons.back')}
             </button>
             <button
               onClick={handleNext}
               disabled={!isOtpComplete || loading}
               className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
-              {loading ? 'Verifying...' : 'Next'}
+              {loading ? t('employerRegister:otp.verifying') : t('buttons.next')}
             </button>
           </div>
 
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">Sign in here</Link>
+              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
+              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">{t('employerRegister:signInLink')}</Link>
             </p>
           </div>
         </div>

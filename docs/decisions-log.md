@@ -150,4 +150,24 @@ Individual employers skip Step 2 entirely and auto-approve on email verify.
 
 ---
 
+### Q-FE-05 (2026-06-15) — Web i18n library = react-i18next (not next-i18next / next-intl)
+
+**Owner:** Nazir (FE)
+**Affects:** FE (portal)
+**Status:** Locked
+**Related:** [PJP-109], [02-scope-locked Q6](_context/02-scope-locked.md)
+
+**Decision:** The portal does runtime i18n with **react-i18next + i18next + i18next-browser-languagedetector** — a client `<I18nProvider>` (i18next instance) mounted in `app/layout.tsx`, an in-header `<LanguageSwitcher>`, and per-namespace JSON under `src/locales/{en,hi}/`. NOT next-i18next / next-intl.
+
+**Reasoning:** next-i18next and next-intl both require `[locale]` URL-routing segments + middleware. This app switches language from an in-header control with **no per-locale URLs**, and every screen is already a `'use client'` component — so a client i18next provider fits with **zero route restructuring**, and keeps i18next key-parity with the mobile RN side (Q6 intent; the `packages/i18n` monorepo assumption is gone post repo-split).
+
+**Implications:**
+- Detection order `localStorage('preferredLanguage') → 'en'`; initial render forced to `en` on both server and client (stored choice applied in a mount effect) so there is **no hydration mismatch**. `fallbackLng:'en'`.
+- The stale pages-router `i18n` block in `next.config.js` is removed (unsupported/no-op under the app router).
+- Namespaces: `common` (shared chrome/buttons/feedback/voice) + `auth`, `employerRegister`, `seeker`, `employer`, `chat`, `profile`.
+- **EN + HI only this release** (Q6 hard-gate); the other 8 soft-launch in S3 — never shipped as placeholder English. Switcher offers EN/HI only.
+- No `PATCH /api/me/language` exists in BE → language persists to localStorage (source of truth) + best-effort seeker `PUT /jobseekers/profile`. Generic per-user endpoint requested as **BR-9**.
+
+---
+
 <!-- New entries appended below. Use the template above. -->

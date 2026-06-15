@@ -1,6 +1,7 @@
 'use client'
 
 import { Volume2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { showToast } from '@/lib/toast'
 
@@ -19,18 +20,20 @@ import { showToast } from '@/lib/toast'
 export function VoiceButton({
   iconClassName = 'w-5 h-5 text-gray-600',
   className,
-  label = 'Listen',
+  label,
 }: {
   iconClassName?: string
   className?: string
   label?: string
 }) {
+  const { t } = useTranslation()
+  const fieldLabel = label ?? t('voice.listen')
   return (
     <button
       type="button"
-      onClick={() => showToast('🔊 Voice assistance is coming soon.', 'info')}
-      aria-label={`${label} — voice assistance coming soon`}
-      title="Voice assistance — coming soon"
+      onClick={() => showToast(t('feedback.voiceComingSoon'), 'info')}
+      aria-label={`${fieldLabel} — ${t('voice.comingSoon')}`}
+      title={t('voice.tooltip')}
       className={cn(
         'inline-flex items-center justify-center rounded-lg transition-colors hover:bg-grey-100 active:bg-grey-200 flex-shrink-0',
         className

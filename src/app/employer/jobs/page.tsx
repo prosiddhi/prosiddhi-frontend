@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
@@ -32,6 +33,7 @@ type Tab = 'active' | 'expired'
 const EXPIRED_STATUSES = new Set(['FILLED', 'CLOSED', 'CANCELLED'])
 
 function MyJobsContent() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('active')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,7 +56,7 @@ function MyJobsContent() {
         if (!ignore) setJobs(list)
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load your jobs. Please try again.')
+          setError(err instanceof Error ? err.message : t('employer:jobs.loadFailed'))
           setJobs([])
         }
       } finally {
@@ -74,14 +76,14 @@ function MyJobsContent() {
       await fn()
       setReloadKey((k) => k + 1)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Action failed. Please try again.')
+      setError(err instanceof Error ? err.message : t('employer:jobs.actionFailed'))
     } finally {
       setActioningId(null)
     }
   }
 
   const handleDelete = (id: string) => {
-    if (!window.confirm('Delete this job? This cannot be undone.')) return
+    if (!window.confirm(t('employer:jobs.confirmDelete'))) return
     runAction(() => employerAPI.deleteJob(id), id)
   }
 
@@ -91,7 +93,7 @@ function MyJobsContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer/workers" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:jobs.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <div className="flex items-center gap-3 sm:gap-5">
@@ -100,7 +102,7 @@ function MyJobsContent() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
             >
               <Plus className="w-4 h-4" />
-              Post a Job
+              {t('employer:jobs.postJob')}
             </Link>
             <UserDropdown />
           </div>
@@ -109,22 +111,22 @@ function MyJobsContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">My Jobs</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobs.title')}</h1>
 
           {/* Tabs */}
           <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200">
             {([
-              { key: 'active', label: 'Active' },
-              { key: 'expired', label: 'Expired' },
-            ] as { key: Tab; label: string }[]).map((t) => (
+              { key: 'active', label: t('employer:jobs.tabs.active') },
+              { key: 'expired', label: t('employer:jobs.tabs.expired') },
+            ] as { key: Tab; label: string }[]).map((tabItem) => (
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
+                key={tabItem.key}
+                onClick={() => setTab(tabItem.key)}
                 className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px transition-colors ${
-                  tab === t.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
+                  tab === tabItem.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
               >
-                {t.label}
+                {tabItem.label}
               </button>
             ))}
           </div>
@@ -132,7 +134,7 @@ function MyJobsContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your jobs...</p>
+              <p>{t('employer:jobs.loading')}</p>
             </div>
           )}
 
@@ -141,7 +143,7 @@ function MyJobsContent() {
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
               <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -149,13 +151,13 @@ function MyJobsContent() {
           {!loading && !error && jobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
               <Briefcase className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">{tab === 'active' ? 'No active jobs' : 'No expired jobs'}</p>
+              <p className="text-lg font-medium text-black mb-1">{tab === 'active' ? t('employer:jobs.noActiveTitle') : t('employer:jobs.noExpiredTitle')}</p>
               <p className="max-w-md mb-6">
-                {tab === 'active' ? 'Post a job to start receiving applications.' : 'Jobs that are filled, closed, or past their expiry appear here.'}
+                {tab === 'active' ? t('employer:jobs.noActiveBody') : t('employer:jobs.noExpiredBody')}
               </p>
               {tab === 'active' && (
                 <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
-                  <Plus className="w-4 h-4" /> Post a Job
+                  <Plus className="w-4 h-4" /> {t('employer:jobs.postJob')}
                 </Link>
               )}
             </div>
@@ -173,28 +175,28 @@ function MyJobsContent() {
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="text-lg sm:text-xl font-semibold text-black">{job.title}</h3>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                            {job.status ? job.status.charAt(0) + job.status.slice(1).toLowerCase() : 'Unknown'}
+                            {job.status ? job.status.charAt(0) + job.status.slice(1).toLowerCase() : t('employer:jobs.statusUnknown')}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
                           <span className="flex items-center gap-1"><IndianRupee className="w-4 h-4" />{formatSalary(job.salaryMin, job.salaryMax)}</span>
                           {job.jobType && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{humanizeJobType(job.jobType)}</span>}
                           {job.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>}
-                          {typeof job.viewCount === 'number' && <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{job.viewCount} views</span>}
+                          {typeof job.viewCount === 'number' && <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{t('employer:jobs.views', { count: job.viewCount })}</span>}
                         </div>
-                        <p className="text-xs text-[#9a9aa5] mt-2">Posted {relativeTime(job.createdAt)}</p>
+                        <p className="text-xs text-[#9a9aa5] mt-2">{t('employer:jobs.posted', { time: relativeTime(job.createdAt) })}</p>
                       </div>
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
                         <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Users className="w-4 h-4" /> Candidates
+                          <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
                         </Link>
                         <Link href={`/job-details/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Eye className="w-4 h-4" /> View
+                          <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
                         </Link>
                         <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Pencil className="w-4 h-4" /> Edit
+                          <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
                         </Link>
                         {isActive ? (
                           <button
@@ -202,7 +204,7 @@ function MyJobsContent() {
                             disabled={busy}
                             className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-300 text-amber-700 rounded-lg text-sm hover:bg-amber-50 transition-colors disabled:opacity-60"
                           >
-                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />} Deactivate
+                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />} {t('employer:jobs.deactivate')}
                           </button>
                         ) : (
                           <button
@@ -210,7 +212,7 @@ function MyJobsContent() {
                             disabled={busy}
                             className="inline-flex items-center gap-1.5 px-3 py-2 border border-green-300 text-green-700 rounded-lg text-sm hover:bg-green-50 transition-colors disabled:opacity-60"
                           >
-                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} Activate
+                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} {t('employer:jobs.activate')}
                           </button>
                         )}
                         <button
@@ -218,7 +220,7 @@ function MyJobsContent() {
                           disabled={busy}
                           className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-60"
                         >
-                          <Trash2 className="w-4 h-4" /> Delete
+                          <Trash2 className="w-4 h-4" /> {t('employer:jobs.delete')}
                         </button>
                       </div>
                     </div>

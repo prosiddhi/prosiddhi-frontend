@@ -2,10 +2,12 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { InlineError } from '@/components/feedback/InlineError'
@@ -16,7 +18,6 @@ import {
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   Clock,
   MapPin,
   IndianRupee,
@@ -29,6 +30,7 @@ import {
 const PAGE_SIZE = 10
 
 function SavedJobsPageContent() {
+  const { t } = useTranslation()
   const [items, setItems] = useState<SavedJobItem[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -53,7 +55,7 @@ function SavedJobsPageContent() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load saved jobs. Please try again.')
+          setError(err instanceof Error ? err.message : t('seeker:savedJobs.loadError'))
           setItems([])
         }
       } finally {
@@ -64,7 +66,7 @@ function SavedJobsPageContent() {
     return () => {
       ignore = true
     }
-  }, [page, reloadKey])
+  }, [page, reloadKey, t])
 
   const handleUnsave = useCallback(
     async (jobId: string) => {
@@ -86,7 +88,7 @@ function SavedJobsPageContent() {
         setItems(prevItems)
         setTotal(prevTotal)
         showToast(
-          err instanceof Error ? err.message : 'Could not remove this job. Please try again.',
+          err instanceof Error ? err.message : t('seeker:savedJobs.removeError'),
           'error'
         )
       } finally {
@@ -97,10 +99,8 @@ function SavedJobsPageContent() {
         })
       }
     },
-    [items, total, page, removing]
+    [items, total, page, removing, t]
   )
-
-  const countLabel = total > 0 ? String(total).padStart(2, '0') : '00'
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -124,20 +124,17 @@ function SavedJobsPageContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-primary-50">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px] font-medium">Saved Jobs</span>
+              <span className="text-[18px] font-medium">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
 
           {/* Right side - User profile */}
@@ -159,10 +156,10 @@ function SavedJobsPageContent() {
           {/* Page Header */}
           <div className="mb-8 sm:mb-10 lg:mb-12">
             <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
-              Saved Jobs by you
+              {t('seeker:savedJobs.title')}
             </h1>
             {!loading && !error && (
-              <p className="text-sm sm:text-base text-[#717182]">{countLabel} Job saved</p>
+              <p className="text-sm sm:text-base text-[#717182]">{t('seeker:savedJobs.count', { count: total })}</p>
             )}
           </div>
 
@@ -170,7 +167,7 @@ function SavedJobsPageContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading saved jobs...</p>
+              <p>{t('seeker:savedJobs.loading')}</p>
             </div>
           )}
 
@@ -202,14 +199,14 @@ function SavedJobsPageContent() {
                           {job.title}
                         </h3>
                         <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
-                          {job.companyName || 'Company'}
+                          {job.companyName || t('seeker:jobCard.company')}
                         </p>
 
                         {/* Salary */}
                         <div className="flex items-center gap-1 mb-3 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
                           <span className="text-xs sm:text-sm lg:text-[14px]">
-                            {formatSalary(job.salaryMin, job.salaryMax)} / Month
+                            {t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}
                           </span>
                         </div>
 
@@ -255,13 +252,13 @@ function SavedJobsPageContent() {
                           ) : (
                             <BookmarkCheck className="w-5 h-5" />
                           )}
-                          <span className="text-sm sm:text-base">{removing.has(jobId) ? 'Removing...' : 'Saved'}</span>
+                          <span className="text-sm sm:text-base">{removing.has(jobId) ? t('seeker:savedJobs.removing') : t('buttons.saved')}</span>
                         </button>
                         <Link
                           href={`/job-details/${jobId}`}
                           className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
                         >
-                          View the Job
+                          {t('seeker:jobCard.viewJob')}
                         </Link>
                       </div>
                     </div>
@@ -278,16 +275,16 @@ function SavedJobsPageContent() {
                 <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-black mb-3">
-                No Saved Jobs Yet
+                {t('seeker:savedJobs.emptyTitle')}
               </h2>
               <p className="text-sm sm:text-base text-[#717182] mb-6 text-center max-w-md">
-                Start browsing jobs and save the ones you&apos;re interested in to view them here.
+                {t('seeker:savedJobs.emptyBody')}
               </p>
               <Link
                 href="/job-feed"
                 className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Browse Jobs
+                {t('seeker:savedJobs.browseJobs')}
               </Link>
             </div>
           )}
@@ -316,7 +313,7 @@ function SavedJobsPageContent() {
                   </button>
                 ))
               ) : (
-                <span className="px-3 text-sm text-[#717182]">Page {page} of {totalPages}</span>
+                <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
               )}
 
               <button

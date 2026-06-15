@@ -2,10 +2,12 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { formatSalary, formatDate, initials } from '@/lib/jobFormat'
 import {
@@ -14,7 +16,6 @@ import {
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   MapPin,
   IndianRupee,
   CalendarClock,
@@ -29,6 +30,7 @@ import {
 const FETCH_LIMIT = 100
 
 function MyInterviewsPageContent() {
+  const { t } = useTranslation()
   const [interviews, setInterviews] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,7 +46,7 @@ function MyInterviewsPageContent() {
         if (!ignore) setInterviews(res.applications.filter((a) => a.interview))
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load your interviews. Please try again.')
+          setError(err instanceof Error ? err.message : t('seeker:myInterviews.loadError'))
           setInterviews([])
         }
       } finally {
@@ -55,7 +57,7 @@ function MyInterviewsPageContent() {
     return () => {
       ignore = true
     }
-  }, [reloadKey])
+  }, [reloadKey, t])
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -71,20 +73,17 @@ function MyInterviewsPageContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
 
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
@@ -105,11 +104,11 @@ function MyInterviewsPageContent() {
           {/* Page Header */}
           <div className="mb-8 sm:mb-10 lg:mb-12">
             <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
-              My Interviews
+              {t('seeker:myInterviews.title')}
             </h1>
             {!loading && !error && (
               <p className="text-sm sm:text-base text-[#717182]">
-                {interviews.length > 0 ? `${String(interviews.length).padStart(2, '0')} scheduled` : 'No interviews scheduled'}
+                {interviews.length > 0 ? t('seeker:myInterviews.scheduledCount', { count: interviews.length }) : t('seeker:myInterviews.none')}
               </p>
             )}
           </div>
@@ -118,7 +117,7 @@ function MyInterviewsPageContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your interviews...</p>
+              <p>{t('seeker:myInterviews.loading')}</p>
             </div>
           )}
 
@@ -131,7 +130,7 @@ function MyInterviewsPageContent() {
                 onClick={() => setReloadKey((k) => k + 1)}
                 className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -157,10 +156,10 @@ function MyInterviewsPageContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">
-                            {job?.title || 'Job'}
+                            {job?.title || t('seeker:myApplications.job')}
                           </h3>
                           <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
-                            {job?.companyName || 'Company'}
+                            {job?.companyName || t('seeker:jobCard.company')}
                           </p>
                           <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
                             {job?.salaryMin != null || job?.salaryMax != null ? (
@@ -183,15 +182,15 @@ function MyInterviewsPageContent() {
                       <div className="lg:min-w-[280px] border-t lg:border-t-0 lg:border-l border-[#d0e8f0] lg:pl-6 pt-4 lg:pt-0">
                         <div className="flex items-center gap-2 mb-2 text-[#164e65]">
                           <CalendarClock className="w-5 h-5" />
-                          <span className="font-semibold">Interview</span>
+                          <span className="font-semibold">{t('seeker:myInterviews.interview')}</span>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-black mb-1">
                           <CalendarClock className="w-4 h-4 text-[#3386a9]" />
-                          <span>{formatDate(iv.date) || 'Date to be confirmed'}</span>
+                          <span>{formatDate(iv.date) || t('seeker:myInterviews.dateToBeConfirmed')}</span>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-black">
                           <Clock className="w-4 h-4 text-[#3386a9]" />
-                          <span>{iv.time || 'Time to be confirmed'}</span>
+                          <span>{iv.time || t('seeker:myInterviews.timeToBeConfirmed')}</span>
                         </div>
                         {iv.notes && (
                           <p className="text-xs text-gray-500 mt-2 line-clamp-2">{iv.notes}</p>
@@ -211,16 +210,16 @@ function MyInterviewsPageContent() {
                 <CalendarClock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-black mb-3">
-                No Interviews Yet
+                {t('seeker:myInterviews.emptyTitle')}
               </h2>
               <p className="text-sm sm:text-base text-[#717182] mb-6 text-center max-w-md">
-                When an employer shortlists you and schedules an interview, the date and time will show up here.
+                {t('seeker:myInterviews.emptyBody')}
               </p>
               <Link
                 href="/my-applications"
                 className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                View My Applications
+                {t('seeker:myInterviews.viewApplications')}
               </Link>
             </div>
           )}

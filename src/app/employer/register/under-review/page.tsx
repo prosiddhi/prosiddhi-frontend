@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { Clock, FileText } from 'lucide-react'
 
 // Corporate employers land here after email-verify: accountStatus is
@@ -9,6 +10,7 @@ import { Clock, FileText } from 'lucide-react'
 // The document-upload UI itself is a separate flow (BE POST /me/documents).
 export default function EmployerUnderReviewPage() {
   const router = useRouter()
+  const { t } = useTranslation()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
@@ -19,18 +21,15 @@ export default function EmployerUnderReviewPage() {
           </div>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-black mb-3">Your account is under review</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-black mb-3">{t('employerRegister:underReview.title')}</h1>
         <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-md mx-auto">
-          Your email is verified. To start posting jobs, upload your business
-          documents (GST, CIN, ISO certificates). Our admin team will review them
-          and activate your account.
+          {t('employerRegister:underReview.description')}
         </p>
 
         <div className="text-left bg-blue-50 border border-blue-100 rounded-lg p-4 mb-8 flex items-start gap-3">
           <FileText className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-secondary-70">
-            You can browse the portal and edit your profile now. Posting jobs
-            unlocks once your documents are approved.
+            {t('employerRegister:underReview.browseNotice')}
           </p>
         </div>
 
@@ -38,7 +37,7 @@ export default function EmployerUnderReviewPage() {
           onClick={() => router.push('/employer')}
           className="w-full px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium"
         >
-          Continue to dashboard
+          {t('employerRegister:underReview.continueToDashboard')}
         </button>
       </div>
     </div>

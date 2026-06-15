@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { X, Mic, Square, Pause, Play, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAudioRecorder, audioExtForMime } from '@/hooks/useAudioRecorder'
 import { jobSeekerAPI } from '@/lib/api'
@@ -16,6 +17,7 @@ interface ApplyModalProps {
 }
 
 export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onApplied }: ApplyModalProps) {
+  const { t } = useTranslation()
   const [textMessage, setTextMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -76,7 +78,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
       setSuccess(true)
       onApplied?.()
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to submit application. Please try again.')
+      setSubmitError(err instanceof Error ? err.message : t('seeker:applyModal.submitError'))
     } finally {
       setSubmitting(false)
     }
@@ -132,16 +134,19 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
             /* Success State */
             <div className="flex flex-col items-center text-center py-6 sm:py-10">
               <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">Application Submitted</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">{t('seeker:applyModal.successTitle')}</h2>
               <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-md">
-                Your application for <span className="font-medium">{jobTitle}</span> at{' '}
-                <span className="font-medium">{companyName}</span> has been sent. Track it under My Applications.
+                <Trans
+                  i18nKey="seeker:applyModal.successBody"
+                  values={{ jobTitle, companyName }}
+                  components={{ bold: <span className="font-medium" /> }}
+                />
               </p>
               <button
                 onClick={handleClose}
                 className="px-8 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
               >
-                Done
+                {t('seeker:applyModal.done')}
               </button>
             </div>
           ) : (
@@ -149,17 +154,17 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
               {/* Header */}
               <div className="mb-6 sm:mb-8">
                 <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">
-                  Additional Details
+                  {t('seeker:applyModal.title')}
                 </h2>
                 <p className="text-sm sm:text-base text-gray-600">
-                  If you have any additional details to share through audio, please add them below
+                  {t('seeker:applyModal.subtitle')}
                 </p>
               </div>
 
               {/* Audio Message Section */}
               <div className="mb-6 sm:mb-8">
                 <label className="block text-base sm:text-lg font-medium text-black mb-3 sm:mb-4">
-                  Audio Message (Optional) — max {formatTime(maxDuration)}
+                  {t('seeker:applyModal.audioLabel', { max: formatTime(maxDuration) })}
                 </label>
 
                 {/* Audio Recorder */}
@@ -245,7 +250,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                       {/* Recording Status */}
                       {isRecording && (
                         <p className="text-xs sm:text-sm text-gray-600 mt-3">
-                          {isPaused ? 'Recording paused...' : 'Recording in progress — stops automatically at 2:00'}
+                          {isPaused ? t('seeker:applyModal.recordingPaused') : t('seeker:applyModal.recordingInProgress')}
                         </p>
                       )}
                     </>
@@ -285,12 +290,12 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
               {/* Text Message Section */}
               <div className="mb-6 sm:mb-8">
                 <label className="block text-base sm:text-lg font-medium text-black mb-3 sm:mb-4">
-                  Text Message (Optional)
+                  {t('seeker:applyModal.textLabel')}
                 </label>
                 <textarea
                   value={textMessage}
                   onChange={(e) => setTextMessage(e.target.value)}
-                  placeholder="Write here..."
+                  placeholder={t('seeker:applyModal.textPlaceholder')}
                   rows={6}
                   maxLength={1000}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm sm:text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent resize-none"
@@ -312,7 +317,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                   disabled={submitting}
                   className="flex-1 inline-flex items-center justify-center min-h-[48px] px-6 py-3 border border-gray-300 rounded-lg text-base font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  Close
+                  {t('seeker:applyModal.close')}
                 </button>
                 <button
                   onClick={handleSubmit}
@@ -320,7 +325,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                   className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {submitting ? 'Submitting...' : 'Apply the Job'}
+                  {submitting ? t('seeker:applyModal.submitting') : t('seeker:applyModal.submit')}
                 </button>
               </div>
             </>

@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -11,6 +12,7 @@ import { employerAPI, type PostJobData } from '@/lib/api'
 import { ChevronLeft } from 'lucide-react'
 
 function NewJobContent() {
+  const { t } = useTranslation()
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ function NewJobContent() {
       await employerAPI.postJob(data)
       router.push('/employer/jobs')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish the job. Please try again.')
+      setError(err instanceof Error ? err.message : t('employer:jobNew.publishFailed'))
       setSubmitting(false)
     }
   }
@@ -33,7 +35,7 @@ function NewJobContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer/jobs" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:jobNew.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <UserDropdown />
@@ -44,10 +46,10 @@ function NewJobContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <Link href="/employer/jobs" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
-            <span>Back to My Jobs</span>
+            <span>{t('employer:jobNew.backToMyJobs')}</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">Post a Job</h1>
-          <JobForm submitLabel="Publish Job" submitting={submitting} error={error} onSubmit={handleSubmit} />
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobNew.title')}</h1>
+          <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
         </div>
       </main>
     </div>

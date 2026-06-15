@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, X, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,6 +14,7 @@ const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
 export default function RegisterPasswordPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -28,11 +30,11 @@ export default function RegisterPasswordPage() {
 
   const handleCreate = async () => {
     if (!PASSWORD_RULE.test(password)) {
-      setError('Password needs 8+ characters with an uppercase, a lowercase, and a number')
+      setError(t('auth:password.errorRule'))
       return
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('auth:password.errorMismatch'))
       return
     }
 
@@ -63,7 +65,7 @@ export default function RegisterPasswordPage() {
 
       router.push('/register/verify-email')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create your account. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:password.errorCreate'))
     } finally {
       setLoading(false)
     }
@@ -79,7 +81,7 @@ export default function RegisterPasswordPage() {
           <div className="relative h-full flex flex-col">
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Secure Your Account
+                {t('auth:password.panelHeading')}
               </h2>
             </div>
             <div className="absolute bottom-0 left-0 w-full">
@@ -97,7 +99,7 @@ export default function RegisterPasswordPage() {
                 <Image src="/assets/logo.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
-                <span className="text-sm lg:text-[18px]">Close</span>
+                <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
@@ -106,13 +108,13 @@ export default function RegisterPasswordPage() {
               <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg">
                 <ChevronLeft className="w-6 h-6 text-gray-600" />
               </button>
-              <span className="text-[#767676] text-[16px] ml-2">Step 7 of 7</span>
+              <span className="text-[#767676] text-[16px] ml-2">{t('auth:password.stepLabel')}</span>
             </div>
 
             <div className="max-w-[953px]">
               <div className="mb-10 lg:mb-16">
-                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">Create a password</h1>
-                <p className="text-base lg:text-[24px] text-[#767676]">You&apos;ll use this to sign in</p>
+                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">{t('auth:password.title')}</h1>
+                <p className="text-base lg:text-[24px] text-[#767676]">{t('auth:password.subtitle')}</p>
               </div>
 
               {error && (
@@ -123,13 +125,13 @@ export default function RegisterPasswordPage() {
 
               <div className="space-y-8 mb-12">
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">Password *</label>
+                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:password.passwordLabel')}</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
-                      placeholder="Create a password"
+                      placeholder={t('auth:password.passwordPlaceholder')}
                       disabled={loading}
                       className="w-full h-14 lg:h-[69px] px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
                     />
@@ -137,17 +139,17 @@ export default function RegisterPasswordPage() {
                       {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">At least 8 characters, with an uppercase, a lowercase, and a number.</p>
+                  <p className="text-sm text-gray-500 mt-2">{t('auth:password.passwordHint')}</p>
                 </div>
 
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">Confirm Password *</label>
+                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:password.confirmLabel')}</label>
                   <div className="relative">
                     <input
                       type={showConfirm ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => { setConfirmPassword(e.target.value); if (error) setError('') }}
-                      placeholder="Confirm your password"
+                      placeholder={t('auth:password.confirmPlaceholder')}
                       disabled={loading}
                       className="w-full h-14 lg:h-[69px] px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
                     />
@@ -164,7 +166,7 @@ export default function RegisterPasswordPage() {
                   disabled={loading}
                   className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
-                  <span className="text-base lg:text-[20px]">{loading ? 'Creating account...' : 'Create account'}</span>
+                  <span className="text-base lg:text-[20px]">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>

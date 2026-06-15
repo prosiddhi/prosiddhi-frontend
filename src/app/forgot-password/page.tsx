@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI, authAPI } from '@/lib/api'
@@ -12,6 +13,7 @@ type Stage = 'email' | 'otp' | 'reset' | 'done'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [stage, setStage] = useState<Stage>('email')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -29,7 +31,7 @@ export default function ForgotPasswordPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email')
+      setError(t('auth:forgot.errorEmail'))
       return
     }
     try {
@@ -41,7 +43,7 @@ export default function ForgotPasswordPage() {
       setDevOtp(res?.otp)
       setStage('otp')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send the code. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:forgot.errorSendFailed'))
     } finally {
       setLoading(false)
     }
@@ -54,7 +56,7 @@ export default function ForgotPasswordPage() {
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault()
     if (otp.length !== 6) {
-      setError('Enter the 6-digit code')
+      setError(t('auth:forgot.errorCodeIncomplete'))
       return
     }
     setError('')
@@ -65,11 +67,11 @@ export default function ForgotPasswordPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!PASSWORD_RULE.test(newPassword)) {
-      setError('Password needs 8+ characters with an uppercase, a lowercase, and a number')
+      setError(t('auth:forgot.errorRule'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('auth:forgot.errorMismatch'))
       return
     }
     try {
@@ -78,7 +80,7 @@ export default function ForgotPasswordPage() {
       await authAPI.resetPassword(email.trim(), otp, newPassword)
       setStage('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not reset the password. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:forgot.errorResetFailed'))
     } finally {
       setLoading(false)
     }
@@ -90,7 +92,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl">
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label="Close">
+        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label={t('auth:register.close')}>
           <X className="w-6 h-6 text-gray-600" />
         </button>
 
@@ -99,21 +101,25 @@ export default function ForgotPasswordPage() {
           {stage !== 'done' && (
             <div className="text-center mb-8">
               <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
-                {stage === 'email' ? 'Forgot Password' : stage === 'otp' ? 'Enter the code' : 'Set a new password'}
+                {stage === 'email'
+                  ? t('auth:forgot.titleEmail')
+                  : stage === 'otp'
+                  ? t('auth:forgot.titleOtp')
+                  : t('auth:forgot.titleReset')}
               </h1>
               <p className="text-base sm:text-lg text-[#777776]">
                 {stage === 'email'
-                  ? 'Enter your email to reset your password'
+                  ? t('auth:forgot.subtitleEmail')
                   : stage === 'otp'
-                  ? `We sent a 6-digit code to ${email}`
-                  : 'Choose a strong password you’ll remember'}
+                  ? t('auth:forgot.subtitleOtp', { email })
+                  : t('auth:forgot.subtitleReset')}
               </p>
             </div>
           )}
 
           {devOtp && stage === 'otp' && (
             <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
-              <p className="text-amber-700 text-sm">Dev mode — your code is <span className="font-mono font-bold">{devOtp}</span></p>
+              <p className="text-amber-700 text-sm">{t('auth:forgot.devMode')} <span className="font-mono font-bold">{devOtp}</span></p>
             </div>
           )}
 
@@ -127,24 +133,24 @@ export default function ForgotPasswordPage() {
           {stage === 'email' && (
             <form onSubmit={handleSendOtp} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-base font-medium text-black mb-2">Email Address</label>
+                <label htmlFor="email" className="block text-base font-medium text-black mb-2">{t('auth:forgot.emailLabel')}</label>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                  placeholder="Enter your email"
+                  placeholder={t('auth:forgot.emailPlaceholder')}
                   disabled={loading}
                   className={inputCls}
                   required
                 />
-                <p className="mt-2 text-sm text-gray-600">We&apos;ll send a 6-digit reset code to this email.</p>
+                <p className="mt-2 text-sm text-gray-600">{t('auth:forgot.emailHint')}</p>
               </div>
               <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
-                {loading ? 'Sending...' : 'Send reset code'}
+                {loading ? t('auth:forgot.sending') : t('auth:forgot.sendResetCode')}
               </button>
               <button type="button" onClick={handleBackToLogin} className="w-full flex items-center justify-center gap-2 text-primary-50 hover:text-primary-60 transition-colors text-sm font-medium">
-                <ArrowLeft className="w-4 h-4" /> Back to Login
+                <ArrowLeft className="w-4 h-4" /> {t('auth:forgot.backToLogin')}
               </button>
             </form>
           )}
@@ -153,7 +159,7 @@ export default function ForgotPasswordPage() {
           {stage === 'otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               <div>
-                <label htmlFor="otp" className="block text-base font-medium text-black mb-2">6-digit code</label>
+                <label htmlFor="otp" className="block text-base font-medium text-black mb-2">{t('auth:forgot.codeLabel')}</label>
                 <input
                   id="otp"
                   type="text"
@@ -161,17 +167,17 @@ export default function ForgotPasswordPage() {
                   maxLength={6}
                   value={otp}
                   onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); if (error) setError('') }}
-                  placeholder="------"
+                  placeholder={t('auth:forgot.codePlaceholder')}
                   disabled={loading}
                   className={`${inputCls} tracking-[0.5em] text-center font-mono text-xl`}
                   required
                 />
               </div>
               <button type="submit" disabled={loading || otp.length !== 6} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
-                {loading ? 'Verifying...' : 'Verify code'}
+                {loading ? t('auth:forgot.verifying') : t('auth:forgot.verifyCode')}
               </button>
               <button type="button" onClick={() => { setStage('email'); setOtp(''); setError('') }} className="w-full flex items-center justify-center gap-2 text-primary-50 hover:text-primary-60 transition-colors text-sm font-medium">
-                <ArrowLeft className="w-4 h-4" /> Use a different email
+                <ArrowLeft className="w-4 h-4" /> {t('auth:forgot.useDifferentEmail')}
               </button>
             </form>
           )}
@@ -180,14 +186,14 @@ export default function ForgotPasswordPage() {
           {stage === 'reset' && (
             <form onSubmit={handleReset} className="space-y-6">
               <div>
-                <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">New Password</label>
+                <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.newPasswordLabel')}</label>
                 <div className="relative">
                   <input
                     id="newPassword"
                     type={showPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => { setNewPassword(e.target.value); if (error) setError('') }}
-                    placeholder="Create a new password"
+                    placeholder={t('auth:forgot.newPasswordPlaceholder')}
                     disabled={loading}
                     className={`${inputCls} pr-12`}
                     required
@@ -196,23 +202,23 @@ export default function ForgotPasswordPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-gray-500">At least 8 characters, with an uppercase, a lowercase, and a number.</p>
+                <p className="mt-2 text-xs text-gray-500">{t('auth:forgot.passwordHint')}</p>
               </div>
               <div>
-                <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">Confirm Password</label>
+                <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
                 <input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); if (error) setError('') }}
-                  placeholder="Re-enter your new password"
+                  placeholder={t('auth:forgot.confirmPlaceholder')}
                   disabled={loading}
                   className={inputCls}
                   required
                 />
               </div>
               <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
-                {loading ? 'Saving...' : 'Reset password'}
+                {loading ? t('auth:forgot.saving') : t('auth:forgot.resetPassword')}
               </button>
             </form>
           )}
@@ -223,10 +229,10 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-semibold text-black mb-3">Password reset</h2>
-              <p className="text-base text-[#777776] mb-8">Your password has been updated. You can now sign in with your new password.</p>
+              <h2 className="text-2xl font-semibold text-black mb-3">{t('auth:forgot.doneTitle')}</h2>
+              <p className="text-base text-[#777776] mb-8">{t('auth:forgot.doneBody')}</p>
               <button onClick={handleBackToLogin} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium">
-                Back to Login
+                {t('auth:forgot.backToLogin')}
               </button>
             </div>
           )}

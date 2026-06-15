@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, X, ImageIcon, Pencil } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -9,6 +10,7 @@ import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 export default function RegisterProfilePage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
 
   const [fullName, setFullName] = useState(data.fullName)
@@ -35,21 +37,21 @@ export default function RegisterProfilePage() {
 
   const validateForm = () => {
     if (!fullName.trim() || fullName.trim().length < 2) {
-      setError('Please enter your full name (at least 2 characters)')
+      setError(t('auth:profile.errorName'))
       return false
     }
     if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email')
+      setError(t('auth:profile.errorEmail'))
       return false
     }
     // BR-1: DOB + gender are required in the UI but held client-side only
     // (the BE has no field for them yet — see docs/be-requests.md).
     if (!dateOfBirth) {
-      setError('Please enter your date of birth')
+      setError(t('auth:profile.errorDob'))
       return false
     }
     if (!gender) {
-      setError('Please select your gender')
+      setError(t('auth:profile.errorGender'))
       return false
     }
     return true
@@ -71,7 +73,7 @@ export default function RegisterProfilePage() {
           <div className="relative h-full flex flex-col">
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Tell Us About Yourself
+                {t('auth:profile.panelHeading')}
               </h2>
             </div>
             <div className="absolute bottom-0 left-0 w-full">
@@ -89,7 +91,7 @@ export default function RegisterProfilePage() {
                 <Image src="/assets/logo.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-5 py-3 rounded-lg hover:bg-error-600">
-                <span className="text-[18px]">Close</span>
+                <span className="text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -98,13 +100,13 @@ export default function RegisterProfilePage() {
               <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg">
                 <ChevronLeft className="w-6 h-6 text-gray-600" />
               </button>
-              <span className="text-[#767676] text-[16px] ml-2">Step 4 of 7</span>
+              <span className="text-[#767676] text-[16px] ml-2">{t('auth:profile.stepLabel')}</span>
             </div>
 
             <div className="max-w-[1200px]">
               <div className="mb-16">
-                <h1 className="text-[56px] font-bold text-black leading-tight mb-4">Complete your profile</h1>
-                <p className="text-[24px] text-[#767676]">Help us know you better</p>
+                <h1 className="text-[56px] font-bold text-black leading-tight mb-4">{t('auth:profile.title')}</h1>
+                <p className="text-[24px] text-[#767676]">{t('auth:profile.subtitle')}</p>
               </div>
 
               {error && (
@@ -115,7 +117,7 @@ export default function RegisterProfilePage() {
 
               {/* Profile Image */}
               <div className="mb-12 max-w-[953px]">
-                <label className="text-[20px] font-medium text-black mb-6 block">Profile Picture</label>
+                <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.profilePicture')}</label>
                 <div className="flex items-center gap-6">
                   <div className="relative w-[120px] h-[120px] rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                     {profileImage ? (
@@ -129,7 +131,7 @@ export default function RegisterProfilePage() {
                     className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
                     <Pencil className="w-5 h-5" />
-                    <span>Upload Photo</span>
+                    <span>{t('auth:profile.uploadPhoto')}</span>
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </div>
@@ -138,29 +140,29 @@ export default function RegisterProfilePage() {
               {/* Form Fields */}
               <div className="space-y-8 mb-12">
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">Full Name *</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.fullNameLabel')}</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
-                    placeholder="Enter your full name"
+                    placeholder={t('auth:profile.fullNamePlaceholder')}
                     className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
                   />
                 </div>
 
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">Email *</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.emailLabel')}</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                    placeholder="Enter your email"
+                    placeholder={t('auth:profile.emailPlaceholder')}
                     className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
                   />
                 </div>
 
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">Date of Birth *</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.dobLabel')}</label>
                   <input
                     type="date"
                     value={dateOfBirth}
@@ -170,16 +172,16 @@ export default function RegisterProfilePage() {
                 </div>
 
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">Gender *</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.genderLabel')}</label>
                   <select
                     value={gender}
                     onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
                     className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
                   >
-                    <option value="">Select gender</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="">{t('auth:profile.genderSelect')}</option>
+                    <option value="MALE">{t('auth:profile.genderMale')}</option>
+                    <option value="FEMALE">{t('auth:profile.genderFemale')}</option>
+                    <option value="OTHER">{t('auth:profile.genderOther')}</option>
                   </select>
                 </div>
               </div>
@@ -189,7 +191,7 @@ export default function RegisterProfilePage() {
                   onClick={handleNext}
                   className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60"
                 >
-                  <span className="text-[20px]">Next</span>
+                  <span className="text-[20px]">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
@@ -206,13 +208,13 @@ export default function RegisterProfilePage() {
             <Image src="/assets/logo.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <Link href="/" className="flex items-center gap-1 bg-error-500 text-white px-3 py-2 rounded-lg text-sm">
-            <span>Close</span><X className="w-4 h-4" />
+            <span>{t('auth:register.close')}</span><X className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="flex-1 overflow-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-4">Complete your profile</h1>
-          <p className="text-base text-gray-600 mb-8">Help us know you better</p>
+          <h1 className="text-3xl font-bold mb-4">{t('auth:profile.title')}</h1>
+          <p className="text-base text-gray-600 mb-8">{t('auth:profile.subtitle')}</p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -222,7 +224,7 @@ export default function RegisterProfilePage() {
 
           <div className="space-y-6 mb-8">
             <div>
-              <label className="text-base font-medium mb-2 block">Full Name *</label>
+              <label className="text-base font-medium mb-2 block">{t('auth:profile.fullNameLabel')}</label>
               <input
                 type="text"
                 value={fullName}
@@ -232,7 +234,7 @@ export default function RegisterProfilePage() {
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">Email *</label>
+              <label className="text-base font-medium mb-2 block">{t('auth:profile.emailLabel')}</label>
               <input
                 type="email"
                 value={email}
@@ -242,7 +244,7 @@ export default function RegisterProfilePage() {
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">Date of Birth *</label>
+              <label className="text-base font-medium mb-2 block">{t('auth:profile.dobLabel')}</label>
               <input
                 type="date"
                 value={dateOfBirth}
@@ -252,16 +254,16 @@ export default function RegisterProfilePage() {
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">Gender *</label>
+              <label className="text-base font-medium mb-2 block">{t('auth:profile.genderLabel')}</label>
               <select
                 value={gender}
                 onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
                 className="w-full h-14 px-3 border rounded-lg"
               >
-                <option value="">Select gender</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="">{t('auth:profile.genderSelect')}</option>
+                <option value="MALE">{t('auth:profile.genderMale')}</option>
+                <option value="FEMALE">{t('auth:profile.genderFemale')}</option>
+                <option value="OTHER">{t('auth:profile.genderOther')}</option>
               </select>
             </div>
           </div>
@@ -270,7 +272,7 @@ export default function RegisterProfilePage() {
             onClick={handleNext}
             className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white py-3 rounded-lg"
           >
-            <span>Next</span>
+            <span>{t('buttons.next')}</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>

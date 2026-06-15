@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
@@ -26,6 +27,7 @@ function toE164(raw: string): string {
 
 export default function LoginPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { login } = useAuth()
 
   const [role, setRole] = useState<LoginRole>('seeker')
@@ -78,7 +80,7 @@ export default function LoginPage() {
       })
       onLoginSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
     } finally {
       setLoading(false)
     }
@@ -97,7 +99,7 @@ export default function LoginPage() {
       // focus first OTP box on next paint
       setTimeout(() => otpRefs.current[0]?.focus(), 0)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:login.errorSendOtp'))
     } finally {
       setLoading(false)
     }
@@ -124,7 +126,7 @@ export default function LoginPage() {
     e.preventDefault()
     const code = otp.join('')
     if (code.length !== 6) {
-      setError('Please enter the complete 6-digit OTP')
+      setError(t('auth:login.errorOtpIncomplete'))
       return
     }
     try {
@@ -136,7 +138,7 @@ export default function LoginPage() {
       })
       onLoginSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:login.errorOtpInvalid'))
       setOtp(['', '', '', '', '', ''])
       otpRefs.current[0]?.focus()
     } finally {
@@ -155,7 +157,7 @@ export default function LoginPage() {
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
-          aria-label="Close"
+          aria-label={t('auth:register.close')}
         >
           <X className="w-6 h-6 text-gray-600" />
         </button>
@@ -164,10 +166,10 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
-              Login to ProSiddhi Job Portal
+              {t('auth:login.title')}
             </h1>
             <p className="text-base sm:text-lg text-[#777776]">
-              Welcome back, Please enter the details
+              {t('auth:login.subtitle')}
             </p>
           </div>
 
@@ -180,7 +182,7 @@ export default function LoginPage() {
                 role === 'seeker' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
               }`}
             >
-              Job Seeker
+              {t('auth:login.roleSeeker')}
             </button>
             <button
               type="button"
@@ -189,20 +191,20 @@ export default function LoginPage() {
                 role === 'employer' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
               }`}
             >
-              Employer
+              {t('auth:login.roleEmployer')}
             </button>
           </div>
 
           {/* Method tabs */}
           <div className="flex gap-2 mb-6">
             <button type="button" onClick={() => switchTab('email')} className={tabBtn('email', 'Email')}>
-              Email
+              {t('auth:login.tabEmail')}
             </button>
             <button type="button" onClick={() => switchTab('phone')} className={tabBtn('phone', 'Phone')}>
-              Phone OTP
+              {t('auth:login.tabPhone')}
             </button>
             <button type="button" onClick={() => switchTab('google')} className={tabBtn('google', 'Google')}>
-              Google
+              {t('auth:login.tabGoogle')}
             </button>
           </div>
 
@@ -221,7 +223,7 @@ export default function LoginPage() {
             <form onSubmit={handleEmailSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-base font-medium text-black mb-2">
-                  Email Address
+                  {t('auth:login.emailLabel')}
                 </label>
                 <div className="flex items-center gap-3">
                   <input
@@ -229,17 +231,17 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter Email"
+                    placeholder={t('auth:login.emailPlaceholder')}
                     className="flex-1 h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                     required
                   />
-                  <VoiceButton label="Email" iconClassName="w-6 h-6 text-gray-600" className="p-2" />
+                  <VoiceButton label={t('auth:login.emailVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
                 </div>
               </div>
 
               <div>
                 <label htmlFor="password" className="block text-base font-medium text-black mb-2">
-                  Password
+                  {t('auth:login.passwordLabel')}
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
@@ -248,7 +250,7 @@ export default function LoginPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter the Password"
+                      placeholder={t('auth:login.passwordPlaceholder')}
                       className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       required
                     />
@@ -256,12 +258,12 @@ export default function LoginPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded transition-colors"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
                     >
                       {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
                     </button>
                   </div>
-                  <VoiceButton label="Password" iconClassName="w-6 h-6 text-gray-600" className="p-2" />
+                  <VoiceButton label={t('auth:login.passwordVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
                 </div>
               </div>
 
@@ -273,10 +275,10 @@ export default function LoginPage() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 border border-[#aaaaaa] rounded cursor-pointer accent-primary-50"
                   />
-                  <span className="text-sm text-black">Remember me</span>
+                  <span className="text-sm text-black">{t('auth:login.rememberMe')}</span>
                 </label>
                 <Link href="/forgot-password" className="text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
-                  Forgot Password?
+                  {t('auth:login.forgotPassword')}
                 </Link>
               </div>
 
@@ -285,7 +287,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
               >
-                {loading ? 'Signing In…' : 'Sign In'}
+                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
             </form>
           )}
@@ -295,7 +297,7 @@ export default function LoginPage() {
             <div className="space-y-6">
               <div>
                 <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
-                  Phone Number
+                  {t('auth:login.phoneLabel')}
                 </label>
                 <input
                   id="phone"
@@ -303,7 +305,7 @@ export default function LoginPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={otpSent}
-                  placeholder="+91 98765 43210"
+                  placeholder={t('auth:login.phonePlaceholder')}
                   className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-50"
                 />
               </div>
@@ -315,13 +317,13 @@ export default function LoginPage() {
                     disabled={loading || !phone}
                     className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
-                    {loading ? 'Sending…' : 'Send OTP'}
+                    {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-6">
                   <div>
-                    <label className="block text-base font-medium text-black mb-2">Enter 6-digit OTP</label>
+                    <label className="block text-base font-medium text-black mb-2">{t('auth:login.otpLabel')}</label>
                     <div className="flex justify-between gap-2">
                       {otp.map((digit, i) => (
                         <input
@@ -345,7 +347,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
-                    {loading ? 'Verifying…' : 'Verify & Sign In'}
+                    {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
                   </button>
                   <button
                     type="button"
@@ -355,7 +357,7 @@ export default function LoginPage() {
                     }}
                     className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                   >
-                    Change phone number
+                    {t('auth:login.changePhone')}
                   </button>
                 </form>
               )}
@@ -371,10 +373,10 @@ export default function LoginPage() {
                 aria-disabled="true"
                 className="w-full flex items-center justify-center gap-3 border border-[#dedede] py-3 rounded-lg text-base font-medium text-[#777776] bg-[#f9f9f9] cursor-not-allowed"
               >
-                Continue with Google
+                {t('auth:login.continueGoogle')}
               </button>
               <p className="text-center text-sm text-[#999999]">
-                Google sign-in is coming soon.
+                {t('auth:login.googleComingSoon')}
               </p>
             </div>
           )}
@@ -382,12 +384,12 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
-              <span className="text-black">Don&apos;t have an account? </span>
+              <span className="text-black">{t('auth:login.noAccount')}</span>
               <Link
                 href={role === 'employer' ? '/employer/register' : '/register'}
                 className="font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
-                Sign up here
+                {t('auth:login.signUpHere')}
               </Link>
             </p>
           </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,6 +14,7 @@ const OTP_LENGTH = 6
 
 export default function RegisterVerifyEmailPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { login } = useAuth()
   const { data, update, reset } = useSeekerRegistration()
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
@@ -57,7 +59,7 @@ export default function RegisterVerifyEmailPage() {
   const handleVerify = async () => {
     const code = otp.join('')
     if (code.length !== OTP_LENGTH) {
-      setError('Please enter the complete 6-digit code')
+      setError(t('auth:verifyEmail.errorIncomplete'))
       return
     }
 
@@ -81,7 +83,7 @@ export default function RegisterVerifyEmailPage() {
 
       router.push('/register/success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid code. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:verifyEmail.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
       document.getElementById('eotp-0')?.focus()
     } finally {
@@ -101,7 +103,7 @@ export default function RegisterVerifyEmailPage() {
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend the code')
+      setError(err instanceof Error ? err.message : t('auth:verifyEmail.errorResend'))
     } finally {
       setResendLoading(false)
     }
@@ -117,7 +119,7 @@ export default function RegisterVerifyEmailPage() {
           <div className="relative h-full flex flex-col">
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Verify Your Email
+                {t('auth:verifyEmail.panelHeading')}
               </h2>
             </div>
             <div className="absolute bottom-0 left-0 w-full">
@@ -135,7 +137,7 @@ export default function RegisterVerifyEmailPage() {
                 <Image src="/assets/logo.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
-                <span className="text-sm lg:text-[18px]">Close</span>
+                <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
@@ -150,9 +152,9 @@ export default function RegisterVerifyEmailPage() {
               <div className="mb-8 lg:mb-12 flex items-center gap-4">
                 <MailCheck className="w-10 h-10 lg:w-14 lg:h-14 text-primary-50 flex-shrink-0" />
                 <div>
-                  <h1 className="text-3xl lg:text-[48px] font-bold text-black leading-tight mb-2">Check your email</h1>
+                  <h1 className="text-3xl lg:text-[48px] font-bold text-black leading-tight mb-2">{t('auth:verifyEmail.title')}</h1>
                   <p className="text-base lg:text-[20px] text-[#767676]">
-                    We sent a 6-digit code to <span className="font-medium text-black">{data.email}</span>
+                    {t('auth:verifyEmail.sentToPrefix')}<span className="font-medium text-black">{data.email}</span>
                   </p>
                 </div>
               </div>
@@ -161,7 +163,7 @@ export default function RegisterVerifyEmailPage() {
               {data.devEmailOtp && (
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
                   <p className="text-amber-700 text-sm">
-                    Dev mode — your code is <span className="font-mono font-bold">{data.devEmailOtp}</span>
+                    {t('auth:verifyEmail.devMode')} <span className="font-mono font-bold">{data.devEmailOtp}</span>
                   </p>
                 </div>
               )}
@@ -195,7 +197,7 @@ export default function RegisterVerifyEmailPage() {
                   disabled={!canResend || resendLoading}
                   className="text-primary-50 hover:text-primary-60 text-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {resendLoading ? 'Sending...' : canResend ? 'Resend code' : `Resend in ${countdown}s`}
+                  {resendLoading ? t('auth:verifyEmail.sending') : canResend ? t('auth:verifyEmail.resendCode') : t('auth:verifyEmail.resendIn', { countdown })}
                 </button>
               </div>
 
@@ -205,7 +207,7 @@ export default function RegisterVerifyEmailPage() {
                   disabled={otp.join('').length !== OTP_LENGTH || loading}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-8 lg:px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-base lg:text-[20px]">{loading ? 'Verifying...' : 'Verify & finish'}</span>
+                  <span className="text-base lg:text-[20px]">{loading ? t('auth:verifyEmail.verifying') : t('auth:verifyEmail.verifyFinish')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>

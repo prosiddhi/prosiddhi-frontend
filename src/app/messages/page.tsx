@@ -2,6 +2,8 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
@@ -11,20 +13,21 @@ import { chatAPI, type Conversation } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { MessageCircle, Loader2, AlertCircle, Mic } from 'lucide-react'
 
-function otherPartyName(c: Conversation, isSeeker: boolean): string {
-  if (isSeeker) return c.employer?.companyName || c.employer?.fullName || 'Employer'
-  return c.jobSeeker?.fullName || 'Candidate'
+function otherPartyName(c: Conversation, isSeeker: boolean, t: TFunction): string {
+  if (isSeeker) return c.employer?.companyName || c.employer?.fullName || t('chat:list.otherParty.employer')
+  return c.jobSeeker?.fullName || t('chat:list.otherParty.candidate')
 }
 
-function lastMessagePreview(c: Conversation): { text: string; isAudio: boolean } {
+function lastMessagePreview(c: Conversation, t: TFunction): { text: string; isAudio: boolean } {
   const m = c.lastMessage
-  if (!m) return { text: 'No messages yet', isAudio: false }
-  if (m.type === 'AUDIO') return { text: 'Voice message', isAudio: true }
+  if (!m) return { text: t('chat:list.preview.none'), isAudio: false }
+  if (m.type === 'AUDIO') return { text: t('chat:list.preview.voice'), isAudio: true }
   if (m.type === 'SYSTEM') return { text: m.content, isAudio: false }
   return { text: m.content, isAudio: false }
 }
 
 function MessagesListContent() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
 
@@ -43,7 +46,7 @@ function MessagesListContent() {
         if (!ignore) setConversations(res)
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load your messages. Please try again.')
+          setError(err instanceof Error ? err.message : t('chat:list.loadError'))
           setConversations([])
         }
       } finally {
@@ -71,12 +74,12 @@ function MessagesListContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">Messages</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('chat:list.title')}</h1>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your messages...</p>
+              <p>{t('chat:list.loading')}</p>
             </div>
           )}
 
@@ -84,23 +87,23 @@ function MessagesListContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">Retry</button>
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
             </div>
           )}
 
           {!loading && !error && conversations.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
               <MessageCircle className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">No conversations yet</p>
-              <p className="max-w-md">{isSeeker ? 'Apply to a job and the employer can start a conversation with you.' : 'Conversations with candidates will appear here.'}</p>
+              <p className="text-lg font-medium text-black mb-1">{t('chat:list.emptyTitle')}</p>
+              <p className="max-w-md">{isSeeker ? t('chat:list.emptySeeker') : t('chat:list.emptyEmployer')}</p>
             </div>
           )}
 
           {!loading && !error && conversations.length > 0 && (
             <div className="divide-y divide-gray-100 border border-[#eee] rounded-[10px] overflow-hidden">
               {conversations.map((c) => {
-                const name = otherPartyName(c, isSeeker)
-                const preview = lastMessagePreview(c)
+                const name = otherPartyName(c, isSeeker, t)
+                const preview = lastMessagePreview(c, t)
                 const unread = c.unreadCount ?? 0
                 return (
                   <Link key={c.id} href={`/messages/${c.id}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
@@ -121,7 +124,7 @@ function MessagesListContent() {
                           <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-primary-50 text-white text-xs font-medium rounded-full flex items-center justify-center">{unread}</span>
                         )}
                       </div>
-                      {c.job?.title && <p className="text-xs text-[#9a9aa5] truncate mt-0.5">Re: {c.job.title}</p>}
+                      {c.job?.title && <p className="text-xs text-[#9a9aa5] truncate mt-0.5">{t('chat:list.jobRef', { title: c.job.title })}</p>}
                     </div>
                   </Link>
                 )

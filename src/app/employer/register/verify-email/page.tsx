@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { authAPI, emailOtpAPI, type LoginResult } from '@/lib/api'
@@ -10,6 +11,7 @@ import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
 export default function EmployerVerifyEmailPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { login } = useAuth()
   const { data, update, reset } = useEmployerRegistration()
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -55,14 +57,14 @@ export default function EmployerVerifyEmailPage() {
       setTimer(30)
       setCanResend(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend the code')
+      setError(err instanceof Error ? err.message : t('employerRegister:verifyEmail.resendFailed'))
     }
   }
 
   const handleVerify = async () => {
     const code = otp.join('')
     if (code.length !== 6) {
-      setError('Please enter the complete 6-digit code')
+      setError(t('employerRegister:verifyEmail.incomplete'))
       return
     }
     const isIndividual = data.companyType === 'individual'
@@ -80,7 +82,7 @@ export default function EmployerVerifyEmailPage() {
       // Individual auto-approves → dashboard. Corporate lands in PENDING_DOCUMENTS.
       router.push(isIndividual ? '/employer' : '/employer/register/under-review')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid code. Please try again.')
+      setError(err instanceof Error ? err.message : t('employerRegister:verifyEmail.invalid'))
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } finally {
@@ -93,18 +95,18 @@ export default function EmployerVerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       <div className="relative bg-white border border-[#dedede] rounded-[20px] w-full max-w-[560px] px-6 sm:px-12 py-10 sm:py-14 shadow-xl text-center">
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label="Close">
+        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label={t('employerRegister:closeAria')}>
           <X className="w-6 h-6 text-gray-600" />
         </button>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-black mb-3">Verify your email</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-black mb-3">{t('employerRegister:verifyEmail.title')}</h1>
         <p className="text-sm sm:text-base text-gray-600 mb-2">
-          We sent a 6-digit code to <span className="font-medium text-black">{data.email}</span>
+          {t('employerRegister:verifyEmail.sentTo')} <span className="font-medium text-black">{data.email}</span>
         </p>
 
         {data.devEmailOtp && (
           <div className="my-4 p-3 bg-amber-50 border border-amber-200 rounded-lg inline-block">
-            <p className="text-amber-700 text-sm">Dev mode — your code is <span className="font-mono font-bold">{data.devEmailOtp}</span></p>
+            <p className="text-amber-700 text-sm">{t('employerRegister:verifyEmail.devMode')} <span className="font-mono font-bold">{data.devEmailOtp}</span></p>
           </div>
         )}
 
@@ -136,20 +138,20 @@ export default function EmployerVerifyEmailPage() {
           disabled={otp.join('').length !== 6 || loading}
           className="w-full px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Verifying...' : 'Verify & finish'}
+          {loading ? t('employerRegister:verifyEmail.verifying') : t('employerRegister:verifyEmail.verifyFinish')}
         </button>
 
         <div className="mt-6">
           {canResend ? (
-            <button onClick={handleResend} className="text-sm text-primary-50 hover:text-primary-60 font-medium">Resend the code</button>
+            <button onClick={handleResend} className="text-sm text-primary-50 hover:text-primary-60 font-medium">{t('employerRegister:verifyEmail.resend')}</button>
           ) : (
-            <p className="text-sm text-gray-500">Resend the code in {timer}s</p>
+            <p className="text-sm text-gray-500">{t('employerRegister:verifyEmail.resendIn', { seconds: timer })}</p>
           )}
         </div>
 
-        <p className="mt-6 text-xs sm:text-sm text-gray-500">Didn&apos;t receive the email? Check your spam folder.</p>
+        <p className="mt-6 text-xs sm:text-sm text-gray-500">{t('employerRegister:verifyEmail.spamHint')}</p>
         <div className="mt-4">
-          <Link href="/login" className="text-sm font-semibold text-primary-50 hover:text-primary-60">Back to sign in</Link>
+          <Link href="/login" className="text-sm font-semibold text-primary-50 hover:text-primary-60">{t('employerRegister:verifyEmail.backToSignIn')}</Link>
         </div>
       </div>
     </div>

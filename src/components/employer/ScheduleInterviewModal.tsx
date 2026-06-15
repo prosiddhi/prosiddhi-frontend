@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, CalendarClock, Loader2, AlertCircle } from 'lucide-react'
 import { employerAPI } from '@/lib/api'
 
@@ -23,6 +24,7 @@ export function ScheduleInterviewModal({
   candidateName,
   onAccepted,
 }: ScheduleInterviewModalProps) {
+  const { t } = useTranslation()
   const [withInterview, setWithInterview] = useState(true)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -62,7 +64,7 @@ export function ScheduleInterviewModal({
       await employerAPI.acceptApplication(applicationId, body)
       onAccepted()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not accept this candidate. Please try again.')
+      setError(err instanceof Error ? err.message : t('employer:scheduleInterview.acceptFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -82,32 +84,32 @@ export function ScheduleInterviewModal({
         <div className="p-6 sm:p-8">
           <div className="flex items-center gap-2 mb-1">
             <CalendarClock className="w-5 h-5 text-primary-50" />
-            <h2 className="text-xl sm:text-2xl font-bold text-black">Accept Candidate</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-black">{t('employer:scheduleInterview.title')}</h2>
           </div>
           <p className="text-sm text-gray-600 mb-5">
-            Accepting <span className="font-medium">{candidateName}</span>. Optionally schedule an interview now.
+            {t('employer:scheduleInterview.intro', { name: candidateName })}
           </p>
 
           <label className="flex items-center gap-2 text-sm text-black cursor-pointer mb-4">
             <input type="checkbox" checked={withInterview} onChange={(e) => setWithInterview(e.target.checked)} />
-            Schedule an interview
+            {t('employer:scheduleInterview.scheduleToggle')}
           </label>
 
           {withInterview && (
             <div className="space-y-4 mb-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">Date *</label>
+                  <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.dateLabel')}</label>
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">Time *</label>
-                  <input type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder="e.g. 10:30 AM" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.timeLabel')}</label>
+                  <input type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder={t('employer:scheduleInterview.timePlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Notes</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="e.g. Bring ID and any certificates. Office address..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 resize-none" />
+                <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.notesLabel')}</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('employer:scheduleInterview.notesPlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 resize-none" />
               </div>
             </div>
           )}
@@ -121,11 +123,11 @@ export function ScheduleInterviewModal({
 
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
             <button onClick={onClose} disabled={submitting} className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-base font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50">
-              Cancel
+              {t('buttons.cancel')}
             </button>
             <button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg text-base font-medium hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
-              {submitting ? 'Accepting...' : withInterview ? 'Accept & Schedule' : 'Accept'}
+              {submitting ? t('employer:scheduleInterview.accepting') : withInterview ? t('employer:scheduleInterview.acceptSchedule') : t('employer:scheduleInterview.accept')}
             </button>
           </div>
         </div>

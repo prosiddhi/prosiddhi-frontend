@@ -120,7 +120,7 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 |---|---|---|---|---|
 | [~] | **PJP-105** | Chat UI — polling + text + 60s audio (both roles) | conversation endpoints, `after=` polling, audio | code-complete `497fee9`; ⏳ live-smoke (2-user) |
 | [~] | **PJP-112** | Profile management screens (seeker + employer): photo, fields, work-exp, documents CRUD, skills | `GET/PUT /jobseekers/profile` + `/employers/profile`, `/me/{documents,skills,profile-photo}`, `GET /skills` | code-complete `pending`; ⏳ live-smoke |
-| [ ] | **PJP-109** | i18n wiring (next-i18next + EN + HI JSON) — pure FE, no BE dep | n/a | |
+| [~] | **PJP-109** | i18n wiring (**react-i18next** + EN + HI JSON, in-header EN/HI switcher) — pure FE. Decision Q-FE-05; ~37 screens wrapped across 7 namespaces, 920 keys en/hi parity. | `PUT /jobseekers/profile` (best-effort seeker sync); BR-9 filed for generic `/me/language` | code-complete `pending`; ⏳ live-smoke (verify by local EN↔HI toggle) |
 
 ---
 
@@ -140,8 +140,8 @@ Portal-repo quality pass. None block the core loop; schedule for the S3 window (
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [ ] | **PJP-148** | Global network/error handling + offline banner | n/a (FE) | |
-| [ ] | **PJP-149** | Low-literacy usability pass (tap targets, icon-first, voice affordances) | n/a (FE) | |
+| [~] | **PJP-148** | Global network/error handling + offline banner | n/a (FE) | `962d5f0` — In Progress, smoke pending |
+| [~] | **PJP-149** | Low-literacy usability pass (tap targets, icon-first, voice affordances) | n/a (FE) | VoiceButton + 48px tap targets — In Progress, smoke pending |
 | [ ] | **PJP-150** | Playwright smoke tests (login / apply / post-job) | n/a (FE) | |
 | [ ] | **PJP-151** | Wire Sentry error monitoring | n/a (FE) | |
 | [ ] | **PJP-154** | Low-end-device performance pass (bundle + images) | n/a (FE) | |

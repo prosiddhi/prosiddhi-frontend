@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { X, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { employerAPI } from '@/lib/api'
@@ -12,6 +13,7 @@ const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
 export default function AccountSetupPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useEmployerRegistration()
   const isIndividual = data.companyType === 'individual'
 
@@ -32,19 +34,19 @@ export default function AccountSetupPage() {
 
   const handleNext = async () => {
     if (isIndividual && fullName.trim().length < 2) {
-      setError('Please enter your full name (at least 2 characters)')
+      setError(t('employerRegister:account.nameTooShort'))
       return
     }
     if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email')
+      setError(t('employerRegister:account.emailInvalid'))
       return
     }
     if (!PASSWORD_RULE.test(password)) {
-      setError('Password needs 8+ characters with an uppercase, a lowercase, and a number')
+      setError(t('employerRegister:account.passwordWeak'))
       return
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('employerRegister:account.passwordMismatch'))
       return
     }
 
@@ -71,7 +73,7 @@ export default function AccountSetupPage() {
       update({ devEmailOtp: result?.emailVerification?.otp })
       router.push('/employer/register/verify-email')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create your account. Please try again.')
+      setError(err instanceof Error ? err.message : t('employerRegister:account.createFailed'))
     } finally {
       setLoading(false)
     }
@@ -83,14 +85,14 @@ export default function AccountSetupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl max-h-[90vh] overflow-y-auto">
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label="Close">
+        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors" aria-label={t('employerRegister:closeAria')}>
           <X className="w-6 h-6 text-gray-600" />
         </button>
 
         <div className="w-full">
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">Employer Registration</h1>
-            <p className="text-sm sm:text-base text-gray-600">Create a account for the Hiring People</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">{t('employerRegister:title')}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{t('employerRegister:subtitle')}</p>
           </div>
 
           {error && (
@@ -104,28 +106,28 @@ export default function AccountSetupPage() {
               <>
                 <div>
                   <label htmlFor="fullName" className="block text-base sm:text-lg font-medium text-black mb-3">
-                    Full Name <span className="text-red-500">*</span>
+                    {t('employerRegister:account.fullName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
-                    placeholder="Enter your full name"
+                    placeholder={t('employerRegister:account.fullNamePlaceholder')}
                     disabled={loading}
                     className="w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
                   />
                 </div>
                 <div>
                   <label htmlFor="designation" className="block text-base sm:text-lg font-medium text-black mb-3">
-                    Designation <span className="text-gray-400 text-sm">(optional)</span>
+                    {t('employerRegister:account.designation')} <span className="text-gray-400 text-sm">{t('employerRegister:account.designationOptional')}</span>
                   </label>
                   <input
                     id="designation"
                     type="text"
                     value={designation}
                     onChange={(e) => setDesignation(e.target.value)}
-                    placeholder="e.g. Owner, Manager"
+                    placeholder={t('employerRegister:account.designationPlaceholder')}
                     disabled={loading}
                     className="w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
                   />
@@ -135,14 +137,14 @@ export default function AccountSetupPage() {
 
             <div>
               <label htmlFor="email" className="block text-base sm:text-lg font-medium text-black mb-3">
-                Email <span className="text-red-500">*</span>
+                {t('employerRegister:account.email')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                placeholder="Enter your email"
+                placeholder={t('employerRegister:account.emailPlaceholder')}
                 disabled={loading}
                 className="w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
               />
@@ -150,7 +152,7 @@ export default function AccountSetupPage() {
 
             <div>
               <label htmlFor="password" className="block text-base sm:text-lg font-medium text-black mb-3">
-                Enter the Password <span className="text-red-500">*</span>
+                {t('employerRegister:account.password')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -165,12 +167,12 @@ export default function AccountSetupPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="mt-2 text-xs sm:text-sm text-gray-500">At least 8 characters, with an uppercase, a lowercase, and a number.</p>
+              <p className="mt-2 text-xs sm:text-sm text-gray-500">{t('employerRegister:account.passwordHint')}</p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-base sm:text-lg font-medium text-black mb-3">
-                Confirm Password <span className="text-red-500">*</span>
+                {t('employerRegister:account.confirmPassword')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -190,21 +192,21 @@ export default function AccountSetupPage() {
 
           <div className="flex items-center justify-between gap-4">
             <button onClick={handleBack} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-base font-medium min-w-[100px]">
-              Back
+              {t('buttons.back')}
             </button>
             <button
               onClick={handleNext}
               disabled={loading}
               className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
-              {loading ? 'Creating...' : isIndividual ? 'Create account' : 'Next'}
+              {loading ? t('employerRegister:account.creating') : isIndividual ? t('employerRegister:account.createAccount') : t('buttons.next')}
             </button>
           </div>
 
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">Sign in here</Link>
+              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
+              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">{t('employerRegister:signInLink')}</Link>
             </p>
           </div>
         </div>

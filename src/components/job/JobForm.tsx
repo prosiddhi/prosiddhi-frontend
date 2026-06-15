@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   type PostJobData,
   type JobTypeValue,
@@ -78,6 +79,7 @@ const inputCls =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent'
 
 export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: JobFormProps) {
+  const { t } = useTranslation()
   const [f, setF] = useState<FormState>(() => buildInitialState(initial))
   const [validationError, setValidationError] = useState('')
 
@@ -90,14 +92,14 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
     .filter(Boolean)
 
   const validate = (): string => {
-    if (f.title.trim().length < 5) return 'Title must be at least 5 characters.'
-    if (f.category.trim().length < 2) return 'Category is required.'
-    if (f.description.trim().length < 50) return 'Description must be at least 50 characters.'
-    if (f.location.trim().length < 3) return 'Location is required.'
-    if (!f.jobType) return 'Please choose a job type.'
+    if (f.title.trim().length < 5) return t('employer:jobForm.validation.titleMin')
+    if (f.category.trim().length < 2) return t('employer:jobForm.validation.categoryRequired')
+    if (f.description.trim().length < 50) return t('employer:jobForm.validation.descriptionMin')
+    if (f.location.trim().length < 3) return t('employer:jobForm.validation.locationRequired')
+    if (!f.jobType) return t('employer:jobForm.validation.jobTypeRequired')
     const min = f.salaryMin ? Number(f.salaryMin) : undefined
     const max = f.salaryMax ? Number(f.salaryMax) : undefined
-    if (min != null && max != null && max < min) return 'Maximum salary must be ≥ minimum salary.'
+    if (min != null && max != null && max < min) return t('employer:jobForm.validation.salaryRange')
     return ''
   }
 
@@ -141,76 +143,76 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       {/* Form */}
       <div className="space-y-4">
         <div>
-          <label className={labelCls}>Job Title *</label>
-          <input className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Engine Operator" />
+          <label className={labelCls}>{t('employer:jobForm.jobTitleLabel')}</label>
+          <input className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Category *</label>
-            <input className={inputCls} value={f.category} onChange={(e) => set('category', e.target.value)} placeholder="e.g. Manufacturing" />
+            <label className={labelCls}>{t('employer:jobForm.categoryLabel')}</label>
+            <input className={inputCls} value={f.category} onChange={(e) => set('category', e.target.value)} placeholder={t('employer:jobForm.categoryPlaceholder')} />
           </div>
           <div>
-            <label className={labelCls}>Subcategory</label>
-            <input className={inputCls} value={f.subcategory} onChange={(e) => set('subcategory', e.target.value)} placeholder="e.g. Machine Operation" />
+            <label className={labelCls}>{t('employer:jobForm.subcategoryLabel')}</label>
+            <input className={inputCls} value={f.subcategory} onChange={(e) => set('subcategory', e.target.value)} placeholder={t('employer:jobForm.subcategoryPlaceholder')} />
           </div>
         </div>
 
         <div>
-          <label className={labelCls}>Company Name</label>
-          <input className={inputCls} value={f.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder="Shown on the listing" />
+          <label className={labelCls}>{t('employer:jobForm.companyNameLabel')}</label>
+          <input className={inputCls} value={f.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employer:jobForm.companyNamePlaceholder')} />
         </div>
 
         <div>
-          <label className={labelCls}>Description * <span className="text-gray-400 font-normal">(min 50 chars)</span></label>
-          <textarea className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="Describe the role, responsibilities, working hours..." />
+          <label className={labelCls}>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span></label>
+          <textarea className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
           <p className="text-xs text-gray-400 mt-0.5">{f.description.trim().length}/5000</p>
         </div>
 
         <div>
-          <label className={labelCls}>Requirements</label>
-          <textarea className={inputCls} rows={3} maxLength={3000} value={f.requirements} onChange={(e) => set('requirements', e.target.value)} placeholder="One per line or comma-separated" />
+          <label className={labelCls}>{t('employer:jobForm.requirementsLabel')}</label>
+          <textarea className={inputCls} rows={3} maxLength={3000} value={f.requirements} onChange={(e) => set('requirements', e.target.value)} placeholder={t('employer:jobForm.requirementsPlaceholder')} />
         </div>
 
         <div>
-          <label className={labelCls}>Skills <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-          <input className={inputCls} value={f.skills} onChange={(e) => set('skills', e.target.value)} placeholder="e.g. welding, lifting, night shift" />
+          <label className={labelCls}>{t('employer:jobForm.skillsLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.skillsHint')}</span></label>
+          <input className={inputCls} value={f.skills} onChange={(e) => set('skills', e.target.value)} placeholder={t('employer:jobForm.skillsPlaceholder')} />
         </div>
 
         <div>
-          <label className={labelCls}>Location *</label>
-          <input className={inputCls} value={f.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Bangalore, Karnataka" />
+          <label className={labelCls}>{t('employer:jobForm.locationLabel')}</label>
+          <input className={inputCls} value={f.location} onChange={(e) => set('location', e.target.value)} placeholder={t('employer:jobForm.locationPlaceholder')} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelCls}>Latitude</label>
-            <input type="number" className={inputCls} value={f.latitude} onChange={(e) => set('latitude', e.target.value)} placeholder="optional" />
+            <label className={labelCls}>{t('employer:jobForm.latitudeLabel')}</label>
+            <input type="number" className={inputCls} value={f.latitude} onChange={(e) => set('latitude', e.target.value)} placeholder={t('employer:jobForm.optional')} />
           </div>
           <div>
-            <label className={labelCls}>Longitude</label>
-            <input type="number" className={inputCls} value={f.longitude} onChange={(e) => set('longitude', e.target.value)} placeholder="optional" />
+            <label className={labelCls}>{t('employer:jobForm.longitudeLabel')}</label>
+            <input type="number" className={inputCls} value={f.longitude} onChange={(e) => set('longitude', e.target.value)} placeholder={t('employer:jobForm.optional')} />
           </div>
           <div>
-            <label className={labelCls}>Radius (km)</label>
+            <label className={labelCls}>{t('employer:jobForm.radiusLabel')}</label>
             <input type="number" className={inputCls} value={f.radius} onChange={(e) => set('radius', e.target.value)} placeholder="5" />
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelCls}>Min Salary (₹)</label>
-            <input type="number" min={0} className={inputCls} value={f.salaryMin} onChange={(e) => set('salaryMin', e.target.value)} placeholder="optional" />
+            <label className={labelCls}>{t('employer:jobForm.minSalaryLabel')}</label>
+            <input type="number" min={0} className={inputCls} value={f.salaryMin} onChange={(e) => set('salaryMin', e.target.value)} placeholder={t('employer:jobForm.optional')} />
           </div>
           <div>
-            <label className={labelCls}>Max Salary (₹)</label>
-            <input type="number" min={0} className={inputCls} value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder="optional" />
+            <label className={labelCls}>{t('employer:jobForm.maxSalaryLabel')}</label>
+            <input type="number" min={0} className={inputCls} value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
           </div>
           <div>
-            <label className={labelCls}>Pay Period</label>
+            <label className={labelCls}>{t('employer:jobForm.payPeriodLabel')}</label>
             <select className={inputCls} value={f.paymentType} onChange={(e) => set('paymentType', e.target.value as PaymentTypeValue)}>
               {PAYMENT_TYPES.map((p) => (
-                <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>
+                <option key={p} value={p}>{t(`employer:jobForm.paymentType.${p}`)}</option>
               ))}
             </select>
           </div>
@@ -218,35 +220,35 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelCls}>Job Type *</label>
+            <label className={labelCls}>{t('employer:jobForm.jobTypeLabel')}</label>
             <select className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
-              <option value="">Select...</option>
-              {JOB_TYPES.map((t) => (
-                <option key={t} value={t}>{humanizeJobType(t)}</option>
+              <option value="">{t('employer:jobForm.selectPlaceholder')}</option>
+              {JOB_TYPES.map((jt) => (
+                <option key={jt} value={jt}>{humanizeJobType(jt)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Urgency</label>
+            <label className={labelCls}>{t('employer:jobForm.urgencyLabel')}</label>
             <select className={inputCls} value={f.urgencyLevel} onChange={(e) => set('urgencyLevel', e.target.value as UrgencyLevelValue)}>
               {URGENCY_LEVELS.map((u) => (
-                <option key={u} value={u}>{u.charAt(0) + u.slice(1).toLowerCase()}</option>
+                <option key={u} value={u}>{t(`employer:jobForm.urgency.${u}`)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Positions</label>
+            <label className={labelCls}>{t('employer:jobForm.positionsLabel')}</label>
             <input type="number" min={1} className={inputCls} value={f.numberOfPositions} onChange={(e) => set('numberOfPositions', e.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Duration</label>
-            <input className={inputCls} value={f.duration} onChange={(e) => set('duration', e.target.value)} placeholder="e.g. 6 months" />
+            <label className={labelCls}>{t('employer:jobForm.durationLabel')}</label>
+            <input className={inputCls} value={f.duration} onChange={(e) => set('duration', e.target.value)} placeholder={t('employer:jobForm.durationPlaceholder')} />
           </div>
           <div>
-            <label className={labelCls}>Expires On</label>
+            <label className={labelCls}>{t('employer:jobForm.expiresOnLabel')}</label>
             <input type="date" className={inputCls} value={f.expiresAt} onChange={(e) => set('expiresAt', e.target.value)} />
           </div>
         </div>
@@ -254,11 +256,11 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
         <div className="space-y-2 pt-2">
           <label className="flex items-center gap-2 text-sm text-black cursor-pointer">
             <input type="checkbox" checked={f.showEmailToSeekers} onChange={(e) => set('showEmailToSeekers', e.target.checked)} />
-            Show my email to seekers (Contact Recruiter)
+            {t('employer:jobForm.showEmail')}
           </label>
           <label className="flex items-center gap-2 text-sm text-black cursor-pointer">
             <input type="checkbox" checked={f.showPhoneToSeekers} onChange={(e) => set('showPhoneToSeekers', e.target.checked)} />
-            Show my phone to seekers (Contact Recruiter)
+            {t('employer:jobForm.showPhone')}
           </label>
         </div>
 
@@ -275,27 +277,27 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           className="w-full px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
-          {submitting ? 'Saving...' : submitLabel}
+          {submitting ? t('employer:jobForm.saving') : submitLabel}
         </button>
       </div>
 
       {/* Live Preview — renders as the seeker will see the card */}
       <div className="lg:sticky lg:top-24 self-start">
-        <p className="text-sm font-medium text-[#717182] mb-3">Live Preview (how seekers see it)</p>
+        <p className="text-sm font-medium text-[#717182] mb-3">{t('employer:jobForm.previewLabel')}</p>
         <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-[24px] font-semibold text-[#236987]">{initials(f.companyName || f.title || 'JB')}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg sm:text-xl font-semibold mb-1">{f.title || 'Job title'}</h3>
-              <p className="text-sm text-black mb-3">{f.companyName || 'Your company'}</p>
+              <h3 className="text-lg sm:text-xl font-semibold mb-1">{f.title || t('employer:jobForm.previewJobTitle')}</h3>
+              <p className="text-sm text-black mb-3">{f.companyName || t('employer:jobForm.previewCompany')}</p>
               <div className="flex items-center gap-1 mb-3">
                 <IndianRupee className="w-4 h-4" />
                 <span className="text-sm">
                   {formatSalary(f.salaryMin ? Number(f.salaryMin) : null, f.salaryMax ? Number(f.salaryMax) : null)}
                   {' / '}
-                  {f.paymentType.charAt(0) + f.paymentType.slice(1).toLowerCase()}
+                  {t(`employer:jobForm.paymentType.${f.paymentType}`)}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2 mb-3">

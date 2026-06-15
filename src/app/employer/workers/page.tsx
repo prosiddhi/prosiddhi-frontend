@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
@@ -40,6 +41,7 @@ function StatTile({ label, value, icon }: { label: string; value: number; icon: 
 }
 
 function EmployerDashboardContent() {
+  const { t } = useTranslation()
   const [stats, setStats] = useState<EmployerDashboardStats | null>(null)
   const [jobs, setJobs] = useState<EmployerDashboardJob[]>([])
   const [recent, setRecent] = useState<RecentApplication[]>([])
@@ -66,10 +68,10 @@ function EmployerDashboardContent() {
         if (r.status === 'fulfilled') setRecent(r.value.applications)
         // Only treat it as a page error if everything failed.
         if (s.status === 'rejected' && j.status === 'rejected' && r.status === 'rejected') {
-          setError(s.reason instanceof Error ? s.reason.message : 'Failed to load your dashboard.')
+          setError(s.reason instanceof Error ? s.reason.message : t('employer:dashboard.loadFailed'))
         }
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load your dashboard.')
+        if (!ignore) setError(err instanceof Error ? err.message : t('employer:dashboard.loadFailed'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -87,7 +89,7 @@ function EmployerDashboardContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:dashboard.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <div className="flex items-center gap-3 sm:gap-5">
@@ -96,7 +98,7 @@ function EmployerDashboardContent() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
             >
               <Plus className="w-4 h-4" />
-              Post a Job
+              {t('employer:dashboard.postJob')}
             </Link>
             <UserDropdown />
           </div>
@@ -106,14 +108,14 @@ function EmployerDashboardContent() {
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">
-            Dashboard
+            {t('employer:dashboard.title')}
           </h1>
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading your dashboard...</p>
+              <p>{t('employer:dashboard.loading')}</p>
             </div>
           )}
 
@@ -126,7 +128,7 @@ function EmployerDashboardContent() {
                 onClick={() => setReloadKey((k) => k + 1)}
                 className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -136,12 +138,12 @@ function EmployerDashboardContent() {
               {/* Stats */}
               {stats && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8 sm:mb-10">
-                  <StatTile label="Total Jobs" value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
-                  <StatTile label="Active Jobs" value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
-                  <StatTile label="Applications" value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
-                  <StatTile label="Pending" value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
-                  <StatTile label="Shortlisted" value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
-                  <StatTile label="Accepted" value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.totalJobs')} value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.activeJobs')} value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
+                  <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
                 </div>
               )}
 
@@ -149,8 +151,8 @@ function EmployerDashboardContent() {
                 {/* Your Jobs */}
                 <section>
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl sm:text-2xl font-semibold text-black">Your Jobs</h2>
-                    <Link href="/employer/jobs" className="text-sm text-primary-50 hover:underline">Manage all</Link>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-black">{t('employer:dashboard.yourJobs')}</h2>
+                    <Link href="/employer/jobs" className="text-sm text-primary-50 hover:underline">{t('employer:dashboard.manageAll')}</Link>
                   </div>
                   {jobs.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">
@@ -163,14 +165,14 @@ function EmployerDashboardContent() {
                                 job.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
                               }`}
                             >
-                              {job.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                              {job.status === 'ACTIVE' ? t('employer:dashboard.statusActive') : t('employer:dashboard.statusInactive')}
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
-                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> applicants</span>
-                            <span><span className="font-semibold text-black">{job.pendingCount}</span> pending</span>
-                            <span><span className="font-semibold text-black">{job.shortlistedCount}</span> shortlisted</span>
-                            <span><span className="font-semibold text-black">{job.acceptedCount}</span> accepted</span>
+                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> {t('employer:dashboard.applicants')}</span>
+                            <span><span className="font-semibold text-black">{job.pendingCount}</span> {t('employer:dashboard.pendingCount')}</span>
+                            <span><span className="font-semibold text-black">{job.shortlistedCount}</span> {t('employer:dashboard.shortlistedCount')}</span>
+                            <span><span className="font-semibold text-black">{job.acceptedCount}</span> {t('employer:dashboard.acceptedCount')}</span>
                           </div>
                         </div>
                       ))}
@@ -178,9 +180,9 @@ function EmployerDashboardContent() {
                   ) : (
                     <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
                       <Briefcase className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-                      <p className="mb-4">You haven&apos;t posted any jobs yet.</p>
+                      <p className="mb-4">{t('employer:dashboard.noJobsTitle')}</p>
                       <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
-                        <Plus className="w-4 h-4" /> Post your first job
+                        <Plus className="w-4 h-4" /> {t('employer:dashboard.postFirstJob')}
                       </Link>
                     </div>
                   )}
@@ -188,7 +190,7 @@ function EmployerDashboardContent() {
 
                 {/* Recent Applications */}
                 <section>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-black mb-4">Recent Applications</h2>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-black mb-4">{t('employer:dashboard.recentApplications')}</h2>
                   {recent.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">
                       {recent.map((app) => {
@@ -199,7 +201,7 @@ function EmployerDashboardContent() {
                               <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant.name)}</span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant.name || 'Applicant'}</p>
+                              <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant.name || t('employer:dashboard.applicantFallback')}</p>
                               <p className="text-xs sm:text-sm text-[#717182] truncate">{app.job.title}</p>
                               {app.applicant.location && (
                                 <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5">
@@ -218,7 +220,7 @@ function EmployerDashboardContent() {
                   ) : (
                     <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
                       <Users className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-                      <p>No applications yet. They&apos;ll appear here as candidates apply.</p>
+                      <p>{t('employer:dashboard.noApplications')}</p>
                     </div>
                   )}
                 </section>

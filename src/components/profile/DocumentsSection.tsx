@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { resolveMediaUrl, type UserDocument, type DocumentType } from '@/lib/api'
 import {
   FileText,
@@ -32,16 +33,6 @@ interface DocumentsSectionProps {
   remove: (documentId: string) => Promise<unknown>
 }
 
-const TYPE_LABELS: Record<DocumentType, string> = {
-  IDENTITY_PROOF: 'Identity Proof',
-  ADDRESS_PROOF: 'Address Proof',
-  EDUCATION_CERTIFICATE: 'Education Certificate',
-  SKILL_CERTIFICATE: 'Skill Certificate',
-  GST_CERTIFICATE: 'GST Certificate',
-  COMPANY_REGISTRATION: 'Company Registration',
-  OTHER: 'Other',
-}
-
 /** Human file size (B / KB / MB). */
 function fmtSize(bytes?: number): string {
   if (!bytes || bytes <= 0) return ''
@@ -58,6 +49,9 @@ export function DocumentsSection({
   upload,
   remove,
 }: DocumentsSectionProps) {
+  const { t } = useTranslation()
+  // Document-type label, translated by enum value (profile:documents.types.<value>).
+  const typeLabel = (type: DocumentType) => t(`profile:documents.types.${type}`)
   const [docs, setDocs] = useState<UserDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -73,12 +67,12 @@ export function DocumentsSection({
       const res = await list()
       setDocs(Array.isArray(res) ? res : [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load documents.')
+      setError(err instanceof Error ? err.message : t('profile:documents.loadError'))
       setDocs([])
     } finally {
       setLoading(false)
     }
-  }, [list])
+  }, [list, t])
 
   useEffect(() => {
     load()
@@ -95,7 +89,7 @@ export function DocumentsSection({
       const created = await upload(file, uploadType)
       setDocs((prev) => [created, ...prev])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload document.')
+      setError(err instanceof Error ? err.message : t('profile:documents.uploadError'))
     } finally {
       setUploading(false)
     }
@@ -103,10 +97,10 @@ export function DocumentsSection({
 
   const handleDelete = async (doc: UserDocument) => {
     if (minOne && docs.length <= 1) {
-      setError('At least one document is required. Upload another before removing this one.')
+      setError(t('profile:documents.minOneError'))
       return
     }
-    if (!window.confirm('Remove this document? This cannot be undone.')) return
+    if (!window.confirm(t('profile:documents.removeConfirm'))) return
     setDeletingId(doc.id)
     setError('')
     try {
@@ -114,7 +108,7 @@ export function DocumentsSection({
       setDocs((prev) => prev.filter((d) => d.id !== doc.id))
     } catch (err) {
       // Surfaces the BE min-1 message (400) and any other failure.
-      setError(err instanceof Error ? err.message : 'Failed to remove document.')
+      setError(err instanceof Error ? err.message : t('profile:documents.removeError'))
     } finally {
       setDeletingId(null)
     }
@@ -131,9 +125,9 @@ export function DocumentsSection({
           onChange={(e) => setUploadType(e.target.value as DocumentType)}
           className="h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-primary-50"
         >
-          {allowedTypes.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
+          {allowedTypes.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {typeLabel(opt.value)}
             </option>
           ))}
         </select>
@@ -145,7 +139,7 @@ export function DocumentsSection({
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm disabled:opacity-60"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          {uploading ? 'Uploading…' : 'Upload Document'}
+          {uploading ? t('profile:documents.uploading') : t('profile:documents.uploadDocument')}
         </button>
       </div>
 
@@ -158,10 +152,10 @@ export function DocumentsSection({
 
       {loading ? (
         <div className="flex items-center gap-2 text-[#717182] py-6">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading documents…
+          <Loader2 className="w-5 h-5 animate-spin" /> {t('profile:documents.loading')}
         </div>
       ) : docs.length === 0 ? (
-        <p className="text-sm text-[#717182] py-4">No documents uploaded yet.</p>
+        <p className="text-sm text-[#717182] py-4">{t('profile:documents.empty')}</p>
       ) : (
         <ul className="space-y-3">
           {docs.map((doc) => (
@@ -182,15 +176,15 @@ export function DocumentsSection({
                   {doc.fileName}
                 </a>
                 <p className="text-xs text-[#717182] flex items-center gap-2 flex-wrap">
-                  <span>{TYPE_LABELS[doc.type] ?? doc.type}</span>
+                  <span>{typeLabel(doc.type)}</span>
                   {fmtSize(doc.fileSize) && <span>· {fmtSize(doc.fileSize)}</span>}
                   {doc.verified ? (
                     <span className="inline-flex items-center gap-1 text-green-700">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {t('profile:documents.verified')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-amber-600">
-                      <Clock className="w-3.5 h-3.5" /> Pending verification
+                      <Clock className="w-3.5 h-3.5" /> {t('profile:documents.pending')}
                     </span>
                   )}
                 </p>
@@ -199,7 +193,7 @@ export function DocumentsSection({
                 type="button"
                 onClick={() => handleDelete(doc)}
                 disabled={deletingId === doc.id || atMin}
-                title={atMin ? 'At least one document is required' : 'Remove document'}
+                title={atMin ? t('profile:documents.minOneTitle') : t('profile:documents.removeTitle')}
                 className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {deletingId === doc.id ? (
@@ -213,9 +207,7 @@ export function DocumentsSection({
         </ul>
       )}
       {atMin && (
-        <p className="text-xs text-[#717182] mt-2">
-          At least one document must remain on file. Upload another to replace this one.
-        </p>
+        <p className="text-xs text-[#717182] mt-2">{t('profile:documents.minOneHint')}</p>
       )}
     </div>
   )

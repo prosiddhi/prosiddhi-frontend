@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react'
 
 function CandidateDetailContent() {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const applicationId = Array.isArray(params.applicationId) ? params.applicationId[0] : (params.applicationId as string)
@@ -54,7 +56,7 @@ function CandidateDetailContent() {
         if (!ignore) setApp(res)
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load this candidate.')
+          setError(err instanceof Error ? err.message : t('employer:candidateDetail.loadFailed'))
           setApp(null)
         }
       } finally {
@@ -77,7 +79,7 @@ function CandidateDetailContent() {
       await employerAPI.toggleBookmark(applicationId)
       refetch()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not update bookmark.')
+      setActionError(err instanceof Error ? err.message : t('employer:candidateDetail.bookmarkFailed'))
     } finally {
       setBookmarking(false)
     }
@@ -86,7 +88,7 @@ function CandidateDetailContent() {
   const handleReject = async () => {
     const reason = rejectReason.trim()
     if (reason && reason.length < 10) {
-      setActionError('Rejection reason must be at least 10 characters (or leave it blank).')
+      setActionError(t('employer:candidateDetail.rejectReasonTooShort'))
       return
     }
     setRejecting(true)
@@ -97,7 +99,7 @@ function CandidateDetailContent() {
       setRejectReason('')
       refetch()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not reject this candidate.')
+      setActionError(err instanceof Error ? err.message : t('employer:candidateDetail.rejectFailed'))
     } finally {
       setRejecting(false)
     }
@@ -121,7 +123,7 @@ function CandidateDetailContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer/workers" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:candidateDetail.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <UserDropdown />
@@ -132,13 +134,13 @@ function CandidateDetailContent() {
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
-            <span>Back to Candidates</span>
+            <span>{t('employer:candidateDetail.backToCandidates')}</span>
           </button>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading candidate...</p>
+              <p>{t('employer:candidateDetail.loading')}</p>
             </div>
           )}
 
@@ -146,7 +148,7 @@ function CandidateDetailContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={refetch} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">Retry</button>
+              <button onClick={refetch} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
             </div>
           )}
 
@@ -157,11 +159,11 @@ function CandidateDetailContent() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h1 className="text-2xl sm:text-3xl font-bold text-black">{seeker?.fullName || 'Applicant'}</h1>
+                      <h1 className="text-2xl sm:text-3xl font-bold text-black">{seeker?.fullName || t('employer:candidateDetail.applicantFallback')}</h1>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
                     </div>
                     <p className="text-sm text-[#717182] mb-3">
-                      Applied to <span className="font-medium text-black">{app.job?.title}</span> · {relativeTime(app.appliedAt)}
+                      {t('employer:candidateDetail.appliedTo')} <span className="font-medium text-black">{app.job?.title}</span> · {relativeTime(app.appliedAt)}
                     </p>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-black">
                       {seeker?.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-[#3386a9]" /> {seeker.location}</span>}
@@ -177,27 +179,27 @@ function CandidateDetailContent() {
                 <div className="border border-[#d0e8f0] bg-[#f0f9fc] rounded-[10px] p-5">
                   <div className="flex items-center gap-2 mb-3 text-[#164e65]">
                     <CalendarClock className="w-5 h-5" />
-                    <h2 className="text-lg font-semibold">Interview Scheduled</h2>
+                    <h2 className="text-lg font-semibold">{t('employer:candidateDetail.interviewScheduled')}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <p><span className="text-gray-500">Date:</span> <span className="font-medium">{formatDate(app.interview.date) || 'TBC'}</span></p>
-                    <p><span className="text-gray-500">Time:</span> <span className="font-medium">{app.interview.time || 'TBC'}</span></p>
+                    <p><span className="text-gray-500">{t('employer:candidateDetail.dateLabel')}</span> <span className="font-medium">{formatDate(app.interview.date) || t('employer:candidateDetail.tbc')}</span></p>
+                    <p><span className="text-gray-500">{t('employer:candidateDetail.timeLabel')}</span> <span className="font-medium">{app.interview.time || t('employer:candidateDetail.tbc')}</span></p>
                   </div>
-                  {app.interview.notes && <p className="text-sm mt-2"><span className="text-gray-500">Notes:</span> {app.interview.notes}</p>}
+                  {app.interview.notes && <p className="text-sm mt-2"><span className="text-gray-500">{t('employer:candidateDetail.notesLabel')}</span> {app.interview.notes}</p>}
                 </div>
               )}
 
               {/* Application message + audio */}
               <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg font-semibold text-black mb-3">Application</h2>
+                <h2 className="text-lg font-semibold text-black mb-3">{t('employer:candidateDetail.application')}</h2>
                 {app.message ? (
                   <p className="text-sm text-black whitespace-pre-line mb-4">{app.message}</p>
                 ) : (
-                  <p className="text-sm text-[#717182] mb-4">No cover message.</p>
+                  <p className="text-sm text-[#717182] mb-4">{t('employer:candidateDetail.noCoverMessage')}</p>
                 )}
                 {audioSrc && (
                   <div>
-                    <p className="text-sm font-medium text-black mb-2">Voice message</p>
+                    <p className="text-sm font-medium text-black mb-2">{t('employer:candidateDetail.voiceMessage')}</p>
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <audio controls src={audioSrc} className="w-full max-w-md" />
                   </div>
@@ -207,10 +209,10 @@ function CandidateDetailContent() {
               {/* Skills */}
               {skills.length > 0 && (
                 <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                  <h2 className="text-lg font-semibold text-black mb-3">Skills</h2>
+                  <h2 className="text-lg font-semibold text-black mb-3">{t('employer:candidateDetail.skills')}</h2>
                   <div className="flex flex-wrap gap-2">
                     {skills.map((s, i) => (
-                      <span key={s.id ?? i} className="bg-[#e3f5ff] text-[#236987] px-3 py-1 rounded-full text-xs">{s.skill?.name ?? 'Skill'}</span>
+                      <span key={s.id ?? i} className="bg-[#e3f5ff] text-[#236987] px-3 py-1 rounded-full text-xs">{s.skill?.name ?? t('employer:candidateDetail.skillFallback')}</span>
                     ))}
                   </div>
                 </div>
@@ -219,15 +221,15 @@ function CandidateDetailContent() {
               {/* Work experience */}
               {experience.length > 0 && (
                 <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                  <h2 className="text-lg font-semibold text-black mb-3">Work Experience</h2>
+                  <h2 className="text-lg font-semibold text-black mb-3">{t('employer:candidateDetail.workExperience')}</h2>
                   <div className="space-y-3">
                     {experience.map((w, i) => (
                       <div key={w.id ?? i} className="flex gap-3">
                         <Briefcase className="w-4 h-4 text-[#3386a9] mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-black">{w.position || 'Role'}{w.company ? ` · ${w.company}` : ''}</p>
+                          <p className="text-sm font-medium text-black">{w.position || t('employer:candidateDetail.roleFallback')}{w.company ? ` · ${w.company}` : ''}</p>
                           <p className="text-xs text-[#717182]">
-                            {formatDate(w.startDate)}{w.startDate ? ' — ' : ''}{w.endDate ? formatDate(w.endDate) : w.startDate ? 'Present' : ''}
+                            {formatDate(w.startDate)}{w.startDate ? ' — ' : ''}{w.endDate ? formatDate(w.endDate) : w.startDate ? t('employer:candidateDetail.present') : ''}
                           </p>
                         </div>
                       </div>
@@ -239,7 +241,7 @@ function CandidateDetailContent() {
               {/* Documents */}
               {documents.length > 0 && (
                 <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                  <h2 className="text-lg font-semibold text-black mb-3">Documents</h2>
+                  <h2 className="text-lg font-semibold text-black mb-3">{t('employer:candidateDetail.documents')}</h2>
                   <div className="space-y-2">
                     {documents.map((d, i) => (
                       <a
@@ -250,7 +252,7 @@ function CandidateDetailContent() {
                         className="flex items-center gap-2 text-sm text-primary-50 hover:underline"
                       >
                         <FileText className="w-4 h-4" />
-                        {d.documentType || 'Document'} {d.verified ? '(verified)' : ''}
+                        {d.documentType || t('employer:candidateDetail.documentFallback')} {d.verified ? t('employer:candidateDetail.verified') : ''}
                       </a>
                     ))}
                   </div>
@@ -268,19 +270,19 @@ function CandidateDetailContent() {
               {/* Reject panel */}
               {rejectOpen && (
                 <div className="bg-white border border-red-200 rounded-[10px] p-5">
-                  <h3 className="text-base font-semibold text-black mb-2">Reject this candidate?</h3>
+                  <h3 className="text-base font-semibold text-black mb-2">{t('employer:candidateDetail.rejectTitle')}</h3>
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     rows={3}
                     maxLength={500}
-                    placeholder="Optional reason (min 10 characters if provided)"
+                    placeholder={t('employer:candidateDetail.rejectPlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none mb-3"
                   />
                   <div className="flex gap-3">
-                    <button onClick={() => { setRejectOpen(false); setRejectReason(''); setActionError('') }} disabled={rejecting} className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+                    <button onClick={() => { setRejectOpen(false); setRejectReason(''); setActionError('') }} disabled={rejecting} className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50">{t('buttons.cancel')}</button>
                     <button onClick={handleReject} disabled={rejecting} className="px-5 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 disabled:opacity-60 flex items-center gap-2">
-                      {rejecting && <Loader2 className="w-4 h-4 animate-spin" />} Confirm Reject
+                      {rejecting && <Loader2 className="w-4 h-4 animate-spin" />} {t('employer:candidateDetail.confirmReject')}
                     </button>
                   </div>
                 </div>
@@ -291,18 +293,18 @@ function CandidateDetailContent() {
                 <div className="flex flex-wrap gap-3">
                   {!isTerminal && (
                     <button onClick={() => setAcceptOpen(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                      <Check className="w-5 h-5" /> Accept
+                      <Check className="w-5 h-5" /> {t('employer:candidateDetail.accept')}
                     </button>
                   )}
                   {!isTerminal && (
                     <button onClick={() => { setRejectOpen(true); setActionError('') }} className="inline-flex items-center gap-2 px-6 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium">
-                      <X className="w-5 h-5" /> Reject
+                      <X className="w-5 h-5" /> {t('employer:candidateDetail.reject')}
                     </button>
                   )}
                   {canBookmark && (
                     <button onClick={handleBookmark} disabled={bookmarking} className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60">
                       {bookmarking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bookmark className={`w-5 h-5 ${app.status === 'BOOKMARKED' ? 'fill-primary-50 text-primary-50' : ''}`} />}
-                      {app.status === 'BOOKMARKED' ? 'Bookmarked' : 'Bookmark'}
+                      {app.status === 'BOOKMARKED' ? t('employer:candidateDetail.bookmarked') : t('employer:candidateDetail.bookmark')}
                     </button>
                   )}
                 </div>
@@ -317,7 +319,7 @@ function CandidateDetailContent() {
           isOpen={acceptOpen}
           onClose={() => setAcceptOpen(false)}
           applicationId={applicationId}
-          candidateName={seeker?.fullName || 'this candidate'}
+          candidateName={seeker?.fullName || t('employer:candidateDetail.candidateFallback')}
           onAccepted={() => { setAcceptOpen(false); refetch() }}
         />
       )}

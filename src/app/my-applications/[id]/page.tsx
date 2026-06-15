@@ -2,11 +2,13 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, resolveMediaUrl, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
@@ -16,7 +18,6 @@ import {
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   Clock,
   MapPin,
   IndianRupee,
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react'
 
 function ApplicationDetailsContent() {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const applicationId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
@@ -50,7 +52,7 @@ function ApplicationDetailsContent() {
         if (!ignore) setApplication(res)
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load this application.')
+          setError(err instanceof Error ? err.message : t('seeker:applicationDetail.loadError'))
           setApplication(null)
         }
       } finally {
@@ -61,11 +63,11 @@ function ApplicationDetailsContent() {
     return () => {
       ignore = true
     }
-  }, [applicationId, reloadKey])
+  }, [applicationId, reloadKey, t])
 
   const handleWithdraw = async () => {
     if (!application || withdrawing) return
-    if (!window.confirm('Withdraw this application? This cannot be undone.')) return
+    if (!window.confirm(t('seeker:applicationDetail.withdrawConfirm'))) return
     setWithdrawing(true)
     setWithdrawError('')
     try {
@@ -73,7 +75,7 @@ function ApplicationDetailsContent() {
       setApplication((prev) => (prev ? { ...prev, status: 'WITHDRAWN' } : prev))
     } catch (err) {
       // Surface the BE guard message (e.g. "Cannot withdraw an accepted application").
-      setWithdrawError(err instanceof Error ? err.message : 'Could not withdraw. Please try again.')
+      setWithdrawError(err instanceof Error ? err.message : t('seeker:applicationDetail.withdrawError'))
     } finally {
       setWithdrawing(false)
     }
@@ -99,20 +101,17 @@ function ApplicationDetailsContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
 
           {/* Right side - User profile */}
@@ -137,14 +136,14 @@ function ApplicationDetailsContent() {
             className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6 sm:mb-8 lg:mb-10"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-base sm:text-lg">Back</span>
+            <span className="text-base sm:text-lg">{t('seeker:applicationDetail.back')}</span>
           </button>
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading application...</p>
+              <p>{t('seeker:applicationDetail.loading')}</p>
             </div>
           )}
 
@@ -157,7 +156,7 @@ function ApplicationDetailsContent() {
                 onClick={() => setReloadKey((k) => k + 1)}
                 className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
               >
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -177,17 +176,17 @@ function ApplicationDetailsContent() {
 
                     <div className="flex-1 min-w-0">
                       <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold mb-2 sm:mb-3">
-                        {job?.title || 'Job'}
+                        {job?.title || t('seeker:myApplications.job')}
                       </h1>
                       <p className="text-base sm:text-lg lg:text-[18px] text-black mb-4 sm:mb-5">
-                        {job?.companyName || 'Company'}
+                        {job?.companyName || t('seeker:jobCard.company')}
                       </p>
 
                       {/* Salary */}
                       <div className="flex items-center gap-1 mb-4 sm:mb-5">
                         <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="text-base sm:text-lg lg:text-[18px] font-medium">
-                          {formatSalary(job?.salaryMin, job?.salaryMax)} / Month
+                          {t('seeker:jobCard.perMonth', { salary: formatSalary(job?.salaryMin, job?.salaryMax) })}
                         </span>
                       </div>
 
@@ -218,10 +217,10 @@ function ApplicationDetailsContent() {
                   {/* Right Side - Status */}
                   <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
                     <span className="text-sm sm:text-base text-black">
-                      Applied {relativeTime(application.appliedAt)}
+                      {t('seeker:applicationDetail.appliedRelative', { time: relativeTime(application.appliedAt) })}
                     </span>
                     <span className={`px-6 py-3 rounded-lg flex items-center justify-center min-w-[140px] text-sm sm:text-base font-medium ${meta.pill}`}>
-                      {meta.label}
+                      {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
                     </span>
                   </div>
                 </div>
@@ -234,25 +233,25 @@ function ApplicationDetailsContent() {
                   <div className="border border-[#d0e8f0] bg-[#f0f9fc] rounded-[10px] p-5 sm:p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <CalendarClock className="w-5 h-5 text-[#236987]" />
-                      <h2 className="text-lg sm:text-xl font-semibold text-[#164e65]">Interview Scheduled</h2>
+                      <h2 className="text-lg sm:text-xl font-semibold text-[#164e65]">{t('seeker:applicationDetail.interviewScheduled')}</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Date</p>
+                        <p className="text-xs text-gray-500 mb-0.5">{t('seeker:applicationDetail.date')}</p>
                         <p className="text-sm sm:text-base font-medium text-black">
-                          {formatDate(application.interview.date) || 'To be confirmed'}
+                          {formatDate(application.interview.date) || t('seeker:applicationDetail.toBeConfirmed')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Time</p>
+                        <p className="text-xs text-gray-500 mb-0.5">{t('seeker:applicationDetail.time')}</p>
                         <p className="text-sm sm:text-base font-medium text-black">
-                          {application.interview.time || 'To be confirmed'}
+                          {application.interview.time || t('seeker:applicationDetail.toBeConfirmed')}
                         </p>
                       </div>
                     </div>
                     {application.interview.notes && (
                       <div className="mt-4">
-                        <p className="text-xs text-gray-500 mb-0.5">Notes from the employer</p>
+                        <p className="text-xs text-gray-500 mb-0.5">{t('seeker:applicationDetail.notesFromEmployer')}</p>
                         <p className="text-sm sm:text-base text-black whitespace-pre-line">
                           {application.interview.notes}
                         </p>
@@ -265,18 +264,18 @@ function ApplicationDetailsContent() {
               {/* Your Application */}
               <section className="mb-8 sm:mb-10 lg:mb-12">
                 <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
-                  Your Application
+                  {t('seeker:applicationDetail.yourApplication')}
                 </h2>
                 {application.message ? (
                   <p className="text-sm sm:text-base lg:text-[16px] leading-relaxed text-black whitespace-pre-line mb-4">
                     {application.message}
                   </p>
                 ) : (
-                  <p className="text-sm sm:text-base text-[#717182] mb-4">No cover message was submitted.</p>
+                  <p className="text-sm sm:text-base text-[#717182] mb-4">{t('seeker:applicationDetail.noCoverMessage')}</p>
                 )}
                 {audioSrc && (
                   <div>
-                    <p className="text-sm font-medium text-black mb-2">Voice message</p>
+                    <p className="text-sm font-medium text-black mb-2">{t('seeker:applicationDetail.voiceMessage')}</p>
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <audio controls src={audioSrc} className="w-full max-w-md" />
                   </div>
@@ -287,7 +286,7 @@ function ApplicationDetailsContent() {
               {job?.description && (
                 <section className="mb-8 sm:mb-10 lg:mb-12">
                   <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
-                    Job Description
+                    {t('seeker:applicationDetail.jobDescription')}
                   </h2>
                   <p className="text-sm sm:text-base lg:text-[16px] leading-relaxed text-black whitespace-pre-line">
                     {job.description}
@@ -310,7 +309,7 @@ function ApplicationDetailsContent() {
                   className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Briefcase className="w-5 h-5" />
-                  View Job
+                  {t('seeker:applicationDetail.viewJob')}
                 </Link>
                 {canWithdraw(application.status) && (
                   <button
@@ -319,7 +318,7 @@ function ApplicationDetailsContent() {
                     className="px-6 sm:px-8 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {withdrawing ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
-                    {withdrawing ? 'Withdrawing...' : 'Withdraw Application'}
+                    {withdrawing ? t('seeker:applicationDetail.withdrawing') : t('seeker:applicationDetail.withdraw')}
                   </button>
                 )}
               </div>

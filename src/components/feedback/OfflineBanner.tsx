@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { WifiOff, RefreshCw } from 'lucide-react'
 
 /**
@@ -20,6 +21,7 @@ import { WifiOff, RefreshCw } from 'lucide-react'
 type Mode = 'online' | 'offline' | 'unreachable'
 
 export function OfflineBanner() {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<Mode>('online')
 
   useEffect(() => {
@@ -49,9 +51,7 @@ export function OfflineBanner() {
   if (mode === 'online') return null
 
   const message =
-    mode === 'offline'
-      ? "You're offline. Check your internet connection."
-      : "Can't reach the server right now."
+    mode === 'offline' ? t('feedback.offline') : t('feedback.unreachable')
 
   return (
     <div role="alert" className="bg-error-500 text-white shadow-md">
@@ -65,7 +65,7 @@ export function OfflineBanner() {
           className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 active:bg-white/40 rounded-lg px-4 min-h-[44px] text-sm sm:text-base font-medium transition-colors flex-shrink-0"
         >
           <RefreshCw className="w-4 h-4" />
-          Retry
+          {t('buttons.retry')}
         </button>
       </div>
     </div>

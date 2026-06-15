@@ -2,22 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { employerAPI, type CompanySize } from '@/lib/api'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
-const SIZE_OPTIONS: { label: string; value: CompanySize }[] = [
-  { label: '1-10 employees', value: 'SIZE_1_10' },
-  { label: '11-50 employees', value: 'SIZE_11_50' },
-  { label: '51-200 employees', value: 'SIZE_51_200' },
-  { label: '201-500 employees', value: 'SIZE_201_500' },
-  { label: '501-1000 employees', value: 'SIZE_501_1000' },
-  { label: '1000+ employees', value: 'SIZE_1000_PLUS' },
+const SIZE_VALUES: CompanySize[] = [
+  'SIZE_1_10',
+  'SIZE_11_50',
+  'SIZE_51_200',
+  'SIZE_201_500',
+  'SIZE_501_1000',
+  'SIZE_1000_PLUS',
 ]
 
 export default function CompanyDetailsPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useEmployerRegistration()
   const [form, setForm] = useState({
     companyName: data.companyName,
@@ -45,31 +47,31 @@ export default function CompanyDetailsPage() {
 
   const handleNext = async () => {
     if (!form.companyName.trim() || form.companyName.trim().length < 2) {
-      setError('Company name must be at least 2 characters')
+      setError(t('employerRegister:companyDetails.nameTooShort'))
       return
     }
     if (!form.companyEmail.includes('@')) {
-      setError('Please enter a valid company email')
+      setError(t('employerRegister:companyDetails.emailInvalid'))
       return
     }
     if (form.companyAddress.trim().length < 5) {
-      setError('Company address must be at least 5 characters')
+      setError(t('employerRegister:companyDetails.addressTooShort'))
       return
     }
     if (!form.companyFoundedDate || isNaN(Date.parse(form.companyFoundedDate))) {
-      setError('Please enter a valid founded date')
+      setError(t('employerRegister:companyDetails.foundedInvalid'))
       return
     }
     if (!form.companySize) {
-      setError('Please select the company size')
+      setError(t('employerRegister:companyDetails.sizeRequired'))
       return
     }
     if (form.gstNumber.trim().length !== 15) {
-      setError('GST number must be exactly 15 characters')
+      setError(t('employerRegister:companyDetails.gstInvalid'))
       return
     }
     if (!form.registrationNumber.trim()) {
-      setError('Please enter the company registration number (CIN)')
+      setError(t('employerRegister:companyDetails.cinRequired'))
       return
     }
 
@@ -93,7 +95,7 @@ export default function CompanyDetailsPage() {
       update({ devEmailOtp: result?.emailVerification?.otp })
       router.push('/employer/register/verify-email')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not register the business. Please try again.')
+      setError(err instanceof Error ? err.message : t('employerRegister:companyDetails.registerFailed'))
     } finally {
       setLoading(false)
     }
@@ -108,14 +110,14 @@ export default function CompanyDetailsPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl max-h-[90vh] overflow-y-auto">
-        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors z-10" aria-label="Close">
+        <button onClick={handleClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors z-10" aria-label={t('employerRegister:closeAria')}>
           <X className="w-6 h-6 text-gray-600" />
         </button>
 
         <div className="w-full">
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">Employer Registration</h1>
-            <p className="text-sm sm:text-base text-gray-600">Tell us about your company</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">{t('employerRegister:title')}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{t('employerRegister:companyDetails.subtitle')}</p>
           </div>
 
           {error && (
@@ -125,71 +127,71 @@ export default function CompanyDetailsPage() {
           )}
 
           <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">Company Details</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('employerRegister:companyDetails.sectionCompany')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Company Name <span className="text-red-500">*</span></label>
-                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder="Enter company name" disabled={loading} className={inputCls} />
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyName')} <span className="text-red-500">*</span></label>
+                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employerRegister:companyDetails.companyNamePlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Company Email Address <span className="text-red-500">*</span></label>
-                <input type="email" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder="Enter company email" disabled={loading} className={inputCls} />
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyEmail')} <span className="text-red-500">*</span></label>
+                <input type="email" value={form.companyEmail} onChange={(e) => set('companyEmail', e.target.value)} placeholder={t('employerRegister:companyDetails.companyEmailPlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Company Address <span className="text-red-500">*</span></label>
-                <input type="text" value={form.companyAddress} onChange={(e) => set('companyAddress', e.target.value)} placeholder="Enter company location" disabled={loading} className={inputCls} />
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyAddress')} <span className="text-red-500">*</span></label>
+                <input type="text" value={form.companyAddress} onChange={(e) => set('companyAddress', e.target.value)} placeholder={t('employerRegister:companyDetails.companyAddressPlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Company Founded Date <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.foundedDate')} <span className="text-red-500">*</span></label>
                 <input type="date" value={form.companyFoundedDate} onChange={(e) => set('companyFoundedDate', e.target.value)} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Company Size of Employee <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companySize')} <span className="text-red-500">*</span></label>
                 <select value={form.companySize} onChange={(e) => set('companySize', e.target.value)} disabled={loading} className={inputCls}>
-                  <option value="">Select the options</option>
-                  {SIZE_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  <option value="">{t('employerRegister:companyDetails.selectOption')}</option>
+                  {SIZE_VALUES.map((value) => (
+                    <option key={value} value={value}>{t(`employerRegister:companyDetails.sizeOptions.${value}`)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">GST Number <span className="text-red-500">*</span></label>
-                <input type="text" value={form.gstNumber} onChange={(e) => set('gstNumber', e.target.value.toUpperCase())} placeholder="15-character GSTIN" maxLength={15} disabled={loading} className={inputCls} />
+                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.gstNumber')} <span className="text-red-500">*</span></label>
+                <input type="text" value={form.gstNumber} onChange={(e) => set('gstNumber', e.target.value.toUpperCase())} placeholder={t('employerRegister:companyDetails.gstPlaceholder')} maxLength={15} disabled={loading} className={inputCls} />
               </div>
             </div>
           </div>
 
           <div className="mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">Company Registration Details</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('employerRegister:companyDetails.sectionRegistration')}</h2>
             <div>
-              <label className="block text-sm font-medium text-black mb-2">Company Registration Number (CIN) <span className="text-red-500">*</span></label>
-              <input type="text" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} placeholder="Enter CIN Number" disabled={loading} className={inputCls} />
+              <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.cin')} <span className="text-red-500">*</span></label>
+              <input type="text" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} placeholder={t('employerRegister:companyDetails.cinPlaceholder')} disabled={loading} className={inputCls} />
             </div>
           </div>
 
           <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
             <p className="text-sm text-secondary-70">
-              You&apos;ll upload your GST / CIN / ISO documents after verifying your email. Admin approval is required before you can post jobs.
+              {t('employerRegister:companyDetails.docsNotice')}
             </p>
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <button onClick={handleBack} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-base font-medium min-w-[100px]">
-              Back
+              {t('buttons.back')}
             </button>
             <button
               onClick={handleNext}
               disabled={loading}
               className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
-              {loading ? 'Creating...' : 'Create account'}
+              {loading ? t('employerRegister:account.creating') : t('employerRegister:account.createAccount')}
             </button>
           </div>
 
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">Sign in here</Link>
+              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
+              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">{t('employerRegister:signInLink')}</Link>
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslation } from 'react-i18next'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
 /**
@@ -18,6 +19,7 @@ export function InlineError({
   onRetry?: () => void
   className?: string
 }) {
+  const { t } = useTranslation()
   return (
     <div className={`flex flex-col items-center justify-center py-20 text-center ${className}`}>
       <AlertCircle className="w-10 h-10 text-error-500 mb-4" />
@@ -28,7 +30,7 @@ export function InlineError({
           className="flex items-center gap-2 px-6 min-h-[44px] bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
-          Retry
+          {t('buttons.retry')}
         </button>
       )}
     </div>

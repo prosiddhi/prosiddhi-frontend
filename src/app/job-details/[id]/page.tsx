@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
@@ -10,6 +11,7 @@ import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
@@ -18,7 +20,6 @@ import {
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   Clock,
   MapPin,
   IndianRupee,
@@ -31,11 +32,12 @@ import {
   AlertCircle,
 } from 'lucide-react'
 
-function companyOf(job: Job): string {
-  return job.companyName || job.employer?.companyName || job.employer?.fullName || 'Company'
+function companyOf(job: Job, fallback: string): string {
+  return job.companyName || job.employer?.companyName || job.employer?.fullName || fallback
 }
 
 function JobDetailsContent() {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const jobId = String(params?.id ?? '')
@@ -73,7 +75,7 @@ function JobDetailsContent() {
         if (saved.status === 'fulfilled') setIsSaved(!!saved.value.isSaved)
         if (applied.status === 'fulfilled') setHasApplied(!!applied.value.hasApplied)
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load this job.')
+        if (!ignore) setError(err instanceof Error ? err.message : t('seeker:jobDetails.loadError'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -82,7 +84,7 @@ function JobDetailsContent() {
     return () => {
       ignore = true
     }
-  }, [jobId])
+  }, [jobId, t])
 
   const handleSaveJob = async () => {
     if (saveLoading || !job) return
@@ -97,7 +99,7 @@ function JobDetailsContent() {
         setIsSaved(true)
       }
     } catch {
-      setSaveError('Could not update saved status.')
+      setSaveError(t('seeker:savedJobs.removeError'))
       // Re-sync with the server so the button reflects truth (handles a stale
       // check or a duplicate-save race).
       try {
@@ -134,20 +136,17 @@ function JobDetailsContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
             <button className="hidden sm:block hover:text-primary-50 transition-colors"><Mail className="w-5 h-5 sm:w-6 sm:h-6" /></button>
@@ -161,14 +160,14 @@ function JobDetailsContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6 sm:mb-8 lg:mb-10">
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-base sm:text-lg">Back</span>
+            <span className="text-base sm:text-lg">{t('seeker:jobDetails.back')}</span>
           </button>
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-24 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading job...</p>
+              <p>{t('seeker:jobDetails.loading')}</p>
             </div>
           )}
 
@@ -176,9 +175,9 @@ function JobDetailsContent() {
           {!loading && (error || !job) && (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-              <p className="text-red-600 mb-4 max-w-md">{error || 'Job not found.'}</p>
+              <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
               <Link href="/job-feed" className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
-                Back to Job Feed
+                {t('seeker:jobDetails.backToFeed')}
               </Link>
             </div>
           )}
@@ -190,15 +189,15 @@ function JobDetailsContent() {
                 <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
                   <div className="flex items-start gap-4 flex-1">
                     <div className="w-[68px] h-[68px] sm:w-[78px] sm:h-[78px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-[32px] sm:text-[40px] font-semibold text-[#236987]">{initials(companyOf(job))}</span>
+                      <span className="text-[32px] sm:text-[40px] font-semibold text-[#236987]">{initials(companyOf(job, t('seeker:jobCard.company')))}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold mb-2 sm:mb-3">{job.title}</h1>
-                      <p className="text-base sm:text-lg lg:text-[18px] text-black mb-4 sm:mb-5">{companyOf(job)}</p>
+                      <p className="text-base sm:text-lg lg:text-[18px] text-black mb-4 sm:mb-5">{companyOf(job, t('seeker:jobCard.company'))}</p>
 
                       <div className="flex items-center gap-1 mb-4 sm:mb-5">
                         <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="text-base sm:text-lg lg:text-[18px] font-medium">{formatSalary(job.salaryMin, job.salaryMax)} / Month</span>
+                        <span className="text-base sm:text-lg lg:text-[18px] font-medium">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
                       </div>
 
                       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -229,7 +228,7 @@ function JobDetailsContent() {
                       <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
                       {viewCount != null && (
                         <span className="flex items-center gap-1 text-xs text-[#717182]">
-                          <Eye className="w-3.5 h-3.5" /> {viewCount} views
+                          <Eye className="w-3.5 h-3.5" /> {t('seeker:jobDetails.views', { count: viewCount })}
                         </span>
                       )}
                     </div>
@@ -241,14 +240,14 @@ function JobDetailsContent() {
                         className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
                       >
                         {isSaved ? <BookmarkCheck className="w-5 h-5 text-primary-50" /> : <Bookmark className="w-5 h-5" />}
-                        <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? 'Saved' : 'Save'}</span>
+                        <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? t('buttons.saved') : t('buttons.save')}</span>
                       </button>
                       <button
                         onClick={() => setIsApplyModalOpen(true)}
                         disabled={hasApplied}
                         className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {hasApplied ? 'Applied' : 'Apply'}
+                        {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
                       </button>
                     </div>
                     {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
@@ -259,7 +258,7 @@ function JobDetailsContent() {
               {/* Job Description */}
               {descriptionLines.length > 0 && (
                 <section className="mb-8 sm:mb-10 lg:mb-12">
-                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">Job Description</h2>
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">{t('seeker:jobDetails.description')}</h2>
                   <div className="space-y-3 sm:space-y-4">
                     {descriptionLines.map((line, i) => (
                       <p key={i} className="text-sm sm:text-base lg:text-[16px] leading-relaxed text-black">{line}</p>
@@ -271,7 +270,7 @@ function JobDetailsContent() {
               {/* Skills & Qualifications */}
               {(requirementLines.length > 0 || (job.skillsRequired?.length ?? 0) > 0) && (
                 <section className="mb-8 sm:mb-10 lg:mb-12">
-                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">Skills &amp; Qualifications</h2>
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">{t('seeker:jobDetails.skillsTitle')}</h2>
                   {requirementLines.length > 0 && (
                     <ul className="space-y-3 sm:space-y-4 mb-6">
                       {requirementLines.map((line, i) => (
@@ -299,7 +298,7 @@ function JobDetailsContent() {
                   disabled={hasApplied}
                   className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {hasApplied ? 'Applied' : 'Apply'}
+                  {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
                 </button>
                 {/* Contact-recruiter gated reveal (PJP-113) — shown only when the
                     employer toggled email and/or phone for this job (NC-5/Q51). */}
@@ -309,7 +308,7 @@ function JobDetailsContent() {
                     className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <Phone className="w-5 h-5" />
-                    Contact the Recruiter
+                    {t('seeker:jobDetails.contactRecruiter')}
                   </button>
                 )}
               </div>
@@ -320,23 +319,23 @@ function JobDetailsContent() {
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors mb-12 sm:mb-16 lg:mb-20"
               >
                 <Flag className="w-4 h-4" />
-                Report this job
+                {t('seeker:jobDetails.reportJob')}
               </button>
 
               {/* Related Jobs */}
               {related.length > 0 && (
                 <section>
-                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-6 sm:mb-8 lg:mb-10">Related Jobs</h2>
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-6 sm:mb-8 lg:mb-10">{t('seeker:jobDetails.relatedJobs')}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
                     {related.map((rel) => (
                       <Link key={rel.id} href={`/job-details/${rel.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow">
                         <div className="flex items-start gap-3 sm:gap-4 mb-4">
                           <div className="w-[48px] h-[48px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-[20px] font-semibold text-[#236987]">{initials(companyOf(rel))}</span>
+                            <span className="text-[20px] font-semibold text-[#236987]">{initials(companyOf(rel, t('seeker:jobCard.company')))}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-base sm:text-lg font-semibold mb-1">{rel.title}</h3>
-                            <p className="text-xs sm:text-sm text-gray-600">{companyOf(rel)}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">{companyOf(rel, t('seeker:jobCard.company'))}</p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -377,7 +376,7 @@ function JobDetailsContent() {
           onClose={() => setIsApplyModalOpen(false)}
           jobId={job.id}
           jobTitle={job.title}
-          companyName={companyOf(job)}
+          companyName={companyOf(job, t('seeker:jobCard.company'))}
           onApplied={() => setHasApplied(true)}
         />
       )}
@@ -387,7 +386,7 @@ function JobDetailsContent() {
           isOpen={isContactModalOpen}
           onClose={() => setIsContactModalOpen(false)}
           jobId={job.id}
-          companyName={companyOf(job)}
+          companyName={companyOf(job, t('seeker:jobCard.company'))}
         />
       )}
 

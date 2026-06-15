@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Suspense, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -29,6 +30,7 @@ const TABS: Tab[] = [
 ]
 
 function CandidatesContent() {
+  const { t } = useTranslation()
   const searchParams = useSearchParams()
   const jobId = searchParams.get('jobId') ?? undefined
 
@@ -62,7 +64,7 @@ function CandidatesContent() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load candidates. Please try again.')
+          setError(err instanceof Error ? err.message : t('employer:candidates.loadFailed'))
           setItems([])
         }
       } finally {
@@ -81,7 +83,7 @@ function CandidatesContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer/workers" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:candidates.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <UserDropdown />
@@ -90,9 +92,9 @@ function CandidatesContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">Candidates</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">{t('employer:candidates.title')}</h1>
           {!loading && !error && (
-            <p className="text-sm sm:text-base text-[#717182] mb-6">{total} candidate{total === 1 ? '' : 's'}{jobId ? ' for this job' : ''}</p>
+            <p className="text-sm sm:text-base text-[#717182] mb-6">{jobId ? t('employer:candidates.countForJob', { count: total }) : t('employer:candidates.count', { count: total })}</p>
           )}
 
           {/* Search */}
@@ -103,26 +105,26 @@ function CandidatesContent() {
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && setSearch(searchDraft.trim())}
-                placeholder="Search by name, email, or phone"
+                placeholder={t('employer:candidates.searchPlaceholder')}
                 className="w-full h-11 pl-10 pr-4 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
             <button onClick={() => setSearch(searchDraft.trim())} className="h-11 px-5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
-              Search
+              {t('employer:candidates.search')}
             </button>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-1 sm:gap-3 mb-6 border-b border-gray-200 overflow-x-auto">
-            {TABS.map((t) => (
+            {TABS.map((tab) => (
               <button
-                key={t.key}
-                onClick={() => setTabKey(t.key)}
+                key={tab.key}
+                onClick={() => setTabKey(tab.key)}
                 className={`px-3 sm:px-5 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
-                  tabKey === t.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
+                  tabKey === tab.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
               >
-                {t.label}
+                {t(`employer:candidates.tabs.${tab.key}`)}
               </button>
             ))}
           </div>
@@ -130,7 +132,7 @@ function CandidatesContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading candidates...</p>
+              <p>{t('employer:candidates.loading')}</p>
             </div>
           )}
 
@@ -138,15 +140,15 @@ function CandidatesContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">Retry</button>
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
             </div>
           )}
 
           {!loading && !error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
               <Users className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">No candidates here</p>
-              <p className="max-w-md">{search ? 'No candidates match your search.' : 'Candidates will appear here as seekers apply.'}</p>
+              <p className="text-lg font-medium text-black mb-1">{t('employer:candidates.noneTitle')}</p>
+              <p className="max-w-md">{search ? t('employer:candidates.noneSearch') : t('employer:candidates.noneDefault')}</p>
             </div>
           )}
 
@@ -166,7 +168,7 @@ function CandidatesContent() {
                         <span className="text-sm font-semibold text-[#236987]">{initials(seeker?.fullName)}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold text-black truncate">{seeker?.fullName || 'Applicant'}</p>
+                        <p className="text-base font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
                         <p className="text-sm text-[#717182] truncate">{app.job?.title}</p>
                         {seeker?.location && (
                           <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {seeker.location}</p>

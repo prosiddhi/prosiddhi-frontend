@@ -66,6 +66,13 @@
 - **Proposed fix:** add an explicit `select`/`omit` on `getUserProfile` (and any other endpoint reusing it) that excludes `password` (and ideally `isDeleted`/internal admin fields).
 - **FE mitigation in place:** the FE `SeekerProfile`/`EmployerProfile` types intentionally omit `password`; the profile screens never read or store it. Server-side strip still required.
 
+### BR-9 — Generic per-user language persistence (`PATCH /api/me/language`)  `[ ]`
+- **Surfaced by:** PJP-109 (i18n + in-header language switcher).
+- **Need:** A single role-agnostic endpoint to persist the user's UI language so the choice follows them across devices/sessions for **both** seekers and employers.
+- **Why:** `preferredLanguage` lives on the `User` model, but the only write path today is the **seeker-only** `PUT /jobseekers/profile`. Employers have **no** endpoint to persist a language. The switcher must work for both roles.
+- **Proposed contract:** `PATCH /api/me/language { language: string }` (auth-gated, any role) → updates `user.preferredLanguage`. Returns `204`/the updated value.
+- **FE workaround until then:** localStorage (`preferredLanguage`) is the source of truth so the switcher works for everyone; for a signed-in **seeker** the FE additionally best-effort calls `PUT /jobseekers/profile { preferredLanguage }` (fire-and-forget). Employers persist via localStorage only until this lands. Tagged `// see docs/be-requests.md#br-9`.
+
 ---
 
 ## Landed (move here when done, keep for history)

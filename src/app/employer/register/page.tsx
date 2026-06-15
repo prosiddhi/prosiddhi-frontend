@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { X, User, Building2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEmployerRegistration } from './EmployerRegistrationContext'
 
 export default function EmployerRegistrationPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useEmployerRegistration()
   const [selectedType, setSelectedType] = useState<'individual' | 'corporate' | null>(
     data.companyType || null
@@ -32,7 +34,7 @@ export default function EmployerRegistrationPage() {
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
-          aria-label="Close"
+          aria-label={t('employerRegister:closeAria')}
         >
           <X className="w-6 h-6 text-gray-600" />
         </button>
@@ -42,17 +44,17 @@ export default function EmployerRegistrationPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2">
-              Employer Registration
+              {t('employerRegister:title')}
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              Create a account for the Hiring People
+              {t('employerRegister:subtitle')}
             </p>
           </div>
 
           {/* Company Type Section */}
           <div className="mb-8">
             <label className="block text-base sm:text-lg font-medium text-black mb-4">
-              Choose the Company Type
+              {t('employerRegister:register.chooseType')}
             </label>
 
             {/* Company Type Options */}
@@ -87,10 +89,10 @@ export default function EmployerRegistrationPage() {
                         ? 'text-black'
                         : 'text-gray-900'
                     }`}>
-                      Individual
+                      {t('employerRegister:register.individual')}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600">
-                      Owned by personally
+                      {t('employerRegister:register.individualDesc')}
                     </p>
                   </div>
                 </div>
@@ -133,10 +135,10 @@ export default function EmployerRegistrationPage() {
                         ? 'text-black'
                         : 'text-gray-900'
                     }`}>
-                      Corporate
+                      {t('employerRegister:register.corporate')}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600">
-                      Owned by Shareholder
+                      {t('employerRegister:register.corporateDesc')}
                     </p>
                   </div>
                 </div>
@@ -158,19 +160,19 @@ export default function EmployerRegistrationPage() {
               disabled={!selectedType}
               className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
-              Next
+              {t('buttons.next')}
             </button>
           </div>
 
           {/* Sign In Link */}
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
-              <span className="text-gray-600">Already have an account? </span>
+              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
               <Link
                 href="/login"
                 className="font-semibold text-primary-50 hover:text-primary-60 transition-colors"
               >
-                Sign in here
+                {t('employerRegister:signInLink')}
               </Link>
             </p>
           </div>

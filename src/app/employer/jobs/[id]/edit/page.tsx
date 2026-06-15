@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
@@ -18,6 +19,7 @@ import {
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
 
 function EditJobContent() {
+  const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const jobId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
@@ -60,7 +62,7 @@ function EditJobContent() {
           showPhoneToSeekers: job.showPhoneToSeekers ?? false,
         })
       } catch (err) {
-        if (!ignore) setLoadError(err instanceof Error ? err.message : 'Failed to load this job.')
+        if (!ignore) setLoadError(err instanceof Error ? err.message : t('employer:jobEdit.loadFailed'))
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -78,7 +80,7 @@ function EditJobContent() {
       await employerAPI.updateJob(jobId, data)
       router.push('/employer/jobs')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes. Please try again.')
+      setError(err instanceof Error ? err.message : t('employer:jobEdit.saveFailed'))
       setSubmitting(false)
     }
   }
@@ -89,7 +91,7 @@ function EditJobContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer/jobs" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('employer:jobEdit.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
           <UserDropdown />
@@ -100,14 +102,14 @@ function EditJobContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <Link href="/employer/jobs" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
-            <span>Back to My Jobs</span>
+            <span>{t('employer:jobEdit.backToMyJobs')}</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">Edit Job</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobEdit.title')}</h1>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading job...</p>
+              <p>{t('employer:jobEdit.loading')}</p>
             </div>
           )}
 
@@ -119,7 +121,7 @@ function EditJobContent() {
           )}
 
           {!loading && !loadError && initial && (
-            <JobForm initial={initial} submitLabel="Save Changes" submitting={submitting} error={error} onSubmit={handleSubmit} />
+            <JobForm initial={initial} submitLabel={t('employer:jobEdit.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
           )}
         </div>
       </main>

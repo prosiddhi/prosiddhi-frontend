@@ -2,10 +2,12 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
@@ -18,7 +20,6 @@ import {
   Briefcase,
   Bookmark,
   BookmarkCheck,
-  Languages,
   VolumeX,
   Clock,
   ChevronRight,
@@ -41,13 +42,8 @@ const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   pune: { lat: 18.5204, lon: 73.8567 },
 }
 
-const JOB_TYPES: { value: string; label: string }[] = [
-  { value: 'FULL_TIME', label: 'Full Time' },
-  { value: 'PART_TIME', label: 'Part Time' },
-  { value: 'CONTRACT', label: 'Contract' },
-  { value: 'TEMPORARY', label: 'Temporary' },
-  { value: 'INTERNSHIP', label: 'Internship' },
-]
+// Job-type option values; labels are looked up via t('seeker:jobFeed.jobType.<value>').
+const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'TEMPORARY', 'INTERNSHIP'] as const
 
 interface AppliedFilters {
   search: string
@@ -74,6 +70,7 @@ function sortOrderFor(sortBy: JobFeedFilters['sortBy']): 'asc' | 'desc' {
 }
 
 function JobFeedPageContent() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('all')
   const [page, setPage] = useState(1)
 
@@ -177,7 +174,7 @@ function JobFeedPageContent() {
         if (!ignore) setData(res)
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to load jobs. Please try again.')
+          setError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
           setData(null)
         }
       } finally {
@@ -188,7 +185,7 @@ function JobFeedPageContent() {
     return () => {
       ignore = true
     }
-  }, [tab, page, applied, reloadKey])
+  }, [tab, page, applied, reloadKey, t])
 
   // Both the search bar and the filter panel commit the full draft state, so the
   // two controls never disagree about what's currently applied.
@@ -223,16 +220,16 @@ function JobFeedPageContent() {
 
   const sectionTitle =
     tab === 'recommended'
-      ? 'Recommended Jobs'
+      ? t('seeker:jobFeed.section.recommendedTitle')
       : tab === 'nearby'
-      ? 'Jobs Near You'
-      : 'All Jobs'
+      ? t('seeker:jobFeed.section.nearbyTitle')
+      : t('seeker:jobFeed.section.allTitle')
   const sectionSub =
     tab === 'recommended'
-      ? 'Based on your profile'
+      ? t('seeker:jobFeed.section.recommendedSub')
       : tab === 'nearby'
-      ? 'Sorted by distance from your location'
-      : 'Browse the latest openings'
+      ? t('seeker:jobFeed.section.nearbySub')
+      : t('seeker:jobFeed.section.allSub')
 
   return (
     <div className="min-h-screen bg-white">
@@ -248,20 +245,17 @@ function JobFeedPageContent() {
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-primary-50">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px] font-medium">Job Feed</span>
+              <span className="text-[18px] font-medium">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
 
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
@@ -281,10 +275,10 @@ function JobFeedPageContent() {
         <div className="relative z-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <h1 className="text-3xl sm:text-4xl lg:text-6xl xl:text-[72px] font-bold text-[#164e65] leading-tight mb-3 sm:mb-4">
-              Find Jobs Near You
+              {t('seeker:jobFeed.heroTitle')}
             </h1>
             <p className="text-sm sm:text-base lg:text-[16px] text-[#818181] max-w-2xl mx-auto">
-              Look for a job? Browse our latest job openings, view and apply to a suitable job today.
+              {t('seeker:jobFeed.heroSubtitle')}
             </p>
           </div>
 
@@ -296,7 +290,7 @@ function JobFeedPageContent() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Job title or keyword"
+                    placeholder={t('seeker:jobFeed.searchPlaceholder')}
                     value={searchDraft}
                     onChange={(e) => setSearchDraft(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -311,11 +305,11 @@ function JobFeedPageContent() {
                     onChange={(e) => setCityDraft(e.target.value)}
                     className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
                   >
-                    <option value="">Any location</option>
-                    <option value="bangalore">Bangalore</option>
-                    <option value="delhi">Delhi</option>
-                    <option value="mumbai">Mumbai</option>
-                    <option value="pune">Pune</option>
+                    <option value="">{t('seeker:jobFeed.anyLocation')}</option>
+                    <option value="bangalore">{t('seeker:jobFeed.city.bangalore')}</option>
+                    <option value="delhi">{t('seeker:jobFeed.city.delhi')}</option>
+                    <option value="mumbai">{t('seeker:jobFeed.city.mumbai')}</option>
+                    <option value="pune">{t('seeker:jobFeed.city.pune')}</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -325,7 +319,7 @@ function JobFeedPageContent() {
                   className="h-12 px-6 sm:px-8 lg:px-[43px] bg-primary-50 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors whitespace-nowrap"
                 >
                   <Search className="w-5 h-5" />
-                  <span className="text-base">Search Jobs</span>
+                  <span className="text-base">{t('seeker:jobFeed.searchJobs')}</span>
                 </button>
 
                 <button
@@ -333,10 +327,10 @@ function JobFeedPageContent() {
                   className="h-12 px-4 bg-[#dddddd] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors lg:w-auto"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
-                  <span className="text-base">Filter</span>
+                  <span className="text-base">{t('seeker:jobFeed.filter')}</span>
                 </button>
 
-                <button className="h-12 w-12 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors" title="Voice search — coming soon">
+                <button className="h-12 w-12 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors" title={t('seeker:jobFeed.voiceSearchTooltip')} aria-label={t('seeker:jobFeed.voiceSearchLabel')}>
                   <VolumeX className="w-6 h-6 text-[#4d4d4d]" />
                 </button>
               </div>
@@ -345,34 +339,34 @@ function JobFeedPageContent() {
               {showFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">Job Type</label>
+                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.jobType')}</label>
                     <select value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
-                      <option value="">Any</option>
-                      {JOB_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
+                      <option value="">{t('seeker:jobFeed.filters.any')}</option>
+                      {JOB_TYPES.map((value) => (
+                        <option key={value} value={value}>{t(`seeker:jobFeed.jobType.${value}`)}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">Min Salary (₹)</label>
-                    <input type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder="0" className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.minSalary')}</label>
+                    <input type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.minSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">Max Salary (₹)</label>
-                    <input type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder="Any" className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.maxSalary')}</label>
+                    <input type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.maxSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">Sort By</label>
+                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.sortBy')}</label>
                     <select value={sortByDraft} onChange={(e) => setSortByDraft(e.target.value as JobFeedFilters['sortBy'])} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
-                      <option value="postedAt">Newest</option>
-                      <option value="salaryMax">Salary (high)</option>
-                      <option value="salaryMin">Salary (low)</option>
-                      <option value="title">Title</option>
+                      <option value="postedAt">{t('seeker:jobFeed.filters.sortNewest')}</option>
+                      <option value="salaryMax">{t('seeker:jobFeed.filters.sortSalaryHigh')}</option>
+                      <option value="salaryMin">{t('seeker:jobFeed.filters.sortSalaryLow')}</option>
+                      <option value="title">{t('seeker:jobFeed.filters.sortTitle')}</option>
                     </select>
                   </div>
                   <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
                     <button onClick={handleApplyFilters} className="h-11 px-8 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium">
-                      Apply Filters
+                      {t('seeker:jobFeed.filters.applyFilters')}
                     </button>
                   </div>
                 </div>
@@ -388,18 +382,18 @@ function JobFeedPageContent() {
           {/* Tabs */}
           <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200">
             {([
-              { key: 'all', label: 'All Jobs' },
-              { key: 'recommended', label: 'Recommended' },
-              { key: 'nearby', label: 'Near By' },
-            ] as { key: Tab; label: string }[]).map((t) => (
+              { key: 'all', label: t('seeker:jobFeed.tabs.all') },
+              { key: 'recommended', label: t('seeker:jobFeed.tabs.recommended') },
+              { key: 'nearby', label: t('seeker:jobFeed.tabs.nearby') },
+            ] as { key: Tab; label: string }[]).map((tabItem) => (
               <button
-                key={t.key}
-                onClick={() => switchTab(t.key)}
+                key={tabItem.key}
+                onClick={() => switchTab(tabItem.key)}
                 className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px transition-colors ${
-                  tab === t.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
+                  tab === tabItem.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
               >
-                {t.label}
+                {tabItem.label}
               </button>
             ))}
           </div>
@@ -410,7 +404,7 @@ function JobFeedPageContent() {
               {sectionTitle} - <span className="font-normal">{sectionSub}</span>
             </h2>
             {!loading && !error && (
-              <p className="text-sm sm:text-base text-[#717182]">{pagination?.total ?? 0} Results</p>
+              <p className="text-sm sm:text-base text-[#717182]">{t('seeker:jobFeed.resultCount', { count: pagination?.total ?? 0 })}</p>
             )}
           </div>
 
@@ -418,7 +412,7 @@ function JobFeedPageContent() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>Loading jobs...</p>
+              <p>{t('seeker:jobFeed.loading')}</p>
             </div>
           )}
 
@@ -428,7 +422,7 @@ function JobFeedPageContent() {
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
               <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
-                Retry
+                {t('buttons.retry')}
               </button>
             </div>
           )}
@@ -437,13 +431,13 @@ function JobFeedPageContent() {
           {!loading && !error && jobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
               <Briefcase className="w-10 h-10 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">No jobs found</p>
+              <p className="text-lg font-medium text-black mb-1">{t('seeker:jobFeed.emptyTitle')}</p>
               <p className="max-w-md">
                 {tab === 'nearby'
-                  ? 'No jobs near your saved location yet. Try the All Jobs tab.'
+                  ? t('seeker:jobFeed.emptyNearby')
                   : tab === 'recommended'
-                  ? 'No recommendations yet — complete your profile to improve matches.'
-                  : 'Try adjusting your search or filters.'}
+                  ? t('seeker:jobFeed.emptyRecommended')
+                  : t('seeker:jobFeed.emptyDefault')}
               </p>
             </div>
           )}
@@ -461,11 +455,11 @@ function JobFeedPageContent() {
 
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">{job.title}</h3>
-                        <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">{job.companyName || 'Company'}</p>
+                        <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">{job.companyName || t('seeker:jobCard.company')}</p>
 
                         <div className="flex items-center gap-1 mb-3 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
-                          <span className="text-xs sm:text-sm lg:text-[14px]">{formatSalary(job.salaryMin, job.salaryMax)} / Month</span>
+                          <span className="text-xs sm:text-sm lg:text-[14px]">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
                         </div>
 
                         <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
@@ -508,11 +502,11 @@ function JobFeedPageContent() {
                             <Bookmark className="w-5 h-5" />
                           )}
                           <span className="text-sm sm:text-base">
-                            {savedIds.has(job.id) ? 'Saved' : 'Save the Job'}
+                            {savedIds.has(job.id) ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
                           </span>
                         </button>
                         <Link href={`/job-details/${job.id}`} className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center">
-                          View the Job
+                          {t('seeker:jobCard.viewJob')}
                         </Link>
                       </div>
                     </div>
@@ -546,7 +540,7 @@ function JobFeedPageContent() {
                   </button>
                 ))
               ) : (
-                <span className="px-3 text-sm text-[#717182]">Page {page} of {totalPages}</span>
+                <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
               )}
 
               <button

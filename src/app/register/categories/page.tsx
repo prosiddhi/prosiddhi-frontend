@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -10,6 +11,7 @@ import { SECTORS, jobTitlesForSector } from '@/lib/jobCategories'
 
 export default function RegisterCategoriesPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
   const [sector, setSector] = useState(data.preferredSector)
   const [jobTitle, setJobTitle] = useState(data.preferredJobTitle)
@@ -30,11 +32,11 @@ export default function RegisterCategoriesPage() {
 
   const handleNext = () => {
     if (!sector) {
-      setError('Please select your work sector')
+      setError(t('auth:categories.errorSector'))
       return
     }
     if (!jobTitle) {
-      setError('Please select the job you are looking for')
+      setError(t('auth:categories.errorJob'))
       return
     }
     update({ preferredSector: sector, preferredJobTitle: jobTitle })
@@ -51,7 +53,7 @@ export default function RegisterCategoriesPage() {
           <div className="relative h-full flex flex-col">
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                What Work Are You Looking For?
+                {t('auth:categories.panelHeading')}
               </h2>
             </div>
             <div className="absolute bottom-0 left-0 w-full">
@@ -70,7 +72,7 @@ export default function RegisterCategoriesPage() {
                 <Image src="/assets/logo.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
-                <span className="text-sm lg:text-[18px]">Close</span>
+                <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
@@ -79,13 +81,13 @@ export default function RegisterCategoriesPage() {
               <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg">
                 <ChevronLeft className="w-6 h-6 text-gray-600" />
               </button>
-              <span className="text-[#767676] text-[16px] ml-2">Step 5 of 7</span>
+              <span className="text-[#767676] text-[16px] ml-2">{t('auth:categories.stepLabel')}</span>
             </div>
 
             <div className="max-w-[953px]">
               <div className="mb-10 lg:mb-16">
-                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">Your work preferences</h1>
-                <p className="text-base lg:text-[24px] text-[#767676]">Pick the sector and job you want</p>
+                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">{t('auth:categories.title')}</h1>
+                <p className="text-base lg:text-[24px] text-[#767676]">{t('auth:categories.subtitle')}</p>
               </div>
 
               {error && (
@@ -96,13 +98,13 @@ export default function RegisterCategoriesPage() {
 
               <div className="space-y-8 mb-12">
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">Work Sector *</label>
+                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:categories.sectorLabel')}</label>
                   <select
                     value={sector}
                     onChange={(e) => handleSectorChange(e.target.value)}
                     className="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
                   >
-                    <option value="">Select a sector</option>
+                    <option value="">{t('auth:categories.sectorSelect')}</option>
                     {SECTORS.map((s) => (
                       <option key={s.sector} value={s.sector}>{s.sector}</option>
                     ))}
@@ -110,14 +112,14 @@ export default function RegisterCategoriesPage() {
                 </div>
 
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">Job You Want *</label>
+                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:categories.jobLabel')}</label>
                   <select
                     value={jobTitle}
                     onChange={(e) => { setJobTitle(e.target.value); if (error) setError('') }}
                     disabled={!sector}
                     className="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px] disabled:opacity-50"
                   >
-                    <option value="">{sector ? 'Select a job' : 'Select a sector first'}</option>
+                    <option value="">{sector ? t('auth:categories.jobSelect') : t('auth:categories.jobSelectSectorFirst')}</option>
                     {jobTitles.map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}
@@ -130,7 +132,7 @@ export default function RegisterCategoriesPage() {
                   onClick={handleNext}
                   className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60"
                 >
-                  <span className="text-base lg:text-[20px]">Next</span>
+                  <span className="text-base lg:text-[20px]">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>

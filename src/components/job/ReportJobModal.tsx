@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { X, Flag, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { jobSeekerAPI } from '@/lib/api'
 
@@ -15,6 +16,7 @@ const MIN_REASON = 5
 const MAX_REASON = 1000
 
 export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobModalProps) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +49,7 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
       setSuccess(true)
     } catch (err) {
       // Surfaces the BE message, including the 429 rate-limit / duplicate text.
-      setError(err instanceof Error ? err.message : 'Could not submit your report. Please try again.')
+      setError(err instanceof Error ? err.message : t('seeker:reportModal.submitError'))
     } finally {
       setSubmitting(false)
     }
@@ -71,41 +73,44 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
           {success ? (
             <div className="flex flex-col items-center text-center py-4">
               <CheckCircle2 className="w-14 h-14 text-green-500 mb-4" />
-              <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">Report Submitted</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">{t('seeker:reportModal.successTitle')}</h2>
               <p className="text-sm text-gray-600 mb-6 max-w-sm">
-                Thanks for flagging this. Our team will review the post.
+                {t('seeker:reportModal.successBody')}
               </p>
               <button
                 onClick={onClose}
                 className="px-8 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
               >
-                Done
+                {t('seeker:reportModal.done')}
               </button>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-2 mb-1">
                 <Flag className="w-5 h-5 text-red-500" />
-                <h2 className="text-xl sm:text-2xl font-bold text-black">Report this job</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-black">{t('seeker:reportModal.title')}</h2>
               </div>
               <p className="text-sm text-gray-600 mb-5">
-                Tell us what&apos;s wrong with <span className="font-medium">{jobTitle}</span> — e.g. it asks for
-                money, looks like a scam, or the details are misleading.
+                <Trans
+                  i18nKey="seeker:reportModal.intro"
+                  values={{ jobTitle }}
+                  components={{ bold: <span className="font-medium" /> }}
+                />
               </p>
 
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Describe the problem..."
+                placeholder={t('seeker:reportModal.placeholder')}
                 rows={5}
                 maxLength={MAX_REASON}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm sm:text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent resize-none"
               />
               <div className="flex justify-between items-center mt-1 mb-4">
                 <span className="text-xs text-gray-400">
-                  {trimmedLength < MIN_REASON ? `At least ${MIN_REASON} characters` : ''}
+                  {trimmedLength < MIN_REASON ? t('seeker:reportModal.minChars', { count: MIN_REASON }) : ''}
                 </span>
-                <span className="text-xs text-gray-400">{reason.length}/{MAX_REASON}</span>
+                <span className="text-xs text-gray-400">{t('seeker:reportModal.charCount', { current: reason.length, max: MAX_REASON })}</span>
               </div>
 
               {error && (
@@ -121,7 +126,7 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
                   disabled={submitting}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-base font-medium text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  {t('seeker:reportModal.cancel')}
                 </button>
                 <button
                   onClick={handleSubmit}
@@ -129,7 +134,7 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
                   className="flex-1 px-6 py-3 bg-red-500 text-white rounded-lg text-base font-medium hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {submitting ? 'Submitting...' : 'Submit Report'}
+                  {submitting ? t('seeker:reportModal.submitting') : t('seeker:reportModal.submit')}
                 </button>
               </div>
             </>

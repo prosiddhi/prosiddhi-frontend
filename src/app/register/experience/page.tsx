@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
@@ -17,6 +18,7 @@ interface Experience {
 
 export default function RegisterExperiencePage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
   const [experiences, setExperiences] = useState<Experience[]>(
     data.workExperiences.length
@@ -55,7 +57,7 @@ export default function RegisterExperiencePage() {
       if (validTypes.includes(file.type)) {
         setDocument(file)
       } else {
-        alert('Please upload a valid document (JPG, PDF, or DOC)')
+        alert(t('auth:experience.invalidDocument'))
       }
     }
   }
@@ -95,7 +97,7 @@ export default function RegisterExperiencePage() {
             {/* Text Content */}
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Your Next Opportunity Is Just a Click Away
+                {t('auth:experience.panelHeading')}
               </h2>
             </div>
 
@@ -135,7 +137,7 @@ export default function RegisterExperiencePage() {
                 href="/"
                 className="flex items-center gap-2 bg-error-500 hover:bg-error-600 text-white px-5 py-3 rounded-lg transition-colors"
               >
-                <span className="text-[18px]">Close</span>
+                <span className="text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -145,10 +147,10 @@ export default function RegisterExperiencePage() {
               {/* Page Title */}
               <div className="mb-8">
                 <h1 className="text-[56px] font-bold text-black mb-4 leading-tight">
-                  Create Account
+                  {t('auth:experience.title')}
                 </h1>
                 <p className="text-[24px] text-[#767676]">
-                  Complete the full profile set up for the job search
+                  {t('auth:experience.subtitle')}
                 </p>
               </div>
 
@@ -159,7 +161,7 @@ export default function RegisterExperiencePage() {
                   <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
                     <span className="text-[24px] font-medium text-white">1</span>
                   </div>
-                  <span className="text-[16px] font-medium text-black">Profile</span>
+                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepProfile')}</span>
                 </div>
 
                 {/* Progress Line 1 (Completed) */}
@@ -170,7 +172,7 @@ export default function RegisterExperiencePage() {
                   <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
                     <span className="text-[24px] font-medium text-white">2</span>
                   </div>
-                  <span className="text-[16px] font-medium text-black">Categories</span>
+                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepCategories')}</span>
                 </div>
 
                 {/* Progress Line 2 (Completed) */}
@@ -181,7 +183,7 @@ export default function RegisterExperiencePage() {
                   <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
                     <span className="text-[24px] font-medium text-white">3</span>
                   </div>
-                  <span className="text-[16px] font-medium text-black">Experience</span>
+                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepExperience')}</span>
                 </div>
               </div>
 
@@ -189,9 +191,9 @@ export default function RegisterExperiencePage() {
               <div className="mb-12">
                 <div className="flex items-center gap-3 mb-6">
                   <h2 className="text-[28px] font-medium text-black">
-                    Add Work Experiences (Optional)
+                    {t('auth:experience.workHeading')}
                   </h2>
-                  <VoiceButton label="Add work experiences" iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
+                  <VoiceButton label={t('auth:experience.workVoice')} iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
                 {/* Experience Entries */}
@@ -201,13 +203,13 @@ export default function RegisterExperiencePage() {
                       {/* Designation */}
                       <div>
                         <label className="text-[20px] font-medium text-black mb-4 block">
-                          Designation
+                          {t('auth:experience.designationLabel')}
                         </label>
                         <input
                           type="text"
                           value={exp.designation}
                           onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
-                          placeholder="Enter Designation"
+                          placeholder={t('auth:experience.designationPlaceholder')}
                           className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
@@ -215,13 +217,13 @@ export default function RegisterExperiencePage() {
                       {/* From Year */}
                       <div>
                         <label className="text-[20px] font-medium text-black mb-4 block">
-                          From Year
+                          {t('auth:experience.fromYearLabel')}
                         </label>
                         <input
                           type="text"
                           value={exp.fromYear}
                           onChange={(e) => handleExperienceChange(exp.id, 'fromYear', e.target.value)}
-                          placeholder="Start Year"
+                          placeholder={t('auth:experience.fromYearPlaceholder')}
                           className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
@@ -229,13 +231,13 @@ export default function RegisterExperiencePage() {
                       {/* To Year */}
                       <div>
                         <label className="text-[20px] font-medium text-black mb-4 block">
-                          To Year
+                          {t('auth:experience.toYearLabel')}
                         </label>
                         <input
                           type="text"
                           value={exp.toYear}
                           onChange={(e) => handleExperienceChange(exp.id, 'toYear', e.target.value)}
-                          placeholder="End Year"
+                          placeholder={t('auth:experience.toYearPlaceholder')}
                           className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
@@ -249,7 +251,7 @@ export default function RegisterExperiencePage() {
                   className="flex items-center gap-2 text-[20px] font-medium text-[#4d4d4d] hover:text-primary-70 transition-colors"
                 >
                   <Plus className="w-6 h-6" />
-                  <span>Add Experiences</span>
+                  <span>{t('auth:experience.addExperiences')}</span>
                 </button>
               </div>
 
@@ -257,9 +259,9 @@ export default function RegisterExperiencePage() {
               <div className="mb-20">
                 <div className="flex items-center gap-3 mb-6">
                   <label className="text-[20px] font-medium text-black">
-                    Upload Document (Optional)
+                    {t('auth:experience.uploadHeading')}
                   </label>
-                  <VoiceButton label="Upload document" iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
+                  <VoiceButton label={t('auth:experience.uploadVoice')} iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
                 {/* Upload Area */}
@@ -277,15 +279,15 @@ export default function RegisterExperiencePage() {
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Upload className="w-6 h-6 text-black" />
-                    <span className="text-[20px] font-medium text-black">Upload</span>
+                    <span className="text-[20px] font-medium text-black">{t('auth:experience.upload')}</span>
                   </div>
                   
                   <p className="text-[16px] text-black mb-1">
-                    {document ? document.name : 'Drag or drop file here or choose file'}
+                    {document ? document.name : t('auth:experience.uploadHint')}
                   </p>
                   
                   <p className="text-[12px] font-medium text-[#4d4d4d]">
-                    Jpg, Doc, Pdf are accpet
+                    {t('auth:experience.uploadAccepted')}
                   </p>
                 </button>
               </div>
@@ -298,7 +300,7 @@ export default function RegisterExperiencePage() {
                   className="flex items-center gap-2 border border-secondary-70 hover:bg-secondary-10 text-black px-5 py-3 rounded-lg transition-colors h-[50px]"
                 >
                   <ChevronLeft className="w-6 h-6" />
-                  <span className="text-[18px]">Back</span>
+                  <span className="text-[18px]">{t('buttons.back')}</span>
                 </button>
 
                 {/* Next Button */}
@@ -306,7 +308,7 @@ export default function RegisterExperiencePage() {
                   onClick={handleNext}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors"
                 >
-                  <span className="text-[20px]">Next</span>
+                  <span className="text-[20px]">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
@@ -314,12 +316,12 @@ export default function RegisterExperiencePage() {
               {/* Sign In Link */}
               <div className="text-center max-w-[1006px]">
                 <p className="text-[20px]">
-                  <span className="text-black">Already have an account? </span>
+                  <span className="text-black">{t('auth:experience.alreadyHaveAccount')}</span>
                   <Link
                     href="/login"
                     className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
                   >
-                    Sign in here
+                    {t('auth:experience.signInHere')}
                   </Link>
                 </p>
               </div>
@@ -348,7 +350,7 @@ export default function RegisterExperiencePage() {
             href="/"
             className="flex items-center gap-2 bg-error-500 hover:bg-error-600 text-white px-3 py-2 rounded-lg transition-colors"
           >
-            <span className="text-sm">Close</span>
+            <span className="text-sm">{t('auth:register.close')}</span>
             <X className="w-4 h-4" />
           </Link>
         </div>
@@ -358,10 +360,10 @@ export default function RegisterExperiencePage() {
           {/* Page Title */}
           <div className="mb-6">
             <h1 className="text-3xl sm:text-4xl font-bold text-black mb-2">
-              Create Account
+              {t('auth:experience.title')}
             </h1>
             <p className="text-base text-[#767676]">
-              Complete the full profile set up for the job search
+              {t('auth:experience.subtitle')}
             </p>
           </div>
 
@@ -372,7 +374,7 @@ export default function RegisterExperiencePage() {
               <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
                 <span className="text-lg font-medium text-white">1</span>
               </div>
-              <span className="text-xs font-medium text-black">Profile</span>
+              <span className="text-xs font-medium text-black">{t('auth:experience.stepProfile')}</span>
             </div>
 
             {/* Line 1 */}
@@ -383,7 +385,7 @@ export default function RegisterExperiencePage() {
               <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
                 <span className="text-lg font-medium text-white">2</span>
               </div>
-              <span className="text-xs font-medium text-black">Categories</span>
+              <span className="text-xs font-medium text-black">{t('auth:experience.stepCategories')}</span>
             </div>
 
             {/* Line 2 */}
@@ -394,7 +396,7 @@ export default function RegisterExperiencePage() {
               <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
                 <span className="text-lg font-medium text-white">3</span>
               </div>
-              <span className="text-xs font-medium text-black">Experience</span>
+              <span className="text-xs font-medium text-black">{t('auth:experience.stepExperience')}</span>
             </div>
           </div>
 
@@ -402,9 +404,9 @@ export default function RegisterExperiencePage() {
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <h2 className="text-xl font-medium text-black">
-                Add Work Experiences (Optional)
+                {t('auth:experience.workHeading')}
               </h2>
-              <VoiceButton label="Add work experiences" iconClassName="w-5 h-5 text-gray-600" className="p-1" />
+              <VoiceButton label={t('auth:experience.workVoice')} iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             {/* Experience Entries */}
@@ -414,13 +416,13 @@ export default function RegisterExperiencePage() {
                   {/* Designation */}
                   <div>
                     <label className="text-base font-medium text-black mb-2 block">
-                      Designation
+                      {t('auth:experience.designationLabel')}
                     </label>
                     <input
                       type="text"
                       value={exp.designation}
                       onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
-                      placeholder="Enter Designation"
+                      placeholder={t('auth:experience.designationPlaceholder')}
                       className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                     />
                   </div>
@@ -430,13 +432,13 @@ export default function RegisterExperiencePage() {
                     {/* From Year */}
                     <div>
                       <label className="text-base font-medium text-black mb-2 block">
-                        From Year
+                        {t('auth:experience.fromYearLabel')}
                       </label>
                       <input
                         type="text"
                         value={exp.fromYear}
                         onChange={(e) => handleExperienceChange(exp.id, 'fromYear', e.target.value)}
-                        placeholder="Start Year"
+                        placeholder={t('auth:experience.fromYearPlaceholder')}
                         className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       />
                     </div>
@@ -444,13 +446,13 @@ export default function RegisterExperiencePage() {
                     {/* To Year */}
                     <div>
                       <label className="text-base font-medium text-black mb-2 block">
-                        To Year
+                        {t('auth:experience.toYearLabel')}
                       </label>
                       <input
                         type="text"
                         value={exp.toYear}
                         onChange={(e) => handleExperienceChange(exp.id, 'toYear', e.target.value)}
-                        placeholder="End Year"
+                        placeholder={t('auth:experience.toYearPlaceholder')}
                         className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       />
                     </div>
@@ -465,7 +467,7 @@ export default function RegisterExperiencePage() {
               className="flex items-center gap-2 text-base font-medium text-[#4d4d4d] hover:text-primary-70 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              <span>Add Experiences</span>
+              <span>{t('auth:experience.addExperiences')}</span>
             </button>
           </div>
 
@@ -473,9 +475,9 @@ export default function RegisterExperiencePage() {
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <label className="text-base font-medium text-black">
-                Upload Document (Optional)
+                {t('auth:experience.uploadHeading')}
               </label>
-              <VoiceButton label="Upload document" iconClassName="w-5 h-5 text-gray-600" className="p-1" />
+              <VoiceButton label={t('auth:experience.uploadVoice')} iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             <input
@@ -492,15 +494,15 @@ export default function RegisterExperiencePage() {
             >
               <div className="flex items-center gap-2 mb-1">
                 <Upload className="w-5 h-5 text-black" />
-                <span className="text-base font-medium text-black">Upload</span>
+                <span className="text-base font-medium text-black">{t('auth:experience.upload')}</span>
               </div>
               
               <p className="text-sm text-black mb-1 px-4 text-center">
-                {document ? document.name : 'Drag or drop file here'}
+                {document ? document.name : t('auth:experience.uploadHintMobile')}
               </p>
               
               <p className="text-xs font-medium text-[#4d4d4d]">
-                Jpg, Doc, Pdf accepted
+                {t('auth:experience.uploadAcceptedMobile')}
               </p>
             </button>
           </div>
@@ -512,7 +514,7 @@ export default function RegisterExperiencePage() {
               onClick={handleNext}
               className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-6 py-3 rounded-lg transition-colors"
             >
-              <span className="text-lg">Next</span>
+              <span className="text-lg">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />
             </button>
 
@@ -522,19 +524,19 @@ export default function RegisterExperiencePage() {
               className="w-full flex items-center justify-center gap-2 border border-secondary-70 hover:bg-secondary-10 text-black px-6 py-3 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-lg">Back</span>
+              <span className="text-lg">{t('buttons.back')}</span>
             </button>
           </div>
 
           {/* Sign In Link */}
           <div className="text-center">
             <p className="text-base">
-              <span className="text-black">Already have an account? </span>
+              <span className="text-black">{t('auth:experience.alreadyHaveAccount')}</span>
               <Link
                 href="/login"
                 className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
               >
-                Sign in here
+                {t('auth:experience.signInHere')}
               </Link>
             </p>
           </div>
@@ -543,7 +545,7 @@ export default function RegisterExperiencePage() {
         {/* Blue Decorative Section at Bottom */}
         <div className="bg-primary-50 py-8 px-4">
           <h2 className="text-2xl font-bold text-white text-center leading-tight">
-            Your Next Opportunity Is Just a Click Away
+            {t('auth:experience.panelHeading')}
           </h2>
         </div>
       </div>

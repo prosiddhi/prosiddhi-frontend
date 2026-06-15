@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
@@ -13,6 +14,7 @@ const OTP_LENGTH = 6
 
 export default function RegisterOTPPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
   const phoneNumber = data.phoneNumber
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
@@ -63,7 +65,7 @@ export default function RegisterOTPPage() {
     const otpCode = otp.join('')
 
     if (otpCode.length !== OTP_LENGTH) {
-      setError('Please enter the complete 6-digit code')
+      setError(t('auth:otp.errorIncomplete'))
       return
     }
 
@@ -77,7 +79,7 @@ export default function RegisterOTPPage() {
       update({ phoneVerified: true })
       router.push('/register/profile')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+      setError(err instanceof Error ? err.message : t('auth:otp.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
       document.getElementById('otp-0')?.focus()
     } finally {
@@ -97,7 +99,7 @@ export default function RegisterOTPPage() {
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend OTP')
+      setError(err instanceof Error ? err.message : t('auth:otp.errorResend'))
     } finally {
       setResendLoading(false)
     }
@@ -115,7 +117,7 @@ export default function RegisterOTPPage() {
           <div className="relative h-full flex flex-col">
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Verify Your Identity
+                {t('auth:otp.panelHeading')}
               </h2>
             </div>
             <div className="absolute bottom-0 left-0 w-full">
@@ -145,7 +147,7 @@ export default function RegisterOTPPage() {
                 />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-5 py-3 rounded-lg hover:bg-error-600 transition-colors">
-                <span className="text-[18px]">Close</span>
+                <span className="text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -161,16 +163,16 @@ export default function RegisterOTPPage() {
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
                 <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
               </div>
-              <span className="text-[#767676] text-[16px] ml-2">Step 3 of 7</span>
+              <span className="text-[#767676] text-[16px] ml-2">{t('auth:otp.stepLabel')}</span>
             </div>
 
             <div className="max-w-[1200px]">
               <div className="mb-16">
                 <h1 className="text-[56px] font-bold text-black leading-tight mb-4">
-                  Enter verification code
+                  {t('auth:otp.title')}
                 </h1>
                 <p className="text-[24px] text-[#767676]">
-                  We've sent a code to {phoneNumber}
+                  {t('auth:otp.sentTo', { phone: phoneNumber })}
                 </p>
               </div>
 
@@ -183,9 +185,9 @@ export default function RegisterOTPPage() {
               <div className="mb-12">
                 <div className="flex items-center gap-3 mb-6">
                   <label className="text-[20px] font-medium text-black">
-                    Verification code *
+                    {t('auth:otp.codeLabel')}
                   </label>
-                  <VoiceButton label="Verification code" iconClassName="w-5 h-5 text-primary-50" className="p-1" />
+                  <VoiceButton label={t('auth:otp.codeVoice')} iconClassName="w-5 h-5 text-primary-50" className="p-1" />
                 </div>
                 
                 <div className="flex items-center gap-4 mb-6">
@@ -210,7 +212,7 @@ export default function RegisterOTPPage() {
                   disabled={!canResend || resendLoading}
                   className="text-primary-50 hover:text-primary-60 text-[16px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {resendLoading ? 'Sending...' : canResend ? 'Resend Code' : `Resend in ${countdown}s`}
+                  {resendLoading ? t('auth:otp.sending') : canResend ? t('auth:otp.resendCode') : t('auth:otp.resendIn', { countdown })}
                 </button>
               </div>
 
@@ -220,7 +222,7 @@ export default function RegisterOTPPage() {
                   disabled={otp.join('').length !== OTP_LENGTH || loading}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-[20px]">{loading ? 'Verifying...' : 'Verify'}</span>
+                  <span className="text-[20px]">{loading ? t('auth:otp.verifying') : t('buttons.verify')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
@@ -239,7 +241,7 @@ export default function RegisterOTPPage() {
             <Image src="/assets/logo.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <Link href="/" className="flex items-center gap-1 bg-error-500 text-white px-3 py-2 rounded-lg text-sm">
-            <span>Close</span>
+            <span>{t('auth:register.close')}</span>
             <X className="w-4 h-4" />
           </Link>
         </div>
@@ -252,15 +254,15 @@ export default function RegisterOTPPage() {
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
             <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
           </div>
-          <span className="text-sm text-gray-600">Step 3 of 7</span>
+          <span className="text-sm text-gray-600">{t('auth:otp.stepLabel')}</span>
         </div>
 
         <div className="flex-1 bg-white px-4 py-8 overflow-auto">
           <h1 className="text-3xl sm:text-4xl font-bold text-black mb-4">
-            Enter verification code
+            {t('auth:otp.title')}
           </h1>
           <p className="text-base text-gray-600 mb-8">
-            We've sent a code to {phoneNumber}
+            {t('auth:otp.sentTo', { phone: phoneNumber })}
           </p>
 
           {error && (
@@ -271,7 +273,7 @@ export default function RegisterOTPPage() {
 
           <div className="mb-8">
             <label className="text-base font-medium text-black mb-4 block">
-              Verification code *
+              {t('auth:otp.codeLabel')}
             </label>
             <div className="flex items-center gap-3 mb-4">
               {otp.map((digit, index) => (
@@ -303,14 +305,14 @@ export default function RegisterOTPPage() {
             disabled={otp.join('').length !== OTP_LENGTH || loading}
             className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white px-6 py-3 rounded-lg disabled:opacity-50"
           >
-            <span className="text-lg">{loading ? 'Verifying...' : 'Verify'}</span>
+            <span className="text-lg">{loading ? t('auth:otp.verifying') : t('buttons.verify')}</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
         <div className="bg-primary-50 py-8 px-4">
           <h2 className="text-2xl font-bold text-white leading-tight mb-4">
-            Verify Your Identity
+            {t('auth:otp.panelHeading')}
           </h2>
           <div className="relative w-full h-48">
             <Image src="/assets/421.svg" alt="Illustration" fill className="object-contain" />
