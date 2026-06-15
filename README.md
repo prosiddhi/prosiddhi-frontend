@@ -34,6 +34,21 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 If `NEXT_PUBLIC_API_URL` is unset, the app falls back to `http://localhost:5000/api`.
 
+### Running against the hosted dev backend
+
+If you don't want to run the backend locally, point `.env.local` at Asrar's hosted
+dev backend instead of `localhost`:
+
+```
+# .env.local  (git-ignored — never commit)
+NEXT_PUBLIC_API_URL=https://<current-tunnel>.trycloudflare.com/api
+```
+
+The hosted tunnel is **ephemeral** — the URL rotates whenever the tunnel
+restarts, so if API calls start returning 502/timeout, ask Asrar for the current
+tunnel URL and update `.env.local`. Restart `npm run dev` after changing it
+(`NEXT_PUBLIC_*` is read at build/dev-server start).
+
 ## Environment variables
 
 Only the `NEXT_PUBLIC_*` variables are consumed by this frontend (they are inlined into the client bundle **at build time**, so they must be present when you run `npm run build` / build the Docker image — not just at runtime):

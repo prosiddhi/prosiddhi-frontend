@@ -31,8 +31,10 @@ export function statusMeta(status?: string): StatusMeta {
   return STATUS_META[status] ?? { label: humanize(status), pill: 'bg-gray-100 text-gray-600' }
 }
 
-// A seeker can withdraw only while the application is still in flight — the BE
-// rejects withdraw of an ACCEPTED or already-WITHDRAWN application.
+// A seeker can withdraw only while the application is still in flight. The BE
+// hard-blocks ACCEPTED + already-WITHDRAWN; we also hide it for REJECTED (a
+// terminal outcome — there is nothing left to withdraw), matching the
+// "in-flight only" intent rather than showing a no-op affordance.
 export function canWithdraw(status?: string): boolean {
-  return status !== 'ACCEPTED' && status !== 'WITHDRAWN'
+  return status !== 'ACCEPTED' && status !== 'WITHDRAWN' && status !== 'REJECTED'
 }
