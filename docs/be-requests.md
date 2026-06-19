@@ -25,14 +25,16 @@
 - **FE workaround until then:** token stored via `AuthContext` in localStorage (current behaviour). Acceptable for dev/QA; revisit before any real-user launch.
 
 ### BR-3 — Public categories / sectors / job-titles lookup  `[ ]`
-- **Surfaced by:** PJP-81 Categories step (+ future job-post + filter screens).
+- **Surfaced by:** PJP-81 Categories step **+ PJP-138 job-feed Category filter** (confirmed during the 2026-06-15 live walkthrough — the feed filter panel ships Job Type / Salary / City / Sort but has **no Category dropdown**, because there is no taxonomy source to populate it).
 - **Need:** A public (or auth-light) `GET /api/categories` (or `/sectors` + `/job-titles`) returning the seeded sector → category → designation taxonomy (`documents/INPUT-FILES/*.xlsx`).
-- **Why:** `preferredSector` / `preferredJobTitle` are free-text on the BE today. FE wants real dropdowns sourced from the same seed the recommendation engine scores against, so seeker input matches job data.
-- **Proposed contract:** `GET /api/categories` → `[{ sector, category, jobTitles: string[] }]` (ACTIVE only).
-- **FE workaround until then:** ship the Categories step with a **curated static list** derived from the seed data (committed in the FE repo), free-text fallback allowed. Swap to the endpoint when it exists.
+- **Why:** `preferredSector` / `preferredJobTitle` are free-text on the BE today, and the seeker job-feed cannot offer a **Category filter** without a canonical category list. FE wants real dropdowns sourced from the same seed the recommendation engine scores against, so seeker input matches job data.
+- **Proposed contract:** `GET /api/categories` → `[{ sector, category, jobTitles: string[] }]` (ACTIVE only). Ideally also accept the existing `?category=` param on `GET /jobs` (already wired in FE `api.ts`/`JobFeedFilters`) so the feed filter can post the chosen category straight through.
+- **FE workaround until then:** registration Categories step ships a **curated static list**; the job-feed **omits the Category dropdown** entirely (free-text search still matches category words in title/description). Both swap to the endpoint when it lands — the feed dropdown is a small add once the list exists (`category` is already in `JobFeedFilters`).
+- **FE TODO when this lands:** add the Category `<select>` to the job-feed filter panel (`src/app/job-feed/page.tsx`) + thread `applied.category` into the `getJobFeed` call.
 
 ### BR-4 — Include `interview` on seeker application reads  `[ ]`
 - **Surfaced by:** PJP-153 (seeker "My Interviews" view).
+- **CONFIRMED LIVE 2026-06-15:** in local-BE smoke, after an employer Accept+Schedule created an `Interview`, `GET /applications/my` still returned the application WITHOUT the `interview` field. PJP-153 stays In Progress until this lands.
 - **Need:** `GET /api/applications/my` and `GET /api/applications/:id` should `include: { interview: true }` so the seeker can see an interview scheduled for them.
 - **Why:** The `Interview` model is 1-1 on `JobApplication` and is created when an employer Accepts→Schedules (PJP-104). Today only the **employer-only** `getCandidateDetails` includes it; the seeker has **no read path** that returns interview data, so they can't see date/time/notes.
 - **Proposed contract:** add `interview: true` to the `include` in `applicationService.getMyApplications` + `getApplicationById`. Shape per schema: `{ id, date (ISO), time (string), interviewerTime?, notes? }` (or `null` when none).
@@ -61,6 +63,7 @@
 
 ### BR-8 — `GET /profile` leaks the User `password` hash  `[ ]`
 - **Surfaced by:** PJP-112 code-review (profile management), reading `authService.getUserProfile`.
+- **CONFIRMED LIVE 2026-06-15:** local-BE smoke confirmed `GET /jobseekers/profile` returns a `password` field (PBKDF2 hash) in the response body. FE types omit it (safe FE-side), but the BE must add a `select`/`omit`. Security priority.
 - **Need:** `getUserProfile` does `prisma.user.findUnique({ include: {...} })` with **no `select`**, so `GET /api/jobseekers/profile` and `GET /api/employers/profile` return the full `User` row — including the PBKDF2 `password` hash — to the authenticated client.
 - **Why:** A password hash (even the user's own, salt-prefixed PBKDF2) should never cross the wire. It widens the blast radius of any client-side leak (XSS, logging, shared device) for zero functional benefit.
 - **Proposed fix:** add an explicit `select`/`omit` on `getUserProfile` (and any other endpoint reusing it) that excludes `password` (and ideally `isDeleted`/internal admin fields).

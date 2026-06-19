@@ -10,18 +10,17 @@
 
 ---
 
-## 📍 Current status (2026-06-15)
+## 📍 Current status (2026-06-15 — LIVE SMOKE DONE vs local BE)
 
-**Active branch:** `pjp-81-registration-rework` (local, **not pushed**). **BE tunnel:** DOWN — refresh the trycloudflare URL from Asrar into `.env.local` + restart dev server before any live smoke.
+**Active branch:** `pjp-81-registration-rework` (local, **not pushed**).
 
-| Ticket | State | Commit(s) |
-|---|---|---|
-| PJP-81 — registration (seeker + employer) | `[~]` code-complete · seeker live-verified · employer smoke pending | `c8acead`, `b97a2af` |
-| PJP-142 — forgot/reset password | `[~]` code-complete · smoke pending | `bb17d98` |
-| PJP-138 — job feed | `[~]` code-complete · smoke pending | `1fc43df` |
-| PJP-139 — job details + Save | `[~]` code-complete · smoke pending | `97cbe90` |
+**BE is now LOCAL — no more tunnel dependency.** `prosiddhi-backend` runs at `http://localhost:5000` against local Postgres 17 (DB `job_portal`, user `postgres`/`postgres123`). Setup: `npm install` → write `.env` (DATABASE_URL + ≥32-char JWT_SECRET) → `npm run prisma:push` → `npm run dev`. FE `.env.local` → `NEXT_PUBLIC_API_URL=http://localhost:5000/api`. There is **no `seed.ts`** in this BE clone — create test data through the API (registering seeker+employer+jobs IS the PJP-81/106 smoke); 3 catalog skills were inserted via SQL. OTP is mock-mode (code returned in the response).
 
-**Next ticket:** PJP-140 (saved jobs). After it: 141 → 103 → 113 → 152 → 153.
+**Live-smoke result (2026-06-15):** ~98 real-BE contract checks green (replaying the FE's exact `api.ts` calls via a Node harness) + 20 FE routes render 200. **14 tickets → Jira Done** with evidence comments: PJP-81, 142, 138, 139, 140, 141, 103, 113, 152, 143, 106, 104, 105, 112. **4 stay In Progress:** PJP-153 (blocked on BR-4 — confirmed live the interview relation is absent from seeker reads), PJP-109 / 148 / 149 (pure-FE; need a browser-visual pass — toggle/banner/tap-targets can't be checked headlessly).
+
+Two findings, both pre-existing known BRs (confirmed live, not regressions): **BR-4** (interview not in seeker reads), **BR-8** (BE `GET /profile` returns the User password hash; FE already omits it).
+
+**Next:** a browser-visual pass to close 109/148/149 (+ the audio-capture / file-upload residuals on 103/105/112); BR-4 lands → flip 153. Then 150/151/154 (infra-gated).
 
 **How we track (3 layers, kept in sync):**
 - **Jira (canonical status)** — each ticket transitioned (To Do → In Progress → Done) with an evidence comment (commit SHA + what was gated/verified).
@@ -82,8 +81,8 @@ The board lagged reality; fixed so the tracker is honest.
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [~] | **PJP-81** | Rework registration screens onto corrected auth/paths (seeker + employer). | `/jobseekers/register`, `/employers/register/{individual,business}`, `/auth/login-phone-send` | code-complete `c8acead` (+fix `b97a2af`); seeker verified live; ⏳ employer live-smoke |
-| [~] | **PJP-142** | Forgot / reset password (real email-OTP + reset) | `email-otp/send|verify`, `auth/reset-password` | code-complete `bb17d98`; ⏳ live-smoke |
+| [x] | **PJP-81** | Rework registration screens onto corrected auth/paths (seeker + employer). | `/jobseekers/register`, `/employers/register/{individual,business}`, `/auth/login-phone-send` | `c8acead`,`b97a2af` · **live-smoke PASS 2026-06-15** (seeker+employer reg, both logins, role gate) → Done |
+| [x] | **PJP-142** | Forgot / reset password (real email-OTP + reset) | `email-otp/send|verify`, `auth/reset-password` | `bb17d98` · **live-smoke PASS 2026-06-15** (reset, new-pw login, old-pw rejected) → Done |
 
 ---
 
@@ -93,14 +92,14 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [~] | **PJP-138** | Job feed + search/filter/pagination + Recommended + Near By (replace 10 hardcoded jobs) | `GET /jobs`, `/jobs/recommended`, `/jobs/nearby` | code-complete `1fc43df`; ⏳ live-smoke |
-| [~] | **PJP-139** | Job details page — real data, related jobs, view count, real Save toggle | `GET /jobs/:id`, `/jobs/:id/related` | code-complete `97cbe90`; ⏳ live-smoke |
-| [~] | **PJP-140** | Saved jobs — list / save / unsave / check, persisted | `GET/POST/DELETE /saved-jobs` | code-complete `af99f23`; ⏳ live-smoke |
-| [~] | **PJP-141** | My applications — list + detail + withdraw (replace mock) | `GET /applications/my`, `/applications/:id`, `PUT /applications/:id/withdraw` | code-complete `87c0d98`; ⏳ live-smoke |
-| [~] | **PJP-103** | Apply modal with 2-min audio recorder (currently records but doesn't submit) | `POST /applications` (multipart: `audio` file + `jobId` in body; ≤3 MB) | code-complete `231ada5`; ⏳ live-smoke |
-| [~] | **PJP-113** | Contact-recruiter gated reveal | `GET /jobs/:id/recruiter-contact` | code-complete `b2823e8`; ⏳ live-smoke |
-| [~] | **PJP-152** | Seeker "Report this job" action (free-text reason) — *added 2026-06-13* | `POST /jobs/:id/report` | code-complete `178a35e`; ⏳ live-smoke |
-| [~] | **PJP-153** | Seeker "My Interviews" view (scheduled interviews from accepted apps) — *added 2026-06-13* | interview data on `GET /applications/my` / accept-created `Interview` | code-complete `42c25a9`; ⚠️ blocked on **BR-4** (seeker reads must include `interview`) + live-smoke |
+| [x] | **PJP-138** | Job feed + search/filter/pagination + Recommended + Near By (replace 10 hardcoded jobs) | `GET /jobs`, `/jobs/recommended`, `/jobs/nearby` | `1fc43df` · **live-smoke PASS 2026-06-15** (feed/search/category/recommended/nearby) → Done |
+| [x] | **PJP-139** | Job details page — real data, related jobs, view count, real Save toggle | `GET /jobs/:id`, `/jobs/:id/related` | `97cbe90` · **live-smoke PASS 2026-06-15** (details/related/viewCount++/save) → Done |
+| [x] | **PJP-140** | Saved jobs — list / save / unsave / check, persisted | `GET/POST/DELETE /saved-jobs` | `af99f23` · **live-smoke PASS 2026-06-15** (save→check→list→unsave→check) → Done |
+| [x] | **PJP-141** | My applications — list + detail + withdraw (replace mock) | `GET /applications/my`, `/applications/:id`, `PUT /applications/:id/withdraw` | `87c0d98` · **live-smoke PASS 2026-06-15** (list/detail/withdraw) → Done |
+| [x] | **PJP-103** | Apply modal with 2-min audio recorder (currently records but doesn't submit) | `POST /applications` (multipart: `audio` file + `jobId` in body; ≤3 MB) | `231ada5` · **live-smoke PASS 2026-06-15** (submit/message/dup-guard/check); ⚠️ audio-capture UI = browser-QA residual → Done |
+| [x] | **PJP-113** | Contact-recruiter gated reveal | `GET /jobs/:id/recruiter-contact` | `b2823e8` · **live-smoke PASS 2026-06-15** (reveal when toggled on, hidden when off) → Done |
+| [x] | **PJP-152** | Seeker "Report this job" action (free-text reason) — *added 2026-06-13* | `POST /jobs/:id/report` | `178a35e` · **live-smoke PASS 2026-06-15** → Done |
+| [~] | **PJP-153** | Seeker "My Interviews" view (scheduled interviews from accepted apps) — *added 2026-06-13* | interview data on `GET /applications/my` / accept-created `Interview` | `42c25a9` · live-smoke: graceful-empty PASS; **BLOCKED on BR-4** (confirmed live: seeker reads omit `interview`) — stays In Progress |
 
 ---
 
@@ -108,9 +107,9 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [~] | **PJP-143** | Employer dashboard home — stats / jobs / recent applications (replace `/workers` "coming soon") | `GET /employers/dashboard/{stats,jobs,recent-applications}` | code-complete `9dcd658`; ⏳ live-smoke |
-| [~] | **PJP-106** | Job posting + live preview (no posting screen exists yet) | `POST /jobs`, activate/deactivate routes | code-complete `f1775d6`; ⏳ live-smoke |
-| [~] | **PJP-104** | Candidate list + detail + accept/reject/bookmark ("coming soon" stub today) | `GET /applications/employer/all` + `/applications/job/:jobId`; `PUT /applications/:id/{accept,reject,bookmark}` | code-complete `35ca44e`; ⏳ live-smoke |
+| [x] | **PJP-143** | Employer dashboard home — stats / jobs / recent applications (replace `/workers` "coming soon") | `GET /employers/dashboard/{stats,jobs,recent-applications}` | `9dcd658` · **live-smoke PASS 2026-06-15** (all 3 dashboard endpoints) → Done |
+| [x] | **PJP-106** | Job posting + live preview (no posting screen exists yet) | `POST /jobs`, activate/deactivate routes | `f1775d6` · **live-smoke PASS 2026-06-15** (post/edit/activate/deactivate/delete/expired) → Done |
+| [x] | **PJP-104** | Candidate list + detail + accept/reject/bookmark ("coming soon" stub today) | `GET /applications/employer/all` + `/applications/job/:jobId`; `PUT /applications/:id/{accept,reject,bookmark}` | `35ca44e` · **live-smoke PASS 2026-06-15** (list/detail/accept+interview/reject/bookmark + guards) → Done |
 
 ---
 
@@ -118,9 +117,9 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [~] | **PJP-105** | Chat UI — polling + text + 60s audio (both roles) | conversation endpoints, `after=` polling, audio | code-complete `497fee9`; ⏳ live-smoke (2-user) |
-| [~] | **PJP-112** | Profile management screens (seeker + employer): photo, fields, work-exp, documents CRUD, skills | `GET/PUT /jobseekers/profile` + `/employers/profile`, `/me/{documents,skills,profile-photo}`, `GET /skills` | code-complete `pending`; ⏳ live-smoke |
-| [~] | **PJP-109** | i18n wiring (**react-i18next** + EN + HI JSON, in-header EN/HI switcher) — pure FE. Decision Q-FE-05; ~37 screens wrapped across 7 namespaces, 920 keys en/hi parity. | `PUT /jobseekers/profile` (best-effort seeker sync); BR-9 filed for generic `/me/language` | code-complete `pending`; ⏳ live-smoke (verify by local EN↔HI toggle) |
+| [x] | **PJP-105** | Chat UI — polling + text + 60s audio (both roles) | conversation endpoints, `after=` polling, audio | `497fee9` · **live-smoke PASS 2026-06-15** (2-user: convos/text both ways/after=polling/read receipts); ⚠️ poll-timer + audio-msg capture = browser-QA residual → Done |
+| [x] | **PJP-112** | Profile management screens (seeker + employer): photo, fields, work-exp, documents CRUD, skills | `GET/PUT /jobseekers/profile` + `/employers/profile`, `/me/{documents,skills,profile-photo}`, `GET /skills` | `d46443d` · **live-smoke PASS 2026-06-15** (get/update both roles, skills catalog/add/remove); ⚠️ photo/doc file-upload = browser-QA residual; BR-8 confirmed → Done |
+| [~] | **PJP-109** | i18n wiring (**react-i18next** + EN + HI JSON, in-header EN/HI switcher) — pure FE. Decision Q-FE-05; ~37 screens wrapped across 7 namespaces, 920 keys en/hi parity. | `PUT /jobseekers/profile` (best-effort seeker sync); BR-9 filed for generic `/me/language` | `3805c9a` · renders 200 + seeker PUT verified; **visual EN↔HI toggle = browser pass pending** — stays In Progress |
 
 ---
 
@@ -140,8 +139,8 @@ Portal-repo quality pass. None block the core loop; schedule for the S3 window (
 
 | ✓ | Ticket | Delivers | Wires to | Done |
 |---|---|---|---|---|
-| [~] | **PJP-148** | Global network/error handling + offline banner | n/a (FE) | `962d5f0` — In Progress, smoke pending |
-| [~] | **PJP-149** | Low-literacy usability pass (tap targets, icon-first, voice affordances) | n/a (FE) | VoiceButton + 48px tap targets — In Progress, smoke pending |
+| [~] | **PJP-148** | Global network/error handling + offline banner | n/a (FE) | `962d5f0` · api.ts network-error wiring confirmed + routes render 200; **banner/toast visual = browser pass pending** — In Progress |
+| [~] | **PJP-149** | Low-literacy usability pass (tap targets, icon-first, voice affordances) | n/a (FE) | `7876673` · VoiceButton + 48px tap targets in tree, routes render 200; **visual pass pending** — In Progress |
 | [ ] | **PJP-150** | Playwright smoke tests (login / apply / post-job) | n/a (FE) | |
 | [ ] | **PJP-151** | Wire Sentry error monitoring | n/a (FE) | |
 | [ ] | **PJP-154** | Low-end-device performance pass (bundle + images) | n/a (FE) | |
