@@ -19,6 +19,56 @@ No frontend code changes were needed.
 
 ---
 
+## 0b. Install everything on the VM (one-time, run as a sudo user)
+
+Ubuntu 22.04 LTS. Run top-to-bottom on the app VM (and the system/PostgreSQL parts on
+the DB VM if you split them). Idempotent — safe to re-run.
+
+```bash
+# --- 1. System + base packages -------------------------------------------------
+sudo apt update && sudo apt -y upgrade
+sudo apt -y install nginx git curl ufw ca-certificates gnupg build-essential
+
+# --- 2. Node.js 20 LTS (Next 14 + Express; matches backend's node:20) ----------
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt -y install nodejs
+node -v && npm -v        # expect v20.x
+
+# --- 3. PM2 process manager (keeps the 2 Node apps alive + boot-start) ----------
+sudo npm install -g pm2
+pm2 startup systemd      # then run the exact command it prints
+
+# --- 4. PostgreSQL 17 (not in Ubuntu 22.04 default repos -> add PGDG) -----------
+sudo install -d /usr/share/postgresql-common/pgdg
+sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+     --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+  | sudo tee /etc/apt/sources.list.d/pgdg.list
+sudo apt update && sudo apt -y install postgresql-17
+sudo systemctl enable --now postgresql
+psql --version           # expect 17.x
+
+# --- 5. Firewall: only SSH + HTTP/HTTPS public; app/db ports stay internal ------
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw --force enable
+# Do NOT open 3000 / 5000 / 5432 publicly — Nginx proxies them on localhost.
+
+# --- 6. Non-root app user + persistent uploads dir ------------------------------
+sudo adduser --system --group --home /opt/prosiddhi prosiddhi
+sudo mkdir -p /opt/prosiddhi/data/uploads
+sudo chown -R prosiddhi:prosiddhi /opt/prosiddhi
+```
+
+> The backend resolves `ffprobe` from the bundled `@ffprobe-installer/ffprobe` package
+> (audio-duration checks), so **no system `ffmpeg`/`ffprobe` install is needed**.
+
+After this, create the DB (§2 of the original guide), then do the per-app
+`npm ci` + build steps in §2 (backend) and §3 (frontend) below.
+
+---
+
 ## 1. Things the original guide got wrong (read once)
 
 1. **`.env` IS auto-loaded.** `src/index.ts` calls `dotenv.config()`, so `node dist/index.js`
@@ -125,11 +175,13 @@ npx prisma migrate deploy                          # applies 0_init
 > (Couldn't be generated on the app team's Windows box — no Node installed there.)
 
 ### Seed catalog data (sectors / designations / skills)
-`package.json` has `npm run prisma:seed` → `tsx prisma/seed.ts`, but **`prisma/seed.ts` is
-absent**. Get the seed source from **Asrar** before go-live, drop it in, then:
+A seed now ships upstream (`feat(schema): subscription stack + seed`, PJP-74) wired to
+`npm run prisma:seed` → `tsx prisma/seed.ts`. Run it once per environment **after** the
+schema is created:
 ```bash
 npm run prisma:seed          # needs dev deps (tsx) — run after `npm ci`, not `npm ci --omit=dev`
 ```
+> Confirm the exact seed file/path with Asrar if `prisma/seed.ts` isn't present in your clone.
 
 ---
 
