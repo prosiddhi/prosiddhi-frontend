@@ -108,6 +108,15 @@ export interface LoginResult {
   user: AuthUser
 }
 
+// Google login returns the standard login payload plus two routing flags:
+// `isNewUser` (first sign-up) and `needsPhoneVerification` (account is in
+// PENDING_OTP_VERIFICATION — the FE must run the phone-bind flow before the
+// dashboard). See BE auth.service.googleLoginOrSignup.
+export interface GoogleLoginResult extends LoginResult {
+  isNewUser: boolean
+  needsPhoneVerification: boolean
+}
+
 // Loosely aligned to real BE fields; consume-flow tickets tighten these later.
 export interface Job {
   id: string
@@ -166,6 +175,28 @@ export const authAPI = {
     return apiRequest('/auth/login-phone-send', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber }),
+    })
+  },
+
+  // Google OAuth login / sign-up. The FE forwards Google's `id_token`; the BE
+  // verifies it (audience + signature + expiry) and returns OUR JWT. `role` is
+  // the full UserRole enum (the employer subtype is chosen in the UI), NOT the
+  // seeker/employer toggle. POST /api/auth/google/login { idToken, role }.
+  googleLogin: async (role: UserRole, idToken: string) => {
+    return apiRequest<GoogleLoginResult>('/auth/google/login', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, role }),
+    })
+  },
+
+  // Bind / change the phone on the logged-in account (used by the post-Google
+  // phone-verification step). Authenticated — relies on the JWT already stored
+  // by login(). One-shot verify+update: BE checks `otp` against `newPhoneNumber`
+  // and flips PENDING_OTP_VERIFICATION → ACTIVE. POST /api/auth/change-phone.
+  changePhone: async (newPhoneNumber: string, otp: string) => {
+    return apiRequest('/auth/change-phone', {
+      method: 'POST',
+      body: JSON.stringify({ newPhoneNumber, otp }),
     })
   },
 }

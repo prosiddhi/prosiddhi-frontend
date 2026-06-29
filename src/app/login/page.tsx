@@ -4,10 +4,19 @@ import { useRef, useState } from 'react'
 import { Volume2, Eye, EyeOff, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
-import { authAPI, type LoginRole, type AuthUser } from '@/lib/api'
+import { authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 
 type Tab = 'email' | 'phone' | 'google'
+
+// New Google sign-ups land in PENDING_OTP_VERIFICATION; we hold them on /login
+// in a phone-bind view before sending them to their dashboard.
+type Mode = 'login' | 'bindPhone'
+
+// The Google endpoint wants the full UserRole enum. The seeker tab maps straight
+// to JOB_SEEKER; the employer tab additionally picks an individual/business subtype.
+type EmployerSubtype = 'individual' | 'business'
 
 // Seeker → /job-feed, Employer (individual/business) → /employer.
 function homeForUser(user: AuthUser): string {
@@ -31,6 +40,13 @@ export default function LoginPage() {
   const [tab, setTab] = useState<Tab>('email')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Google
+  const [employerSubtype, setEmployerSubtype] = useState<EmployerSubtype>('individual')
+  // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp state
+  // below; `bindUser` is the just-authenticated user, kept for the post-bind redirect.
+  const [mode, setMode] = useState<Mode>('login')
+  const [bindUser, setBindUser] = useState<AuthUser | null>(null)
 
   // Email/password
   const [email, setEmail] = useState('')
@@ -143,6 +159,84 @@ export default function LoginPage() {
     }
   }
 
+  // --- Google ---
+  // Build the BE UserRole from the role toggle (+ employer subtype).
+  const googleRole = (): UserRole => {
+    if (role === 'seeker') return 'JOB_SEEKER'
+    return employerSubtype === 'business'
+      ? 'EMPLOYER_BUSINESS'
+      : 'EMPLOYER_INDIVIDUAL'
+  }
+
+  const handleGoogleSuccess = async (idToken?: string) => {
+    if (!idToken) {
+      setError('Google sign-in failed. Please try again.')
+      return
+    }
+    try {
+      setLoading(true)
+      setError('')
+      const result = await authAPI.googleLogin(googleRole(), idToken)
+      // Store the token first — the phone-bind call below is authenticated.
+      login(result.token, result.user)
+      if (result.needsPhoneVerification) {
+        setBindUser(result.user)
+        setMode('bindPhone')
+        setPhone('')
+        setOtp(['', '', '', '', '', ''])
+        setOtpSent(false)
+      } else {
+        router.push(homeForUser(result.user))
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Google sign-in failed. Please try again.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- Phone-bind step 1: send OTP to the new phone ---
+  const handleBindSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!phone) return
+    try {
+      setLoading(true)
+      setError('')
+      await otpAPI.send(toE164(phone))
+      setOtpSent(true)
+      setOtp(['', '', '', '', '', ''])
+      setTimeout(() => otpRefs.current[0]?.focus(), 0)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- Phone-bind step 2: verify OTP + bind phone, then go to dashboard ---
+  const handleBindVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const code = otp.join('')
+    if (code.length !== 6) {
+      setError('Please enter the complete 6-digit OTP')
+      return
+    }
+    try {
+      setLoading(true)
+      setError('')
+      await authAPI.changePhone(toE164(phone), code)
+      router.push(bindUser ? homeForUser(bindUser) : '/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+      setOtp(['', '', '', '', '', ''])
+      otpRefs.current[0]?.focus()
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const tabBtn = (id: Tab, label: string) =>
     `flex-1 py-2.5 text-sm sm:text-base font-medium rounded-lg transition-colors ${
       tab === id ? 'bg-primary-50 text-white' : 'bg-[#f3f3f3] text-[#777776] hover:bg-gray-200'
@@ -170,7 +264,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Role toggle */}
+          {/* Role toggle (hidden during the post-Google phone-bind step) */}
+          {mode === 'login' && (
           <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg mb-5">
             <button
               type="button"
@@ -191,8 +286,10 @@ export default function LoginPage() {
               Employer
             </button>
           </div>
+          )}
 
-          {/* Method tabs */}
+          {/* Method tabs (hidden during the post-Google phone-bind step) */}
+          {mode === 'login' && (
           <div className="flex gap-2 mb-6">
             <button type="button" onClick={() => switchTab('email')} className={tabBtn('email', 'Email')}>
               Email
@@ -204,6 +301,7 @@ export default function LoginPage() {
               Google
             </button>
           </div>
+          )}
 
           {/* Inline error */}
           {error && (
@@ -216,7 +314,7 @@ export default function LoginPage() {
           )}
 
           {/* --- Email + Password tab --- */}
-          {tab === 'email' && (
+          {mode === 'login' && tab === 'email' && (
             <form onSubmit={handleEmailSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-base font-medium text-black mb-2">
@@ -294,7 +392,7 @@ export default function LoginPage() {
           )}
 
           {/* --- Phone + OTP tab --- */}
-          {tab === 'phone' && (
+          {mode === 'login' && tab === 'phone' && (
             <div className="space-y-6">
               <div>
                 <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
@@ -365,24 +463,132 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* --- Google tab (BLOCKED on S1-04 / PJP-72) --- */}
-          {tab === 'google' && (
+          {/* --- Google tab (PJP-72) --- */}
+          {mode === 'login' && tab === 'google' && (
             <div className="space-y-4">
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                className="w-full flex items-center justify-center gap-3 border border-[#dedede] py-3 rounded-lg text-base font-medium text-[#777776] bg-[#f9f9f9] cursor-not-allowed"
-              >
-                Continue with Google
-              </button>
-              <p className="text-center text-sm text-[#999999]">
-                Google sign-in is coming soon.
-              </p>
+              {/* Employers must pick a subtype — the BE needs the exact role on sign-up. */}
+              {role === 'employer' && (
+                <div>
+                  <p className="text-base font-medium text-black mb-2">Employer type</p>
+                  <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setEmployerSubtype('individual')}
+                      className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+                        employerSubtype === 'individual'
+                          ? 'bg-white text-primary-50 shadow'
+                          : 'text-[#777776]'
+                      }`}
+                    >
+                      Individual Employer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmployerSubtype('business')}
+                      className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+                        employerSubtype === 'business'
+                          ? 'bg-white text-primary-50 shadow'
+                          : 'text-[#777776]'
+                      }`}
+                    >
+                      Business Employer
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={(cred) => handleGoogleSuccess(cred.credential)}
+                  onError={() =>
+                    setError('Google sign-in failed. Please try again.')
+                  }
+                  width="320"
+                />
+              </div>
+              {loading && (
+                <p className="text-center text-sm text-[#777776]">Signing you in…</p>
+              )}
             </div>
           )}
 
-          {/* Sign Up Link */}
+          {/* --- Phone-bind step (new Google sign-up) --- */}
+          {mode === 'bindPhone' && (
+            <div className="space-y-5">
+              <p className="text-base text-black">
+                One last step — verify a phone number to finish setting up your account.
+              </p>
+              {!otpSent ? (
+                <form onSubmit={handleBindSendOtp} className="space-y-5">
+                  <div>
+                    <label htmlFor="bind-phone" className="block text-base font-medium text-black mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      id="bind-phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter 10-digit mobile number"
+                      className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                  >
+                    {loading ? 'Sending…' : 'Send OTP'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleBindVerify} className="space-y-5">
+                  <div>
+                    <label className="block text-base font-medium text-black mb-2">
+                      Enter the 6-digit OTP
+                    </label>
+                    <div className="flex justify-between gap-2">
+                      {otp.map((d, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => {
+                            otpRefs.current[i] = el
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={d}
+                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                  >
+                    {loading ? 'Verifying…' : 'Verify & Continue'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false)
+                      setError('')
+                    }}
+                    className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                  >
+                    Change phone number
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* Sign Up Link (hidden during the post-Google phone-bind step) */}
+          {mode === 'login' && (
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
               <span className="text-black">Don&apos;t have an account? </span>
@@ -394,6 +600,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+          )}
         </div>
       </div>
     </div>
