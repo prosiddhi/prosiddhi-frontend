@@ -7,7 +7,9 @@ import {
   type JobTypeValue,
   type PaymentTypeValue,
   type UrgencyLevelValue,
+  type TaxonomyTriple,
 } from '@/lib/api'
+import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { humanizeJobType, formatSalary, initials } from '@/lib/jobFormat'
 import { Clock, Briefcase, MapPin, IndianRupee, Loader2, AlertCircle } from 'lucide-react'
 
@@ -27,7 +29,8 @@ interface FormState {
   title: string
   companyName: string
   category: string
-  subcategory: string
+  sector: string
+  jobTitle: string
   description: string
   requirements: string
   skills: string
@@ -52,7 +55,8 @@ function buildInitialState(initial?: Partial<PostJobData>): FormState {
     title: initial?.title ?? '',
     companyName: initial?.companyName ?? '',
     category: initial?.category ?? '',
-    subcategory: initial?.subcategory ?? '',
+    sector: initial?.sector ?? '',
+    jobTitle: initial?.jobTitle ?? '',
     description: initial?.description ?? '',
     requirements: initial?.requirements ?? '',
     skills: (initial?.skillsRequired ?? []).join(', '),
@@ -85,6 +89,16 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }))
+
+  // The cascading picker emits the full triple; mirror it into the flat form
+  // fields (empty levels come back as undefined → stored as '').
+  const setTaxonomy = (next: TaxonomyTriple) =>
+    setF((prev) => ({
+      ...prev,
+      category: next.category ?? '',
+      sector: next.sector ?? '',
+      jobTitle: next.jobTitle ?? '',
+    }))
 
   const skillsArray = f.skills
     .split(',')
@@ -120,7 +134,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       urgencyLevel: f.urgencyLevel,
       numberOfPositions: f.numberOfPositions ? Number(f.numberOfPositions) : 1,
       ...(f.companyName.trim() ? { companyName: f.companyName.trim() } : {}),
-      ...(f.subcategory.trim() ? { subcategory: f.subcategory.trim() } : {}),
+      ...(f.sector ? { sector: f.sector } : {}),
+      ...(f.jobTitle ? { jobTitle: f.jobTitle } : {}),
       ...(f.requirements.trim() ? { requirements: f.requirements.trim() } : {}),
       ...(skillsArray.length ? { skillsRequired: skillsArray } : {}),
       ...(f.salaryMin ? { salaryMin: Number(f.salaryMin) } : {}),
@@ -147,16 +162,17 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           <input className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>{t('employer:jobForm.categoryLabel')}</label>
-            <input className={inputCls} value={f.category} onChange={(e) => set('category', e.target.value)} placeholder={t('employer:jobForm.categoryPlaceholder')} />
-          </div>
-          <div>
-            <label className={labelCls}>{t('employer:jobForm.subcategoryLabel')}</label>
-            <input className={inputCls} value={f.subcategory} onChange={(e) => set('subcategory', e.target.value)} placeholder={t('employer:jobForm.subcategoryPlaceholder')} />
-          </div>
-        </div>
+        <TaxonomyPicker
+          value={{
+            category: f.category || undefined,
+            sector: f.sector || undefined,
+            jobTitle: f.jobTitle || undefined,
+          }}
+          onChange={setTaxonomy}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+          selectClassName={inputCls}
+          labelClassName={labelCls}
+        />
 
         <div>
           <label className={labelCls}>{t('employer:jobForm.companyNameLabel')}</label>

@@ -174,8 +174,11 @@ export interface Job {
   paymentType?: string
   jobType?: string
   status?: string
+  // BR-3 — 3-level taxonomy. `subcategory` is retired (the BE Job model has no
+  // such column); jobs now carry category → sector → jobTitle names.
   category?: string
-  subcategory?: string | null
+  sector?: string | null
+  jobTitle?: string | null
   skillsRequired?: string[]
   requirements?: string | null
   urgencyLevel?: string
@@ -856,8 +859,11 @@ export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export interface PostJobData {
   title: string
   description: string
+  // BR-3 — 3-level taxonomy. `category` required (BE), `sector`/`jobTitle`
+  // optional; when sent they must form a valid path (BE validateTriple).
   category: string
-  subcategory?: string
+  sector?: string
+  jobTitle?: string
   requirements?: string
   skillsRequired?: string[]
   location: string
