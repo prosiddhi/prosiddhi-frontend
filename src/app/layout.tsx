@@ -3,6 +3,9 @@ import { DM_Sans } from 'next/font/google'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import '@/styles/globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { I18nProvider } from '@/i18n/I18nProvider'
+import { OfflineBanner } from '@/components/feedback/OfflineBanner'
+import { ToastViewport } from '@/components/feedback/ToastViewport'
 
 // Public Google OAuth client ID — inlined into the browser bundle (safe to
 // expose; it carries no secret). The "Continue with Google" button on /login
@@ -31,7 +34,13 @@ export default function RootLayout({
     <html lang="en" className={dmSans.variable}>
       <body className={`${dmSans.className} antialiased`}>
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <AuthProvider>{children}</AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <OfflineBanner />
+              {children}
+              <ToastViewport />
+            </AuthProvider>
+          </I18nProvider>
         </GoogleOAuthProvider>
       </body>
     </html>

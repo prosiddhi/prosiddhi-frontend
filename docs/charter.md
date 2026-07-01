@@ -147,6 +147,11 @@ We use **MSG91** as our WhatsApp provider (already in our stack for SMS). Engine
 
 ## 7. Pricing — provisional Option B; awaiting your confirmation
 
+> **CONFIRMED & SUPERSEDED 2026-06-29.** Pricing is now locked as an **8-tier metered credits model** (employer
+> buys post + candidate-unlock credits; free trial; seekers free) — **not** the flat ₹999 Option B below. Canonical:
+> [`docs/pricing/employer-monetization-functional-spec.md`](pricing/employer-monetization-functional-spec.md)
+> (+ technical-design.md). This section and the Pricing appendix are historical.
+
 Pricing is the single most important decision for this product. The current working assumption (provisional Option B) is recorded in the **Pricing appendix** at the end of this document.
 
 The full A/B/C options analysis (the Pricing Decision Memo) was removed in the 2026-06-13 doc purge — recoverable from git history if the analysis is needed again.

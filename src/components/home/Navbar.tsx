@@ -1,13 +1,17 @@
 'use client'
 
-import { Home, Briefcase, Bookmark, Languages, Mail, Bell } from 'lucide-react'
+import { Home, Briefcase, Bookmark, Mail, Bell } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 
 interface NavbarProps {
   userName?: string
   userAvatar?: string
+  /** @deprecated language is now owned by the self-contained LanguageSwitcher */
   currentLanguage?: string
+  /** @deprecated language is now owned by the self-contained LanguageSwitcher */
   onLanguageClick?: () => void
   unreadMessages?: number
   unreadNotifications?: number
@@ -16,11 +20,10 @@ interface NavbarProps {
 export function Navbar({
   userName = 'Sanjay RK',
   userAvatar = '/assets/default-avatar.png',
-  currentLanguage = 'English',
-  onLanguageClick,
   unreadMessages = 0,
   unreadNotifications = 0,
 }: NavbarProps) {
+  const { t } = useTranslation()
   return (
     <nav className="bg-white w-full">
       <div className="max-w-[1920px] mx-auto px-[119px] py-[18px] flex items-center justify-between">
@@ -44,7 +47,7 @@ export function Navbar({
             className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors"
           >
             <Home className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            <span>Home</span>
+            <span>{t('nav.home')}</span>
           </Link>
 
           <Link
@@ -52,7 +55,7 @@ export function Navbar({
             className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors"
           >
             <Briefcase className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            <span>Job Feed</span>
+            <span>{t('nav.jobFeed')}</span>
           </Link>
 
           <Link
@@ -60,16 +63,10 @@ export function Navbar({
             className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors"
           >
             <Bookmark className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            <span>Saved Jobs</span>
+            <span>{t('nav.savedJobs')}</span>
           </Link>
 
-          <button
-            onClick={onLanguageClick}
-            className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors"
-          >
-            <Languages className="w-4 h-4" strokeWidth={1.5} />
-            <span>Languages: {currentLanguage}</span>
-          </button>
+          <LanguageSwitcher />
         </div>
 
         {/* Right Section - Icons and Profile */}

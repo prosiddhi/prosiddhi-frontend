@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "ProSiddhi Job Portal"
+  },
+  "nav": {
+    "home": "Home",
+    "findJobs": "Find Jobs",
+    "jobFeed": "Job Feed",
+    "companies": "Companies",
+    "savedJobs": "Saved Jobs",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "myApplication": "My Application",
+    "myApplications": "My Applications",
+    "myInterviews": "My Interviews",
+    "settings": "Setting",
+    "logout": "Logout",
+    "register": "Register",
+    "login": "Login"
+  },
+  "language": {
+    "label": "Language",
+    "select": "Select language",
+    "english": "English",
+    "hindi": "हिन्दी (Hindi)"
+  },
+  "buttons": {
+    "apply": "Apply",
+    "applyNow": "Apply Now",
+    "save": "Save",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "continue": "Continue",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove",
+    "retry": "Retry",
+    "tryAgain": "Try again",
+    "close": "Close",
+    "send": "Send",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "viewAll": "View All",
+    "seeMore": "See More",
+    "sendOtp": "Send OTP",
+    "resend": "Resend",
+    "verify": "Verify",
+    "goHome": "Go home",
+    "saveChanges": "Save Changes",
+    "confirm": "Confirm",
+    "viewDetails": "View Details"
+  },
+  "status": {
+    "loading": "Loading…",
+    "loadingMore": "Loading more…",
+    "noData": "No data available",
+    "optional": "Optional",
+    "required": "Required",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "feedback": {
+    "offline": "You're offline. Check your internet connection.",
+    "unreachable": "Can't reach the server right now.",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We hit an unexpected problem. Please try again — your information is safe.",
+    "errorBodyShort": "We hit an unexpected problem. Please try again.",
+    "voiceComingSoon": "🔊 Voice assistance is coming soon."
+  },
+  "voice": {
+    "listen": "Listen",
+    "comingSoon": "voice assistance coming soon",
+    "tooltip": "Voice assistance — coming soon"
+  }
+}

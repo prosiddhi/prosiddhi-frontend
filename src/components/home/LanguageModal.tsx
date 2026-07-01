@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Volume2, ChevronDown, Briefcase, Users } from 'lucide-react'
+import { X, ChevronDown, Briefcase, Users } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 
 interface LanguageModalProps {
   isOpen: boolean
@@ -99,12 +100,7 @@ export function LanguageModal({ isOpen, onClose, onSave }: LanguageModalProps) {
                 <h2 className="text-31 font-bold text-black">
                   Select Your Native Language
                 </h2>
-                <button
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  aria-label="Play audio"
-                >
-                  <Volume2 className="w-[30px] h-[30px] text-gray-600" />
-                </button>
+                <VoiceButton label="Select your native language" iconClassName="w-[30px] h-[30px] text-gray-600" className="p-2" />
               </div>
 
               {/* Description */}
@@ -168,12 +164,7 @@ export function LanguageModal({ isOpen, onClose, onSave }: LanguageModalProps) {
                   <h2 className="text-31 font-bold text-black text-center">
                     What are you looking for?
                   </h2>
-                  <button
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    aria-label="Play audio"
-                  >
-                    <Volume2 className="w-[30px] h-[30px] text-gray-600" />
-                  </button>
+                  <VoiceButton label="What are you looking for" iconClassName="w-[30px] h-[30px] text-gray-600" className="p-2" />
                 </div>
 
                 {/* Description */}

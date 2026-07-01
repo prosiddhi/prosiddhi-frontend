@@ -1,346 +1,411 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
+import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
+import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
+import { jobSeekerAPI, type Job } from '@/lib/api'
+import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Mail,
   Bell,
   Home,
   Briefcase,
   Bookmark,
-  Languages,
   Clock,
   MapPin,
   IndianRupee,
   ChevronLeft,
   Phone,
-  BookmarkCheck
+  BookmarkCheck,
+  Eye,
+  Flag,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 
-// Sample job data - in real app, this would come from API/database
-const jobData = {
-  id: '1',
-  title: 'Engine Operator',
-  company: 'TATA Steel and Iron Power Plant',
-  companyInitials: 'TA',
-  salary: '15,000 - 25,000',
-  location: 'Bangalore, India',
-  type: 'Full Time',
-  industry: 'Steel Industry',
-  postedTime: '15 minutes ago',
-  description: [
-    'Operation: Start up, shut down, and operate engines and associated systems (like generators, compressors, cooling systems) according to standard operating procedures (SOPs) and management directives.',
-    'Monitoring: Observe gauges, meters, and system performance to ensure equipment is operating within specified parameters and to detect any malfunctions.',
-    'Maintenance: Perform routine preventative maintenance, lubrication, and basic repairs on engines and related equipment to ensure reliability and prevent breakdowns.',
-    'Safety: Adhere strictly to all safety regulations, including lockout/tagout procedures, and execute emergency protocols to protect personnel and equipment.',
-    'Record Keeping: Accurately document operational data, fuel consumption, maintenance activities, and any reported issues.',
-    'Troubleshooting: Identify and troubleshoot operational disturbances, malfunctions, or equipment failures, taking corrective action or reporting to senior staff.'
-  ],
-  qualifications: [
-    'Mechanical aptitude and basic understanding of engine principles.',
-    'Ability to follow complex instructions and safety procedures.',
-    'Good communication skills for reporting issues and coordinating with teams.',
-    'Physical fitness to perform tasks, potentially in challenging environments with loud noise or temperature variations.',
-    'Often requires a high school diploma or equivalent, with vocational training or experience being a strong advantage.'
-  ]
+function companyOf(job: Job, fallback: string): string {
+  return job.companyName || job.employer?.companyName || job.employer?.fullName || fallback
 }
 
-// Related jobs data
-const relatedJobs = [
-  {
-    id: '2',
-    title: 'Engine Operator',
-    company: 'TATA Steel and Iron Power Plant',
-    companyInitials: 'TA',
-    type: 'Full Time',
-    industry: 'Steel Industry',
-    location: 'Bangalore, India'
-  },
-  {
-    id: '3',
-    title: 'Engine Operator',
-    company: 'TATA Steel and Iron Power Plant',
-    companyInitials: 'TA',
-    type: 'Full Time',
-    industry: 'Steel Industry',
-    location: 'Bangalore, India'
-  },
-  {
-    id: '4',
-    title: 'Engine Operator',
-    company: 'TATA Steel and Iron Power Plant',
-    companyInitials: 'TA',
-    type: 'Full Time',
-    industry: 'Steel Industry',
-    location: 'Bangalore, India'
-  }
-]
-
-export default function JobDetailsPage() {
+function JobDetailsContent() {
+  const { t } = useTranslation()
   const router = useRouter()
-  const [isSaved, setIsSaved] = useState(false)
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
+  const params = useParams()
+  const jobId = String(params?.id ?? '')
 
-  const handleSaveJob = () => {
-    setIsSaved(!isSaved)
+  const [job, setJob] = useState<Job | null>(null)
+  const [related, setRelated] = useState<Job[]>([])
+  const [isSaved, setIsSaved] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [hasApplied, setHasApplied] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!jobId) return
+    let ignore = false
+    const run = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const j = await jobSeekerAPI.getJobDetails(jobId)
+        if (ignore) return
+        setJob(j)
+        // Related + saved + applied status are non-critical — don't fail the page on them.
+        const [rel, saved, applied] = await Promise.allSettled([
+          jobSeekerAPI.getRelatedJobs(jobId),
+          jobSeekerAPI.isJobSaved(jobId),
+          jobSeekerAPI.checkIfApplied(jobId),
+        ])
+        if (ignore) return
+        if (rel.status === 'fulfilled') setRelated(rel.value.relatedJobs ?? [])
+        if (saved.status === 'fulfilled') setIsSaved(!!saved.value.isSaved)
+        if (applied.status === 'fulfilled') setHasApplied(!!applied.value.hasApplied)
+      } catch (err) {
+        if (!ignore) setError(err instanceof Error ? err.message : t('seeker:jobDetails.loadError'))
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [jobId, t])
+
+  const handleSaveJob = async () => {
+    if (saveLoading || !job) return
+    setSaveLoading(true)
+    setSaveError('')
+    try {
+      if (isSaved) {
+        await jobSeekerAPI.unsaveJob(jobId)
+        setIsSaved(false)
+      } else {
+        await jobSeekerAPI.saveJob(jobId)
+        setIsSaved(true)
+      }
+    } catch {
+      setSaveError(t('seeker:savedJobs.removeError'))
+      // Re-sync with the server so the button reflects truth (handles a stale
+      // check or a duplicate-save race).
+      try {
+        const s = await jobSeekerAPI.isJobSaved(jobId)
+        setIsSaved(!!s.isSaved)
+      } catch {
+        /* ignore — keep current state */
+      }
+    } finally {
+      setSaveLoading(false)
+    }
   }
+
+  const descriptionLines = (job?.description ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const requirementLines = (job?.requirements ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const viewCount = typeof job?.viewCount === 'number' ? job.viewCount : undefined
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header/Navbar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image
-                src="/assets/logo.png"
-                alt="Job Portal Logo"
-                fill
-                className="object-contain"
-                priority
-              />
+              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
             </div>
           </Link>
-
-          {/* Navigation */}
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
             <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Home</span>
+              <span className="text-[18px]">{t('seeker:nav.home')}</span>
             </Link>
             <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Job Feed</span>
+              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
             </Link>
             <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
               <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">Saved Jobs</span>
+              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
             </Link>
-            <button className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Languages className="w-[16px] h-[16px]" />
-              <span className="text-[18px]">Languages: English</span>
-            </button>
+            <LanguageSwitcher />
           </nav>
-
-          {/* Right side - User profile */}
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
-            <button className="hidden sm:block hover:text-primary-50 transition-colors">
-              <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-            <button className="hidden sm:block hover:text-primary-50 transition-colors">
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+            <button className="hidden sm:block hover:text-primary-50 transition-colors"><Mail className="w-5 h-5 sm:w-6 sm:h-6" /></button>
+            <button className="hidden sm:block hover:text-primary-50 transition-colors"><Bell className="w-5 h-5 sm:w-6 sm:h-6" /></button>
             <UserDropdown />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          {/* Back Button */}
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6 sm:mb-8 lg:mb-10"
-          >
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6 sm:mb-8 lg:mb-10">
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-base sm:text-lg">Back to Main Page</span>
+            <span className="text-base sm:text-lg">{t('seeker:jobDetails.back')}</span>
           </button>
 
-          {/* Job Header Card */}
-          <div className="bg-white rounded-[10px] mb-8 sm:mb-10 lg:mb-12">
-            <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
-              {/* Left Side - Job Info */}
-              <div className="flex items-start gap-4 flex-1">
-                <div className="w-[68px] h-[68px] sm:w-[78px] sm:h-[78px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-[32px] sm:text-[40px] font-semibold text-[#236987]">
-                    {jobData.companyInitials}
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold mb-2 sm:mb-3">
-                    {jobData.title}
-                  </h1>
-                  <p className="text-base sm:text-lg lg:text-[18px] text-black mb-4 sm:mb-5">
-                    {jobData.company}
-                  </p>
-
-                  {/* Salary */}
-                  <div className="flex items-center gap-1 mb-4 sm:mb-5">
-                    <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="text-base sm:text-lg lg:text-[18px] font-medium">
-                      {jobData.salary} Rupee/Monthly
-                    </span>
-                  </div>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2 sm:gap-3">
-                    <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
-                      <span className="text-xs sm:text-sm text-black">{jobData.type}</span>
-                    </div>
-                    <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
-                      <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
-                      <span className="text-xs sm:text-sm text-black">{jobData.industry}</span>
-                    </div>
-                    <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
-                      <span className="text-xs sm:text-sm text-black">{jobData.location}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side - Actions */}
-              <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
-                <span className="text-sm sm:text-base text-black">
-                  {jobData.postedTime}
-                </span>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
-                  <button
-                    onClick={handleSaveJob}
-                    className={`px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] ${
-                      isSaved
-                        ? 'bg-[#eeeeee] hover:bg-gray-200'
-                        : 'bg-[#eeeeee] hover:bg-gray-200'
-                    }`}
-                  >
-                    {isSaved ? (
-                      <>
-                        <BookmarkCheck className="w-5 h-5" />
-                        <span className="text-sm sm:text-base">Saved</span>
-                      </>
-                    ) : (
-                      <>
-                        <Bookmark className="w-5 h-5" />
-                        <span className="text-sm sm:text-base">Save</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setIsApplyModalOpen(true)}
-                    className="px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-24 text-[#717182]">
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
+              <p>{t('seeker:jobDetails.loading')}</p>
             </div>
-          </div>
+          )}
 
-          {/* Job Description Section */}
-          <section className="mb-8 sm:mb-10 lg:mb-12">
-            <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
-              Job Description
-            </h2>
-            <ul className="space-y-3 sm:space-y-4">
-              {jobData.description.map((item, index) => (
-                <li key={index} className="flex gap-3 text-sm sm:text-base lg:text-[16px] leading-relaxed">
-                  <span className="text-black mt-1.5">•</span>
-                  <span className="flex-1 text-black">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          {/* Error / not found */}
+          {!loading && (error || !job) && (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+              <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
+              <Link href="/job-feed" className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
+                {t('seeker:jobDetails.backToFeed')}
+              </Link>
+            </div>
+          )}
 
-          {/* Skills & Qualifications Section */}
-          <section className="mb-8 sm:mb-10 lg:mb-12">
-            <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
-              Skills & Qualifications
-            </h2>
-            <ul className="space-y-3 sm:space-y-4">
-              {jobData.qualifications.map((item, index) => (
-                <li key={index} className="flex gap-3 text-sm sm:text-base lg:text-[16px] leading-relaxed">
-                  <span className="text-black mt-1.5">•</span>
-                  <span className="flex-1 text-black">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 lg:mb-20">
-            <button
-              onClick={() => setIsApplyModalOpen(true)}
-              className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
-            >
-              Apply
-            </button>
-            <button className="px-6 sm:px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
-              <Phone className="w-5 h-5" />
-              Contact the Recruiter
-            </button>
-          </div>
-
-          {/* Related Jobs Section */}
-          <section>
-            <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-6 sm:mb-8 lg:mb-10">
-              Related Job
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
-              {relatedJobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/job-details/${job.id}`}
-                  className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start gap-3 sm:gap-4 mb-4">
-                    <div className="w-[48px] h-[48px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-[20px] font-semibold text-[#236987]">
-                        {job.companyInitials}
-                      </span>
+          {!loading && !error && job && (
+            <>
+              {/* Job Header Card */}
+              <div className="bg-white rounded-[10px] mb-8 sm:mb-10 lg:mb-12">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-[68px] h-[68px] sm:w-[78px] sm:h-[78px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-[32px] sm:text-[40px] font-semibold text-[#236987]">{initials(companyOf(job, t('seeker:jobCard.company')))}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-semibold mb-1">
-                        {job.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        {job.company}
-                      </p>
+                      <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold mb-2 sm:mb-3">{job.title}</h1>
+                      <p className="text-base sm:text-lg lg:text-[18px] text-black mb-4 sm:mb-5">{companyOf(job, t('seeker:jobCard.company'))}</p>
+
+                      <div className="flex items-center gap-1 mb-4 sm:mb-5">
+                        <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-base sm:text-lg lg:text-[18px] font-medium">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {job.jobType && (
+                          <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
+                            <span className="text-xs sm:text-sm text-black">{humanizeJobType(job.jobType)}</span>
+                          </div>
+                        )}
+                        {job.category && (
+                          <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
+                            <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
+                            <span className="text-xs sm:text-sm text-black">{job.category}</span>
+                          </div>
+                        )}
+                        {job.location && (
+                          <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
+                            <span className="text-xs sm:text-sm text-black">{job.location}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2">
-                    <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#3386a9]" />
-                      <span className="text-xs text-black">{job.type}</span>
+                  <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
+                      {viewCount != null && (
+                        <span className="flex items-center gap-1 text-xs text-[#717182]">
+                          <Eye className="w-3.5 h-3.5" /> {t('seeker:jobDetails.views', { count: viewCount })}
+                        </span>
+                      )}
                     </div>
-                    <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                      <span className="text-xs text-black">{job.industry}</span>
+
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+                      <button
+                        onClick={handleSaveJob}
+                        disabled={saveLoading}
+                        className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
+                      >
+                        {isSaved ? <BookmarkCheck className="w-5 h-5 text-primary-50" /> : <Bookmark className="w-5 h-5" />}
+                        <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? t('buttons.saved') : t('buttons.save')}</span>
+                      </button>
+                      <button
+                        onClick={() => setIsApplyModalOpen(true)}
+                        disabled={hasApplied}
+                        className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
+                      </button>
                     </div>
-                    <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#3386a9]" />
-                      <span className="text-xs text-black">{job.location}</span>
-                    </div>
+                    {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
                   </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+                </div>
+              </div>
+
+              {/* Job Description */}
+              {descriptionLines.length > 0 && (
+                <section className="mb-8 sm:mb-10 lg:mb-12">
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">{t('seeker:jobDetails.description')}</h2>
+                  <div className="space-y-3 sm:space-y-4">
+                    {descriptionLines.map((line, i) => (
+                      <p key={i} className="text-sm sm:text-base lg:text-[16px] leading-relaxed text-black">{line}</p>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Skills & Qualifications */}
+              {(requirementLines.length > 0 || (job.skillsRequired?.length ?? 0) > 0) && (
+                <section className="mb-8 sm:mb-10 lg:mb-12">
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">{t('seeker:jobDetails.skillsTitle')}</h2>
+                  {requirementLines.length > 0 && (
+                    <ul className="space-y-3 sm:space-y-4 mb-6">
+                      {requirementLines.map((line, i) => (
+                        <li key={i} className="flex gap-3 text-sm sm:text-base lg:text-[16px] leading-relaxed">
+                          <span className="text-black mt-1.5">•</span>
+                          <span className="flex-1 text-black">{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {(job.skillsRequired?.length ?? 0) > 0 && (
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                      {job.skillsRequired!.map((skill) => (
+                        <span key={skill} className="bg-[#e3f5ff] text-[#236987] px-3 py-1.5 rounded-full text-xs sm:text-sm">{skill}</span>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
+                <button
+                  onClick={() => setIsApplyModalOpen(true)}
+                  disabled={hasApplied}
+                  className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
+                </button>
+                {/* Contact-recruiter gated reveal (PJP-113) — shown only when the
+                    employer toggled email and/or phone for this job (NC-5/Q51). */}
+                {(job.showEmailToSeekers || job.showPhoneToSeekers) && (
+                  <button
+                    onClick={() => setIsContactModalOpen(true)}
+                    className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    <Phone className="w-5 h-5" />
+                    {t('seeker:jobDetails.contactRecruiter')}
+                  </button>
+                )}
+              </div>
+
+              {/* Report this job (PJP-152) — trust affordance for scam/abusive posts. */}
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors mb-12 sm:mb-16 lg:mb-20"
+              >
+                <Flag className="w-4 h-4" />
+                {t('seeker:jobDetails.reportJob')}
+              </button>
+
+              {/* Related Jobs */}
+              {related.length > 0 && (
+                <section>
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-6 sm:mb-8 lg:mb-10">{t('seeker:jobDetails.relatedJobs')}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+                    {related.map((rel) => (
+                      <Link key={rel.id} href={`/job-details/${rel.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                          <div className="w-[48px] h-[48px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-[20px] font-semibold text-[#236987]">{initials(companyOf(rel, t('seeker:jobCard.company')))}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base sm:text-lg font-semibold mb-1">{rel.title}</h3>
+                            <p className="text-xs sm:text-sm text-gray-600">{companyOf(rel, t('seeker:jobCard.company'))}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {rel.jobType && (
+                            <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{humanizeJobType(rel.jobType)}</span>
+                            </div>
+                          )}
+                          {rel.category && (
+                            <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
+                              <Briefcase className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{rel.category}</span>
+                            </div>
+                          )}
+                          {rel.location && (
+                            <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-[#3386a9]" />
+                              <span className="text-xs text-black">{rel.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
 
-      {/* Apply Modal */}
-      <ApplyModal
-        isOpen={isApplyModalOpen}
-        onClose={() => setIsApplyModalOpen(false)}
-        jobTitle={jobData.title}
-        companyName={jobData.company}
-      />
+      {job && (
+        <ApplyModal
+          isOpen={isApplyModalOpen}
+          onClose={() => setIsApplyModalOpen(false)}
+          jobId={job.id}
+          jobTitle={job.title}
+          companyName={companyOf(job, t('seeker:jobCard.company'))}
+          onApplied={() => setHasApplied(true)}
+        />
+      )}
+
+      {job && (
+        <ContactRecruiterModal
+          isOpen={isContactModalOpen}
+          onClose={() => setIsContactModalOpen(false)}
+          jobId={job.id}
+          companyName={companyOf(job, t('seeker:jobCard.company'))}
+        />
+      )}
+
+      {job && (
+        <ReportJobModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          jobId={job.id}
+          jobTitle={job.title}
+        />
+      )}
     </div>
+  )
+}
+
+export default function JobDetailsPage() {
+  return (
+    <ProtectedRoute requiredRole="seeker">
+      <JobDetailsContent />
+    </ProtectedRoute>
   )
 }

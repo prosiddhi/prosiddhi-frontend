@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Volume2, ChevronDown, Briefcase, Users } from 'lucide-react'
+import { ChevronDown, Briefcase, Users } from 'lucide-react'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 
 const languages = [
   { value: 'en', label: 'English' },
@@ -63,7 +64,7 @@ export function LanguageSection() {
       if (selectedUserType === 'employee') {
         router.push('/employee')
       } else {
-        router.push('/employer')
+        router.push('/employer/welcome')
       }
     }
   }
@@ -105,12 +106,7 @@ export function LanguageSection() {
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black text-center">
                   Select Your Native Language
                 </h2>
-                <button
-                  className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                  aria-label="Play audio"
-                >
-                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" />
-                </button>
+                <VoiceButton label="Select your native language" iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
               </div>
 
               {/* Description */}
@@ -172,12 +168,7 @@ export function LanguageSection() {
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black text-center">
                   What are you looking for?
                 </h2>
-                <button
-                  className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                  aria-label="Play audio"
-                >
-                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" />
-                </button>
+                <VoiceButton label="What are you looking for" iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
               </div>
 
               {/* Description */}

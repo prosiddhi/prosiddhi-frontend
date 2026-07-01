@@ -27,13 +27,9 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
-  // Internationalization
-  i18n: {
-    locales: ['en', 'hi', 'ta', 'te', 'ml', 'kn', 'mr', 'gu', 'bn'],
-    defaultLocale: 'en',
-    localeDetection: true,
-  },
-  
+  // i18n is handled client-side via react-i18next (see src/i18n + Q-FE-05); the
+  // pages-router `i18n` key is unsupported under the app router, so it is omitted.
+
   // Environment variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

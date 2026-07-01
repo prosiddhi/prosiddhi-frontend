@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Volume2, ChevronRight, X } from 'lucide-react'
-import Image from 'next/image'
+import { ChevronRight, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSeekerRegistration } from './SeekerRegistrationContext'
 
 const languages = [
   { value: 'en', label: 'English' },
@@ -21,18 +23,16 @@ const languages = [
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const { t } = useTranslation()
+  const { data, update } = useSeekerRegistration()
+  const [selectedLanguage, setSelectedLanguage] = useState(data.language)
 
   const handleLanguageSelect = (value: string) => {
     setSelectedLanguage(value)
   }
 
   const handleNext = () => {
-    // Save language to localStorage or state management
-    localStorage.setItem('selectedLanguage', selectedLanguage)
-    console.log('Selected language:', selectedLanguage)
-    
-    // Navigate to phone number step
+    update({ language: selectedLanguage })
     router.push('/register/phone')
   }
 
@@ -44,7 +44,7 @@ export default function RegisterPage() {
         <Link
           href="/"
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
-          aria-label="Close"
+          aria-label={t('auth:register.close')}
         >
           <X className="w-6 h-6 text-gray-600" />
         </Link>
@@ -54,10 +54,10 @@ export default function RegisterPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-3 leading-tight">
-              Welcome Guest
+              {t('auth:register.welcomeGuest')}
             </h1>
             <p className="text-base sm:text-lg text-[#767676]">
-              Create an account for the job search
+              {t('auth:register.subtitle')}
             </p>
           </div>
 
@@ -66,14 +66,9 @@ export default function RegisterPage() {
             {/* Label with Audio Icon */}
             <div className="flex items-center gap-2 mb-4">
               <label className="text-base sm:text-lg font-medium text-black">
-                Select the Language *
+                {t('auth:register.selectLanguage')}
               </label>
-              <button
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                aria-label="Play audio"
-              >
-                <Volume2 className="w-5 h-5 text-gray-600" />
-              </button>
+              <VoiceButton label={t('auth:register.selectLanguageVoice')} iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             {/* Language Grid - Responsive */}
@@ -124,19 +119,19 @@ export default function RegisterPage() {
               onClick={handleNext}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-8 py-3 rounded-lg transition-colors order-2 sm:order-1"
             >
-              <span className="text-base font-medium">Next</span>
+              <span className="text-base font-medium">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />
             </button>
 
             {/* Sign In Link */}
             <div className="text-center order-1 sm:order-2">
               <p className="text-sm sm:text-base">
-                <span className="text-black">Already have an account? </span>
+                <span className="text-black">{t('auth:register.alreadyHaveAccount')}</span>
                 <Link
                   href="/login"
                   className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
                 >
-                  Sign in here
+                  {t('auth:register.signInHere')}
                 </Link>
               </p>
             </div>

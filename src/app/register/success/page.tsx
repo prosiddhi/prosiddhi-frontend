@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CheckCircle, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,19 +9,15 @@ import { useRouter } from 'next/navigation'
 
 export default function RegisterSuccessPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [showTutorial, setShowTutorial] = useState(true)
 
   const handleStartExplore = () => {
-    // Save tutorial preference
+    // Remember the tutorial preference (non-sensitive UI flag).
     localStorage.setItem('showTutorial', showTutorial.toString())
-    console.log('Show tutorial:', showTutorial)
-    
-    // Navigate to job explore or dashboard
-    if (showTutorial) {
-      router.push('/tutorial')
-    } else {
-      router.push('/jobs')
-    }
+    // The seeker is authenticated by now (handoff happened on email-verify).
+    // Land on the job feed — the seeker home. (/tutorial is a v2 backlog screen.)
+    router.push('/job-feed')
   }
 
   return (
@@ -33,7 +30,7 @@ export default function RegisterSuccessPage() {
             {/* Text Content */}
             <div className="px-12 pt-20">
               <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
-                Your Next Opportunity Is Just a Click Away
+                {t('auth:success.panelHeading')}
               </h2>
             </div>
 
@@ -73,7 +70,7 @@ export default function RegisterSuccessPage() {
                 href="/"
                 className="flex items-center gap-2 bg-error-500 hover:bg-error-600 text-white px-5 py-3 rounded-lg transition-colors"
               >
-                <span className="text-[18px]">Close</span>
+                <span className="text-[18px]">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -82,7 +79,7 @@ export default function RegisterSuccessPage() {
             <div className="flex flex-col items-center justify-center min-h-[600px]">
               {/* Success Title */}
               <h1 className="text-[48px] font-semibold text-black text-center mb-16 leading-tight">
-                Profile Create Successfully
+                {t('auth:success.title')}
               </h1>
 
               {/* Success Icon */}
@@ -93,7 +90,7 @@ export default function RegisterSuccessPage() {
               {/* Tutorial Toggle */}
               <div className="flex items-center justify-center gap-6 mb-12">
                 <label htmlFor="tutorial" className="text-[28px] font-medium text-black">
-                  Show the tutorial/Welcome
+                  {t('auth:success.showTutorial')}
                 </label>
 
                 {/* Toggle Switch */}
@@ -117,19 +114,19 @@ export default function RegisterSuccessPage() {
                 onClick={handleStartExplore}
                 className="bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors"
               >
-                <span className="text-[20px]">Start Job Explore</span>
+                <span className="text-[20px]">{t('auth:success.startExplore')}</span>
               </button>
             </div>
 
             {/* Sign In Link */}
             <div className="text-center mt-16">
               <p className="text-[20px]">
-                <span className="text-black">Already have an account? </span>
+                <span className="text-black">{t('auth:success.alreadyHaveAccount')}</span>
                 <Link
                   href="/login"
                   className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
                 >
-                  Sign in here
+                  {t('auth:success.signInHere')}
                 </Link>
               </p>
             </div>
@@ -157,7 +154,7 @@ export default function RegisterSuccessPage() {
             href="/"
             className="flex items-center gap-2 bg-error-500 hover:bg-error-600 text-white px-3 py-2 rounded-lg transition-colors"
           >
-            <span className="text-sm">Close</span>
+            <span className="text-sm">{t('auth:register.close')}</span>
             <X className="w-4 h-4" />
           </Link>
         </div>
@@ -166,7 +163,7 @@ export default function RegisterSuccessPage() {
         <div className="flex-1 bg-white px-4 py-8 overflow-auto flex flex-col items-center justify-center">
           {/* Success Title */}
           <h1 className="text-3xl sm:text-4xl font-semibold text-black text-center mb-12 leading-tight">
-            Profile Create Successfully
+            {t('auth:success.title')}
           </h1>
 
           {/* Success Icon */}
@@ -177,7 +174,7 @@ export default function RegisterSuccessPage() {
           {/* Tutorial Toggle */}
           <div className="flex items-center justify-center gap-4 mb-12">
             <label className="text-lg sm:text-xl font-medium text-black">
-              Show tutorial/Welcome
+              {t('auth:success.showTutorialMobile')}
             </label>
 
             <button
@@ -199,18 +196,18 @@ export default function RegisterSuccessPage() {
             onClick={handleStartExplore}
             className="w-full max-w-xs bg-primary-50 hover:bg-primary-60 text-white px-8 py-3 rounded-lg transition-colors mb-8"
           >
-            <span className="text-lg">Start Job Explore</span>
+            <span className="text-lg">{t('auth:success.startExplore')}</span>
           </button>
 
           {/* Sign In Link */}
           <div className="text-center">
             <p className="text-base">
-              <span className="text-black">Already have an account? </span>
+              <span className="text-black">{t('auth:success.alreadyHaveAccount')}</span>
               <Link
                 href="/login"
                 className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
               >
-                Sign in here
+                {t('auth:success.signInHere')}
               </Link>
             </p>
           </div>
@@ -219,7 +216,7 @@ export default function RegisterSuccessPage() {
         {/* Blue Decorative Section at Bottom */}
         <div className="bg-primary-50 py-8 px-4">
           <h2 className="text-2xl font-bold text-white text-center leading-tight">
-            Your Next Opportunity Is Just a Click Away
+            {t('auth:success.panelHeading')}
           </h2>
         </div>
       </div>
