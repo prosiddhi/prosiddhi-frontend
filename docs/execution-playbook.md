@@ -128,7 +128,7 @@ Do these in order — each builds on the last. Without these a seeker can't brow
 | ✓ | Ticket | Delivers | BLOCKER | Done |
 |---|---|---|---|---|
 | [B] | **PJP-111** | Notifications dropdown + preferences | In-app list is doable; **preferences/channels blocked** on BE PJP-96/97/98 | |
-| [B] | **PJP-110** | Subscription upgrade + renewal UI | **Blocked**: BE has no Subscription/Payment models (PJP-74/75/76) + Razorpay (PJP-62/76) | |
+| [B] | **PJP-110** | Subscription upgrade + renewal UI | **RE-SCOPED 2026-06-29** → the locked 8-tier credits model (`docs/pricing/employer-monetization-{functional-spec,technical-design}.md`); split into Monetization EPIC A/B/C (web+mobile+BE). Still BE-gated (credit ledger + Razorpay). | |
 | [B] | **PJP-72 (Google login tab)** | 3rd login method | UI present but `disabled`; **blocked** on BE Google OAuth (PJP-72) + client (PJP-63) | |
 
 ---

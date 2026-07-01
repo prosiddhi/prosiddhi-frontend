@@ -5,6 +5,10 @@
 
 > Convention: when FE ships a workaround for one of these, tag the code `// Q-FE-NN (date) — see docs/be-requests.md#<anchor>`.
 
+> **Monetization BE work (2026-06-29):** the employer credits/Razorpay/gates BE scope is **not** tracked as BR items
+> here — it lives in [`docs/pricing/employer-monetization-technical-design.md`](pricing/employer-monetization-technical-design.md)
+> (§2 schema, §3 APIs, §4 gates) and the Monetization EPIC A/B/C Jira stories.
+
 ---
 
 ## Open requests

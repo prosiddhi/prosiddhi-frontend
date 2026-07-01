@@ -266,6 +266,12 @@ Both seeker and employer roles ship on web AND mobile. Same BE API serves all cl
 **Two separate Git repos** (FE monorepo + BE). Do NOT merge BE into FE monorepo. Each has its own `.claude/` configuration. The shared API contract (OpenAPI) lives in FE repo's `docs/` and is referenced from BE.
 
 ### Q1 — Subscriptions in v1 (revised 2026-05-09: PO-pending → 2026-05-11: PROVISIONAL Option B)
+
+> **SUPERSEDED 2026-06-29.** The provisional flat **₹999/month Option B is replaced** by the confirmed **8-tier
+> metered credits model** (post + candidate-unlock credits, free trial, seekers free). Canonical spec:
+> [`docs/pricing/employer-monetization-functional-spec.md`](../pricing/employer-monetization-functional-spec.md)
+> + [`…-technical-design.md`](../pricing/employer-monetization-technical-design.md). The text below is historical.
+
 **Provisional working assumption (locked 2026-05-11 to unblock Sprint 1):** Option B from the Pricing Memo.
 - **Worker:** Free forever. No premium tier in v1.
 - **Employer:** ₹999 / month, manual renewal (no auto-debit), 14-day free trial with day-3 + day-7 in-app + WhatsApp check-ins.
@@ -292,6 +298,10 @@ Both seeker and employer roles ship on web AND mobile. Same BE API serves all cl
 **Implication:** the previously planned `docs/aadhaar-integration-research.md` sub-agent task is **cancelled**.
 
 ### Q5 — Free tier rules (revised 2026-05-09 → 2026-05-11: PROVISIONAL per Option B)
+
+> **SUPERSEDED 2026-06-29 →** free-tier/gating rules now defined by the 8-tier credits model — see
+> [`docs/pricing/employer-monetization-functional-spec.md`](../pricing/employer-monetization-functional-spec.md)
+> §2.3 (free employer tier), §2.4 (trial), §3 (gates). Text below is historical.
 **Provisional working assumption (locked 2026-05-11 with Q1):**
 - **Worker free tier:** unlimited applications; can browse all jobs; can chat with employers who've accepted the application. No premium tier in v1.
 - **Employer free tier (after 14-day trial expires):** 0 job posts. Browse-only mode until paid.
