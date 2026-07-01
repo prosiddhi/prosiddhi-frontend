@@ -566,6 +566,9 @@ export interface SeekerRegisterData {
   fullName: string
   email: string
   phoneNumber: string // E.164
+  // BR-3 — 3-level taxonomy. preferredCategory optional on the BE; sector +
+  // jobTitle required. The FE sends the full triple (validateTriple checks path).
+  preferredCategory?: string
   preferredSector: string
   preferredJobTitle: string
   preferredLanguage?: string
@@ -605,6 +608,7 @@ export const jobSeekerAPI = {
     fd.append('fullName', data.fullName)
     fd.append('email', data.email)
     fd.append('phoneNumber', data.phoneNumber)
+    if (data.preferredCategory) fd.append('preferredCategory', data.preferredCategory)
     fd.append('preferredSector', data.preferredSector)
     fd.append('preferredJobTitle', data.preferredJobTitle)
     fd.append('preferredLanguage', data.preferredLanguage ?? 'en')
@@ -1270,6 +1274,48 @@ export const subscriptionAPI = {
 }
 
 // ==========================================
+// TAXONOMY APIs (3-level Category → Sector → JobTitle)
+// ==========================================
+//
+// The seeded taxonomy tree from GET /api/categories (public). Every consumer —
+// seeker registration (PJP-81), employer JobForm (PJP-106), job-feed filter
+// (PJP-138), profile edit (PJP-112) — sends a `{ category, sector, jobTitle }`
+// triple of NAMES. The BE `validateTriple` enforces allowlist membership +
+// parent-child consistency, so the FE must build the triple from this tree.
+
+export type EmploymentType = 'SKILLED' | 'UNSKILLED' | 'TECHNICAL' | 'NON_TECHNICAL'
+export type JobTitleScope = 'SECTOR_LOCKED' | 'PORTABLE'
+
+export interface TaxonomyJobTitle {
+  name: string
+  employmentType: EmploymentType
+  scope: JobTitleScope
+}
+export interface TaxonomySector {
+  name: string
+  jobTitles: TaxonomyJobTitle[]
+}
+export interface TaxonomyCategory {
+  name: string
+  sectors: TaxonomySector[]
+}
+
+// The picked value shared by every taxonomy consumer. Empty levels are
+// `undefined` (not '') so callers can spread it straight into a request body.
+export interface TaxonomyTriple {
+  category?: string
+  sector?: string
+  jobTitle?: string
+}
+
+export const taxonomyAPI = {
+  // Public taxonomy tree. GET /api/categories → TaxonomyCategory[].
+  getCategories: async () => {
+    return apiRequest<TaxonomyCategory[]>('/categories')
+  },
+}
+
+// ==========================================
 // CHAT / MESSAGING APIs (M8 — polling-based)
 // ==========================================
 export const chatAPI = {
@@ -1335,5 +1381,6 @@ export default {
   jobSeekerAPI,
   employerAPI,
   subscriptionAPI,
+  taxonomyAPI,
   chatAPI,
 }

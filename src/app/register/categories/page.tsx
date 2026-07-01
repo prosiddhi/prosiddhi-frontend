@@ -7,14 +7,18 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { SECTORS, jobTitlesForSector } from '@/lib/jobCategories'
+import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
+import type { TaxonomyTriple } from '@/lib/api'
 
 export default function RegisterCategoriesPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
-  const [sector, setSector] = useState(data.preferredSector)
-  const [jobTitle, setJobTitle] = useState(data.preferredJobTitle)
+  const [triple, setTriple] = useState<TaxonomyTriple>({
+    category: data.preferredCategory || undefined,
+    sector: data.preferredSector || undefined,
+    jobTitle: data.preferredJobTitle || undefined,
+  })
   const [error, setError] = useState('')
 
   // Guard: must have completed the profile step (email set).
@@ -22,24 +26,29 @@ export default function RegisterCategoriesPage() {
     if (!data.email) router.replace('/register/phone')
   }, [data.email, router])
 
-  const jobTitles = jobTitlesForSector(sector)
-
-  const handleSectorChange = (value: string) => {
-    setSector(value)
-    setJobTitle('') // reset dependent title when sector changes
+  const handleTripleChange = (next: TaxonomyTriple) => {
+    setTriple(next)
     if (error) setError('')
   }
 
   const handleNext = () => {
-    if (!sector) {
+    if (!triple.category) {
+      setError(t('auth:categories.errorCategory'))
+      return
+    }
+    if (!triple.sector) {
       setError(t('auth:categories.errorSector'))
       return
     }
-    if (!jobTitle) {
+    if (!triple.jobTitle) {
       setError(t('auth:categories.errorJob'))
       return
     }
-    update({ preferredSector: sector, preferredJobTitle: jobTitle })
+    update({
+      preferredCategory: triple.category,
+      preferredSector: triple.sector,
+      preferredJobTitle: triple.jobTitle,
+    })
     router.push('/register/experience')
   }
 
@@ -96,36 +105,14 @@ export default function RegisterCategoriesPage() {
                 </div>
               )}
 
-              <div className="space-y-8 mb-12">
-                <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:categories.sectorLabel')}</label>
-                  <select
-                    value={sector}
-                    onChange={(e) => handleSectorChange(e.target.value)}
-                    className="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
-                  >
-                    <option value="">{t('auth:categories.sectorSelect')}</option>
-                    {SECTORS.map((s) => (
-                      <option key={s.sector} value={s.sector}>{s.sector}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:categories.jobLabel')}</label>
-                  <select
-                    value={jobTitle}
-                    onChange={(e) => { setJobTitle(e.target.value); if (error) setError('') }}
-                    disabled={!sector}
-                    className="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px] disabled:opacity-50"
-                  >
-                    <option value="">{sector ? t('auth:categories.jobSelect') : t('auth:categories.jobSelectSectorFirst')}</option>
-                    {jobTitles.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <TaxonomyPicker
+                value={triple}
+                onChange={handleTripleChange}
+                required
+                className="space-y-8 mb-12"
+                labelClassName="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block"
+                selectClassName="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              />
 
               <div className="flex justify-end">
                 <button
