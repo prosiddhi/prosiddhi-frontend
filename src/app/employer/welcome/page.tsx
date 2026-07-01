@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { 
+import { PricingPlans } from '@/components/employer/PricingPlans'
+import {
   Phone,
   Facebook,
   Instagram,
@@ -14,7 +15,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Check,
   PhoneCall,
   MessageCircle
 } from 'lucide-react'
@@ -41,27 +41,6 @@ function EmployerLandingPageContent() {
       description: t('employer:landing.offers.card3Desc'),
       gradient: 'from-[#f0edfe] to-white'
     }
-  ]
-
-  const freePlanFeatures = [
-    t('employer:landing.pricing.freeFeatures.f1'),
-    t('employer:landing.pricing.freeFeatures.f2'),
-    t('employer:landing.pricing.freeFeatures.f3'),
-    t('employer:landing.pricing.freeFeatures.f4'),
-    t('employer:landing.pricing.freeFeatures.f5'),
-    t('employer:landing.pricing.freeFeatures.f6')
-  ]
-
-  const enterprisePlanFeatures = [
-    t('employer:landing.pricing.enterpriseFeatures.f1'),
-    t('employer:landing.pricing.enterpriseFeatures.f2'),
-    t('employer:landing.pricing.enterpriseFeatures.f3'),
-    t('employer:landing.pricing.enterpriseFeatures.f4'),
-    t('employer:landing.pricing.enterpriseFeatures.f5'),
-    t('employer:landing.pricing.enterpriseFeatures.f6'),
-    t('employer:landing.pricing.enterpriseFeatures.f7'),
-    t('employer:landing.pricing.enterpriseFeatures.f8'),
-    t('employer:landing.pricing.enterpriseFeatures.f9')
   ]
 
   return (
@@ -355,69 +334,10 @@ function EmployerLandingPageContent() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white">
+      {/* Pricing Section — live 8-tier catalog from GET /api/plans (PJP-176). */}
+      <section id="pricing" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
-          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-[40px] font-medium mb-2 sm:mb-3">{t('employer:landing.pricing.heading')}</h2>
-            <p className="text-base sm:text-lg lg:text-xl text-[#717182] px-4">
-              {t('employer:landing.pricing.subheading')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-[38px] max-w-[1100px] mx-auto">
-            {/* Free Plan */}
-            <div className="bg-neutral-50 border-2 border-white rounded-[20px] p-6 sm:p-8 lg:p-[37px] w-full">
-              <div className="space-y-4 sm:space-y-5">
-                <h3 className="text-2xl sm:text-3xl lg:text-[32px] font-semibold">{t('employer:landing.pricing.freeTitle')}</h3>
-                <p className="text-base sm:text-lg lg:text-[18px] text-[#717182]">{t('employer:landing.pricing.freeSubtitle')}</p>
-
-                <div className="flex items-baseline gap-1">
-                  <span className="text-6xl sm:text-7xl lg:text-[96px] font-bold">₹0</span>
-                  <span className="text-base sm:text-lg lg:text-[18px] text-[#717182]">{t('employer:landing.pricing.lifetime')}</span>
-                </div>
-
-                <div className="space-y-2 sm:space-y-3 py-3 sm:py-4">
-                  {freePlanFeatures.map((feature, index) => (
-                    <div key={index} className="flex items-start gap-2 sm:gap-3">
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary-50 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm sm:text-base text-neutral-950">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button className="px-3 sm:px-4 py-2 sm:py-2.5 bg-primary-50 text-white rounded-lg text-sm sm:text-base w-full hover:bg-primary-60 transition-colors">
-                  {t('employer:landing.pricing.startPaidPlan')}
-                </button>
-              </div>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-neutral-50 border-[3px] border-primary-50 rounded-[20px] p-6 sm:p-8 lg:p-[42px] w-full">
-              <div className="space-y-4 sm:space-y-5">
-                <h3 className="text-2xl sm:text-3xl lg:text-[32px] font-semibold">{t('employer:landing.pricing.enterpriseTitle')}</h3>
-                <p className="text-base sm:text-lg lg:text-[18px] text-[#717182]">{t('employer:landing.pricing.enterpriseSubtitle')}</p>
-
-                <div className="flex items-baseline gap-1">
-                  <span className="text-6xl sm:text-7xl lg:text-[96px] font-bold">₹250</span>
-                  <span className="text-base sm:text-lg lg:text-[18px] text-[#717182]">{t('employer:landing.pricing.monthly')}</span>
-                </div>
-
-                <div className="space-y-2 sm:space-y-3 py-3 sm:py-4">
-                  {enterprisePlanFeatures.map((feature, index) => (
-                    <div key={index} className="flex items-start gap-2 sm:gap-3">
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary-50 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm sm:text-base text-neutral-950">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button className="px-3 sm:px-4 py-2 sm:py-2.5 bg-primary-50 text-white rounded-lg text-sm sm:text-base w-full hover:bg-primary-60 transition-colors">
-                  {t('employer:landing.pricing.startFreePlan')}
-                </button>
-              </div>
-            </div>
-          </div>
+          <PricingPlans />
         </div>
       </section>
 

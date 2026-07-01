@@ -1232,6 +1232,44 @@ export const employerAPI = {
 }
 
 // ==========================================
+// SUBSCRIPTION / BILLING APIs (monetization Phase 1)
+// ==========================================
+//
+// The employer credits model (functional-spec §2). Phase 1 surfaces:
+//   • GET /api/plans                    — public plan catalog (pricing page)
+//   • GET /api/employers/me/credits     — the wallet (PJP-178)
+//   • POST /api/billing/checkout        — create Razorpay order (PJP-177)
+//   • POST /api/billing/verify-payment  — client-side capture confirm (PJP-177)
+
+export type PlanGroup = 'PACK' | 'STARTER' | 'PRO'
+
+// One row from GET /api/plans. Prices are BASE (GST-exclusive); `gstPct` is 18
+// and `totalInr` is the BE-computed base+GST. `durationDays: null` means a
+// one-shot pack whose credits never expire. `features` is a BE-authored English
+// string[] (data, not UI chrome) — the pricing page renders the structured
+// numeric fields instead so the card is fully translatable.
+export interface Plan {
+  code: string
+  name: string
+  group: PlanGroup
+  baseInr: number
+  gstPct: number
+  totalInr: number
+  postCredits: number
+  downloadCredits: number
+  seats: number
+  durationDays: number | null
+  features?: string[]
+}
+
+export const subscriptionAPI = {
+  // Public plan catalog. GET /api/plans → Plan[] (no auth required).
+  getPlans: async () => {
+    return apiRequest<Plan[]>('/plans')
+  },
+}
+
+// ==========================================
 // CHAT / MESSAGING APIs (M8 — polling-based)
 // ==========================================
 export const chatAPI = {
@@ -1296,5 +1334,6 @@ export default {
   emailOtpAPI,
   jobSeekerAPI,
   employerAPI,
+  subscriptionAPI,
   chatAPI,
 }

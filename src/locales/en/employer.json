@@ -1,4 +1,38 @@
 {
+  "plans": {
+    "heading": "Plans & pricing",
+    "subheading": "Buy credits to post jobs and unlock candidates — pay only for what you use.",
+    "seekersFree": "Job seekers are free, forever.",
+    "gstNote": "+ 18% GST",
+    "inclGst": "{{total}} incl. GST",
+    "postsLabel": "job posts",
+    "unlocksLabel": "candidate unlocks",
+    "seatsLabel": "team",
+    "seat": "seat",
+    "seats": "seats",
+    "validityLabel": "validity",
+    "daysValid": "Valid {{days}} days",
+    "neverExpires": "Never expires",
+    "comingSoon": "Coming soon",
+    "loading": "Loading plans…",
+    "error": "Couldn't load plans. Please try again.",
+    "retry": "Retry",
+    "groups": {
+      "PACK": "Credit Pack",
+      "STARTER": "Starter",
+      "PRO": "Pro"
+    },
+    "free": {
+      "title": "Free",
+      "tagline": "To get started",
+      "price": "₹0",
+      "f1": "Register free — no card required",
+      "f2": "14-day trial: 1 job post + 3 candidate unlocks",
+      "f3": "Post and manage your company profile",
+      "f4": "Receive and review applications",
+      "cta": "Create free account"
+    }
+  },
   "landing": {
     "badge": "For Employers",
     "nav": {
