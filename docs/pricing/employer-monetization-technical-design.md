@@ -1,7 +1,7 @@
 # Employer Monetization — Technical Design
 
 **Status:** Design (decisions locked 2026-06-29) · **Audience:** FE-Claude, BE-Claude, mobile dev (the *how*)
-**Companion:** [employer-monetization-functional-spec.md](./employer-monetization-functional-spec.md) (the *what/why* — rules & journeys)
+**Companion:** [functional-spec](./employer-monetization-functional-spec.md) (the *what/why*) · [delete-refund-spec](./employer-monetization-delete-refund-spec.md) (reversal rules) · [decisions-tracker](./employer-monetization-decisions-tracker.md) (23-doubt scoreboard + per-ticket impl notes)
 **Repos:** `prosiddhi-backend` (Express 5 + Prisma + PostgreSQL), `prosiddhi-frontend` (Next.js app-router), `prosiddhi-mobile-app` (Flutter)
 
 > Builds **on top of** the partial subscription schema shipped in PJP-74. Every rule cited here (expiry, merge,
@@ -100,7 +100,7 @@ Migration: additive; the 1:N seat change (P3) needs the owner-backfill data migr
   → controller returns **402**. Set `job.liveUntil = now + 30d`.
 - **Unlock gate** — candidate full-profile/unlock path: `spendCredit('DOWNLOAD')` with dedupe.
 - **Delete-refund** — in delete-job path: refund 1 POST lot (`+1`, `REFUND_DELETE`) **only if** `applicationCount == 0 && now - postedAt < 24h`.
-- **Trial grant** — in `auth.service.ts` employer registration (`registerEmployerIndividual` / `registerEmployerBusiness`): once per verified identity, `grantLots(TRIAL, post:1 download:3, expiresAt: now+14d)`.
+- **Trial grant** — fires when the employer's `accountStatus → ACTIVE` (individual: end of `verifyEmailOtp`; business: end of `approveEmployer`), once per verified identity (dedupe: phone/email for individual, GSTIN for business), `grantLots(TRIAL, post:1 download:3, expiresAt: now+14d)`. See decisions-tracker #1/#5.
 - **Expiry/grace cron** — daily: lots past `expiresAt` stop counting (read-time, automatic); jobs whose owning
   employer has no active plan **and** is past the **3-day grace** → set `status=INACTIVE`; jobs past `liveUntil` → INACTIVE.
 - **Admin revenue** — replace the hardcoded `subscriptionPrice = 500` (`admin.controller.ts:1419`) with a sum over `PaymentHistory` (status SUCCESS).

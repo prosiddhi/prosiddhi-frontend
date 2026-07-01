@@ -1,7 +1,7 @@
 # Employer Monetization — Functional Specification
 
 **Status:** Locked (decisions approved 2026-06-29) · **Owner:** Nazir (PM) · **Audience:** PM / stakeholders / QA / FE+BE+mobile devs (the *what & why*)
-**Companion:** [employer-monetization-technical-design.md](./employer-monetization-technical-design.md) (the *how* — schema, APIs, build)
+**Companion:** [technical-design](./employer-monetization-technical-design.md) (the *how*) · [delete-refund-spec](./employer-monetization-delete-refund-spec.md) (every reversal rule) · [decisions-tracker](./employer-monetization-decisions-tracker.md) (the 23-doubt scoreboard)
 **Supersedes:** the provisional flat ₹999/month "Option B" (scope-locked Q1/Q5).
 
 > This is the single source of truth for **what the employer monetization feature does and the rules it obeys.**
@@ -44,13 +44,18 @@ actual usage.
 | **Pro** | 12 Months · 3 seats | 21,999 | 45 | 450 | 3 | 12 months |
 
 ### 2.3 Free employer tier (always available)
-A registered employer who has **not** bought anything can: register, **search the candidate database, and see
-snippet results** (no full contact). They **cannot post** or **unlock** until they have credits. This is the
-permanent free floor beneath the trial and the paid plans.
+A registered employer who has **not** bought anything can: register, and (once the candidate database ships in
+**Phase 2**) **search the candidate database and see snippet results** (no full contact). They **cannot post** or
+**unlock** until they have credits. This is the permanent free floor beneath the trial and the paid plans.
+
+> **Phasing note (decisions-tracker #23):** candidate search + snippets is a **Phase 2** capability. The **Phase-1
+> pricing page must NOT advertise search** (it doesn't exist yet) — omit the search claim until Phase 2 ships.
 
 ### 2.4 Free trial (one-time)
-On first registration, every employer is granted a free **starter kit**: **1 post credit + 3 download credits,
-valid 14 days.** It is granted **once per employer** (keyed to verified phone/email; GST for business) so it can't
+When the employer's account first becomes **ACTIVE** (individual: at email verification; **business: at admin
+approval** — so a business gets its full 14 days only once it can actually use the product), they are granted a
+free **starter kit**: **1 post credit + 3 download credits, valid 14 days.** It is granted **once per employer**
+(dedupe key = verified phone/email for individual, **verified GSTIN for business**) so it can't
 be farmed by re-registering. It lets a new employer run the real loop once — post a job, get applicants, unlock a
 candidate — before paying. After it's spent/expired, the free tier (search + snippets) remains.
 
