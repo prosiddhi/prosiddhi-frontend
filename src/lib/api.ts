@@ -235,7 +235,11 @@ export interface SavedJobsPage {
 // Mirrors getJobsQuerySchema on the BE (GET /api/jobs).
 export interface JobFeedFilters {
   search?: string
+  // BR-3 — 3-level taxonomy filters (names). The old `?subcategory=` is dropped;
+  // clients send `?category=&sector=&jobTitle=`.
   category?: string
+  sector?: string
+  jobTitle?: string
   jobType?: string // comma-separated, e.g. "FULL_TIME,PART_TIME"
   paymentType?: string
   minSalary?: number
