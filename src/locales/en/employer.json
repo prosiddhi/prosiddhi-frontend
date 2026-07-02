@@ -23,6 +23,17 @@
     "goToDashboard": "Go to dashboard",
     "close": "Close"
   },
+  "topUp": {
+    "close": "Close",
+    "loading": "Loading…",
+    "cta": "Top up now",
+    "oneTime": "One-time payment — no subscription",
+    "neverExpire": "Credits never expire",
+    "oneTimeShort": "one-time payment",
+    "lifetime": "never expires",
+    "unavailable": "Top-up isn't available right now.",
+    "viewAllPlans": "See all plans"
+  },
   "wallet": {
     "title": "Credit wallet",
     "buyCredits": "Buy credits",
@@ -212,6 +223,7 @@
   "postGate": {
     "title": "You're out of job-post credits",
     "body": "Publishing a job uses 1 post credit. Buy a plan or the ₹499 single-post pack to keep hiring.",
+    "topUpNow": "Top up now",
     "viewPlans": "View plans"
   },
   "jobEdit": {
