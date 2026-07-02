@@ -1290,6 +1290,50 @@ export interface Wallet {
   packNeverExpires: boolean
 }
 
+// POST /api/billing/checkout response — a created Razorpay order plus the GST
+// breakdown to show the buyer. The FE opens Razorpay checkout with
+// razorpayOrderId + keyId, then confirms via verify-payment.
+export interface CheckoutOrder {
+  razorpayOrderId: string
+  keyId: string
+  amountInr: number // total incl. GST
+  currency: 'INR'
+  invoicePreview: {
+    baseInr: number
+    cgstInr: number
+    sgstInr: number
+    igstInr: number
+    totalInr: number
+    placeOfSupply: string
+    isIntraState: boolean
+    gstin: string | null
+  }
+  paymentHistoryId: string
+}
+
+// POST /api/billing/verify-payment result. `status:'ok'` granted credits now;
+// `status:'skipped'` means the webhook already processed this payment (also
+// success from the user's view — credits are in the wallet either way).
+export interface VerifyPaymentResult {
+  status: 'ok' | 'skipped'
+  reason?: string
+  granted?: { post: number; download: number }
+  subscriptionId?: string | null
+  paymentHistoryId?: string
+}
+
+export interface CheckoutInput {
+  planCode: string
+  gstin?: string
+  placeOfSupply?: string
+}
+
+export interface VerifyPaymentInput {
+  razorpay_payment_id: string
+  razorpay_order_id: string
+  razorpay_signature: string
+}
+
 export const subscriptionAPI = {
   // Public plan catalog. GET /api/plans → Plan[] (no auth required).
   getPlans: async () => {
@@ -1299,6 +1343,24 @@ export const subscriptionAPI = {
   // Employer credit wallet. GET /api/employers/me/credits (auth: employer).
   getCredits: async () => {
     return apiRequest<Wallet>('/employers/me/credits')
+  },
+
+  // Create a Razorpay order for a plan. POST /api/billing/checkout (auth: employer).
+  checkout: async (input: CheckoutInput) => {
+    return apiRequest<CheckoutOrder>('/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
+  // Confirm a captured payment (client-side path). POST /api/billing/verify-payment.
+  // Verifies the Razorpay signature server-side, then grants credits (idempotent
+  // with the webhook). Called from Razorpay checkout's handler(response).
+  verifyPayment: async (input: VerifyPaymentInput) => {
+    return apiRequest<VerifyPaymentResult>('/billing/verify-payment', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
   },
 }
 

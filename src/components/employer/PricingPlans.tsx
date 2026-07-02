@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { subscriptionAPI, type Plan, type PlanGroup } from '@/lib/api'
+import { CheckoutModal } from '@/components/employer/CheckoutModal'
 
 // Display order for the grouped sections (the BE orders by group name
 // alphabetically, which would put PRO before STARTER — override here).
@@ -21,7 +22,15 @@ function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN')}`
 }
 
-function PlanCard({ plan, highlighted }: { plan: Plan; highlighted: boolean }) {
+function PlanCard({
+  plan,
+  highlighted,
+  onBuy,
+}: {
+  plan: Plan
+  highlighted: boolean
+  onBuy: (plan: Plan) => void
+}) {
   const { t } = useTranslation()
 
   const facts: { label: string; value: string }[] = [
@@ -67,13 +76,12 @@ function PlanCard({ plan, highlighted }: { plan: Plan; highlighted: boolean }) {
         ))}
       </div>
 
-      {/* Stub until checkout (PJP-177) lands. */}
       <button
         type="button"
-        disabled
-        className="mt-4 px-4 py-2.5 bg-neutral-200 text-[#717182] rounded-lg text-sm w-full cursor-not-allowed"
+        onClick={() => onBuy(plan)}
+        className="mt-4 px-4 py-2.5 bg-primary-50 text-white rounded-lg text-sm w-full hover:bg-primary-60 transition-colors"
       >
-        {t('employer:plans.comingSoon')}
+        {t('employer:plans.buy')}
       </button>
     </div>
   )
@@ -121,6 +129,7 @@ export function PricingPlans() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [selected, setSelected] = useState<Plan | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -181,7 +190,7 @@ export function PricingPlans() {
             {plans
               .filter((p) => p.group === 'PACK')
               .map((p) => (
-                <PlanCard key={p.code} plan={p} highlighted={false} />
+                <PlanCard key={p.code} plan={p} highlighted={false} onBuy={setSelected} />
               ))}
           </div>
 
@@ -195,13 +204,22 @@ export function PricingPlans() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   {groupPlans.map((p) => (
-                    <PlanCard key={p.code} plan={p} highlighted={p.code === highlightCode} />
+                    <PlanCard
+                      key={p.code}
+                      plan={p}
+                      highlighted={p.code === highlightCode}
+                      onBuy={setSelected}
+                    />
                   ))}
                 </div>
               </div>
             )
           })}
         </div>
+      )}
+
+      {selected && (
+        <CheckoutModal plan={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   )
