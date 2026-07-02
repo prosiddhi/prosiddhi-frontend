@@ -202,7 +202,13 @@
     "backToMyJobs": "Back to My Jobs",
     "title": "Post a Job",
     "submitLabel": "Publish Job",
-    "publishFailed": "Failed to publish the job. Please try again."
+    "publishFailed": "Failed to publish the job. Please try again.",
+    "checkingCredits": "Checking your credits…"
+  },
+  "postGate": {
+    "title": "You're out of job-post credits",
+    "body": "Publishing a job uses 1 post credit. Buy a plan or the ₹499 single-post pack to keep hiring.",
+    "viewPlans": "View plans"
   },
   "jobEdit": {
     "logoAlt": "Job Portal Logo",
