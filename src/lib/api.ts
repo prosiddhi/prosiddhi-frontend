@@ -1514,6 +1514,71 @@ export const candidateAPI = {
 }
 
 // ==========================================
+// TEAM SEATS APIs (Phase 3 — seat roster + invites)
+// ==========================================
+//
+// Pro plans include multiple seats. The owner invites teammates by email; the
+// BE returns a one-shot invite TOKEN (no SMTP in v1 — the owner relays it, e.g.
+// via WhatsApp). The invitee accepts with their own employer JWT + the token.
+
+export type TeamSeatStatus = 'PENDING' | 'ACCEPTED' | 'REMOVED'
+
+export interface TeamSeat {
+  id: string
+  email: string
+  status: TeamSeatStatus
+  userId: string | null
+  invitedAt: string
+  acceptedAt: string | null
+  removedAt: string | null
+}
+export interface TeamSummary {
+  seatsTotal: number // from active plan.seats (default 1)
+  seatsUsed: number // owner + ACCEPTED + PENDING
+  seatsFree: number
+  owner: { id: string; email: string }
+  seats: TeamSeat[] // PENDING + ACCEPTED only (REMOVED excluded)
+}
+export interface InviteResult {
+  seatId: string
+  email: string
+  inviteToken: string // one-shot; relay to the invitee
+  expiresAt: string
+}
+export interface AcceptInviteResult {
+  seatId: string
+  employerId: string
+}
+
+export const teamAPI = {
+  // GET /api/employers/me/team — seat usage + roster.
+  getTeam: async () => {
+    return apiRequest<TeamSummary>('/employers/me/team')
+  },
+  // POST /api/employers/me/team/invite — 201 + one-shot token. 402
+  // { seatsTotal, seatsUsed } when full; 400 self-invite / duplicate pending.
+  invite: async (email: string) => {
+    return apiRequest<InviteResult>('/employers/me/team/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+  // POST /api/employers/team/accept-invite — invitee's own JWT + the token.
+  acceptInvite: async (token: string) => {
+    return apiRequest<AcceptInviteResult>('/employers/team/accept-invite', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    })
+  },
+  // DELETE /api/employers/me/team/:seatId — soft-remove, frees a slot.
+  removeSeat: async (seatId: string) => {
+    return apiRequest<{ seatId: string }>(`/employers/me/team/${seatId}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
+// ==========================================
 // CHAT / MESSAGING APIs (M8 — polling-based)
 // ==========================================
 export const chatAPI = {
@@ -1581,5 +1646,6 @@ export default {
   subscriptionAPI,
   taxonomyAPI,
   candidateAPI,
+  teamAPI,
   chatAPI,
 }

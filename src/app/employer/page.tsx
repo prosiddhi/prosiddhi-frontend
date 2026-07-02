@@ -103,6 +103,13 @@ function EmployerDashboardContent() {
               {t('employer:dashboard.findWorkers')}
             </Link>
             <Link
+              href="/employer/team"
+              className="hidden md:inline-flex items-center gap-2 px-4 py-2 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm sm:text-base"
+            >
+              <Users className="w-4 h-4" />
+              {t('employer:dashboard.team')}
+            </Link>
+            <Link
               href="/employer/jobs/new"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
             >
