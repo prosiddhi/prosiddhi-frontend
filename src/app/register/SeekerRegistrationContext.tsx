@@ -23,6 +23,10 @@ export interface SeekerRegistrationState {
   // register schema has no field for these yet, so they are NOT sent.
   dateOfBirth: string
   gender: string
+  // BR-3 — 3-level taxonomy (Category → Sector → JobTitle). preferredCategory is
+  // optional on the BE register schema but collected here so the full valid path
+  // is sent (validateTriple checks parent-child consistency).
+  preferredCategory: string
   preferredSector: string
   preferredJobTitle: string
   workExperiences: SeekerWorkExperience[]
@@ -43,6 +47,7 @@ const defaultState: SeekerRegistrationState = {
   email: '',
   dateOfBirth: '',
   gender: '',
+  preferredCategory: '',
   preferredSector: '',
   preferredJobTitle: '',
   workExperiences: [],

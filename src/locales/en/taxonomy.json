@@ -1,0 +1,16 @@
+{
+  "category": "Category",
+  "sector": "Sector",
+  "jobTitle": "Job title",
+  "selectCategory": "Select a category",
+  "selectSector": "Select a sector",
+  "selectJobTitle": "Select a job title",
+  "selectCategoryFirst": "Select a category first",
+  "selectSectorFirst": "Select a sector first",
+  "allCategories": "All categories",
+  "allSectors": "All sectors",
+  "allJobTitles": "All job titles",
+  "loading": "Loading…",
+  "error": "Couldn't load categories.",
+  "retry": "Retry"
+}

@@ -20,6 +20,7 @@ import enSeeker from '@/locales/en/seeker.json'
 import enEmployer from '@/locales/en/employer.json'
 import enChat from '@/locales/en/chat.json'
 import enProfile from '@/locales/en/profile.json'
+import enTaxonomy from '@/locales/en/taxonomy.json'
 
 import hiCommon from '@/locales/hi/common.json'
 import hiAuth from '@/locales/hi/auth.json'
@@ -28,6 +29,7 @@ import hiSeeker from '@/locales/hi/seeker.json'
 import hiEmployer from '@/locales/hi/employer.json'
 import hiChat from '@/locales/hi/chat.json'
 import hiProfile from '@/locales/hi/profile.json'
+import hiTaxonomy from '@/locales/hi/taxonomy.json'
 
 // EN + HI are the only v1-complete locales (Q6: hard-gated to 100% by code freeze).
 // The other 8 soft-launch in S3 and are NOT selectable yet.
@@ -42,6 +44,7 @@ export const NAMESPACES = [
   'employer',
   'chat',
   'profile',
+  'taxonomy',
 ] as const
 
 export const resources = {
@@ -53,6 +56,7 @@ export const resources = {
     employer: enEmployer,
     chat: enChat,
     profile: enProfile,
+    taxonomy: enTaxonomy,
   },
   hi: {
     common: hiCommon,
@@ -62,6 +66,7 @@ export const resources = {
     employer: hiEmployer,
     chat: hiChat,
     profile: hiProfile,
+    taxonomy: hiTaxonomy,
   },
 } as const
 

@@ -47,6 +47,7 @@ export default function RegisterPasswordPage() {
         fullName: data.fullName,
         email: data.email,
         phoneNumber: data.phoneNumber,
+        preferredCategory: data.preferredCategory || undefined,
         preferredSector: data.preferredSector,
         preferredJobTitle: data.preferredJobTitle,
         preferredLanguage: data.language,

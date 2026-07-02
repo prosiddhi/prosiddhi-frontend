@@ -14,8 +14,10 @@ import {
   type ProfileWorkExperience,
   type JobSeekerSkillLink,
   type SkillCatalogItem,
+  type TaxonomyTriple,
 } from '@/lib/api'
-import { SECTORS, jobTitlesForSector, LANGUAGES } from '@/lib/jobCategories'
+import { LANGUAGES } from '@/lib/jobCategories'
+import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import {
   Camera,
@@ -67,8 +69,7 @@ function SeekerProfileContent() {
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [location, setLocation] = useState('')
-  const [sector, setSector] = useState('')
-  const [jobTitle, setJobTitle] = useState('')
+  const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
   const photoRef = useRef<HTMLInputElement>(null)
@@ -80,8 +81,11 @@ function SeekerProfileContent() {
     setFullName(js?.fullName ?? '')
     setBio(js?.bio ?? '')
     setLocation(js?.location ?? '')
-    setSector(js?.preferredSector ?? '')
-    setJobTitle(js?.preferredJobTitle ?? '')
+    setTriple({
+      category: js?.preferredCategory || undefined,
+      sector: js?.preferredSector || undefined,
+      jobTitle: js?.preferredJobTitle || undefined,
+    })
     setLanguage(p.preferredLanguage ?? 'en')
     setExperiences(
       (js?.workExperience ?? []).map((w) => ({
@@ -166,8 +170,9 @@ function SeekerProfileContent() {
         fullName: fullName.trim() || undefined,
         bio: bio.trim() || undefined,
         location: location.trim() || undefined,
-        preferredSector: sector || undefined,
-        preferredJobTitle: jobTitle || undefined,
+        preferredCategory: triple.category || undefined,
+        preferredSector: triple.sector || undefined,
+        preferredJobTitle: triple.jobTitle || undefined,
         preferredLanguage: language || undefined,
         workExperiences,
       })
@@ -182,8 +187,6 @@ function SeekerProfileContent() {
       setSaving(false)
     }
   }
-
-  const titleOptions = jobTitlesForSector(sector)
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -252,33 +255,14 @@ function SeekerProfileContent() {
                   <Field label={t('profile:seeker.location')}>
                     <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t('profile:seeker.locationPlaceholder')} className={inputCls} />
                   </Field>
-                  <Field label={t('profile:seeker.preferredSector')}>
-                    <select
-                      value={sector}
-                      onChange={(e) => {
-                        setSector(e.target.value)
-                        setJobTitle('')
-                      }}
-                      className={inputCls}
-                    >
-                      <option value="">{t('profile:seeker.selectSector')}</option>
-                      {SECTORS.map((s) => (
-                        <option key={s.sector} value={s.sector}>
-                          {s.sector}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label={t('profile:seeker.preferredJobTitle')}>
-                    <select value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} disabled={!sector} className={inputCls}>
-                      <option value="">{sector ? t('profile:seeker.selectJobTitle') : t('profile:seeker.pickSectorFirst')}</option>
-                      {titleOptions.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+                  {/* Preferred Category → Sector → JobTitle (PJP-112). */}
+                  <TaxonomyPicker
+                    value={triple}
+                    onChange={setTriple}
+                    className="sm:col-span-2 grid sm:grid-cols-3 gap-4"
+                    selectClassName={inputCls}
+                    labelClassName="text-sm font-medium text-black mb-1.5 block"
+                  />
                   <Field label={t('profile:seeker.preferredLanguage')}>
                     <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
                       {LANGUAGES.map((l) => (

@@ -8,7 +8,8 @@ import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
-import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters } from '@/lib/api'
+import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
+import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Search,
@@ -52,6 +53,10 @@ interface AppliedFilters {
   minSalary: string
   maxSalary: string
   sortBy: JobFeedFilters['sortBy']
+  // BR-3 — 3-level taxonomy filter (names; '' = no filter at that level).
+  category: string
+  sector: string
+  jobTitle: string
 }
 
 const EMPTY_FILTERS: AppliedFilters = {
@@ -61,6 +66,9 @@ const EMPTY_FILTERS: AppliedFilters = {
   minSalary: '',
   maxSalary: '',
   sortBy: 'postedAt',
+  category: '',
+  sector: '',
+  jobTitle: '',
 }
 
 // Pair each sort field with the order its label promises, so "Salary (low)"
@@ -81,6 +89,7 @@ function JobFeedPageContent() {
   const [minSalaryDraft, setMinSalaryDraft] = useState('')
   const [maxSalaryDraft, setMaxSalaryDraft] = useState('')
   const [sortByDraft, setSortByDraft] = useState<JobFeedFilters['sortBy']>('postedAt')
+  const [taxonomyDraft, setTaxonomyDraft] = useState<TaxonomyTriple>({})
   const [showFilters, setShowFilters] = useState(false)
   const [applied, setApplied] = useState<AppliedFilters>(EMPTY_FILTERS)
 
@@ -158,6 +167,9 @@ function JobFeedPageContent() {
           const coords = applied.city ? CITY_COORDS[applied.city] : undefined
           const filters: JobFeedFilters = {
             search: applied.search || undefined,
+            category: applied.category || undefined,
+            sector: applied.sector || undefined,
+            jobTitle: applied.jobTitle || undefined,
             jobType: applied.jobType || undefined,
             minSalary: applied.minSalary ? Number(applied.minSalary) : undefined,
             maxSalary: applied.maxSalary ? Number(applied.maxSalary) : undefined,
@@ -197,6 +209,9 @@ function JobFeedPageContent() {
       minSalary: minSalaryDraft,
       maxSalary: maxSalaryDraft,
       sortBy: sortByDraft,
+      category: taxonomyDraft.category ?? '',
+      sector: taxonomyDraft.sector ?? '',
+      jobTitle: taxonomyDraft.jobTitle ?? '',
     })
     setPage(1)
   }
@@ -338,6 +353,15 @@ function JobFeedPageContent() {
               {/* Filter panel */}
               {showFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Category → Sector → JobTitle filter (PJP-138). Full-width row. */}
+                  <TaxonomyPicker
+                    value={taxonomyDraft}
+                    onChange={setTaxonomyDraft}
+                    variant="filter"
+                    className="sm:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-4"
+                    selectClassName="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm"
+                    labelClassName="block text-sm font-medium text-black mb-1"
+                  />
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.jobType')}</label>
                     <select value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">

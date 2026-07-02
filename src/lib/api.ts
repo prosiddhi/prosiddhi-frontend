@@ -174,8 +174,11 @@ export interface Job {
   paymentType?: string
   jobType?: string
   status?: string
+  // BR-3 — 3-level taxonomy. `subcategory` is retired (the BE Job model has no
+  // such column); jobs now carry category → sector → jobTitle names.
   category?: string
-  subcategory?: string | null
+  sector?: string | null
+  jobTitle?: string | null
   skillsRequired?: string[]
   requirements?: string | null
   urgencyLevel?: string
@@ -232,7 +235,11 @@ export interface SavedJobsPage {
 // Mirrors getJobsQuerySchema on the BE (GET /api/jobs).
 export interface JobFeedFilters {
   search?: string
+  // BR-3 — 3-level taxonomy filters (names). The old `?subcategory=` is dropped;
+  // clients send `?category=&sector=&jobTitle=`.
   category?: string
+  sector?: string
+  jobTitle?: string
   jobType?: string // comma-separated, e.g. "FULL_TIME,PART_TIME"
   paymentType?: string
   minSalary?: number
@@ -357,6 +364,7 @@ export interface SeekerProfile {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
     skills?: JobSeekerSkillLink[]
@@ -400,6 +408,9 @@ export interface SeekerProfileUpdate {
   location?: string
   latitude?: number
   longitude?: number
+  // BR-3 — 3-level taxonomy. All optional; validateTriple checks the path when
+  // any are provided.
+  preferredCategory?: string
   preferredSector?: string
   preferredJobTitle?: string
   preferredLanguage?: string
@@ -566,6 +577,9 @@ export interface SeekerRegisterData {
   fullName: string
   email: string
   phoneNumber: string // E.164
+  // BR-3 — 3-level taxonomy. preferredCategory optional on the BE; sector +
+  // jobTitle required. The FE sends the full triple (validateTriple checks path).
+  preferredCategory?: string
   preferredSector: string
   preferredJobTitle: string
   preferredLanguage?: string
@@ -605,6 +619,7 @@ export const jobSeekerAPI = {
     fd.append('fullName', data.fullName)
     fd.append('email', data.email)
     fd.append('phoneNumber', data.phoneNumber)
+    if (data.preferredCategory) fd.append('preferredCategory', data.preferredCategory)
     fd.append('preferredSector', data.preferredSector)
     fd.append('preferredJobTitle', data.preferredJobTitle)
     fd.append('preferredLanguage', data.preferredLanguage ?? 'en')
@@ -852,8 +867,11 @@ export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export interface PostJobData {
   title: string
   description: string
+  // BR-3 — 3-level taxonomy. `category` required (BE), `sector`/`jobTitle`
+  // optional; when sent they must form a valid path (BE validateTriple).
   category: string
-  subcategory?: string
+  sector?: string
+  jobTitle?: string
   requirements?: string
   skillsRequired?: string[]
   location: string
@@ -1232,6 +1250,163 @@ export const employerAPI = {
 }
 
 // ==========================================
+// SUBSCRIPTION / BILLING APIs (monetization Phase 1)
+// ==========================================
+//
+// The employer credits model (functional-spec §2). Phase 1 surfaces:
+//   • GET /api/plans                    — public plan catalog (pricing page)
+//   • GET /api/employers/me/credits     — the wallet (PJP-178)
+//   • POST /api/billing/checkout        — create Razorpay order (PJP-177)
+//   • POST /api/billing/verify-payment  — client-side capture confirm (PJP-177)
+
+export type PlanGroup = 'PACK' | 'STARTER' | 'PRO'
+
+// One row from GET /api/plans. Prices are BASE (GST-exclusive); `gstPct` is 18
+// and `totalInr` is the BE-computed base+GST. `durationDays: null` means a
+// one-shot pack whose credits never expire. `features` is a BE-authored English
+// string[] (data, not UI chrome) — the pricing page renders the structured
+// numeric fields instead so the card is fully translatable.
+export interface Plan {
+  code: string
+  name: string
+  group: PlanGroup
+  baseInr: number
+  gstPct: number
+  totalInr: number
+  postCredits: number
+  downloadCredits: number
+  seats: number
+  durationDays: number | null
+  features?: string[]
+}
+
+// Employer credit wallet (GET /api/employers/me/credits). `expiresAt` is the
+// wallet's single expiry = latest active subscription/trial lot's date (null
+// when the balance is zero or only non-expiring pack credits remain).
+// NOTE: the BE wallet summary intentionally has NO `seats` field.
+export interface Wallet {
+  post: { balance: number; expiresAt: string | null }
+  download: { balance: number; expiresAt: string | null }
+  packNeverExpires: boolean
+}
+
+// POST /api/billing/checkout response — a created Razorpay order plus the GST
+// breakdown to show the buyer. The FE opens Razorpay checkout with
+// razorpayOrderId + keyId, then confirms via verify-payment.
+export interface CheckoutOrder {
+  razorpayOrderId: string
+  keyId: string
+  amountInr: number // total incl. GST
+  currency: 'INR'
+  invoicePreview: {
+    baseInr: number
+    cgstInr: number
+    sgstInr: number
+    igstInr: number
+    totalInr: number
+    placeOfSupply: string
+    isIntraState: boolean
+    gstin: string | null
+  }
+  paymentHistoryId: string
+}
+
+// POST /api/billing/verify-payment result. `status:'ok'` granted credits now;
+// `status:'skipped'` means the webhook already processed this payment (also
+// success from the user's view — credits are in the wallet either way).
+export interface VerifyPaymentResult {
+  status: 'ok' | 'skipped'
+  reason?: string
+  granted?: { post: number; download: number }
+  subscriptionId?: string | null
+  paymentHistoryId?: string
+}
+
+export interface CheckoutInput {
+  planCode: string
+  gstin?: string
+  placeOfSupply?: string
+}
+
+export interface VerifyPaymentInput {
+  razorpay_payment_id: string
+  razorpay_order_id: string
+  razorpay_signature: string
+}
+
+export const subscriptionAPI = {
+  // Public plan catalog. GET /api/plans → Plan[] (no auth required).
+  getPlans: async () => {
+    return apiRequest<Plan[]>('/plans')
+  },
+
+  // Employer credit wallet. GET /api/employers/me/credits (auth: employer).
+  getCredits: async () => {
+    return apiRequest<Wallet>('/employers/me/credits')
+  },
+
+  // Create a Razorpay order for a plan. POST /api/billing/checkout (auth: employer).
+  checkout: async (input: CheckoutInput) => {
+    return apiRequest<CheckoutOrder>('/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
+  // Confirm a captured payment (client-side path). POST /api/billing/verify-payment.
+  // Verifies the Razorpay signature server-side, then grants credits (idempotent
+  // with the webhook). Called from Razorpay checkout's handler(response).
+  verifyPayment: async (input: VerifyPaymentInput) => {
+    return apiRequest<VerifyPaymentResult>('/billing/verify-payment', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+}
+
+// ==========================================
+// TAXONOMY APIs (3-level Category → Sector → JobTitle)
+// ==========================================
+//
+// The seeded taxonomy tree from GET /api/categories (public). Every consumer —
+// seeker registration (PJP-81), employer JobForm (PJP-106), job-feed filter
+// (PJP-138), profile edit (PJP-112) — sends a `{ category, sector, jobTitle }`
+// triple of NAMES. The BE `validateTriple` enforces allowlist membership +
+// parent-child consistency, so the FE must build the triple from this tree.
+
+export type EmploymentType = 'SKILLED' | 'UNSKILLED' | 'TECHNICAL' | 'NON_TECHNICAL'
+export type JobTitleScope = 'SECTOR_LOCKED' | 'PORTABLE'
+
+export interface TaxonomyJobTitle {
+  name: string
+  employmentType: EmploymentType
+  scope: JobTitleScope
+}
+export interface TaxonomySector {
+  name: string
+  jobTitles: TaxonomyJobTitle[]
+}
+export interface TaxonomyCategory {
+  name: string
+  sectors: TaxonomySector[]
+}
+
+// The picked value shared by every taxonomy consumer. Empty levels are
+// `undefined` (not '') so callers can spread it straight into a request body.
+export interface TaxonomyTriple {
+  category?: string
+  sector?: string
+  jobTitle?: string
+}
+
+export const taxonomyAPI = {
+  // Public taxonomy tree. GET /api/categories → TaxonomyCategory[].
+  getCategories: async () => {
+    return apiRequest<TaxonomyCategory[]>('/categories')
+  },
+}
+
+// ==========================================
 // CHAT / MESSAGING APIs (M8 — polling-based)
 // ==========================================
 export const chatAPI = {
@@ -1296,5 +1471,7 @@ export default {
   emailOtpAPI,
   jobSeekerAPI,
   employerAPI,
+  subscriptionAPI,
+  taxonomyAPI,
   chatAPI,
 }

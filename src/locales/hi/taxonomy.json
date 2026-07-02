@@ -1,0 +1,16 @@
+{
+  "category": "श्रेणी",
+  "sector": "क्षेत्र",
+  "jobTitle": "पद का नाम",
+  "selectCategory": "एक श्रेणी चुनें",
+  "selectSector": "एक क्षेत्र चुनें",
+  "selectJobTitle": "एक पद चुनें",
+  "selectCategoryFirst": "पहले एक श्रेणी चुनें",
+  "selectSectorFirst": "पहले एक क्षेत्र चुनें",
+  "allCategories": "सभी श्रेणियाँ",
+  "allSectors": "सभी क्षेत्र",
+  "allJobTitles": "सभी पद",
+  "loading": "लोड हो रहा है…",
+  "error": "श्रेणियाँ लोड नहीं हो सकीं।",
+  "retry": "पुनः प्रयास करें"
+}

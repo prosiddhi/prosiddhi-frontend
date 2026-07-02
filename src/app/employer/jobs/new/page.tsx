@@ -8,14 +8,32 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { JobForm } from '@/components/job/JobForm'
+import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
+import { useCredits } from '@/hooks/useCredits'
 import { employerAPI, type PostJobData } from '@/lib/api'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Loader2 } from 'lucide-react'
+
+// The BE 402 message when a publish is attempted at zero POST credits
+// (job.controller). Used as the reactive-gate signal (the {kind:'POST'} payload
+// is dev-only, so we match the stable server message).
+const NO_CREDITS_RE = /insufficient\s+post\s+credit/i
 
 function NewJobContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  // Reactive gate: flipped if a publish attempt is rejected for 0 credits
+  // (covers the race where the balance hit 0 after this page loaded).
+  const [blockedNoCredits, setBlockedNoCredits] = useState(false)
+
+  const { wallet, loading: walletLoading } = useCredits()
+
+  // Proactive gate: block the form when the wallet loaded and POST balance is 0.
+  // Fail-open if the wallet couldn't load (wallet === null) — the BE 402 is the
+  // real enforcement, so we don't wrongly lock a paying employer out on a fetch
+  // blip.
+  const outOfCredits = blockedNoCredits || (wallet !== null && wallet.post.balance === 0)
 
   const handleSubmit = async (data: PostJobData) => {
     setSubmitting(true)
@@ -24,7 +42,12 @@ function NewJobContent() {
       await employerAPI.postJob(data)
       router.push('/employer/jobs')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employer:jobNew.publishFailed'))
+      const message = err instanceof Error ? err.message : t('employer:jobNew.publishFailed')
+      if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {
+        setBlockedNoCredits(true) // swap the form for the upsell
+      } else {
+        setError(message)
+      }
       setSubmitting(false)
     }
   }
@@ -49,7 +72,16 @@ function NewJobContent() {
             <span>{t('employer:jobNew.backToMyJobs')}</span>
           </Link>
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobNew.title')}</h1>
-          <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+          {walletLoading ? (
+            <div className="flex items-center gap-2 py-10 text-[#717182]">
+              <Loader2 className="w-5 h-5 animate-spin text-primary-50" />
+              <span className="text-sm">{t('employer:jobNew.checkingCredits')}</span>
+            </div>
+          ) : outOfCredits ? (
+            <OutOfCreditsUpsell />
+          ) : (
+            <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+          )}
         </div>
       </main>
     </div>

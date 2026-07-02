@@ -1,4 +1,87 @@
 {
+  "checkout": {
+    "title": "Complete your purchase",
+    "base": "Base price",
+    "gst": "GST (18%)",
+    "total": "Total",
+    "gstinLabel": "GSTIN",
+    "gstinOptional": "(optional)",
+    "gstinPlaceholder": "e.g. 29ABCDE1234F1Z9",
+    "gstinInvalid": "Enter a valid 15-character GSTIN, or leave it blank.",
+    "stateLabel": "Place of supply (state)",
+    "statePlaceholder": "Select your state",
+    "stateFromGstin": "Derived from your GSTIN",
+    "stateRequired": "Please select your state (or enter a GSTIN).",
+    "pay": "Pay {{amount}}",
+    "processing": "Processing…",
+    "paymentReceivedTitle": "Payment received",
+    "verifyFailed": "Payment received — confirming your credits. If your balance doesn't update shortly, contact support.",
+    "paymentFailed": "Payment failed or was declined. Please try again.",
+    "checkoutFailed": "Couldn't start checkout. Please try again.",
+    "successTitle": "Payment successful",
+    "successBody": "{{post}} job-post and {{download}} candidate-unlock credits were added to your wallet.",
+    "goToDashboard": "Go to dashboard",
+    "close": "Close"
+  },
+  "topUp": {
+    "close": "Close",
+    "loading": "Loading…",
+    "cta": "Top up now",
+    "oneTime": "One-time payment — no subscription",
+    "neverExpire": "Credits never expire",
+    "oneTimeShort": "one-time payment",
+    "lifetime": "never expires",
+    "unavailable": "Top-up isn't available right now.",
+    "viewAllPlans": "See all plans"
+  },
+  "wallet": {
+    "title": "Credit wallet",
+    "buyCredits": "Buy credits",
+    "postCredits": "Job-post credits",
+    "downloadCredits": "Candidate unlocks",
+    "expires": "Expires {{date}}",
+    "packNeverExpires": "Pack credits never expire.",
+    "loading": "Loading your wallet…",
+    "error": "Couldn't load your wallet."
+  },
+  "plans": {
+    "heading": "Plans & pricing",
+    "subheading": "Buy credits to post jobs and unlock candidates — pay only for what you use.",
+    "seekersFree": "Job seekers are free, forever.",
+    "trialNote": "New employers get a 14-day free trial — 1 job post + 3 candidate unlocks.",
+    "tabBasic": "Basic Plans",
+    "tabEnterprise": "Enterprise Plans",
+    "gstApplicable": "*GST as applicable",
+    "gstNote": "+ 18% GST",
+    "inclGst": "{{total}} incl. GST",
+    "postsLabel": "job posts",
+    "unlocksLabel": "candidate unlocks",
+    "seatsLabel": "team",
+    "seat": "seat",
+    "seats": "seats",
+    "validityLabel": "validity",
+    "daysValid": "Valid {{days}} days",
+    "neverExpires": "Never expires",
+    "buy": "Buy now",
+    "loading": "Loading plans…",
+    "error": "Couldn't load plans. Please try again.",
+    "retry": "Retry",
+    "groups": {
+      "PACK": "Credit Pack",
+      "STARTER": "Starter",
+      "PRO": "Pro"
+    },
+    "free": {
+      "title": "Free",
+      "tagline": "To get started",
+      "price": "₹0",
+      "f1": "Register free — no card required",
+      "f2": "14-day trial: 1 job post + 3 candidate unlocks",
+      "f3": "Post and manage your company profile",
+      "f4": "Receive and review applications",
+      "cta": "Create free account"
+    }
+  },
   "landing": {
     "badge": "For Employers",
     "nav": {
@@ -134,7 +217,14 @@
     "backToMyJobs": "Back to My Jobs",
     "title": "Post a Job",
     "submitLabel": "Publish Job",
-    "publishFailed": "Failed to publish the job. Please try again."
+    "publishFailed": "Failed to publish the job. Please try again.",
+    "checkingCredits": "Checking your credits…"
+  },
+  "postGate": {
+    "title": "You're out of job-post credits",
+    "body": "Publishing a job uses 1 post credit. Buy a plan or the ₹499 single-post pack to keep hiring.",
+    "topUpNow": "Top up now",
+    "viewPlans": "View plans"
   },
   "jobEdit": {
     "logoAlt": "Job Portal Logo",
