@@ -1362,6 +1362,45 @@ export const subscriptionAPI = {
       body: JSON.stringify(input),
     })
   },
+
+  // GST invoice history. GET /api/employers/me/invoices (auth: employer).
+  getInvoices: async (page = 1, limit = 20) => {
+    return apiRequest<InvoicesPage>(`/employers/me/invoices?page=${page}&limit=${limit}`)
+  },
+
+  // Fetch an invoice PDF as a Blob. The endpoint streams binary (not the JSON
+  // envelope) and needs the Bearer header, so it bypasses apiRequest.
+  // GET /api/employers/me/invoices/:id/pdf.
+  fetchInvoicePdf: async (id: string): Promise<Blob> => {
+    const token = getAuthToken()
+    const res = await fetch(`${API_BASE_URL}/employers/me/invoices/${id}/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) {
+      throw new Error(`Failed to download invoice (status ${res.status})`)
+    }
+    return res.blob()
+  },
+}
+
+// GST invoice (list row). Amounts are floats; cgst+sgst (intra-state) OR igst
+// (inter-state) is populated, not both. `number` is "INV/YY-YY/NNNNNN".
+export interface Invoice {
+  id: string
+  number: string
+  description: string
+  gstin: string | null
+  placeOfSupply: string
+  baseInr: number
+  cgstInr: number
+  sgstInr: number
+  igstInr: number
+  totalInr: number
+  createdAt: string
+}
+export interface InvoicesPage {
+  items: Invoice[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 // ==========================================
@@ -1403,6 +1442,178 @@ export const taxonomyAPI = {
   // Public taxonomy tree. GET /api/categories → TaxonomyCategory[].
   getCategories: async () => {
     return apiRequest<TaxonomyCategory[]>('/categories')
+  },
+}
+
+// ==========================================
+// CANDIDATE DATABASE APIs (Phase 2 — search + unlock)
+// ==========================================
+//
+// Employers search the seeker pool (FTS), see snippet results (no contact), and
+// spend 1 DOWNLOAD credit to unlock a candidate's full profile + contact. Unlock
+// is idempotent server-side (re-viewing an unlocked candidate is free).
+
+export interface CandidateSkillLink {
+  skill: { id: string; name: string; category: string }
+}
+export interface CandidateExperience {
+  position: string
+  companyName: string
+  startDate: string
+  endDate: string | null
+  currentlyWorking: boolean
+}
+
+// A search-result snippet — NEVER includes contact (email/phone).
+export interface WorkerSnippet {
+  id: string
+  fullName: string
+  profilePhoto: string | null
+  location: string
+  bio: string
+  preferredSector: string | null
+  preferredJobTitle: string | null
+  createdAt: string
+  relevanceScore: number
+  skills: CandidateSkillLink[]
+  workExperience: CandidateExperience[]
+}
+export interface WorkerSearchPage {
+  jobSeekers: WorkerSnippet[]
+  pagination: JobsPagination
+}
+
+// Full candidate profile. Contact + PII fields (email … unlockedAt) are present
+// ONLY when `unlocked` is true (i.e. this employer has spent a DOWNLOAD credit).
+export interface CandidateProfile {
+  id: string
+  fullName: string
+  profilePhoto: string | null
+  location: string
+  bio: string
+  preferredCategory: string | null
+  preferredSector: string | null
+  preferredJobTitle: string | null
+  createdAt: string
+  skills: CandidateSkillLink[]
+  workExperience: CandidateExperience[]
+  // unlocked-only:
+  email?: string
+  phoneNumber?: string
+  dateOfBirth?: string | null
+  gender?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  unlockedAt?: string
+}
+export interface CandidateProfileResult {
+  unlocked: boolean
+  profile: CandidateProfile
+}
+export interface UnlockResult {
+  alreadyUnlocked: boolean
+  unlockId: string
+  profile: CandidateProfile
+}
+
+export interface WorkerSearchParams {
+  search: string // required, 2–200 chars
+  preferredSector?: string
+  location?: string
+  page?: number
+  limit?: number
+}
+
+export const candidateAPI = {
+  // FTS worker search (snippets only). GET /api/employers/search/workers.
+  searchWorkers: async (params: WorkerSearchParams) => {
+    const qs = new URLSearchParams()
+    qs.set('search', params.search)
+    if (params.preferredSector) qs.set('preferredSector', params.preferredSector)
+    if (params.location) qs.set('location', params.location)
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 10))
+    return apiRequest<WorkerSearchPage>(`/employers/search/workers?${qs.toString()}`)
+  },
+
+  // Candidate profile (snippet when locked, full + contact when unlocked).
+  // GET /api/employers/candidates/:jobSeekerId.
+  getCandidate: async (jobSeekerId: string) => {
+    return apiRequest<CandidateProfileResult>(`/employers/candidates/${jobSeekerId}`)
+  },
+
+  // Spend 1 DOWNLOAD credit to unlock. POST /api/employers/candidates/:id/unlock.
+  // Idempotent: re-unlocking returns alreadyUnlocked with no second charge.
+  // 402 { kind: 'DOWNLOAD' } at zero balance.
+  unlockCandidate: async (jobSeekerId: string) => {
+    return apiRequest<UnlockResult>(`/employers/candidates/${jobSeekerId}/unlock`, {
+      method: 'POST',
+    })
+  },
+}
+
+// ==========================================
+// TEAM SEATS APIs (Phase 3 — seat roster + invites)
+// ==========================================
+//
+// Pro plans include multiple seats. The owner invites teammates by email; the
+// BE returns a one-shot invite TOKEN (no SMTP in v1 — the owner relays it, e.g.
+// via WhatsApp). The invitee accepts with their own employer JWT + the token.
+
+export type TeamSeatStatus = 'PENDING' | 'ACCEPTED' | 'REMOVED'
+
+export interface TeamSeat {
+  id: string
+  email: string
+  status: TeamSeatStatus
+  userId: string | null
+  invitedAt: string
+  acceptedAt: string | null
+  removedAt: string | null
+}
+export interface TeamSummary {
+  seatsTotal: number // from active plan.seats (default 1)
+  seatsUsed: number // owner + ACCEPTED + PENDING
+  seatsFree: number
+  owner: { id: string; email: string }
+  seats: TeamSeat[] // PENDING + ACCEPTED only (REMOVED excluded)
+}
+export interface InviteResult {
+  seatId: string
+  email: string
+  inviteToken: string // one-shot; relay to the invitee
+  expiresAt: string
+}
+export interface AcceptInviteResult {
+  seatId: string
+  employerId: string
+}
+
+export const teamAPI = {
+  // GET /api/employers/me/team — seat usage + roster.
+  getTeam: async () => {
+    return apiRequest<TeamSummary>('/employers/me/team')
+  },
+  // POST /api/employers/me/team/invite — 201 + one-shot token. 402
+  // { seatsTotal, seatsUsed } when full; 400 self-invite / duplicate pending.
+  invite: async (email: string) => {
+    return apiRequest<InviteResult>('/employers/me/team/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+  // POST /api/employers/team/accept-invite — invitee's own JWT + the token.
+  acceptInvite: async (token: string) => {
+    return apiRequest<AcceptInviteResult>('/employers/team/accept-invite', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    })
+  },
+  // DELETE /api/employers/me/team/:seatId — soft-remove, frees a slot.
+  removeSeat: async (seatId: string) => {
+    return apiRequest<{ seatId: string }>(`/employers/me/team/${seatId}`, {
+      method: 'DELETE',
+    })
   },
 }
 
@@ -1473,5 +1684,7 @@ export default {
   employerAPI,
   subscriptionAPI,
   taxonomyAPI,
+  candidateAPI,
+  teamAPI,
   chatAPI,
 }
