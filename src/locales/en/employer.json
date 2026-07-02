@@ -1,4 +1,40 @@
 {
+  "candidate": {
+    "back": "Back to search",
+    "loading": "Loading candidate…",
+    "loadFailed": "Couldn't load this candidate.",
+    "unlockedBadge": "Unlocked",
+    "contact": "Contact",
+    "lockedNote": "Contact details are hidden until you unlock this candidate.",
+    "unlockCta": "Unlock contact (1 credit)",
+    "about": "About",
+    "skills": "Skills",
+    "experience": "Work experience",
+    "present": "Present",
+    "confirmTitle": "Unlock this candidate?",
+    "confirmBody": "Use 1 candidate-unlock credit to reveal {{name}}'s contact details? This is a one-time charge — viewing again is free.",
+    "confirmBalance": "You have {{count}} unlock credits.",
+    "confirmCancel": "Cancel",
+    "confirmUnlock": "Unlock",
+    "unlockFailed": "Couldn't unlock this candidate. Please try again."
+  },
+  "workers": {
+    "logoAlt": "ProSiddhi",
+    "title": "Find workers",
+    "subtitle": "Search the candidate database. Unlock a candidate to see their contact details.",
+    "searchPlaceholder": "Search by skill, job title, or keyword",
+    "locationPlaceholder": "Location (optional)",
+    "searchButton": "Search",
+    "searching": "Searching candidates…",
+    "searchFailed": "Search failed. Please try again.",
+    "minQuery": "Enter at least {{count}} characters to search.",
+    "emptyInitial": "Search the candidate database by skill, job title, or keyword to find workers.",
+    "noResultsTitle": "No candidates found",
+    "noResultsBody": "Try a different keyword or remove the location filter.",
+    "resultCount": "{{count}} candidates",
+    "pageOf": "Page {{page}} of {{total}}",
+    "viewProfile": "View profile"
+  },
   "checkout": {
     "title": "Complete your purchase",
     "base": "Base price",
@@ -161,6 +197,7 @@
   "dashboard": {
     "logoAlt": "Job Portal Logo",
     "postJob": "Post a Job",
+    "findWorkers": "Find workers",
     "title": "Dashboard",
     "loading": "Loading your dashboard...",
     "loadFailed": "Failed to load your dashboard.",

@@ -1407,6 +1407,113 @@ export const taxonomyAPI = {
 }
 
 // ==========================================
+// CANDIDATE DATABASE APIs (Phase 2 — search + unlock)
+// ==========================================
+//
+// Employers search the seeker pool (FTS), see snippet results (no contact), and
+// spend 1 DOWNLOAD credit to unlock a candidate's full profile + contact. Unlock
+// is idempotent server-side (re-viewing an unlocked candidate is free).
+
+export interface CandidateSkillLink {
+  skill: { id: string; name: string; category: string }
+}
+export interface CandidateExperience {
+  position: string
+  companyName: string
+  startDate: string
+  endDate: string | null
+  currentlyWorking: boolean
+}
+
+// A search-result snippet — NEVER includes contact (email/phone).
+export interface WorkerSnippet {
+  id: string
+  fullName: string
+  profilePhoto: string | null
+  location: string
+  bio: string
+  preferredSector: string | null
+  preferredJobTitle: string | null
+  createdAt: string
+  relevanceScore: number
+  skills: CandidateSkillLink[]
+  workExperience: CandidateExperience[]
+}
+export interface WorkerSearchPage {
+  jobSeekers: WorkerSnippet[]
+  pagination: JobsPagination
+}
+
+// Full candidate profile. Contact + PII fields (email … unlockedAt) are present
+// ONLY when `unlocked` is true (i.e. this employer has spent a DOWNLOAD credit).
+export interface CandidateProfile {
+  id: string
+  fullName: string
+  profilePhoto: string | null
+  location: string
+  bio: string
+  preferredCategory: string | null
+  preferredSector: string | null
+  preferredJobTitle: string | null
+  createdAt: string
+  skills: CandidateSkillLink[]
+  workExperience: CandidateExperience[]
+  // unlocked-only:
+  email?: string
+  phoneNumber?: string
+  dateOfBirth?: string | null
+  gender?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  unlockedAt?: string
+}
+export interface CandidateProfileResult {
+  unlocked: boolean
+  profile: CandidateProfile
+}
+export interface UnlockResult {
+  alreadyUnlocked: boolean
+  unlockId: string
+  profile: CandidateProfile
+}
+
+export interface WorkerSearchParams {
+  search: string // required, 2–200 chars
+  preferredSector?: string
+  location?: string
+  page?: number
+  limit?: number
+}
+
+export const candidateAPI = {
+  // FTS worker search (snippets only). GET /api/employers/search/workers.
+  searchWorkers: async (params: WorkerSearchParams) => {
+    const qs = new URLSearchParams()
+    qs.set('search', params.search)
+    if (params.preferredSector) qs.set('preferredSector', params.preferredSector)
+    if (params.location) qs.set('location', params.location)
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 10))
+    return apiRequest<WorkerSearchPage>(`/employers/search/workers?${qs.toString()}`)
+  },
+
+  // Candidate profile (snippet when locked, full + contact when unlocked).
+  // GET /api/employers/candidates/:jobSeekerId.
+  getCandidate: async (jobSeekerId: string) => {
+    return apiRequest<CandidateProfileResult>(`/employers/candidates/${jobSeekerId}`)
+  },
+
+  // Spend 1 DOWNLOAD credit to unlock. POST /api/employers/candidates/:id/unlock.
+  // Idempotent: re-unlocking returns alreadyUnlocked with no second charge.
+  // 402 { kind: 'DOWNLOAD' } at zero balance.
+  unlockCandidate: async (jobSeekerId: string) => {
+    return apiRequest<UnlockResult>(`/employers/candidates/${jobSeekerId}/unlock`, {
+      method: 'POST',
+    })
+  },
+}
+
+// ==========================================
 // CHAT / MESSAGING APIs (M8 — polling-based)
 // ==========================================
 export const chatAPI = {
@@ -1473,5 +1580,6 @@ export default {
   employerAPI,
   subscriptionAPI,
   taxonomyAPI,
+  candidateAPI,
   chatAPI,
 }
