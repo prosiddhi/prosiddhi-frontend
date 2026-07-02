@@ -1362,6 +1362,45 @@ export const subscriptionAPI = {
       body: JSON.stringify(input),
     })
   },
+
+  // GST invoice history. GET /api/employers/me/invoices (auth: employer).
+  getInvoices: async (page = 1, limit = 20) => {
+    return apiRequest<InvoicesPage>(`/employers/me/invoices?page=${page}&limit=${limit}`)
+  },
+
+  // Fetch an invoice PDF as a Blob. The endpoint streams binary (not the JSON
+  // envelope) and needs the Bearer header, so it bypasses apiRequest.
+  // GET /api/employers/me/invoices/:id/pdf.
+  fetchInvoicePdf: async (id: string): Promise<Blob> => {
+    const token = getAuthToken()
+    const res = await fetch(`${API_BASE_URL}/employers/me/invoices/${id}/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) {
+      throw new Error(`Failed to download invoice (status ${res.status})`)
+    }
+    return res.blob()
+  },
+}
+
+// GST invoice (list row). Amounts are floats; cgst+sgst (intra-state) OR igst
+// (inter-state) is populated, not both. `number` is "INV/YY-YY/NNNNNN".
+export interface Invoice {
+  id: string
+  number: string
+  description: string
+  gstin: string | null
+  placeOfSupply: string
+  baseInr: number
+  cgstInr: number
+  sgstInr: number
+  igstInr: number
+  totalInr: number
+  createdAt: string
+}
+export interface InvoicesPage {
+  items: Invoice[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 // ==========================================

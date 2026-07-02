@@ -7,7 +7,8 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileText, Unlock, Loader2, AlertCircle, Plus } from 'lucide-react'
+import Link from 'next/link'
+import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt } from 'lucide-react'
 import { useCredits } from '@/hooks/useCredits'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 
@@ -111,6 +112,13 @@ export function CreditWallet({ className }: { className?: string }) {
           {wallet.packNeverExpires && (
             <p className="text-xs text-[#717182] mt-4">{t('employer:wallet.packNeverExpires')}</p>
           )}
+          <Link
+            href="/employer/invoices"
+            className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary-50 hover:underline"
+          >
+            <Receipt className="w-4 h-4" />
+            {t('employer:wallet.invoices')}
+          </Link>
         </>
       )}
     </div>

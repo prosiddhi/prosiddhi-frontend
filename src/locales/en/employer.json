@@ -113,8 +113,22 @@
     "downloadCredits": "Candidate unlocks",
     "expires": "Expires {{date}}",
     "packNeverExpires": "Pack credits never expire.",
+    "invoices": "View invoices",
     "loading": "Loading your wallet…",
     "error": "Couldn't load your wallet."
+  },
+  "invoices": {
+    "logoAlt": "ProSiddhi",
+    "title": "Invoices",
+    "subtitle": "Your GST invoices for every purchase.",
+    "back": "Back to dashboard",
+    "loading": "Loading your invoices…",
+    "loadFailed": "Couldn't load your invoices.",
+    "empty": "No invoices yet. They'll appear here after your first purchase.",
+    "inclGst": "incl. GST",
+    "download": "Download",
+    "downloadFailed": "Couldn't download this invoice. Please try again.",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "plans": {
     "heading": "Plans & pricing",
