@@ -364,6 +364,7 @@ export interface SeekerProfile {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
     skills?: JobSeekerSkillLink[]
@@ -407,6 +408,9 @@ export interface SeekerProfileUpdate {
   location?: string
   latitude?: number
   longitude?: number
+  // BR-3 — 3-level taxonomy. All optional; validateTriple checks the path when
+  // any are provided.
+  preferredCategory?: string
   preferredSector?: string
   preferredJobTitle?: string
   preferredLanguage?: string
