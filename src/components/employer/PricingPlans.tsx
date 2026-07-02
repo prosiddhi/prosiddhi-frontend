@@ -1,125 +1,80 @@
 'use client'
 
 // Employer pricing catalog (PJP-176). Fetches the 8-tier plan catalog from
-// GET /api/plans and renders it grouped Pack / Starter / Pro, plus the permanent
-// Free tier. Prices are shown BASE with a "+18% GST" note (functional-spec §2.2,
-// §3 "GST" row). Buy buttons are stubbed "Coming soon" until checkout (PJP-177)
-// lands. Phase-1 rule (decisions-tracker #23, Option A): NO candidate-search
-// claim anywhere here — that's a Phase-2 capability.
+// GET /api/plans and presents it in the Figma pricing UI (node 1910:2521):
+// a Basic / Enterprise toggle over a 4-up card grid — gradient header, big
+// price, check-bullet inclusions, "*GST as applicable".
+//
+// UI style is from the mock; the DATA + rules are ours (decisions-tracker):
+//   • Basic tab = PACK + STARTER, Enterprise tab = PRO (live plan.group)
+//   • card facts are our structured plan attributes (posts / unlocks / seats /
+//     validity) — NOT the mock's marketing bullets, and NO Phase-2 candidate-
+//     search claim (#23)
+//   • Buy launches the real Razorpay checkout (PJP-177)
+//   • the permanent free tier + 14-day trial stays as a callout
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Link from 'next/link'
-import { Check } from 'lucide-react'
-import { subscriptionAPI, type Plan, type PlanGroup } from '@/lib/api'
+import { CheckCircle2 } from 'lucide-react'
+import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
 
-// Display order for the grouped sections (the BE orders by group name
-// alphabetically, which would put PRO before STARTER — override here).
-const GROUP_ORDER: PlanGroup[] = ['PACK', 'STARTER', 'PRO']
+type Tab = 'basic' | 'enterprise'
 
 function formatInr(n: number): string {
-  return `₹${n.toLocaleString('en-IN')}`
+  return n.toLocaleString('en-IN')
 }
 
-function PlanCard({
-  plan,
-  highlighted,
-  onBuy,
-}: {
-  plan: Plan
-  highlighted: boolean
-  onBuy: (plan: Plan) => void
-}) {
+function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) {
   const { t } = useTranslation()
 
-  const facts: { label: string; value: string }[] = [
-    { label: t('employer:plans.postsLabel'), value: String(plan.postCredits) },
-    { label: t('employer:plans.unlocksLabel'), value: String(plan.downloadCredits) },
-    {
-      label: t('employer:plans.seatsLabel'),
-      value: `${plan.seats} ${plan.seats === 1 ? t('employer:plans.seat') : t('employer:plans.seats')}`,
-    },
-    {
-      label: t('employer:plans.validityLabel'),
-      value:
-        plan.durationDays == null
-          ? t('employer:plans.neverExpires')
-          : t('employer:plans.daysValid', { days: plan.durationDays }),
-    },
+  // Inclusions (our data, mock styling). Posts are the header subtitle, so the
+  // bullets carry unlocks / seats / validity to avoid repeating the post count.
+  const facts: string[] = [
+    `${plan.downloadCredits} ${t('employer:plans.unlocksLabel')}`,
+    `${plan.seats} ${plan.seats === 1 ? t('employer:plans.seat') : t('employer:plans.seats')}`,
+    plan.durationDays == null
+      ? t('employer:plans.neverExpires')
+      : t('employer:plans.daysValid', { days: plan.durationDays }),
   ]
 
   return (
-    <div
-      className={`bg-neutral-50 rounded-[20px] p-6 sm:p-7 w-full flex flex-col ${
-        highlighted ? 'border-[3px] border-primary-50' : 'border-2 border-white'
-      }`}
-    >
-      <h4 className="text-xl sm:text-2xl font-semibold">{plan.name}</h4>
-
-      <div className="mt-4 mb-1 flex items-baseline gap-1">
-        <span className="text-4xl sm:text-5xl font-bold">{formatInr(plan.baseInr)}</span>
-        <span className="text-sm text-[#717182]">{t('employer:plans.gstNote')}</span>
-      </div>
-      <p className="text-sm text-[#717182] mb-4">
-        {t('employer:plans.inclGst', { total: formatInr(plan.totalInr) })}
-      </p>
-
-      <div className="space-y-2 py-3 border-t border-[#ececec] flex-1">
-        {facts.map((fact) => (
-          <div key={fact.label} className="flex items-start gap-2">
-            <Check className="w-4 h-4 text-primary-50 mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-neutral-950">
-              <span className="font-medium">{fact.value}</span> {fact.label}
-            </span>
-          </div>
-        ))}
+    <div className="bg-white border border-[#dddddd] rounded-[20px] overflow-hidden flex flex-col">
+      {/* Gradient header — title, "N job posts", price */}
+      <div className="bg-gradient-to-b from-primary-20 to-white px-6 pt-6 pb-6">
+        <h4 className="text-xl sm:text-2xl font-semibold text-black">{plan.name}</h4>
+        <p className="text-[16px] sm:text-[18px] text-[#717182] mt-1">
+          {plan.postCredits} {t('employer:plans.postsLabel')}
+        </p>
+        <div className="mt-4 flex items-start gap-0.5">
+          <span className="text-3xl sm:text-4xl font-bold leading-none mt-1">₹</span>
+          <span className="text-5xl sm:text-6xl font-bold leading-none tracking-tight">
+            {formatInr(plan.baseInr)}
+          </span>
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onBuy(plan)}
-        className="mt-4 px-4 py-2.5 bg-primary-50 text-white rounded-lg text-sm w-full hover:bg-primary-60 transition-colors"
-      >
-        {t('employer:plans.buy')}
-      </button>
-    </div>
-  )
-}
-
-function FreeTierCard() {
-  const { t } = useTranslation()
-  const features = [
-    t('employer:plans.free.f1'),
-    t('employer:plans.free.f2'),
-    t('employer:plans.free.f3'),
-    t('employer:plans.free.f4'),
-  ]
-
-  return (
-    <div className="bg-neutral-50 border-2 border-white rounded-[20px] p-6 sm:p-7 w-full flex flex-col">
-      <h4 className="text-xl sm:text-2xl font-semibold">{t('employer:plans.free.title')}</h4>
-      <p className="text-sm text-[#717182]">{t('employer:plans.free.tagline')}</p>
-
-      <div className="mt-4 mb-4 flex items-baseline gap-1">
-        <span className="text-4xl sm:text-5xl font-bold">{t('employer:plans.free.price')}</span>
+      {/* Body — inclusions, buy, GST note */}
+      <div className="px-6 py-5 flex-1 flex flex-col">
+        <ul className="space-y-3 flex-1">
+          {facts.map((fact) => (
+            <li key={fact} className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-primary-50 flex-shrink-0" />
+              <span className="text-[15px] sm:text-[16px] text-[#0a0a0a]">{fact}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          onClick={() => onBuy(plan)}
+          className="mt-5 w-full bg-primary-50 text-white rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
+        >
+          {t('employer:plans.buy')}
+        </button>
+        <p className="mt-3 text-[14px] italic text-[#aaaaaa] text-center">
+          {t('employer:plans.gstApplicable')}
+        </p>
       </div>
-
-      <div className="space-y-2 py-3 border-t border-[#ececec] flex-1">
-        {features.map((feature) => (
-          <div key={feature} className="flex items-start gap-2">
-            <Check className="w-4 h-4 text-primary-50 mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-neutral-950">{feature}</span>
-          </div>
-        ))}
-      </div>
-
-      <Link
-        href="/employer/register"
-        className="mt-4 px-4 py-2.5 bg-primary-50 text-white rounded-lg text-sm w-full text-center hover:bg-primary-60 transition-colors"
-      >
-        {t('employer:plans.free.cta')}
-      </Link>
     </div>
   )
 }
@@ -130,6 +85,7 @@ export function PricingPlans() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selected, setSelected] = useState<Plan | null>(null)
+  const [tab, setTab] = useState<Tab>('basic')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -147,22 +103,50 @@ export function PricingPlans() {
     void load()
   }, [load])
 
-  // The single Pro plan we visually emphasise (best value / most credits).
-  const highlightCode = 'PRO_6M_1S'
+  const byPrice = (a: Plan, b: Plan) => a.baseInr - b.baseInr
+  const shown = plans
+    .filter((p) => (tab === 'basic' ? p.group !== 'PRO' : p.group === 'PRO'))
+    .sort(byPrice)
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'basic', label: t('employer:plans.tabBasic') },
+    { key: 'enterprise', label: t('employer:plans.tabEnterprise') },
+  ]
 
   return (
-    <div>
-      <div className="text-center mb-4">
-        <h2 className="text-2xl sm:text-3xl lg:text-[40px] font-medium mb-2 sm:mb-3">
+    <div className="bg-[#f8f8ff] rounded-[20px] px-4 sm:px-8 lg:px-12 py-10 sm:py-14">
+      {/* Heading */}
+      <div className="text-center mb-6">
+        <h2 className="text-3xl sm:text-4xl lg:text-[48px] font-semibold text-black mb-2">
           {t('employer:plans.heading')}
         </h2>
-        <p className="text-base sm:text-lg lg:text-xl text-[#717182] px-4">
+        <p className="text-base sm:text-lg lg:text-xl text-[#717182]">
           {t('employer:plans.subheading')}
         </p>
-        <p className="mt-2 inline-flex items-center gap-2 text-sm text-primary-50 font-medium">
-          <Check className="w-4 h-4" />
-          {t('employer:plans.seekersFree')}
+        <p className="mt-3 text-sm text-[#717182] max-w-2xl mx-auto">
+          {t('employer:plans.seekersFree')} {t('employer:plans.trialNote')}
         </p>
+      </div>
+
+      {/* Basic / Enterprise toggle */}
+      <div className="flex justify-center mb-8 sm:mb-10">
+        <div className="inline-flex bg-white border border-[#eeeeee] rounded-full p-1">
+          {TABS.map((tabItem) => (
+            <button
+              key={tabItem.key}
+              type="button"
+              onClick={() => setTab(tabItem.key)}
+              aria-pressed={tab === tabItem.key}
+              className={`px-5 sm:px-6 py-2 rounded-full text-base sm:text-[20px] transition-colors ${
+                tab === tabItem.key
+                  ? 'bg-primary-50 text-white font-semibold'
+                  : 'text-[#aaaaaa] hover:text-[#717182]'
+              }`}
+            >
+              {tabItem.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading && (
@@ -183,44 +167,14 @@ export function PricingPlans() {
       )}
 
       {!loading && !error && (
-        <div className="max-w-[1200px] mx-auto space-y-10">
-          {/* Free tier + Credit Pack live together on the first row. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <FreeTierCard />
-            {plans
-              .filter((p) => p.group === 'PACK')
-              .map((p) => (
-                <PlanCard key={p.code} plan={p} highlighted={false} onBuy={setSelected} />
-              ))}
-          </div>
-
-          {GROUP_ORDER.filter((g) => g !== 'PACK').map((group) => {
-            const groupPlans = plans.filter((p) => p.group === group)
-            if (!groupPlans.length) return null
-            return (
-              <div key={group}>
-                <h3 className="text-xl sm:text-2xl font-semibold mb-4">
-                  {t(`employer:plans.groups.${group}`)}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {groupPlans.map((p) => (
-                    <PlanCard
-                      key={p.code}
-                      plan={p}
-                      highlighted={p.code === highlightCode}
-                      onBuy={setSelected}
-                    />
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
+          {shown.map((plan) => (
+            <PlanCard key={plan.code} plan={plan} onBuy={setSelected} />
+          ))}
         </div>
       )}
 
-      {selected && (
-        <CheckoutModal plan={selected} onClose={() => setSelected(null)} />
-      )}
+      {selected && <CheckoutModal plan={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }
