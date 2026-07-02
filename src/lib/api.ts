@@ -1280,10 +1280,25 @@ export interface Plan {
   features?: string[]
 }
 
+// Employer credit wallet (GET /api/employers/me/credits). `expiresAt` is the
+// wallet's single expiry = latest active subscription/trial lot's date (null
+// when the balance is zero or only non-expiring pack credits remain).
+// NOTE: the BE wallet summary intentionally has NO `seats` field.
+export interface Wallet {
+  post: { balance: number; expiresAt: string | null }
+  download: { balance: number; expiresAt: string | null }
+  packNeverExpires: boolean
+}
+
 export const subscriptionAPI = {
   // Public plan catalog. GET /api/plans → Plan[] (no auth required).
   getPlans: async () => {
     return apiRequest<Plan[]>('/plans')
+  },
+
+  // Employer credit wallet. GET /api/employers/me/credits (auth: employer).
+  getCredits: async () => {
+    return apiRequest<Wallet>('/employers/me/credits')
   },
 }
 

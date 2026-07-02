@@ -1,4 +1,14 @@
 {
+  "wallet": {
+    "title": "Credit wallet",
+    "buyCredits": "Buy credits",
+    "postCredits": "Job-post credits",
+    "downloadCredits": "Candidate unlocks",
+    "expires": "Expires {{date}}",
+    "packNeverExpires": "Pack credits never expire.",
+    "loading": "Loading your wallet…",
+    "error": "Couldn't load your wallet."
+  },
   "plans": {
     "heading": "Plans & pricing",
     "subheading": "Buy credits to post jobs and unlock candidates — pay only for what you use.",

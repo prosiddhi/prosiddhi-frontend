@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { CreditWallet } from '@/components/employer/CreditWallet'
 import {
   employerAPI,
   type EmployerDashboardStats,
@@ -110,6 +111,10 @@ function EmployerDashboardContent() {
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">
             {t('employer:dashboard.title')}
           </h1>
+
+          {/* Credit wallet (PJP-178) — self-fetching; shown regardless of the
+              dashboard panels' load state. */}
+          <CreditWallet className="mb-8 sm:mb-10" />
 
           {/* Loading */}
           {loading && (
