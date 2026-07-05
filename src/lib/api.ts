@@ -1143,8 +1143,10 @@ export const employerAPI = {
       body: JSON.stringify(jobData),
     })
   },
+  // DELETE /api/jobs/:id → { refunded }. The BE refunds 1 POST credit iff the
+  // job is <24h old with 0 applications (Phase I), so the FE can confirm it.
   deleteJob: async (jobId: string) => {
-    return apiRequest(`/jobs/${jobId}`, {
+    return apiRequest<{ refunded: boolean }>(`/jobs/${jobId}`, {
       method: 'DELETE',
     })
   },

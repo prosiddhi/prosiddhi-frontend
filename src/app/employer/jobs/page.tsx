@@ -22,6 +22,7 @@ import {
   Loader2,
   AlertCircle,
   Briefcase,
+  CheckCircle2,
 } from 'lucide-react'
 
 type Tab = 'active' | 'expired'
@@ -40,6 +41,8 @@ function MyJobsContent() {
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [actioningId, setActioningId] = useState<string | null>(null)
+  // Transient success notice (e.g. "1 post credit refunded" after a delete).
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     let ignore = false
@@ -69,6 +72,13 @@ function MyJobsContent() {
     }
   }, [tab, reloadKey])
 
+  // Auto-dismiss the transient success notice.
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(''), 5000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
   const runAction = async (fn: () => Promise<unknown>, id: string) => {
     if (actioningId) return
     setActioningId(id)
@@ -82,9 +92,22 @@ function MyJobsContent() {
     }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm(t('employer:jobs.confirmDelete'))) return
-    runAction(() => employerAPI.deleteJob(id), id)
+    if (actioningId) return
+    setActioningId(id)
+    setError('')
+    setNotice('')
+    try {
+      const res = await employerAPI.deleteJob(id)
+      // BE refunds 1 POST credit iff <24h old + 0 applications — confirm it.
+      if (res?.refunded) setNotice(t('employer:jobs.creditRefunded'))
+      setReloadKey((k) => k + 1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('employer:jobs.actionFailed'))
+    } finally {
+      setActioningId(null)
+    }
   }
 
   return (
@@ -112,6 +135,13 @@ function MyJobsContent() {
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobs.title')}</h1>
+
+          {notice && (
+            <div className="flex items-center gap-2 mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{notice}</span>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200">

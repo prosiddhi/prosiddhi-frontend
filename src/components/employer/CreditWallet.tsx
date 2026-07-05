@@ -12,6 +12,25 @@ import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt } from 'lucide-re
 import { useCredits } from '@/hooks/useCredits'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 
+// Plan-expiry nudge: derives the latest active subscription/trial expiry (max
+// of the two kinds' expiresAt) and flags "expiring soon" (≤7 days) or "expired".
+// Returns null when there's no time-bound plan (only pack / no subscription).
+function planExpiryNotice(
+  post: string | null,
+  download: string | null,
+): { level: 'soon' | 'expired'; days: number } | null {
+  const times = [post, download]
+    .filter((d): d is string => !!d)
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !Number.isNaN(t))
+  if (!times.length) return null
+  const latest = Math.max(...times)
+  const now = Date.now()
+  if (latest <= now) return { level: 'expired', days: 0 }
+  const days = Math.ceil((latest - now) / 86400000)
+  return days <= 7 ? { level: 'soon', days } : null
+}
+
 // Absolute date like "12 Jul 2026" (wallet expiry is a calendar-relevant date).
 function formatDate(iso: string | null): string | null {
   if (!iso) return null
@@ -112,6 +131,29 @@ export function CreditWallet({ className }: { className?: string }) {
           {wallet.packNeverExpires && (
             <p className="text-xs text-[#717182] mt-4">{t('employer:wallet.packNeverExpires')}</p>
           )}
+
+          {(() => {
+            const notice = planExpiryNotice(wallet.post.expiresAt, wallet.download.expiresAt)
+            if (!notice) return null
+            return (
+              <div
+                className={`mt-4 flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                  notice.level === 'expired' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                }`}
+              >
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  {notice.level === 'expired'
+                    ? t('employer:wallet.planExpired')
+                    : t('employer:wallet.planExpiringSoon', { count: notice.days })}
+                </span>
+                <Link href="/employer/welcome#pricing" className="underline font-medium whitespace-nowrap">
+                  {t('employer:wallet.renew')}
+                </Link>
+              </div>
+            )
+          })()}
+
           <Link
             href="/employer/invoices"
             className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary-50 hover:underline"

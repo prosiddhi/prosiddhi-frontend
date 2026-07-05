@@ -113,6 +113,9 @@
     "downloadCredits": "Candidate unlocks",
     "expires": "Expires {{date}}",
     "packNeverExpires": "Pack credits never expire.",
+    "planExpiringSoon": "Your plan expires in {{count}} day(s). Renew to keep posting and unlocking.",
+    "planExpired": "Your plan has expired. Renew to keep posting and unlocking.",
+    "renew": "Renew",
     "invoices": "View invoices",
     "loading": "Loading your wallet…",
     "error": "Couldn't load your wallet."
@@ -286,6 +289,7 @@
     "loadFailed": "Failed to load your jobs. Please try again.",
     "actionFailed": "Action failed. Please try again.",
     "confirmDelete": "Delete this job? This cannot be undone.",
+    "creditRefunded": "1 post credit was refunded to your wallet.",
     "noActiveTitle": "No active jobs",
     "noExpiredTitle": "No expired jobs",
     "noActiveBody": "Post a job to start receiving applications.",
