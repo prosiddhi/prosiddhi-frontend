@@ -1518,6 +1518,29 @@ export interface UnlockResult {
   profile: CandidateProfile
 }
 
+// A candidate the employer has already unlocked (paid for). Contact is always
+// present here — the DOWNLOAD credit was spent, so re-viewing is free.
+export interface UnlockedCandidate {
+  id: string
+  fullName: string
+  profilePhoto: string | null
+  location: string
+  bio: string
+  preferredCategory: string | null
+  preferredSector: string | null
+  preferredJobTitle: string | null
+  createdAt: string
+  skills: CandidateSkillLink[]
+  workExperience: CandidateExperience[]
+  email: string
+  phoneNumber: string
+  unlockedAt: string
+}
+export interface UnlockedCandidatesPage {
+  unlockedCandidates: UnlockedCandidate[]
+  pagination: JobsPagination
+}
+
 export interface WorkerSearchParams {
   search: string // required, 2–200 chars
   preferredSector?: string
@@ -1551,6 +1574,15 @@ export const candidateAPI = {
     return apiRequest<UnlockResult>(`/employers/candidates/${jobSeekerId}/unlock`, {
       method: 'POST',
     })
+  },
+
+  // The employer's already-unlocked candidates (paid history, contact shown),
+  // newest first. GET /api/employers/me/unlocked-candidates.
+  getUnlockedCandidates: async (params?: { page?: number; limit?: number }) => {
+    const qs = new URLSearchParams()
+    qs.set('page', String(params?.page ?? 1))
+    qs.set('limit', String(params?.limit ?? 12))
+    return apiRequest<UnlockedCandidatesPage>(`/employers/me/unlocked-candidates?${qs.toString()}`)
   },
 }
 

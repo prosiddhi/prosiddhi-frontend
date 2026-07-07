@@ -9,6 +9,7 @@ import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { CreditWallet } from '@/components/employer/CreditWallet'
 import {
   employerAPI,
+  candidateAPI,
   type EmployerDashboardStats,
   type EmployerDashboardJob,
   type RecentApplication,
@@ -26,6 +27,8 @@ import {
   Loader2,
   AlertCircle,
   MapPin,
+  Unlock,
+  ChevronRight,
 } from 'lucide-react'
 
 function StatTile({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
@@ -47,6 +50,7 @@ function EmployerDashboardContent() {
   const [stats, setStats] = useState<EmployerDashboardStats | null>(null)
   const [jobs, setJobs] = useState<EmployerDashboardJob[]>([])
   const [recent, setRecent] = useState<RecentApplication[]>([])
+  const [unlockedCount, setUnlockedCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -59,15 +63,18 @@ function EmployerDashboardContent() {
       try {
         // Fetch the three panels in parallel; tolerate partial failures so one
         // slow/erroring panel doesn't blank the whole dashboard.
-        const [s, j, r] = await Promise.allSettled([
+        const [s, j, r, u] = await Promise.allSettled([
           employerAPI.getDashboardStats(),
           employerAPI.getDashboardJobs(1, 5),
           employerAPI.getRecentApplications(5),
+          candidateAPI.getUnlockedCandidates({ page: 1, limit: 1 }),
         ])
         if (ignore) return
         if (s.status === 'fulfilled') setStats(s.value)
         if (j.status === 'fulfilled') setJobs(j.value.jobs)
         if (r.status === 'fulfilled') setRecent(r.value.applications)
+        // Supplementary — never blocks the page; just hides the card on failure.
+        if (u.status === 'fulfilled') setUnlockedCount(u.value.pagination.total)
         // Only treat it as a page error if everything failed.
         if (s.status === 'rejected' && j.status === 'rejected' && r.status === 'rejected') {
           setError(s.reason instanceof Error ? s.reason.message : t('employer:dashboard.loadFailed'))
@@ -129,7 +136,29 @@ function EmployerDashboardContent() {
 
           {/* Credit wallet (PJP-178) — self-fetching; shown regardless of the
               dashboard panels' load state. */}
-          <CreditWallet className="mb-8 sm:mb-10" />
+          <CreditWallet className="mb-6 sm:mb-8" />
+
+          {/* Unlocked-candidates shortcut — the paid candidate history. Shown
+              once the count loads; hidden on fetch failure (supplementary). */}
+          {unlockedCount !== null && (
+            <Link
+              href="/employer/workers?tab=unlocked"
+              className="mb-8 sm:mb-10 flex items-center justify-between gap-4 bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
+                  <Unlock className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold text-black leading-tight">{unlockedCount}</p>
+                  <p className="text-xs sm:text-sm text-[#717182] truncate">{t('employer:dashboard.unlockedCandidates')}</p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 text-sm text-primary-50 font-medium whitespace-nowrap">
+                {t('employer:dashboard.viewAll')} <ChevronRight className="w-4 h-4" />
+              </span>
+            </Link>
+          )}
 
           {/* Loading */}
           {loading && (
