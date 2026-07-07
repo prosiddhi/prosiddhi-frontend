@@ -598,6 +598,11 @@ export default function LoginPage() {
                 {t('auth:login.signUpHere')}
               </Link>
             </p>
+            <p className="mt-3">
+              <Link href="/employer/welcome#pricing" className="text-sm text-primary-50 hover:underline">
+                {t('auth:login.viewPricing')}
+              </Link>
+            </p>
           </div>
           )}
         </div>

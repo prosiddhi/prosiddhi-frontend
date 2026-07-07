@@ -30,7 +30,7 @@ export function OutOfCreditsUpsell() {
           {t('employer:postGate.topUpNow')}
         </button>
         <Link
-          href="/employer/welcome#pricing"
+          href="/employer/plans"
           className="inline-flex items-center justify-center px-6 py-2.5 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm font-medium"
         >
           {t('employer:postGate.viewPlans')}

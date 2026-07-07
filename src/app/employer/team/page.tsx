@@ -222,7 +222,7 @@ function TeamContent() {
                 {seatsFull ? (
                   <div className="text-sm text-[#717182]">
                     <p className="mb-3">{t('employer:team.inviteFull')}</p>
-                    <Link href="/employer/welcome#pricing" className="inline-flex px-5 py-2.5 bg-primary-50 text-white rounded-lg text-sm hover:bg-primary-60 transition-colors">
+                    <Link href="/employer/plans" className="inline-flex px-5 py-2.5 bg-primary-50 text-white rounded-lg text-sm hover:bg-primary-60 transition-colors">
                       {t('employer:team.viewPlans')}
                     </Link>
                   </div>

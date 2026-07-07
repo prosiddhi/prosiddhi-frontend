@@ -5,12 +5,10 @@
 // employer holds pack credits. Data from GET /api/employers/me/credits via
 // useCredits(); `reload()` is called by checkout/post-gate after a spend/grant.
 
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt } from 'lucide-react'
 import { useCredits } from '@/hooks/useCredits'
-import { TopUpModal } from '@/components/employer/TopUpModal'
 
 // Plan-expiry nudge: derives the latest active subscription/trial expiry (max
 // of the two kinds' expiresAt) and flags "expiring soon" (≤7 days) or "expired".
@@ -70,30 +68,19 @@ function Tile({
 export function CreditWallet({ className }: { className?: string }) {
   const { t } = useTranslation()
   const { wallet, loading, error, reload } = useCredits()
-  const [topUp, setTopUp] = useState(false)
 
   return (
     <div className={`bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6 ${className ?? ''}`}>
       <div className="flex items-center justify-between mb-4 gap-3">
         <h2 className="text-lg sm:text-xl font-semibold text-black">{t('employer:wallet.title')}</h2>
-        <button
-          type="button"
-          onClick={() => setTopUp(true)}
+        <Link
+          href="/employer/plans"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
         >
           <Plus className="w-4 h-4" />
           {t('employer:wallet.buyCredits')}
-        </button>
+        </Link>
       </div>
-
-      {topUp && (
-        <TopUpModal
-          onClose={() => {
-            setTopUp(false)
-            reload() // refresh balances in case a top-up completed
-          }}
-        />
-      )}
 
       {loading && (
         <div className="flex items-center gap-2 py-4 text-[#717182]">
@@ -147,20 +134,22 @@ export function CreditWallet({ className }: { className?: string }) {
                     ? t('employer:wallet.planExpired')
                     : t('employer:wallet.planExpiringSoon', { count: notice.days })}
                 </span>
-                <Link href="/employer/welcome#pricing" className="underline font-medium whitespace-nowrap">
+                <Link href="/employer/plans" className="underline font-medium whitespace-nowrap">
                   {t('employer:wallet.renew')}
                 </Link>
               </div>
             )
           })()}
 
-          <Link
-            href="/employer/invoices"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary-50 hover:underline"
-          >
-            <Receipt className="w-4 h-4" />
-            {t('employer:wallet.invoices')}
-          </Link>
+          <div className="flex flex-wrap items-center gap-4 mt-4">
+            <Link
+              href="/employer/invoices"
+              className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:underline"
+            >
+              <Receipt className="w-4 h-4" />
+              {t('employer:wallet.invoices')}
+            </Link>
+          </div>
         </>
       )}
     </div>

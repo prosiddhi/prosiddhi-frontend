@@ -117,6 +117,7 @@
     "planExpired": "Your plan has expired. Renew to keep posting and unlocking.",
     "renew": "Renew",
     "invoices": "View invoices",
+    "viewPlans": "View plans",
     "loading": "Loading your wallet…",
     "error": "Couldn't load your wallet."
   },
@@ -152,6 +153,9 @@
     "daysValid": "Valid {{days}} days",
     "neverExpires": "Never expires",
     "buy": "Buy now",
+    "back": "Back to dashboard",
+    "quickTopUp": "Quick top-up",
+    "logoAlt": "ProSiddhi",
     "loading": "Loading plans…",
     "error": "Couldn't load plans. Please try again.",
     "retry": "Retry",

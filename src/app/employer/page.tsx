@@ -210,7 +210,10 @@ function EmployerDashboardContent() {
 
                 {/* Recent Applications */}
                 <section>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-black mb-4">{t('employer:dashboard.recentApplications')}</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-black">{t('employer:dashboard.recentApplications')}</h2>
+                    <Link href="/employer/candidates" className="text-sm text-primary-50 hover:underline">{t('employer:dashboard.manageAll')}</Link>
+                  </div>
                   {recent.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">
                       {recent.map((app) => {

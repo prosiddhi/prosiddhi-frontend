@@ -96,17 +96,17 @@ function EmployerLandingPageContent() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center gap-4 lg:gap-8 xl:gap-11">
-              <button className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+              <Link href="/employer/register" className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
                 {t('employer:landing.nav.postJob')}
-              </button>
+              </Link>
 
-              <button className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+              <a href="#offer" className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
                 {t('employer:landing.nav.findWorkers')}
-              </button>
+              </a>
 
-              <button className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+              <a href="#pricing" className="text-black text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
                 {t('employer:landing.nav.pricing')}
-              </button>
+              </a>
             </nav>
           </div>
 
@@ -220,7 +220,7 @@ function EmployerLandingPageContent() {
       </section>
 
       {/* What We Offer Section */}
-      <section className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white">
+      <section id="offer" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-20">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
           <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-[40px] font-medium mb-2 sm:mb-3">{t('employer:landing.offers.heading')}</h2>
@@ -335,7 +335,7 @@ function EmployerLandingPageContent() {
       </section>
 
       {/* Pricing Section — live 8-tier catalog from GET /api/plans (PJP-176). */}
-      <section id="pricing" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white">
+      <section id="pricing" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-20">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
           <PricingPlans />
         </div>

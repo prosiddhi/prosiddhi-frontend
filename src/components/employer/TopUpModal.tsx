@@ -86,7 +86,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           <div className="py-8 text-center">
             <p className="text-[#717182] mb-4">{t('employer:topUp.unavailable')}</p>
             <Link
-              href="/employer/welcome#pricing"
+              href="/employer/plans"
               className="inline-flex px-5 py-2.5 bg-primary-50 text-white rounded-lg text-sm hover:bg-primary-60 transition-colors"
             >
               {t('employer:topUp.viewAllPlans')}
