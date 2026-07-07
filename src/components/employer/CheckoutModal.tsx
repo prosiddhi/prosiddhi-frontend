@@ -20,6 +20,13 @@ function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN')}`
 }
 
+// Cap how long we wait on the post-capture verify call. If the response is lost
+// (dropped connection, sleeping tab, server blip) the promise would otherwise
+// hang forever and the modal would spin on "Processing…". After this we fall
+// through to the terminal "payment received — confirming" state; the webhook is
+// the backstop that still grants the credits.
+const VERIFY_TIMEOUT_MS = 15000
+
 export function CheckoutModal({
   plan,
   onClose,
@@ -103,21 +110,30 @@ export function CheckoutModal({
           // never route back to a re-payable state from here.
           if (settledRef.current) return
           settledRef.current = true
+          let timer: ReturnType<typeof setTimeout> | undefined
           try {
-            const result = await subscriptionAPI.verifyPayment({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            })
+            // Race the verify against a timeout so a lost response can't hang the
+            // modal on "Processing…" forever.
+            const result = await Promise.race([
+              subscriptionAPI.verifyPayment({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+              new Promise<never>((_, reject) => {
+                timer = setTimeout(() => reject(new Error('verify-timeout')), VERIFY_TIMEOUT_MS)
+              }),
+            ])
             const g = result.granted ?? { post: plan.postCredits, download: plan.downloadCredits }
             if (mountedRef.current) setGranted(g)
             onSuccess?.(g)
           } catch {
-            // Money was taken but confirmation failed — the webhook is the
-            // backstop, so credits still land. Show a terminal "received" state,
-            // NOT the form, so the buyer can't be charged a second time.
+            // Money was taken but confirmation failed OR timed out — the webhook
+            // is the backstop, so credits still land. Show a terminal "received"
+            // state, NOT the form, so the buyer can't be charged a second time.
             if (mountedRef.current) setCapturedPending(true)
           } finally {
+            if (timer) clearTimeout(timer)
             if (mountedRef.current) setSubmitting(false)
           }
         },
