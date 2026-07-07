@@ -17,7 +17,7 @@ export function UserDropdown({
 }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   // Employers get the company-profile screen; everyone else the seeker profile.
   const profileHref = user?.role?.startsWith('EMPLOYER') ? '/employer/profile' : '/profile'
@@ -57,10 +57,9 @@ export function UserDropdown({
   }, [isOpen])
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...')
-    // For now, just close the dropdown
     setIsOpen(false)
+    // Clears the token + user from storage/state and redirects to /login.
+    logout()
   }
 
   return (
