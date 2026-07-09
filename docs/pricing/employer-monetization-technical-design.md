@@ -1,11 +1,72 @@
 # Employer Monetization — Technical Design
 
-**Status:** Design (decisions locked 2026-06-29) · **Audience:** FE-Claude, BE-Claude, mobile dev (the *how*)
+**Status:** **AS-BUILT** — Phases 1–3 shipped on BE + FE (verified 2026-07-07; see §0). Decisions locked 2026-06-29. · **Audience:** FE-Claude, BE-Claude, mobile dev (the *how*)
 **Companion:** [functional-spec](./employer-monetization-functional-spec.md) (the *what/why*) · [delete-refund-spec](./employer-monetization-delete-refund-spec.md) (reversal rules) · [decisions-tracker](./employer-monetization-decisions-tracker.md) (23-doubt scoreboard + per-ticket impl notes)
 **Repos:** `prosiddhi-backend` (Express 5 + Prisma + PostgreSQL), `prosiddhi-frontend` (Next.js app-router), `prosiddhi-mobile-app` (Flutter)
 
 > Builds **on top of** the partial subscription schema shipped in PJP-74. Every rule cited here (expiry, merge,
 > grace, trial, …) is defined in the Functional Spec §3 — this doc only says how to implement them.
+
+---
+
+## 0. Implementation status — AS-BUILT (verified against source, 2026-07-07)
+
+**Phases 1, 2 and 3 have all shipped** on `prosiddhi-backend` and `prosiddhi-frontend` (`main` on both). The
+sections below (§1–§8) describe the design; this section records what is *actually in the code*, and the two
+gaps that are **not** done.
+
+### Backend — live endpoints
+| Concern | Endpoint | Auth |
+|---|---|---|
+| Plan catalog | `GET /api/plans` | public (300s cache) |
+| Checkout (Razorpay order) | `POST /api/billing/checkout` | employer |
+| **Client-side payment verify** | `POST /api/billing/verify-payment` | employer |
+| Razorpay webhook | `POST /api/webhooks/razorpay` | public + HMAC over raw body |
+| Credit wallet | `GET /api/employers/me/credits` | employer |
+| Invoices list / PDF | `GET /api/employers/me/invoices` · `…/:id/pdf` | employer |
+| Candidate search (FTS) | `GET /api/employers/search/workers` | employer |
+| Candidate profile (snippet-gated) | `GET /api/employers/candidates/:jobSeekerId` | employer |
+| Candidate unlock | `POST /api/employers/candidates/:jobSeekerId/unlock` | employer |
+| Unlocked history | `GET /api/employers/me/unlocked-candidates` | employer |
+| Team seats | `GET/POST /api/employers/me/team[/invite]` · `POST /api/employers/team/accept-invite` · `DELETE /api/employers/me/team/:seatId` | employer (owner) |
+| Taxonomy tree | `GET /api/categories` | public |
+
+**Gates (all live):** `createJob` spends 1 POST credit *before* create → 402 at zero, sets `liveUntil = now+30d`.
+`deleteJob` refunds iff `hoursSincePost ≤ 24 && applications == 0` (idempotent, reverses the exact lot).
+`unlockCandidate` spends a DOWNLOAD credit and inserts `EmployerCandidateUnlock` **in one transaction**, with
+`@@unique([employerId, jobSeekerId])` dedupe — already-unlocked returns `alreadyUnlocked: true`, no spend.
+
+**Crons:** daily 03:00 IST — (1) 30-day job live-window sweep → INACTIVE; (2) plan-expiry + **3-day grace** sweep → INACTIVE.
+
+**Not previously described in this doc (now built):**
+- **Postgres FTS search** — jobs via `GET /api/jobs?search=`, workers via `GET /api/employers/search/workers`
+  (`tsvector` + `ts_rank_cd` + `pg_trgm` typo fallback; DB-trigger-maintained `search_vector` columns).
+- **`WebhookEvent` audit log** — insert-first, unique `eventId`; records *every* Razorpay delivery (incl. refunds/disputes).
+- **Two credit-granting paths** — the webhook **and** `verify-payment`. Both share `processCapturedPayment` with an
+  atomic `PaymentHistory` claim (`WHERE providerEventId=''`), so they cannot double-grant.
+- **Real admin revenue** — `SUM(amountInr) WHERE status='SUCCESS'` from `PaymentHistory` (the ₹500 placeholder is gone).
+- Rate limiting: global 500/15min; `candidateRateLimit` 20/min on candidate endpoints.
+
+### Frontend — live routes
+`/employer/plans` (+ pricing on `/employer/welcome`) · `/employer/invoices` (list + PDF) · `/employer/workers`
+(snippet search + **explicit "use 1 credit to unlock" confirm** + unlocked history) · `/employer/workers/[jobSeekerId]`
+· `/employer/team` (+ `/accept`) · credit wallet + expiry nudge on the dashboard · post-credit gate/upsell + top-up modal.
+Shared `useCategories()` + `TaxonomyPicker` in **all four** consumers (registration, JobForm, profile, job-feed filter).
+i18n complete in **EN and HI**. Checkout verify is time-boxed (15s) so a lost callback cannot double-charge.
+**PJP-176 → 181 are all DONE** (including PJP-180 invoices, previously marked deferred).
+
+### ⚠️ Two known gaps — do NOT treat these as done
+1. **Seat cap is computed wrong (bug).** `team.service.ts:63-74` `getSeatsFromPlan()` takes the seats of the
+   *latest-expiring* active subscription (`findFirst … orderBy: { expiresAt: 'desc' }`) instead of `MAX(seats)`
+   across all active plans. This contradicts §1 of this doc *and* `pricing-rules.md` ("the **higher** seat count
+   applies"). **Fix: aggregate, never pick a plan.** `walletExpiry = MAX(expiresAt)` and `seatCap = MAX(seats)`
+   are two different aggregates over the same set.
+2. **Seats are roster-only — there is no shared workspace yet.** `User↔Employer` is still **1:1**
+   (`Employer.userId @unique`), and `Subscription` / `PaymentHistory` are keyed by **`userId`, not `employerId`**.
+   Each teammate therefore has their **own Employer row and own wallet**, so a Pro 2/3-seat plan does not yet
+   deliver shared credits, jobs or unlocks. Making seats real requires: an `EmployerUser` (1:N) membership table,
+   re-keying `Subscription`/`PaymentHistory` to `employerId`, and a single `resolveEmployerContext(userId)` helper
+   that every employer-scoped controller routes through. See decisions-tracker **S1–S4**.
 
 ---
 
@@ -83,23 +144,36 @@ Migration: additive; the 1:N seat change (P3) needs the owner-backfill data migr
 | `POST /api/webhooks/razorpay` | Razorpay event | `200` | **verify signature**; idempotent via `WebhookEvent.eventId`; on `payment.captured` → grant lots, mark `PaymentHistory` SUCCESS, generate `Invoice` |
 | `GET /api/employers/me/invoices` | auth | `[Invoice]` + PDF links | purchase history |
 
-### Phase 2 — candidate database
-| `GET /api/candidates` | filters (trade, location, experience, skills, page) | snippet results (no contact) | free tier allowed; snippets only |
-| `POST /api/candidates/:id/unlock` | auth | `{ unlocked:true }` | **spend 1 download** (dedupe via `EmployerCandidateUnlock`); explicit-confirm on FE |
-| `GET /api/candidates/:id` | auth | full profile + contact **iff** unlocked | 402 if locked & no credits |
+> **AS-BUILT correction:** the Phase-2/3 paths below are the *real* ones (the earlier drafts of this doc guessed
+> `/api/candidates/*` and `/api/employers/me/seats/*` — those do not exist). Candidate, team, credit and invoice
+> routes are all mounted **inside `employer.routes.ts` under `/api/employers`**. Also built: `POST /api/billing/verify-payment`
+> (client-side verify, a second credit-granting path) and `GET /api/employers/me/invoices/:id/pdf`.
 
-### Phase 3 — seats
-| `POST /api/employers/me/seats` (invite) · `GET/DELETE /api/employers/me/seats/:id` | OWNER only | roster mgmt | cap = active plan seats |
+### Phase 2 — candidate database ✅ shipped
+| `GET /api/employers/search/workers` | FTS query + filters | snippet results (**email/phone stripped**) | Postgres FTS (`tsvector` + `pg_trgm`); rate-limited |
+| `GET /api/employers/candidates/:jobSeekerId` | auth | snippet profile; contact **iff** unlocked | soft-deleted/non-ACTIVE seeker → 404 |
+| `POST /api/employers/candidates/:jobSeekerId/unlock` | auth | `{ unlocked, alreadyUnlocked? }` | **spends 1 DOWNLOAD in one transaction**; `@@unique([employerId, jobSeekerId])` dedupe; 402 at zero |
+| `GET /api/employers/me/unlocked-candidates` | auth | paid history, **includes contact** | paginated |
+
+### Phase 3 — seats 🟡 roster-only (see §0 gap 2)
+| `GET /api/employers/me/team` · `POST /api/employers/me/team/invite` · `POST /api/employers/team/accept-invite` · `DELETE /api/employers/me/team/:seatId` | owner (invitee for accept) | roster mgmt via `EmployerTeamSeat` (`PENDING\|ACCEPTED\|REMOVED`, one-shot `inviteToken`) | cap enforced on invite **and** accept → 402 `NoSeatAvailableError`. **Cap currently reads the wrong plan — see §0.** |
 
 ---
 
 ## 4. Gates, crons, and touch-points in existing code
 
-- **Post gate** — in `job.service.ts` `createJob` (currently gates only `accountStatus !== 'ACTIVE'`,
-  `job.service.ts:21-23`): after that check, `spendCredit('POST')`; if balance 0 → throw a typed `NoCreditsError`
-  → controller returns **402**. Set `job.liveUntil = now + 30d`.
-- **Unlock gate** — candidate full-profile/unlock path: `spendCredit('DOWNLOAD')` with dedupe.
-- **Delete-refund** — in delete-job path: refund 1 POST lot (`+1`, `REFUND_DELETE`) **only if** `applicationCount == 0 && now - postedAt < 24h`.
+> ✅ Everything in this section is **BUILT** (verified 2026-07-07). Line refs are to the live code.
+
+- **Post gate** ✅ — `job.service.ts` `createJob` spends 1 POST credit **before** `job.create` (`job.service.ts:64-70`),
+  then patches the `SPEND_POST` audit row's `refId` to the new job id (`:130-139`). Balance 0 → `NoCreditsError` → **402**.
+  Sets `job.liveUntil = now + 30d` (`:72`, `JOB_LIVE_DAYS`).
+- **Unlock gate** ✅ — `candidate.service.ts` `unlockCandidate` (`:245`) decrements a DOWNLOAD lot **and** inserts
+  `EmployerCandidateUnlock` in **one transaction** (`:311-339`). Dedupe via `@@unique([employerId, jobSeekerId])` plus a
+  fast-path pre-check and in-transaction re-check; a concurrent P2002 rolls the tx back so **no credit is lost**
+  (the M-1 double-spend fix). Already-unlocked → `alreadyUnlocked: true`, no spend.
+- **Delete-refund** ✅ — `deleteJob` refunds iff `hoursSincePost <= 24 && _count.applications === 0`
+  (`job.service.ts:556-564`); `creditService.refundPostCredit` reverses the **exact** `SPEND_POST` lot (+1) and writes a
+  `REFUND_DELETE` audit row, guarded against a prior refund (`credit.service.ts:203-261`). Refund failure is non-fatal.
 - **Trial grant** — fires when the employer's `accountStatus → ACTIVE` (individual: end of `verifyEmailOtp`; business: end of `approveEmployer`), once per verified identity (dedupe: phone/email for individual, GSTIN for business), `grantLots(TRIAL, post:1 download:3, expiresAt: now+14d)`. See decisions-tracker #1/#5.
 - **Expiry/grace cron** — daily: lots past `expiresAt` stop counting (read-time, automatic); jobs whose owning
   employer has no active plan **and** is past the **3-day grace** → set `status=INACTIVE`; jobs past `liveUntil` → INACTIVE.

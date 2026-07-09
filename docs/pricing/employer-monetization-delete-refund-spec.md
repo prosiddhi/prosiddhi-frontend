@@ -66,7 +66,18 @@ When an employer's `User.isDeleted` flag is set to `true` (NC-9 soft-delete conv
 
 ### 2.2 Seeker account delete — what happens to employer-held "unlocks"
 
-**Decision: ⏸️ Phase 2 — pending**
+**Decision: 🔒 LOCKED 2026-07-07 — Option C (hybrid).** *(Phase 2 has shipped, so this came due.)*
+
+- The `EmployerCandidateUnlock` row **persists** — audit + credit history intact (the employer really did spend a credit).
+- The platform **stops serving the contact fields**; the unlock card reads *"This candidate is no longer available."*
+- **No refund**, and the credit is not clawed back (consistent with "no refunds in v1").
+- Seeker delete is **soft-delete (NC-9)**, so a restore brings the candidate back — symmetric with the
+  "freeze, preserve" rule for employer soft-delete (§2.1).
+- **Why not Option B** (snapshot the contact at unlock, keep serving it forever): weakest DPDP posture — we would keep
+  supplying personal data *after* an erasure request. Commercial fairness is already covered by not clawing back the
+  credit. Whatever the employer noted down offline is outside our control; at that point *they* are the data fiduciary.
+
+*Original options analysis retained below for context.*
 
 Phase 2 introduces the "unlock" feature: an employer spends a download credit to view a candidate's full contact information. Once unlocked, that information is permanently available to the employer (spec §3 safeguard).
 

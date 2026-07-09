@@ -44,12 +44,13 @@ actual usage.
 | **Pro** | 12 Months · 3 seats | 21,999 | 45 | 450 | 3 | 12 months |
 
 ### 2.3 Free employer tier (always available)
-A registered employer who has **not** bought anything can: register, and (once the candidate database ships in
-**Phase 2**) **search the candidate database and see snippet results** (no full contact). They **cannot post** or
-**unlock** until they have credits. This is the permanent free floor beneath the trial and the paid plans.
+A registered employer who has **not** bought anything can: register, and **search the candidate database and see
+snippet results** (no full contact — email/phone are stripped). They **cannot post** or **unlock** until they have
+credits. This is the permanent free floor beneath the trial and the paid plans.
 
-> **Phasing note (decisions-tracker #23):** candidate search + snippets is a **Phase 2** capability. The **Phase-1
-> pricing page must NOT advertise search** (it doesn't exist yet) — omit the search claim until Phase 2 ships.
+> **Status (2026-07-07):** ✅ **Phase 2 has shipped** — candidate search + snippet gating are live
+> (`GET /api/employers/search/workers`, `/employer/workers`). Decisions-tracker **#23** is therefore **closed**:
+> the pricing page **may now advertise candidate search**, because it exists.
 
 ### 2.4 Free trial (one-time)
 When the employer's account first becomes **ACTIVE** (individual: at email verification; **business: at admin
@@ -134,5 +135,6 @@ candidate — before paying. After it's spent/expired, the free tier (search + s
 
 ## 7. Out of scope / deferred
 
-- **v1.1:** bulk post-packs, download-only top-up SKU, promo/coupon codes, enterprise/custom deals, referral discounts, win-back/reactivation offers, paid "refresh/boost-to-top", TDS (Sec 194J) reconciliation, auto-renewal (RBI e-mandate).
-- **Phasing of the build itself** (Phase 1 posting → Phase 2 candidate database → Phase 3 seats) is described in the Technical Design.
+- **v1.1:** bulk post-packs, download-only top-up SKU, promo/coupon codes, enterprise/custom deals, referral discounts, win-back/reactivation offers, paid "refresh/boost-to-top", TDS (Sec 194J) reconciliation, auto-renewal (RBI e-mandate), chargeback credit-revocation, admin manual credit grant/revoke.
+- **Build status (2026-07-07):** Phase 1 (posting monetization) ✅ shipped · Phase 2 (candidate database + unlock) ✅ shipped · Phase 3 (seats) 🟡 **roster-only** — teammates do not yet share the org's wallet/jobs/unlocks, and the seat cap reads the wrong plan. See Technical Design **§0 "Two known gaps"** and decisions-tracker **S1–S4**.
+- GST invoices + PDF download are **shipped** (they were briefly listed as deferred).

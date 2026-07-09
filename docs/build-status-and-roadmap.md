@@ -1,7 +1,14 @@
 # ProSiddhi — Build Status & Roadmap
-**Speaking notes (for Nazir) · 2026-06-15 · verified live on the local stack**
+**Speaking notes (for Nazir) · updated 2026-07-07 · verified against source in both repos**
 
-> One-liner: *The backend is essentially complete, the web portal works end-to-end on real data, and the admin console is fully wired. Mobile hasn't started. We're ~70% of the full MVP; the rest is mostly payments, messaging channels, and the mobile app — i.e. Phase 2.*
+> One-liner: *The backend and web portal are feature-complete, including the full **employer monetization** system —
+> credits, Razorpay checkout, GST invoices, a paid **candidate database**, and team seats. The admin console is wired.
+> Mobile hasn't started. Remaining before launch: outbound notifications (SMS/WhatsApp/email), the mobile app, two
+> known seat gaps, and QA polish.*
+
+> **⚡ What changed since 2026-06-15:** monetization went from *"not built"* to **shipped end-to-end** (Phases 1–3),
+> the 3-level **category taxonomy** landed, **Google OAuth** landed, and **Postgres full-text search** was added for
+> jobs and candidates. The old "payments are Phase 2 / ~70% of MVP" framing below is superseded — see §2 and §4.
 
 ---
 
@@ -47,24 +54,70 @@ Every endpoint is real (auth, jobs, applications, saved jobs, chat, profiles, do
 
 ---
 
-## 4. What we still have to build (to finish Phase 1 / MVP — target QA handover **2026-06-22**)
-- **BR-4 (backend):** include interview data in seeker reads so "My Interviews" populates (screen is built and waiting).
-- **Audio capture** final check (apply + voice chat) — code is wired; needs a device with mic access to confirm in-browser recording.
-- **Pricing copy fix** on the employer landing (currently shows old ₹250/₹0 — must match the agreed plan).
-- **Job-feed category filter** — needs a categories endpoint from backend (BR-3).
+## 3b. Employer monetization — SHIPPED (new since June)
+
+The whole revenue system is live on BE **and** portal. Model: employers buy **credits** (seekers free forever) —
+a **post credit** publishes a job (live 30 days), a **download credit** unlocks a candidate's contact (re-view free).
+
+- **8 plans** (₹499 single-post pack → ₹21,999 Pro 12-month/3-seat), prices **base + 18% GST**.
+- **Free trial:** 1 post + 3 unlocks, 14 days, once per employer (granted at account activation).
+- **Razorpay checkout** + webhook + a client-side verify path (both share an atomic claim so they can't double-grant).
+- **GST invoices** with `INV/YY-YY/NNNNNN` numbering, CGST+SGST vs IGST by place of supply, PDF download.
+- **Paid candidate database** — Postgres full-text search, snippet-gated results (contact hidden), explicit
+  "use 1 credit to unlock" confirm, unlocked-candidates history.
+- **Gates + lifecycle** — post-credit spend on publish (402 at zero), delete-refund (≤24h & 0 applications),
+  daily crons for the 30-day job window and the 3-day post-expiry grace.
+- **Team seats** — roster, invite, accept, remove (🟡 see gaps below).
+
+Also new: **3-level Category→Sector→JobTitle taxonomy** (seeded; powers registration, job posting, profile and the
+job-feed filter), **Google OAuth** sign-in, and **Postgres FTS** search for jobs + candidates.
+
+---
+
+## 4. What still has to be done before launch
+
+**Known gaps (monetization):**
+1. **Seat cap reads the wrong plan** — with two active plans it takes the *latest-expiring* plan's seats instead of the
+   *highest*. A 2-seat Pro plan can silently collapse to 1 seat. (Fix: aggregate `MAX(seats)`.)
+2. **Seats are roster-only** — teammates each still have their own wallet, so a ₹11,999 / ₹21,999 multi-seat plan does
+   **not yet deliver shared credits/jobs/unlocks.** Needs the 1:N membership + org-keyed subscriptions.
+
+**Other pre-launch work:**
+- **Outbound notifications** — push / SMS / WhatsApp / email via MSG91 (still in-app only).
+- **QA fixes** from the functional audit (`docs/qa/functional-audit-portal.md`): fake header name + dead `/settings`
+  link (both in `UserDropdown`), dead legal/footer links, and several hardcoded strings that never translate to Hindi.
+- **Go-live config:** real Razorpay keys (test mode today) + a real webhook secret; Azkashine GSTIN on invoices.
 - **Hardening:** automated smoke tests, error monitoring (Sentry), low-end-device performance pass.
 
-## 5. What we plan to build in the future (Phase 2)
-- **Payments / Subscription** — employer billing (₹999/mo plan + 14-day trial) with Razorpay.
-- **Google sign-in** — third login option.
-- **Outbound notifications** — push / SMS / WhatsApp / email (OTP, status updates, interview reminders) via MSG91.
-- **Mobile app** — native seeker + employer apps (full parity with web).
+## 5. What we plan to build in the future
+- **Mobile app** — native seeker + employer apps (full parity with web). Still unowned.
 - **More languages** — the 8 additional Indian languages beyond EN/HI.
+- **v1.1 billing:** bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit
+  grant/revoke, proration, auto-renewal (RBI e-mandate), paid "refresh/boost-to-top", TDS reconciliation.
 - **Auto-moderation** — AI content scanning of job posts (today moderation is manual).
 
 ---
 
 ## 6. Backend asks — for Asrar
+
+> **⚠️ UPDATED 2026-07-07 — most of the list below is DONE.** `BR-1` and `BR-3`…`BR-9` have all **shipped**
+> (only **BR-2**, JWT in httpOnly cookie, is still open). Admin #6 (real revenue) also shipped. Treat the
+> priority list beneath this banner as **historical**; the *current* asks are:
+>
+> **🔴 Do first — the seat gaps (a paid feature isn't delivering its value):**
+> 1. **Seat cap reads the wrong plan.** `team.service.ts:63-74` takes the seats of the *latest-expiring* active
+>    subscription instead of `MAX(seats)` across active plans — contradicts `pricing-rules.md`.
+> 2. **Seats are roster-only.** `User↔Employer` is still 1:1 and `Subscription`/`PaymentHistory` are keyed by
+>    `userId`, so teammates don't share the org's wallet/jobs/unlocks. Needs `EmployerUser` (1:N), org-keyed
+>    subscriptions, and one `resolveEmployerContext()`. See decisions-tracker **§17 (S1–S4)**.
+> 3. **Invite flow** must become one guided flow (token survives auth → auto-accept).
+>
+> **🟠 Next:** outbound notifications (MSG91 SMS/WhatsApp/email + FCM, PJP-96/97/98) · Admin #1 OpenAI scan (PJP-94)
+> · Admin #2 reports queue (PJP-102) · Admin #3 WhatsApp warning · Admin #5 `pendingVerifications` stat.
+>
+> **🟡 Cleanup:** BR-2 · Admin #4 `AdminAuditLog` (descope candidate) · #7 chart type · #8 `/uploads/*` hardening
+> · #9 missing `validateParams`.
+
 Consolidated from `prosiddhi-frontend/docs/be-requests.md` (BR-1…9) and `prosiddhi-admin/.claude/BE-DEPENDENCIES.md` (#1…9). Ordered by priority.
 
 **🔴 Do first (blocks a built feature / security):**

@@ -10,7 +10,34 @@
 
 ---
 
-## 📍 Current status (2026-06-15 — LIVE SMOKE DONE vs local BE)
+## 📍 Current status (2026-07-07 — MONETIZATION + TAXONOMY SHIPPED)
+
+**Active branch:** `main` (both repos; the `pjp-81-registration-rework` branch was merged into `main` and pushed).
+
+**Everything in Stages 1–4 below is Done, plus three whole epics that landed after this playbook was written:**
+- **Monetization EPIC A (Phase 1)** ✅ — plan catalog, credit ledger, Razorpay checkout + webhook + client verify,
+  GST invoices + PDF, post-credit gate, delete-refund, wallet, trial grant, expiry/grace crons. **PJP-176…181 all Done**
+  (including **PJP-180 invoices**, previously marked deferred).
+- **Monetization EPIC B (Phase 2)** ✅ — paid **candidate database**: FTS search, snippet gating, atomic unlock with
+  `(employerId, jobSeekerId)` dedupe, unlocked-candidates history.
+- **Monetization EPIC C (Phase 3)** 🟡 **partial** — team seats roster/invite/accept/remove are built, but seats are
+  **roster-only** (no shared wallet/jobs/unlocks) and the **seat cap reads the wrong plan**. See
+  `docs/pricing/employer-monetization-technical-design.md` **§0** and decisions-tracker **§17**.
+
+**Also shipped since:** 3-level Category→Sector→JobTitle taxonomy (BR-3) wired into registration, job posting, profile
+and the **job-feed category filter**; **Google OAuth** login (PJP-72); `PATCH /api/me/language` (BR-9); Postgres
+**full-text search** for jobs + candidates; real admin revenue from `PaymentHistory`.
+
+**Superseded rows below:** Stage 5 "Blocked" is out of date — **PJP-110** (subscription UI) was re-scoped into the
+monetization epics and is **shipped**; **PJP-72** (Google login) is **shipped**. Only **PJP-111** (notifications
+dropdown/preferences) remains blocked on BE 96/97/98.
+
+**Next:** the two seat gaps · outbound notifications (MSG91/FCM) · QA fixes from `docs/qa/functional-audit-portal.md`
+· go-live config (real Razorpay keys + webhook secret, Azkashine GSTIN).
+
+---
+
+<details><summary>Historical status (2026-06-15 — live smoke vs local BE)</summary>
 
 **Active branch:** `pjp-81-registration-rework` (local, **not pushed**).
 
@@ -26,6 +53,8 @@ Two findings, both pre-existing known BRs (confirmed live, not regressions): **B
 - **Jira (canonical status)** — each ticket transitioned (To Do → In Progress → Done) with an evidence comment (commit SHA + what was gated/verified).
 - **This playbook (human handbook)** — the `[~]`/`[x]` markers below. **`[~]` = code-complete + gated + committed but NOT live-smoke-verified** → do NOT flip to `[x]` Done until the end-to-end run against the live BE passes.
 - **`memory/next_session_pickup.md`** — cross-session pickup (branch, debt, next ticket, standing rules).
+
+</details>
 
 ---
 

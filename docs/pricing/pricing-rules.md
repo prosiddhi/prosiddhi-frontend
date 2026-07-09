@@ -25,7 +25,7 @@ Quick-reference distillation of the **finalized** employer monetization rules. F
 | **Pro** | 12 Months · 3 seats | `PRO_12M_3S` | 21,999 | 45 | 450 | 3 | 12 months |
 
 ## Free tier + trial
-- **Free tier (always):** a registered employer who hasn't bought anything can register and (Phase 2) search + see candidate **snippets** (no contact). **Cannot post or unlock** until they have credits.
+- **Free tier (always):** a registered employer who hasn't bought anything can register and search + see candidate **snippets** (no contact — email/phone stripped). **Cannot post or unlock** until they have credits. *(Candidate search shipped 2026-07; it is live, not future.)*
 - **Free trial (one-time):** on account **activation**, an employer gets **1 post + 3 download credits, valid 14 days.** Granted **once per employer** (dedupe = verified phone/email for individuals, verified **GSTIN** for business) so it can't be farmed by re-registering.
 
 ## GST & invoices

@@ -337,12 +337,19 @@ If Phase 1 pricing page advertises search → bad first impression when employer
 
 ## 13. Open items needing your input
 
-**None — all 23 doubts resolved as of 2026-06-29.**
+**All 23 original doubts resolved 2026-06-29.** Two re-opens have since been **closed** (2026-07-07), and four new
+seat decisions locked — see **§17**.
 
-Re-opens to watch:
-- #20 (DPDP unlocks) will need a real decision when Phase 2 ticketing starts
-- #23 (Phase 1 pricing page) being handled by product owner outside the doubts walkthrough
-- #7, #8, #14 flagged items will need product owner decisions before Phase 1 launches
+- **#20 (DPDP — seeker deletes account, employer's paid unlock) — 🔒 NOW LOCKED.** Phase 2 shipped, so this came due.
+  **Decision: Option C (hybrid).** The `EmployerCandidateUnlock` row **persists** (audit + credit history — the
+  employer did spend a credit), but the platform **stops serving the contact fields**; the card reads *"This candidate
+  is no longer available."* **No refund** (consistent with no-refunds-in-v1). Because seeker delete is **soft-delete
+  (NC-9)**, a restore brings the candidate back — symmetric with the "freeze, preserve" rule for employer soft-delete (#4).
+  *Rejected Option B (snapshot the contact and keep serving it): weakest DPDP posture — we'd keep supplying personal
+  data after an erasure request. Commercial fairness is already covered by not clawing back the credit.*
+- **#23 (pricing page advertising Phase-2 search) — ✅ CLOSED.** Phase 2 shipped; candidate search exists, so the
+  pricing page may advertise it.
+- **#7, #8, #14** remain 🚩 flagged for the product owner (admin credit tooling · GST registration/launch gate · chargeback credit-revocation).
 
 ---
 
@@ -378,3 +385,71 @@ When a pending doubt is locked → update §1 scoreboard + the relevant topic se
 When a source doc changes → re-check ✅ rows in §1 to ensure they still match.
 When v1.1 work starts on chargebacks / admin tools → flip 🚩 rows to 🔒 with proposed implementation.
 When Phase 2 ticketing begins → resolve ⏸️ Phase 2 items.
+
+---
+
+## 17. Seats (Phase 3) — decisions locked 2026-07-07
+
+Raised by Asrar while building seats. **Context:** as built, seats are **roster-only** — `User↔Employer` is still
+1:1, `Subscription`/`PaymentHistory` are keyed by `userId`, so each teammate has their own Employer row and **own
+wallet**. A Pro 2/3-seat plan therefore delivers no shared value today. S1/S2 below make seats real.
+
+| # | Topic | Status | Decision |
+|---|---|---|---|
+| S1 | Seat scope: shared workspace vs private lists | 🔒 Locked | **Shared company workspace** |
+| S2 | Removed teammate's jobs + unlocks | 🔒 Locked | Stay with the company, permanently |
+| S3 | Stacking plans + seat-cap computation | 🔒 Locked | Stacking **is** supported; seat cap = `MAX(seats)` — current code is a **bug** |
+| S4 | Invite flow | 🔒 Locked | Must become one guided flow (token survives auth, auto-accept) |
+
+### S1 — Shared company workspace (not private lists)
+The **org** owns jobs, unlocks and credits; a seat only answers *"may this user act for this employerId?"*
+Not really a choice: the unlock dedupe key is `@@unique([employerId, jobSeekerId])`, so private lists would charge a
+second teammate for a candidate the company already unlocked — contradicting the locked *"re-view is free"* rule.
+
+**Implementation:** never put `userId` into an authorization/scoping predicate. Add an `EmployerUser` membership
+table (`User↔Employer` → **1:N**), re-key `Subscription` + `PaymentHistory` to **`employerId`**, and route every
+employer-scoped controller through one `resolveEmployerContext(userId) → { employerId, role, seatStatus }`.
+Attribution is **additive, not authorization**: `Job.createdByUserId`, `EmployerCandidateUnlock.unlockedByUserId`
+(display "posted by X"; never gate on it). Roles: **OWNER** (invite/remove, buy plans) vs **MEMBER** (post, unlock,
+manage). Exactly one OWNER per employer.
+
+### S2 — A removed teammate's work stays with the company
+Removal revokes **access only**. Jobs stay live under the org; unlocked candidates stay unlocked for the org.
+Nothing deleted, reassigned, or refunded (credits came from the company's pool; "no refunds in v1").
+Implement as a **soft-revoke** (`status: ACTIVE|SUSPENDED|REMOVED` + `removedAt`) so attribution and audit don't
+dangle. Never cascade from user → `Job` / `EmployerCandidateUnlock` / `CreditTransaction`. No `CreditTransaction` is
+written on removal. OWNER cannot be removed. Re-invite reactivates the existing row. Removal frees a seat.
+
+### S3 — Stacking is supported; the seat cap is a bug
+Stacking is locked (Point 4/10, and `pricing-rules.md`: *"If seat counts differ, the **higher** seat count applies"*).
+The bug: `team.service.ts:63-74` `getSeatsFromPlan()` uses `findFirst(… orderBy: { expiresAt: 'desc' })` and returns
+**that** plan's seats — i.e. the *latest-expiring* plan, not the *best* one. **Never pick a plan; aggregate:**
+
+```
+activePlans = subscriptions for this EMPLOYER, non-PACK, expiresAt > now()
+walletExpiry = MAX(expiresAt)  over activePlans   // correct today
+seatCap      = MAX(p.seats)    over activePlans   // BUG: currently seats OF argmax(expiresAt)
+               ?? 1                                // no active plan → 1 (owner only)
+```
+These are two different aggregates over the same set; they coincide only by accident. PACK SKUs contribute **zero
+seats**. Free tier/trial → `seatCap = 1` (trial grants credits, not seats). Seat cap follows `expiresAt` strictly
+(the 3-day grace governs job visibility, not seats). Put this in one `getEntitlements(employerId)` — no controller
+computes seats inline (this is why `Subscription` must be keyed by `employerId`).
+**Do NOT block or 4xx a purchase while a plan is active** — that breaks the locked "buy anytime, it stacks" model.
+Return an informational `notice` on the checkout response instead. Downgrade aftermath is already locked (#2:
+auto-suspend newest-first, OWNER protected, 3 surfacings, auto-restore on upgrade) — enforce at request time **and**
+via the daily cron (a plan can expire between runs).
+
+### S4 — Invite must be one guided flow
+Today: invitee is bounced to login → registers separately → must click the invite link **again**. Note the irony —
+seats exist only on the ₹11,999 / ₹21,999 SKUs, so the roughest flow hits the highest-paying customers.
+
+The fix is redirect/state plumbing, not new screens: the invite token must **survive the auth step**.
+`/invite/:token` → if no account, register inline with the email **pre-filled and read-only**; if an account exists,
+login inline. Carry the token through auth and **auto-accept on return** — the link is clicked exactly once.
+**Guards:** bind the invite to `invitedEmail` (reject a mismatch, 403 — otherwise anyone with the link steals a seat);
+single-use + 7-day expiry + owner-revocable; enforce the seat cap at **both invite time and accept time** (the cap can
+drop in between); rate-limit invite creation; store the token **hashed**, compare timing-safe.
+**Edge to decide:** invitee's email already exists as a `JOB_SEEKER` → reject with *"This email is registered as a job seeker."*
+**Minimum stopgap** if time-boxed: pre-fill+lock the email and auto-redirect back to accept after register/login —
+that alone removes the double-click.

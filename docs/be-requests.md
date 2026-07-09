@@ -7,7 +7,23 @@
 
 > **Monetization BE work (2026-06-29):** the employer credits/Razorpay/gates BE scope is **not** tracked as BR items
 > here — it lives in [`docs/pricing/employer-monetization-technical-design.md`](pricing/employer-monetization-technical-design.md)
-> (§2 schema, §3 APIs, §4 gates) and the Monetization EPIC A/B/C Jira stories.
+> (§0 as-built status, §2 schema, §3 APIs, §4 gates) and the Monetization EPIC A/B/C Jira stories.
+
+> ## ✅ STATUS 2026-07-07 — 8 of 9 BRs have LANDED
+> | BR | What | Status |
+> |---|---|---|
+> | BR-1 | seeker `dateOfBirth` + `gender` | ✅ shipped (`c5f2402`) |
+> | BR-2 | JWT in httpOnly cookie | ⬜ **still open** (localStorage today; hardening, revisit before real-user launch) |
+> | BR-3 | public categories/sectors/job-titles lookup | ✅ shipped — `GET /api/categories`, **3-level** Category→Sector→JobTitle with soft-delete (`f1fe1ff`). FE consumes it via `useCategories()` + `TaxonomyPicker` in all 4 places, **incl. the job-feed Category filter** |
+> | BR-4 | `interview` on seeker application reads | ✅ shipped (`efd4de6`) |
+> | BR-5 | allow clearing `skillsRequired` on job update | ✅ shipped (`0651457`) |
+> | BR-6 | `INACTIVE` in the `JobStatus` Zod enum | ✅ shipped (`0651457`) |
+> | BR-7 | null-guard `email` in recruiter-contact | ✅ shipped (`0651457`) |
+> | BR-8 | `GET /profile` leaked the password hash | ✅ shipped (`891333b` + sweep `dcb6e9a`/`fe0da16`) |
+> | BR-9 | generic per-user language persistence | ✅ shipped — `PATCH /api/me/language` (`fd1cdd3`) |
+>
+> Only **BR-2** remains. Everything below this banner is historical detail; the per-item "FE workaround" notes are
+> superseded for the shipped rows (the FE now consumes the real endpoints).
 
 ---
 
