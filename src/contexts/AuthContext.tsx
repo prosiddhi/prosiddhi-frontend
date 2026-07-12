@@ -14,6 +14,7 @@ import {
   AUTH_USER_KEY,
   type AuthUser,
 } from '@/lib/api'
+import { safeInternalPath } from '@/lib/safeRedirect'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -37,19 +38,11 @@ interface AuthContextValue {
   logout: (redirectTo?: string) => void
 }
 
-/**
- * A destination we are willing to send a logged-out user to.
- *
- * Two jobs. (1) It rejects anything that is not an internal path, so `logout()`
- * can never become an open redirect: `//evil.com` and `/\evil.com` are both
- * normalised to a cross-origin navigation by the URL parser, and `https://…` and
- * `javascript:` are obvious. (2) The `typeof` check makes the bare `onClick={logout}`
- * usages safe — React would otherwise hand the click's MouseEvent straight to
- * `router.push()` as the redirect target.
- */
-function isInternalPath(value: unknown): value is string {
-  return typeof value === 'string' && /^\/(?![/\\])/.test(value)
-}
+// `safeInternalPath` is the single arbiter of whether a redirect target is ours, so
+// logout() cannot become an open redirect even if a caller later forwards a
+// user-supplied value into it. Its `typeof` guard doubles as protection against the
+// bare `onClick={logout}` foot-gun — React would otherwise hand the click's
+// MouseEvent straight to router.push() as the destination.
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
@@ -113,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.localStorage.removeItem(AUTH_USER_KEY)
       setToken(null)
       setUser(null)
-      router.push(isInternalPath(redirectTo) ? redirectTo : '/login')
+      router.push(safeInternalPath(redirectTo) ?? '/login')
     },
     [router]
   )

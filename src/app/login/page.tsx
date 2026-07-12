@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
+import { safeInternalPath } from '@/lib/safeRedirect'
 
 type Tab = 'email' | 'phone' | 'google'
 
@@ -42,26 +43,19 @@ function returnUrlSuitsRole(returnUrl: string, user: AuthUser): boolean {
 /**
  * Where to land after a successful login.
  *
- * `returnUrl` is honoured ONLY when it resolves to our own origin, so it cannot be
- * used as an open redirect. We do NOT pattern-match the string — a naive
- * `startsWith('//')` check is bypassable with a backslash (`/\evil.com`), which the
- * WHATWG URL parser normalises to `//evil.com` and Next's router then treats as a
- * cross-origin navigation. Resolving against our origin and comparing `.origin` is
- * the robust form: it rejects `//evil.com`, `/\evil.com`, `https://evil.com`,
- * `javascript:`, and any future variant. It must also match the user's role, or we
- * would send them somewhere ProtectedRoute immediately bounces them out of.
+ * `returnUrl` is attacker-supplied (it arrives in a link), so it is normalised by
+ * `safeInternalPath`, which is the single arbiter of "is this target ours?" — see
+ * that module for why an origin check alone is NOT enough (an origin-passing URL can
+ * still yield a protocol-relative PATHNAME like `//evil.com`, which the router then
+ * hard-navigates cross-origin).
+ *
+ * It must also match the user's role, or we would send them somewhere ProtectedRoute
+ * immediately bounces them out of.
  */
 function destinationAfterLogin(user: AuthUser, returnUrl: string | null): string {
-  if (!returnUrl || typeof window === 'undefined') return homeForUser(user)
-  let path: string
-  try {
-    const url = new URL(returnUrl, window.location.origin)
-    if (url.origin !== window.location.origin) return homeForUser(user)
-    path = url.pathname + url.search + url.hash
-  } catch {
-    return homeForUser(user)
-  }
-  if (path === '/' || !returnUrlSuitsRole(path, user)) return homeForUser(user)
+  const path = safeInternalPath(returnUrl)
+  if (!path || path === '/') return homeForUser(user)
+  if (!returnUrlSuitsRole(path, user)) return homeForUser(user)
   return path
 }
 
