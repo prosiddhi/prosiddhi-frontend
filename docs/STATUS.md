@@ -13,15 +13,16 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 |---|---|---|
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
 | **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** All flows wired to real data. Needs a QA-defect pass. |
-| **Admin console** | `prosiddhi-admin` | 🟡 **Wired, but two whole screens are missing** (taxonomy, monetization). No mock data, no blockers. |
-| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~45% built** (Flutter). Good code, real service layer, no mocks — but **no monetization, no i18n**, and **Post Job is ungated (revenue leak)**. → **`prosiddhi-mobile-app/docs/STATUS.md`** |
+| **Admin console** | `prosiddhi-admin` | 🟡 **Wired, but two whole screens are missing** (taxonomy, monetization). No mock data, no blockers — and the BE endpoints those screens need **now exist** (unblocked 2026-07-12). |
+| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~60% built** (Flutter). Free product done + **EN/HI localised**; post-credit gate in. Pending: subscription screens, candidate DB, team seats, a few loose ends. *(Only in-app **checkout** is blocked, on the store-policy call — the plans/wallet **screens** are buildable now.)* → **`prosiddhi-mobile-app/docs/STATUS.md`** |
 
 ### Hosted backend
-**`http://103.225.224.149:5000`** — verified **fully current** (2026-07-12): every endpoint is deployed, incl. monetization, candidate DB, team seats and taxonomy. **Nothing is missing on the API side.**
+**`http://103.225.224.149:5000`** — had monetization, candidate DB, team seats and taxonomy deployed as of 2026-07-12.
+⚠️ **Needs a redeploy:** the backend session's newest commits (seat rework + `/entitlements`, admin monetization endpoints, reports queue, content scan, notification channels, audio removal) are **committed locally but not yet on the hosted server.** Deploy before the Admin/Mobile sessions rely on those endpoints — or point those sessions at a local BE.
 ⚠️ Its **database is empty** (0 jobs — plans + taxonomy seeded only), so create test data before testing flows.
 
-### ⛔ Audio is OUT of V1 (decided 2026-07-12)
-**No audio anywhere** — no application voice message, no chat audio. This **reverses the earlier plan**. The backend supports it and **the web portal already has it built**, so that UI must be **hidden/removed**; **mobile must not build it**. See §3.
+### ⛔ Audio is REMOVED from the product (decided 2026-07-12)
+**No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** still has it built — **must be deleted** (§3 item 10). Revisit in v2.
 
 **Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are now FIXED on the backend** (real org membership + shared wallet, correct seat-cap aggregation, rebuilt invite flow), **audio accept-paths removed** (backward-tolerant), and the backend now has **admin monetization endpoints, a reports queue, content scan, and outbound notification channels** (MSG91 + FCM, no-op until keyed). What remains is mostly **frontend + external config**: the admin-console monetization/taxonomy screens, the portal invite-flow landing page, a QA-defect pass, and go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN). See the **backend session summary** at the end of §3.
 
@@ -101,7 +102,9 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 ### 🟡 P2 — after launch
 
-**11. Mobile — feature completion.** ~60% built (verified 2026-07-12). The **free product is done and fully EN/HI-localised**; the post-credit **gate is in**. Remaining: **subscription/checkout** (in-app Razorpay — 🛑 *parked on the store-policy decision*, see mobile STATUS §7), **candidate database**, **team seats**, wire the **dead job edit/close/delete** methods, the i18n **model/display layer**, **Google OAuth**, a **credit-wallet screen**, and chat **Call HR**. → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker. *(Note: the earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
+**11. Mobile — feature completion.** ~60% built (verified 2026-07-12). The **free product is done and fully EN/HI-localised**; the post-credit **gate is in**. Remaining: **subscription screens** (plans + wallet — *buildable now*), **candidate database**, **team seats**, wire the **dead job edit/close/delete** methods, the i18n **model/display layer**, **Google OAuth**, and chat **Call HR**. → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker.
+   - **Only the checkout is parked:** the plans catalog + wallet + "what each plan allows" screens are pure `GET /api/plans` + `/credits` display and can be built now. Only the **"tap Buy → pay"** step waits on the in-app Razorpay + store-policy call. (Interim: the Buy button can stub, or deep-link to the working web checkout.)
+   - *(The earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
 **12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
 **13. The other 8 languages** (web EN + HI done; mobile EN + HI done; the other 8 are for later).
 **14. Security** — move the JWT from `localStorage` to an httpOnly cookie (both web apps).
