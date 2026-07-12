@@ -249,7 +249,7 @@
     }
   },
   "dashboard": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "postJob": "Post a Job",
     "findWorkers": "Find workers",
     "team": "Team",
@@ -281,7 +281,7 @@
     "noApplications": "No applications yet. They'll appear here as candidates apply."
   },
   "jobs": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "postJob": "Post a Job",
     "title": "My Jobs",
     "tabs": {
@@ -307,7 +307,7 @@
     "delete": "Delete"
   },
   "jobNew": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "backToMyJobs": "Back to My Jobs",
     "title": "Post a Job",
     "submitLabel": "Publish Job",
@@ -321,7 +321,7 @@
     "viewPlans": "View plans"
   },
   "jobEdit": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "backToMyJobs": "Back to My Jobs",
     "title": "Edit Job",
     "submitLabel": "Save Changes",
@@ -391,7 +391,7 @@
     }
   },
   "candidates": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "title": "Candidates",
     "count_one": "{{count}} candidate",
     "count_other": "{{count}} candidates",
@@ -414,7 +414,7 @@
     "applicantFallback": "Applicant"
   },
   "candidateDetail": {
-    "logoAlt": "Job Portal Logo",
+    "logoAlt": "ProSiddhi",
     "backToCandidates": "Back to Candidates",
     "loading": "Loading candidate...",
     "loadFailed": "Failed to load this candidate.",

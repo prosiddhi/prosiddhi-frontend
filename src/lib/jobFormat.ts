@@ -88,7 +88,11 @@ export function formatMonthYear(iso?: string | null): string {
   return d.toLocaleDateString(intlLocale(), { month: 'short', year: 'numeric' })
 }
 
+// Two-letter monogram for a logoless card. Falls back to '?' — the old 'JB'
+// literal meant every unnamed job rendered an identical grey "JB" tile, which
+// looked like real (and identical) branding rather than "no logo".
 export function initials(name?: string | null): string {
-  if (!name) return 'JB'
-  return name.trim().slice(0, 2).toUpperCase()
+  const trimmed = name?.trim()
+  if (!trimmed) return '?'
+  return trimmed.slice(0, 2).toUpperCase()
 }

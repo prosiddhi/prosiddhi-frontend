@@ -55,3 +55,14 @@ export function jobStatusLabel(status?: string): string {
   if (!status || !KNOWN.includes(status)) return i18n.t('jobStatus.unknown')
   return i18n.t(`jobStatus.${status}`)
 }
+
+/**
+ * Presentation for the BE VerificationStatus enum (employer profile).
+ * It used to render as a raw token — "PENDING" / "APPROVED" — sitting next to a
+ * translated label, which read as a bug even in English.
+ */
+export function verificationStatusLabel(status?: string): string {
+  const KNOWN = ['PENDING', 'APPROVED', 'REJECTED']
+  if (!status || !KNOWN.includes(status)) return i18n.t('profile:verificationStatus.unknown')
+  return i18n.t(`profile:verificationStatus.${status}`)
+}

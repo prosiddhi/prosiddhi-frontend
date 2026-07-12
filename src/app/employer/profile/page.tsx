@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
 import { useAuth } from '@/contexts/AuthContext'
+import { verificationStatusLabel } from '@/lib/applicationStatus'
 import {
   employerAPI,
   resolveMediaUrl,
@@ -213,7 +214,7 @@ function EmployerProfileContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/employer" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
           </Link>
           <UserDropdown />
@@ -245,7 +246,7 @@ function EmployerProfileContent() {
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative w-20 h-20 rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center flex-shrink-0">
                     {photo ? (
-                      <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill className="object-cover" />
+                      <Image src={resolveMediaUrl(photo)} alt="" fill className="object-cover" />
                     ) : (
                       <span className="text-2xl font-semibold text-[#236987]">
                         {(companyName || fullName || '?').charAt(0).toUpperCase()}
@@ -265,7 +266,7 @@ function EmployerProfileContent() {
                     </button>
                     {verificationStatus && (
                       <p className="text-xs text-[#717182] mt-1">
-                        {t('profile:employer.verification')} <span className="font-medium">{verificationStatus}</span>
+                        {t('profile:employer.verification')} <span className="font-medium">{verificationStatusLabel(verificationStatus)}</span>
                       </p>
                     )}
                   </div>

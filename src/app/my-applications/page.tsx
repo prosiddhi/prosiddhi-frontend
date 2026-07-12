@@ -74,7 +74,7 @@ function MyApplicationsPageContent() {
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
               <Image
                 src="/assets/logo.png"
-                alt="Job Portal Logo"
+                alt={t('app.name')}
                 fill
                 className="object-contain"
                 priority

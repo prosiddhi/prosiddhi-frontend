@@ -100,6 +100,8 @@
     "title": "Your account is under review",
     "description": "Your email is verified. To start posting jobs, upload your business documents (GST, CIN, ISO certificates). Our admin team will review them and activate your account.",
     "browseNotice": "You can browse the portal and edit your profile now. Posting jobs unlocks once your documents are approved.",
-    "continueToDashboard": "Continue to dashboard"
+    "continueToDashboard": "Continue to dashboard",
+    "uploadDocs": "Upload your documents",
+    "uploadDocsHint": "Approval is faster once we have your GST certificate and company registration."
   }
 }

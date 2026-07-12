@@ -39,7 +39,7 @@ export default function RegisterSuccessPage() {
               <div className="relative w-[522px] h-[348px]">
                 <Image
                   src="/assets/421.svg"
-                  alt="Job Portal Illustration"
+                  alt=""
                   fill
                   className="object-contain"
                   priority
@@ -58,7 +58,7 @@ export default function RegisterSuccessPage() {
               <div className="relative w-[236px] h-[66px]">
                 <Image
                   src="/assets/logo.png"
-                  alt="Job Portal Logo"
+                  alt={t('app.name')}
                   fill
                   className="object-contain object-left"
                   priority
@@ -142,7 +142,7 @@ export default function RegisterSuccessPage() {
           <div className="relative w-[140px] h-[40px]">
             <Image
               src="/assets/logo.png"
-              alt="Job Portal Logo"
+              alt={t('app.name')}
               fill
               className="object-contain object-left"
               priority

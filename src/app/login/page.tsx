@@ -1,11 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { Suspense, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
@@ -25,6 +25,40 @@ function homeForUser(user: AuthUser): string {
   return user.role === 'JOB_SEEKER' ? '/job-feed' : '/employer'
 }
 
+// Employer-only areas. A seeker who lands on a /employer/* returnUrl would just be
+// bounced by ProtectedRoute, so send them home instead of through a dead redirect.
+function returnUrlSuitsRole(returnUrl: string, user: AuthUser): boolean {
+  const isEmployerArea = returnUrl.startsWith('/employer')
+  const isEmployer = user.role !== 'JOB_SEEKER'
+  return isEmployerArea === isEmployer
+}
+
+/**
+ * Where to land after a successful login.
+ *
+ * `returnUrl` is honoured ONLY when it resolves to our own origin, so it cannot be
+ * used as an open redirect. We do NOT pattern-match the string — a naive
+ * `startsWith('//')` check is bypassable with a backslash (`/\evil.com`), which the
+ * WHATWG URL parser normalises to `//evil.com` and Next's router then treats as a
+ * cross-origin navigation. Resolving against our origin and comparing `.origin` is
+ * the robust form: it rejects `//evil.com`, `/\evil.com`, `https://evil.com`,
+ * `javascript:`, and any future variant. It must also match the user's role, or we
+ * would send them somewhere ProtectedRoute immediately bounces them out of.
+ */
+function destinationAfterLogin(user: AuthUser, returnUrl: string | null): string {
+  if (!returnUrl || typeof window === 'undefined') return homeForUser(user)
+  let path: string
+  try {
+    const url = new URL(returnUrl, window.location.origin)
+    if (url.origin !== window.location.origin) return homeForUser(user)
+    path = url.pathname + url.search + url.hash
+  } catch {
+    return homeForUser(user)
+  }
+  if (path === '/' || !returnUrlSuitsRole(path, user)) return homeForUser(user)
+  return path
+}
+
 // Normalize a raw phone input to E.164 with a +91 default.
 function toE164(raw: string): string {
   const trimmed = raw.trim()
@@ -34,8 +68,11 @@ function toE164(raw: string): string {
   return `+91${digits}`
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Set by ProtectedRoute when it bounces a logged-out user off a deep link.
+  const returnUrl = searchParams.get('returnUrl')
   const { t } = useTranslation()
   const { login } = useAuth()
 
@@ -67,7 +104,7 @@ export default function LoginPage() {
 
   const onLoginSuccess = (result: { token: string; user: AuthUser }) => {
     login(result.token, result.user)
-    router.push(homeForUser(result.user))
+    router.push(destinationAfterLogin(result.user, returnUrl))
   }
 
   const switchTab = (next: Tab) => {
@@ -189,7 +226,7 @@ export default function LoginPage() {
         setOtp(['', '', '', '', '', ''])
         setOtpSent(false)
       } else {
-        router.push(homeForUser(result.user))
+        router.push(destinationAfterLogin(result.user, returnUrl))
       }
     } catch (err) {
       setError(
@@ -608,5 +645,26 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  // `useSearchParams` (for returnUrl) opts this route into client-side rendering,
+  // and Next requires the component that reads it to be inside a Suspense boundary
+  // — without one the static prerender of /login fails at build time.
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div
+            className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary-50"
+            role="status"
+            aria-label="Loading"
+          />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }

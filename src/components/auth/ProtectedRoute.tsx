@@ -52,7 +52,24 @@ export default function ProtectedRoute({
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
-      router.replace('/login')
+      // Remember where they were going. A shared job link used to bounce a
+      // logged-out user to /login and then dump them on the role home, silently
+      // losing the job they clicked — the single most likely way someone arrives
+      // at this product. `returnUrl` lets /login put them back.
+      //
+      // This is same-origin by construction (it's built from the current
+      // location's own path), so there is nothing to sanitise here — /login is the
+      // trust boundary that validates `returnUrl` before ever navigating to it (it
+      // resolves against origin and rejects anything off-origin).
+      const returnUrl =
+        typeof window !== 'undefined'
+          ? window.location.pathname + window.location.search
+          : ''
+      router.replace(
+        returnUrl && returnUrl !== '/'
+          ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+          : '/login'
+      )
       return
     }
     if (wrongRole) {

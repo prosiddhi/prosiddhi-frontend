@@ -116,5 +116,11 @@
     "minOneTitle": "At least one document is required",
     "removeTitle": "Remove document",
     "minOneHint": "At least one document must remain on file. Upload another to replace this one."
+  },
+  "verificationStatus": {
+    "PENDING": "Pending review",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "unknown": "Unknown"
   }
 }

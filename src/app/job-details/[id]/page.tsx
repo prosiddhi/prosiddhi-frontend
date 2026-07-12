@@ -128,7 +128,7 @@ function JobDetailsContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
           </Link>
           <nav className="hidden lg:flex items-center gap-8 xl:gap-11">

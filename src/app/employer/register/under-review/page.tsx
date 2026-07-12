@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Clock, FileText } from 'lucide-react'
@@ -33,9 +34,21 @@ export default function EmployerUnderReviewPage() {
           </p>
         </div>
 
+        {/* The screen said "we're reviewing you" but never said where to upload the
+            documents that unblock the review. That is the whole point of the page. */}
+        <p className="text-sm text-[#717182] mb-3">
+          {t('employerRegister:underReview.uploadDocsHint')}
+        </p>
+        <Link
+          href="/employer/profile"
+          className="block w-full px-8 py-3 mb-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium text-center"
+        >
+          {t('employerRegister:underReview.uploadDocs')}
+        </Link>
+
         <button
           onClick={() => router.push('/employer')}
-          className="w-full px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium"
+          className="w-full px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-base font-medium"
         >
           {t('employerRegister:underReview.continueToDashboard')}
         </button>

@@ -295,7 +295,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
         <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-[24px] font-semibold text-[#236987]">{initials(f.companyName || f.title || 'JB')}</span>
+              <span className="text-[24px] font-semibold text-[#236987]">{initials(f.companyName || f.title)}</span>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-lg sm:text-xl font-semibold mb-1">{f.title || t('employer:jobForm.previewJobTitle')}</h3>

@@ -44,7 +44,7 @@ export default function EmployeeLandingPage() {
             <div className="relative w-[142px] h-[39px]">
               <Image
                 src="/assets/logo.png"
-                alt="Job Portal Logo"
+                alt={t('app.name')}
                 fill
                 className="object-contain"
                 priority

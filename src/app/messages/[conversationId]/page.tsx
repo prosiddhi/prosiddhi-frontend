@@ -163,7 +163,7 @@ function ChatContent() {
           </Link>
           <Link href="/" className="hidden sm:flex items-center">
             <div className="relative w-[110px] h-[30px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
           </Link>
           <div className="flex-1 min-w-0 text-center sm:text-left">

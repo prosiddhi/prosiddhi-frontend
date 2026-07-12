@@ -251,7 +251,7 @@ function JobFeedPageContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/logo.png" alt="Job Portal Logo" fill className="object-contain" priority />
+              <Image src="/assets/logo.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
           </Link>
 
@@ -453,6 +453,17 @@ function JobFeedPageContent() {
                   ? t('seeker:jobFeed.emptyRecommended')
                   : t('seeker:jobFeed.emptyDefault')}
               </p>
+              {/* Near By is GPS-keyed. A seeker who only typed a city name has no
+                  lat/lon, so this tab is empty for them FOREVER — with nothing to
+                  click. Give them the one action that fixes it. */}
+              {tab === 'nearby' && (
+                <Link
+                  href="/profile"
+                  className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm"
+                >
+                  {t('seeker:jobFeed.emptyNearbyCta')}
+                </Link>
+              )}
             </div>
           )}
 

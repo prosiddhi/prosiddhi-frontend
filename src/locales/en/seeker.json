@@ -73,7 +73,8 @@
     "emptyNearby": "No jobs near your saved location yet. Try the All Jobs tab.",
     "emptyRecommended": "No recommendations yet — complete your profile to improve matches.",
     "emptyDefault": "Try adjusting your search or filters.",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "Page {{page}} of {{total}}",
+    "emptyNearbyCta": "Add your location"
   },
   "jobDetails": {
     "back": "Back",

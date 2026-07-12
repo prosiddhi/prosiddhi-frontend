@@ -128,7 +128,7 @@ export default function RegisterOTPPage() {
               <div className="relative w-[522px] h-[348px]">
                 <Image
                   src="/assets/421.svg"
-                  alt="Job Portal Illustration"
+                  alt=""
                   fill
                   className="object-contain"
                   priority
