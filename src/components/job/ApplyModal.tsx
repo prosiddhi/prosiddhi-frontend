@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { X, Mic, Square, Pause, Play, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { useAudioRecorder, audioExtForMime } from '@/hooks/useAudioRecorder'
+import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { jobSeekerAPI } from '@/lib/api'
+
+// The BE caps the cover message at 1000 chars (application.validator).
+const MESSAGE_MAX = 1000
 
 interface ApplyModalProps {
   isOpen: boolean
@@ -16,64 +18,34 @@ interface ApplyModalProps {
   onApplied?: () => void
 }
 
+/**
+ * ApplyModal — send an application, optionally with a short written message.
+ *
+ * The 2-minute voice message that used to live here was REMOVED with the rest of
+ * the audio feature (see docs/PRODUCT.md). The application is text-only; the BE
+ * still accepts an empty message, so applying with nothing but the profile works.
+ */
 export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onApplied }: ApplyModalProps) {
   const { t } = useTranslation()
   const [textMessage, setTextMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [success, setSuccess] = useState(false)
-  const {
-    isRecording,
-    isPaused,
-    recordingTime,
-    maxDuration,
-    audioURL,
-    audioBlob,
-    audioMimeType,
-    startRecording,
-    stopRecording,
-    pauseRecording,
-    resumeRecording,
-    deleteRecording,
-    error
-  } = useAudioRecorder()
 
-  // Format time as MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // Handle modal close
-  const handleClose = () => {
-    if (isRecording) {
-      stopRecording()
-    }
+  const handleClose = useCallback(() => {
     setTextMessage('')
     setSubmitError('')
     setSuccess(false)
-    deleteRecording()
     onClose()
-  }
+  }, [onClose])
 
-  // Submit the application (multipart). Audio is optional; text is optional;
-  // the BE accepts neither/either/both.
   const handleSubmit = async () => {
     if (submitting) return
     setSubmitting(true)
     setSubmitError('')
     try {
-      // Name + type the blob with the recorder's clean base MIME so the multipart
-      // Content-Type exactly matches the BE allowlist (webm/mp4/m4a/ogg/opus).
-      const audioFile = audioBlob
-        ? new File([audioBlob], `voice-message.${audioExtForMime(audioMimeType)}`, { type: audioMimeType })
-        : undefined
       await jobSeekerAPI.applyForJob(jobId, {
-        audio: audioFile,
         message: textMessage.trim() || undefined,
-        // BE requires a positive int; a sub-second clip would round to 0.
-        audioDuration: audioBlob ? Math.max(1, recordingTime) : undefined,
       })
       setSuccess(true)
       onApplied?.()
@@ -105,8 +77,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
+  }, [isOpen, handleClose])
 
   if (!isOpen) return null
 
@@ -123,6 +94,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
         {/* Close Button */}
         <button
           onClick={handleClose}
+          aria-label={t('buttons.close')}
           className="absolute right-4 top-4 sm:right-6 sm:top-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -161,145 +133,23 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                 </p>
               </div>
 
-              {/* Audio Message Section */}
+              {/* Message */}
               <div className="mb-6 sm:mb-8">
-                <label className="block text-base sm:text-lg font-medium text-black mb-3 sm:mb-4">
-                  {t('seeker:applyModal.audioLabel', { max: formatTime(maxDuration) })}
-                </label>
-
-                {/* Audio Recorder */}
-                <div className="bg-[#f0f9fc] border border-[#d0e8f0] rounded-lg p-4 sm:p-5">
-                  {!audioURL ? (
-                    <>
-                      {/* Recording Controls */}
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        {/* Mic Button */}
-                        {!isRecording ? (
-                          <button
-                            onClick={() => { startRecording() }}
-                            className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-50 rounded-full flex items-center justify-center hover:bg-primary-60 transition-colors flex-shrink-0"
-                          >
-                            <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={stopRecording}
-                            className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors flex-shrink-0"
-                          >
-                            <Square className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          </button>
-                        )}
-
-                        {/* Waveform/Progress */}
-                        <div className="flex-1 flex items-center gap-2">
-                          {isRecording || isPaused ? (
-                            <>
-                              {/* Animated waveform bars */}
-                              <div className="flex items-center gap-1 flex-1">
-                                {[...Array(20)].map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={`w-1 bg-primary-50 rounded-full transition-all duration-300 ${
-                                      isRecording && !isPaused ? 'animate-pulse' : ''
-                                    }`}
-                                    style={{
-                                      height: isRecording && !isPaused ? `${(i % 5) * 4 + 10}px` : '10px',
-                                      animationDelay: `${i * 0.1}s`
-                                    }}
-                                  />
-                                ))}
-                              </div>
-
-                              {/* Timer / cap countdown */}
-                              <span className="text-sm sm:text-base font-medium text-black min-w-[90px] text-right tabular-nums">
-                                {formatTime(recordingTime)} / {formatTime(maxDuration)}
-                              </span>
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-1 flex-1">
-                              {[...Array(20)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className="w-1 h-[10px] bg-gray-300 rounded-full"
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Pause/Resume Button */}
-                        {isRecording && (
-                          <button
-                            onClick={isPaused ? resumeRecording : pauseRecording}
-                            className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
-                          >
-                            {isPaused ? (
-                              <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                            ) : (
-                              <Pause className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Error Message */}
-                      {error && (
-                        <p className="text-sm text-red-600 mt-2">{error}</p>
-                      )}
-
-                      {/* Recording Status */}
-                      {isRecording && (
-                        <p className="text-xs sm:text-sm text-gray-600 mt-3">
-                          {isPaused ? t('seeker:applyModal.recordingPaused') : t('seeker:applyModal.recordingInProgress')}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {/* Recorded Audio Playback */}
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </div>
-
-                        {/* Audio Player */}
-                        <div className="flex-1">
-                          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                          <audio
-                            src={audioURL}
-                            controls
-                            className="w-full h-10"
-                            controlsList="nodownload"
-                          />
-                        </div>
-
-                        {/* Delete Button */}
-                        <button
-                          onClick={deleteRecording}
-                          disabled={submitting}
-                          className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-lg flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Text Message Section */}
-              <div className="mb-6 sm:mb-8">
-                <label className="block text-base sm:text-lg font-medium text-black mb-3 sm:mb-4">
+                <label htmlFor="applyMessage" className="block text-base sm:text-lg font-medium text-black mb-3 sm:mb-4">
                   {t('seeker:applyModal.textLabel')}
                 </label>
                 <textarea
+                  id="applyMessage"
                   value={textMessage}
                   onChange={(e) => setTextMessage(e.target.value)}
                   placeholder={t('seeker:applyModal.textPlaceholder')}
                   rows={6}
-                  maxLength={1000}
+                  maxLength={MESSAGE_MAX}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm sm:text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent resize-none"
                 />
+                <p className="text-xs text-[#717182] mt-1 text-right tabular-nums">
+                  {textMessage.length} / {MESSAGE_MAX}
+                </p>
               </div>
 
               {/* Submit error */}
@@ -321,7 +171,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || isRecording}
+                  disabled={submitting}
                   className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}

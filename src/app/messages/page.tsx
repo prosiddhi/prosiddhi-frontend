@@ -11,19 +11,17 @@ import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { useAuth } from '@/contexts/AuthContext'
 import { chatAPI, type Conversation } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { MessageCircle, Loader2, AlertCircle, Mic } from 'lucide-react'
+import { MessageCircle, Loader2, AlertCircle } from 'lucide-react'
 
 function otherPartyName(c: Conversation, isSeeker: boolean, t: TFunction): string {
   if (isSeeker) return c.employer?.companyName || c.employer?.fullName || t('chat:list.otherParty.employer')
   return c.jobSeeker?.fullName || t('chat:list.otherParty.candidate')
 }
 
-function lastMessagePreview(c: Conversation, t: TFunction): { text: string; isAudio: boolean } {
-  const m = c.lastMessage
-  if (!m) return { text: t('chat:list.preview.none'), isAudio: false }
-  if (m.type === 'AUDIO') return { text: t('chat:list.preview.voice'), isAudio: true }
-  if (m.type === 'SYSTEM') return { text: m.content, isAudio: false }
-  return { text: m.content, isAudio: false }
+// Chat is text-only. A legacy AUDIO row (audio was removed from the product) has
+// no `content`, so it previews as "no messages yet" rather than as a blank line.
+function lastMessagePreview(c: Conversation, t: TFunction): string {
+  return c.lastMessage?.content || t('chat:list.preview.none')
 }
 
 function MessagesListContent() {
@@ -116,9 +114,8 @@ function MessagesListContent() {
                         <span className="text-xs text-[#717182] flex-shrink-0">{relativeTime(c.lastMessageAt ?? undefined)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <p className={`text-sm truncate flex items-center gap-1 ${unread > 0 ? 'text-black' : 'text-[#717182]'}`}>
-                          {preview.isAudio && <Mic className="w-3.5 h-3.5" />}
-                          {preview.text}
+                        <p className={`text-sm truncate ${unread > 0 ? 'text-black' : 'text-[#717182]'}`}>
+                          {preview}
                         </p>
                         {unread > 0 && (
                           <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-primary-50 text-white text-xs font-medium rounded-full flex items-center justify-center">{unread}</span>

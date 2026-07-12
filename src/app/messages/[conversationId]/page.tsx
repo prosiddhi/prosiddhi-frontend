@@ -8,15 +8,11 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { useAuth } from '@/contexts/AuthContext'
-import { chatAPI, resolveMediaUrl, type ChatMessage, type MessagesPayload } from '@/lib/api'
-import { useAudioRecorder, audioExtForMime } from '@/hooks/useAudioRecorder'
+import { chatAPI, type ChatMessage, type MessagesPayload } from '@/lib/api'
 import { relativeTime } from '@/lib/jobFormat'
 import {
   ChevronLeft,
   Send,
-  Mic,
-  Square,
-  Trash2,
   Check,
   CheckCheck,
   Loader2,
@@ -24,12 +20,6 @@ import {
 } from 'lucide-react'
 
 const POLL_MS = 10_000
-
-function fmtTime(seconds: number) {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
 
 // Merge a server message list into the current list: server entries overwrite by
 // id (so read-receipt updates on already-seen messages land), new ones are added,
@@ -60,19 +50,6 @@ function ChatContent() {
   const messagesRef = useRef<ChatMessage[]>([])
   const markedRef = useRef<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement | null>(null)
-
-  const {
-    isRecording,
-    recordingTime,
-    maxDuration,
-    audioURL,
-    audioBlob,
-    audioMimeType,
-    startRecording,
-    stopRecording,
-    deleteRecording,
-    error: recorderError,
-  } = useAudioRecorder(60)
 
   // Tracks whether the user is scrolled near the bottom, so polling/new messages
   // don't yank them down while they're reading history.
@@ -174,23 +151,6 @@ function ChatContent() {
     }
   }
 
-  const handleSendAudio = async () => {
-    if (!audioBlob || sending) return
-    setSending(true)
-    setSendError('')
-    try {
-      const file = new File([audioBlob], `voice-message.${audioExtForMime(audioMimeType)}`, { type: audioMimeType })
-      const m = await chatAPI.sendAudioMessage(conversationId, file, Math.max(1, Math.min(recordingTime, 60)))
-      nearBottomRef.current = true
-      appendSent(m)
-      deleteRecording()
-    } catch (err) {
-      setSendError(err instanceof Error ? err.message : t('chat:conversation.sendAudioError'))
-    } finally {
-      setSending(false)
-    }
-  }
-
   const otherUserId = meta?.otherParty?.userId ?? null
   const lastSeen = meta?.otherParty?.lastSeenAt
 
@@ -250,20 +210,16 @@ function ChatContent() {
                     </div>
                   )
                 }
+                // Chat is text-only. A legacy AUDIO row (audio was removed from the
+                // product; the DB column survives) carries no `content`, so skip it
+                // rather than render an empty bubble.
+                if (!m.content) return null
                 const mine = m.senderId === myId
                 const readByOther = !!(otherUserId && m.readBy?.includes(otherUserId))
-                const audioSrc = resolveMediaUrl(m.audioUrl)
                 return (
                   <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${mine ? 'bg-primary-50 text-white rounded-br-sm' : 'bg-white border border-[#e6e6e6] text-black rounded-bl-sm'}`}>
-                      {m.type === 'AUDIO' && audioSrc ? (
-                        <>
-                          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                          <audio controls src={audioSrc} className="max-w-[220px]" />
-                        </>
-                      ) : (
-                        <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
-                      )}
+                      <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
                       <div className={`flex items-center gap-1 mt-1 ${mine ? 'justify-end text-white/80' : 'justify-start text-[#9a9aa5]'}`}>
                         <span className="text-[10px]">{relativeTime(m.createdAt)}</span>
                         {mine && (readByOther ? <CheckCheck className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />)}
@@ -282,51 +238,19 @@ function ChatContent() {
               </div>
             )}
 
-            {/* Composer */}
+            {/* Composer — text only (audio was removed from the product). */}
             <div className="bg-white border border-[#e6e6e6] rounded-xl p-2 flex items-center gap-2">
-              {audioURL ? (
-                // Recorded clip — preview + send/discard.
-                <>
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <audio controls src={audioURL} className="flex-1 h-10 min-w-0" />
-                  <button onClick={deleteRecording} disabled={sending} className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50" title={t('chat:conversation.discard')}>
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                  <button onClick={handleSendAudio} disabled={sending} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-60" title={t('chat:conversation.sendVoice')}>
-                    {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                  </button>
-                </>
-              ) : isRecording ? (
-                // Recording in progress.
-                <>
-                  <span className="flex items-center gap-2 flex-1 px-2 text-sm text-red-600">
-                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                    {t('chat:conversation.recording', { current: fmtTime(recordingTime), max: fmtTime(maxDuration) })}
-                  </span>
-                  <button onClick={stopRecording} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600" title={t('chat:conversation.stop')}>
-                    <Square className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                // Idle — text + mic.
-                <>
-                  <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendText())}
-                    placeholder={t('chat:conversation.typePlaceholder')}
-                    className="flex-1 h-10 px-3 text-sm bg-transparent focus:outline-none"
-                  />
-                  <button onClick={() => { startRecording() }} className="p-2 text-[#4d4d4d] hover:bg-gray-100 rounded-lg" title={t('chat:conversation.recordTooltip')}>
-                    <Mic className="w-5 h-5" />
-                  </button>
-                  <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title={t('buttons.send')}>
-                    {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                  </button>
-                </>
-              )}
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendText())}
+                placeholder={t('chat:conversation.typePlaceholder')}
+                className="flex-1 h-10 px-3 text-sm bg-transparent focus:outline-none"
+              />
+              <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title={t('buttons.send')}>
+                {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+              </button>
             </div>
-            {recorderError && <p className="text-xs text-red-600 mt-1">{recorderError}</p>}
           </>
         )}
       </main>

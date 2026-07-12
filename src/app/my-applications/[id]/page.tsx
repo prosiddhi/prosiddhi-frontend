@@ -9,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
-import { jobSeekerAPI, resolveMediaUrl, type Application } from '@/lib/api'
+import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
@@ -83,7 +83,6 @@ function ApplicationDetailsContent() {
 
   const job = application?.job
   const meta = statusMeta(application?.status)
-  const audioSrc = resolveMediaUrl(application?.audioUrl)
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -272,13 +271,6 @@ function ApplicationDetailsContent() {
                   </p>
                 ) : (
                   <p className="text-sm sm:text-base text-[#717182] mb-4">{t('seeker:applicationDetail.noCoverMessage')}</p>
-                )}
-                {audioSrc && (
-                  <div>
-                    <p className="text-sm font-medium text-black mb-2">{t('seeker:applicationDetail.voiceMessage')}</p>
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <audio controls src={audioSrc} className="w-full max-w-md" />
-                  </div>
                 )}
               </section>
 

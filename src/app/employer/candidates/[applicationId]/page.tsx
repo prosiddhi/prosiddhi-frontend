@@ -107,7 +107,6 @@ function CandidateDetailContent() {
 
   const seeker = app?.jobSeeker
   const meta = statusMeta(app?.status)
-  const audioSrc = resolveMediaUrl(app?.audioUrl)
   const skills = seeker?.skills ?? []
   const experience = seeker?.workExperience ?? []
   const documents = seeker?.documents ?? []
@@ -189,20 +188,13 @@ function CandidateDetailContent() {
                 </div>
               )}
 
-              {/* Application message + audio */}
+              {/* Application message */}
               <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                 <h2 className="text-lg font-semibold text-black mb-3">{t('employer:candidateDetail.application')}</h2>
                 {app.message ? (
                   <p className="text-sm text-black whitespace-pre-line mb-4">{app.message}</p>
                 ) : (
                   <p className="text-sm text-[#717182] mb-4">{t('employer:candidateDetail.noCoverMessage')}</p>
-                )}
-                {audioSrc && (
-                  <div>
-                    <p className="text-sm font-medium text-black mb-2">{t('employer:candidateDetail.voiceMessage')}</p>
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <audio controls src={audioSrc} className="w-full max-w-md" />
-                  </div>
                 )}
               </div>
 

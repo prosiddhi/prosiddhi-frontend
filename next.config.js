@@ -92,8 +92,11 @@ const nextConfig = {
             value: 'origin-when-cross-origin'
           },
           {
+            // microphone=() — audio was removed from the product, so nothing in
+            // the app requests the mic. Denying it outright shrinks the attack
+            // surface (and stops a browser prompt ever appearing).
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=(self)'
+            value: 'camera=(), microphone=(), geolocation=(self)'
           }
         ],
       },

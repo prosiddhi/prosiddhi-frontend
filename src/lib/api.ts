@@ -283,7 +283,6 @@ export interface Application {
   jobId?: string
   status?: string
   message?: string | null
-  audioUrl?: string | null
   appliedAt?: string
   updatedAt?: string
   job?: Job
@@ -734,23 +733,15 @@ export const jobSeekerAPI = {
     return apiRequest<JobsPage>(`/jobs/nearby?radius=${radius}&page=${page}&limit=${limit}`)
   },
 
-  // Apply for job (multipart — optional audio cover letter). POST /api/applications
-  // Body: jobId (required) + message? (BE field name, ≤1000) + audioDuration? (≤120s).
-  // Audio file goes in the `audio` field (3 MB cap, webm/mp4/m4a/ogg/opus).
-  applyForJob: async (
-    jobId: string,
-    applicationData: { audio?: File; message?: string; audioDuration?: number }
-  ) => {
+  // Apply for job. POST /api/applications — jobId (required) + message? (≤1000).
+  // Still multipart: the BE route is mounted behind multer and expects a
+  // multipart body. (Audio was removed from the product — the BE tolerates
+  // clients that omit it, which is exactly what we now do.)
+  applyForJob: async (jobId: string, applicationData: { message?: string }) => {
     const formData = new FormData()
     formData.append('jobId', jobId)
-    if (applicationData.audio) {
-      formData.append('audio', applicationData.audio)
-    }
     if (applicationData.message) {
       formData.append('message', applicationData.message)
-    }
-    if (applicationData.audioDuration != null) {
-      formData.append('audioDuration', String(applicationData.audioDuration))
     }
     return apiRequest<Application>('/applications', {
       method: 'POST',
@@ -1011,8 +1002,6 @@ export interface EmployerApplicationItem {
   status: string
   appliedAt?: string
   message?: string | null
-  audioUrl?: string | null
-  audioDuration?: number | null
   jobSeeker?: {
     id: string
     fullName?: string | null
@@ -1035,6 +1024,9 @@ export interface EmployerApplicationsPage {
 }
 
 // Chat / messaging (M8). senderId + readBy entries are User.id values.
+// Chat is TEXT-only; SYSTEM messages are BE-generated (e.g. "interview scheduled").
+// The BE enum still carries AUDIO/IMAGE for rows written before audio was removed
+// from the product — the UI renders neither.
 export type MessageType = 'TEXT' | 'AUDIO' | 'IMAGE' | 'SYSTEM'
 export interface ChatMessage {
   id: string
@@ -1042,8 +1034,6 @@ export interface ChatMessage {
   senderId: string
   type: MessageType
   content: string
-  audioUrl?: string | null
-  audioDuration?: number | null
   readBy?: string[]
   createdAt: string
 }
@@ -1715,18 +1705,6 @@ export const chatAPI = {
     return apiRequest<ChatMessage>(`/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ type: 'TEXT', content }),
-    })
-  },
-
-  // POST /api/conversations/:id/messages (AUDIO — multipart, 60s/2 MB cap server-side).
-  sendAudioMessage: async (conversationId: string, audio: File, audioDuration?: number) => {
-    const formData = new FormData()
-    formData.append('type', 'AUDIO')
-    formData.append('audio', audio)
-    if (audioDuration != null) formData.append('audioDuration', String(audioDuration))
-    return apiRequest<ChatMessage>(`/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      body: formData,
     })
   },
 

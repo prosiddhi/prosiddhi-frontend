@@ -245,8 +245,7 @@
         "f5": "Free job listing duration",
         "f6": "Custom integration options",
         "f7": "Featured & premium listings",
-        "f8": "Advanced Near Employee Find Solution",
-        "f9": "Voice Message with Native Languages"
+        "f8": "Advanced Near Employee Find Solution"
       },
       "startFreePlan": "Start Free Plan"
     },
@@ -443,7 +442,6 @@
     "tbc": "TBC",
     "application": "Application",
     "noCoverMessage": "No cover message.",
-    "voiceMessage": "Voice message",
     "skills": "Skills",
     "skillFallback": "Skill",
     "workExperience": "Work Experience",

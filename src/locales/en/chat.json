@@ -7,8 +7,7 @@
     "emptySeeker": "Apply to a job and the employer can start a conversation with you.",
     "emptyEmployer": "Conversations with candidates will appear here.",
     "preview": {
-      "none": "No messages yet",
-      "voice": "Voice message"
+      "none": "No messages yet"
     },
     "otherParty": {
       "employer": "Employer",
@@ -24,12 +23,6 @@
     "loadError": "Failed to load this conversation.",
     "emptyHello": "No messages yet. Say hello 👋",
     "typePlaceholder": "Type a message...",
-    "recording": "Recording {{current}} / {{max}}",
-    "discard": "Discard",
-    "stop": "Stop",
-    "recordTooltip": "Record voice message (max 60s)",
-    "sendVoice": "Send voice message",
-    "sendTextError": "Message failed to send.",
-    "sendAudioError": "Voice message failed to send."
+    "sendTextError": "Message failed to send."
   }
 }
