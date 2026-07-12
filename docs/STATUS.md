@@ -137,7 +137,34 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 ---
 
-## 6. ⚠️ JIRA is stale — don't trust it
+## 6. The plan — how we're working through §3
+
+Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.md` first in any session.**
+
+| # | Session | Scope | Repo |
+|---|---|---|---|
+| **1** | **Portal QA fixes** | The 2 criticals (both in `UserDropdown.tsx` — one fix clears both) then the 10 majors from `docs/qa/functional-audit-portal.md`. **Also: hide/remove the audio UI** (audio is out of V1 — see §1). | `prosiddhi-frontend` |
+| **2** | **Admin: build + fix + docs** | **Build** the taxonomy management screen (the BE has 10 CRUD endpoints; there is *no* UI) and fix the Revenue-card lie (consume the real `monthlyRevenue`). **Fix** the 5 majors from `docs/qa/functional-audit-admin.md`. Update the admin's docs. | `prosiddhi-admin` |
+| **3** | **Mobile P0** | Plug the holes: the **post-credit gate** (revenue leak), the broken `/forgot-password` route, the dead default API URL, the dropped search filters, and **remove the inert audio UI**. | `prosiddhi-mobile-app` |
+| **4+** | **Mobile completion** | **i18n (EN/HI)** first — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
+
+**In parallel — Asrar (backend), not in the sessions above:**
+1. 🔴 The **two seat bugs** (see [MONETIZATION.md](MONETIZATION.md) §6) — a multi-seat plan currently delivers no shared wallet.
+2. **Admin-namespaced monetization endpoints** (payments / invoices / credits list) — Session 2 needs these, or the admin screen has nothing behind it.
+3. **Outbound notifications** (MSG91 SMS/WhatsApp/email + FCM push).
+
+### Open decisions (blocking parts of the plan)
+
+| # | Decision | Recommendation |
+|---|---|---|
+| **D1** | **Portal audio — hide it, or delete it?** Audio is out of V1, but the portal has it **built and working** (2-min apply recorder, 60-sec chat recorder). | **Hide** behind a flag rather than delete — it's working code and audio returns in v2. |
+| **D2** | **Mobile payments — in-app Razorpay, or buy-on-web?** | **Buy-on-web.** Enforce the *gate* on mobile but send employers to the web to purchase. Closes the revenue leak cheaply, avoids native Razorpay risk, and sidesteps App Store / Play policy on in-app purchase of digital goods. |
+| **D3** | **Is English-only acceptable for a mobile launch?** | **No.** The product's core users are low-literacy **Hindi**-speaking workers, and mobile is currently English-only while the web has full EN/HI. Treat mobile i18n as a **launch blocker**, not polish. |
+| **D4** | **Mobile stack:** the locked scope says **React Native**; the app is **Flutter** (~19k lines of Dart, not portable). | Formally record Flutter as the stack so it stops resurfacing. |
+
+---
+
+## 7. ⚠️ JIRA is stale — don't trust it
 
 JIRA shows **79 open tickets**, but many are **done in code** — the whole monetization set (**PJP-162…175, 180**), **PJP-110** (subscription UI), **PJP-72** (Google OAuth), **PJP-75/76**. The board was never updated when monetization shipped.
 
