@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
@@ -154,38 +155,7 @@ export default function RegisterExperiencePage() {
                 </p>
               </div>
 
-              {/* Progress Stepper */}
-              <div className="flex items-center mb-16 max-w-[1075px]">
-                {/* Step 1 - Profile (Completed) */}
-                <div className="flex flex-col items-center">
-                  <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
-                    <span className="text-[24px] font-medium text-white">1</span>
-                  </div>
-                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepProfile')}</span>
-                </div>
-
-                {/* Progress Line 1 (Completed) */}
-                <div className="flex-1 h-[5px] bg-secondary-70 rounded-[4px] mx-4 max-w-[427px]" />
-
-                {/* Step 2 - Categories (Completed) */}
-                <div className="flex flex-col items-center">
-                  <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
-                    <span className="text-[24px] font-medium text-white">2</span>
-                  </div>
-                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepCategories')}</span>
-                </div>
-
-                {/* Progress Line 2 (Completed) */}
-                <div className="flex-1 h-[5px] bg-secondary-70 rounded-[4px] mx-4 max-w-[427px]" />
-
-                {/* Step 3 - Experience (Active) */}
-                <div className="flex flex-col items-center">
-                  <div className="w-[37px] h-[37px] rounded-full bg-primary-50 flex items-center justify-center mb-3">
-                    <span className="text-[24px] font-medium text-white">3</span>
-                  </div>
-                  <span className="text-[16px] font-medium text-black">{t('auth:experience.stepExperience')}</span>
-                </div>
-              </div>
+              <RegistrationProgress step="experience" className="mb-16" />
 
               {/* Work Experiences Section */}
               <div className="mb-12">
@@ -367,38 +337,7 @@ export default function RegisterExperiencePage() {
             </p>
           </div>
 
-          {/* Progress Stepper - Mobile */}
-          <div className="flex items-center mb-8">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
-                <span className="text-lg font-medium text-white">1</span>
-              </div>
-              <span className="text-xs font-medium text-black">{t('auth:experience.stepProfile')}</span>
-            </div>
-
-            {/* Line 1 */}
-            <div className="flex-1 h-1 bg-secondary-70 mx-2" />
-
-            {/* Step 2 */}
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
-                <span className="text-lg font-medium text-white">2</span>
-              </div>
-              <span className="text-xs font-medium text-black">{t('auth:experience.stepCategories')}</span>
-            </div>
-
-            {/* Line 2 */}
-            <div className="flex-1 h-1 bg-secondary-70 mx-2" />
-
-            {/* Step 3 */}
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mb-2">
-                <span className="text-lg font-medium text-white">3</span>
-              </div>
-              <span className="text-xs font-medium text-black">{t('auth:experience.stepExperience')}</span>
-            </div>
-          </div>
+          <RegistrationProgress step="experience" className="mb-8" />
 
           {/* Work Experiences Section */}
           <div className="mb-8">

@@ -3,35 +3,52 @@
 import { useState } from 'react'
 import { ChevronRight, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from './SeekerRegistrationContext'
+import {
+  useLanguagePreference,
+  type SupportedLanguage,
+} from '@/hooks/useLanguagePreference'
 
-const languages = [
+/**
+ * Only the languages we actually SHIP.
+ *
+ * This list used to offer ten — Tamil, Kannada, Malayalam, Marathi, Gujarati,
+ * Odia, Telugu, Bengali — none of which have translations (PRODUCT.md: EN + HI are
+ * complete, the other eight are post-MVP). A Tamil speaker picked தமிழ் on the very
+ * first screen of registration and got an English app, permanently. Offering a
+ * language we cannot render is a promise we break immediately, to precisely the
+ * low-literacy user this screen exists to serve.
+ *
+ * Add a language here only when its translation file lands.
+ */
+const languages: { value: SupportedLanguage; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'हिंदी' },
-  { value: 'ta', label: 'தமிழ்' },
-  { value: 'kn', label: 'ಕನ್ನಡ' },
-  { value: 'ml', label: 'മലയാളം' },
-  { value: 'mr', label: 'मराठी' },
-  { value: 'gu', label: 'ગુજરાતી' },
-  { value: 'od', label: 'Odia' },
-  { value: 'te', label: 'తెలుగు' },
-  { value: 'bn', label: 'বাংলা' },
 ]
 
 export default function RegisterPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { data, update } = useSeekerRegistration()
+  const { setLanguage } = useLanguagePreference()
   const [selectedLanguage, setSelectedLanguage] = useState(data.language)
 
-  const handleLanguageSelect = (value: string) => {
+  const handleLanguageSelect = (value: SupportedLanguage) => {
     setSelectedLanguage(value)
+    // Apply it IMMEDIATELY. This screen asked "which language do you want?" and
+    // then ignored the answer: it only stashed the value in the registration
+    // context, so the rest of registration — and the whole app — stayed English.
+    // Switching here means the very next screen is already in their language.
+    setLanguage(value)
   }
 
   const handleNext = () => {
+    // Still carried into the registration payload so the BE stores it on the
+    // account (preferredLanguage), not just in this browser.
     update({ language: selectedLanguage })
     router.push('/register/phone')
   }
@@ -51,6 +68,8 @@ export default function RegisterPage() {
 
         {/* Content */}
         <div className="w-full">
+          <RegistrationProgress step="language" className="mb-8" />
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-3 leading-tight">

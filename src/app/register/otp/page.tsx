@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
@@ -94,7 +95,10 @@ export default function RegisterOTPPage() {
       setResendLoading(true)
       setError('')
 
-      await jobSeekerAPI.registerPhone({ phoneNumber })
+      const res = await jobSeekerAPI.registerPhone({ phoneNumber })
+      // A resend issues a NEW code — refresh the dev banner or it would show the
+      // stale one, which no longer verifies.
+      update({ devPhoneOtp: res?.otp })
 
       setCanResend(false)
       setCountdown(30)
@@ -152,19 +156,7 @@ export default function RegisterOTPPage() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-3 mb-16">
-              <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <ChevronLeft className="w-6 h-6 text-gray-600" />
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-                <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-              </div>
-              <span className="text-[#767676] text-[16px] ml-2">{t('auth:otp.stepLabel')}</span>
-            </div>
+            <RegistrationProgress step="otp" onBack={handleBack} className="mb-16" />
 
             <div className="max-w-[1200px]">
               <div className="mb-16">
@@ -175,6 +167,15 @@ export default function RegisterOTPPage() {
                   {t('auth:otp.sentTo', { phone: phoneNumber })}
                 </p>
               </div>
+              {/* Dev convenience: BE echoes the OTP in non-production. Without it QA
+                  cannot get past this step — there is no SMS gateway wired. */}
+              {data.devPhoneOtp && (
+                <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
+                  <p className="text-amber-700 text-sm">
+                    {t('auth:otp.devMode')} <span className="font-mono font-bold">{data.devPhoneOtp}</span>
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg max-w-[953px]">
@@ -247,14 +248,7 @@ export default function RegisterOTPPage() {
         </div>
 
         <div className="bg-white px-4 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-            <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-          </div>
-          <span className="text-sm text-gray-600">{t('auth:otp.stepLabel')}</span>
+          <RegistrationProgress step="otp" />
         </div>
 
         <div className="flex-1 bg-white px-4 py-8 overflow-auto">
@@ -264,6 +258,15 @@ export default function RegisterOTPPage() {
           <p className="text-base text-gray-600 mb-8">
             {t('auth:otp.sentTo', { phone: phoneNumber })}
           </p>
+              {/* Dev convenience: BE echoes the OTP in non-production. Without it QA
+                  cannot get past this step — there is no SMS gateway wired. */}
+              {data.devPhoneOtp && (
+                <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
+                  <p className="text-amber-700 text-sm">
+                    {t('auth:otp.devMode')} <span className="font-mono font-bold">{data.devPhoneOtp}</span>
+                  </p>
+                </div>
+              )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

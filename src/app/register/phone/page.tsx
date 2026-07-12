@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -49,10 +50,12 @@ export default function RegisterPhonePage() {
       setError('')
 
       // Send the registration phone OTP (POST /api/otp/send).
-      await jobSeekerAPI.registerPhone({ phoneNumber: e164 })
+      const res = await jobSeekerAPI.registerPhone({ phoneNumber: e164 })
 
       // Hold the normalised number in memory for the OTP + register steps.
-      update({ phoneNumber: e164, phoneVerified: false })
+      // `devPhoneOtp` is only present in non-prod — the OTP screen shows it so QA
+      // can get past this step without an SMS gateway (same as the email step).
+      update({ phoneNumber: e164, phoneVerified: false, devPhoneOtp: res?.otp })
 
       router.push('/register/otp')
     } catch (err) {
@@ -116,19 +119,7 @@ export default function RegisterPhonePage() {
             </div>
 
             {/* Progress Indicator */}
-            <div className="flex items-center gap-3 mb-16">
-              <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <ChevronLeft className="w-6 h-6 text-gray-600" />
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-                <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-              </div>
-              <span className="text-[#767676] text-[16px] ml-2">{t('auth:phone.stepLabel')}</span>
-            </div>
+            <RegistrationProgress step="phone" onBack={handleBack} className="mb-16" />
 
             {/* Main Content */}
             <div className="max-w-[1200px]">
@@ -209,14 +200,7 @@ export default function RegisterPhonePage() {
 
         {/* Progress */}
         <div className="bg-white px-4 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-[30px] h-[8px] bg-primary-50 rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-            <div className="w-[30px] h-[8px] bg-[#E0E0E0] rounded"></div>
-          </div>
-          <span className="text-sm text-gray-600">{t('auth:phone.stepLabel')}</span>
+          <RegistrationProgress step="phone" />
         </div>
 
         {/* Content */}

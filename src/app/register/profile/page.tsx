@@ -2,6 +2,7 @@
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X, ImageIcon, Pencil } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -96,12 +97,7 @@ export default function RegisterProfilePage() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-3 mb-16">
-              <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg">
-                <ChevronLeft className="w-6 h-6 text-gray-600" />
-              </button>
-              <span className="text-[#767676] text-[16px] ml-2">{t('auth:profile.stepLabel')}</span>
-            </div>
+            <RegistrationProgress step="profile" onBack={handleBack} className="mb-16" />
 
             <div className="max-w-[1200px]">
               <div className="mb-16">

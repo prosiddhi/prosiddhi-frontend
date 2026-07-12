@@ -35,8 +35,10 @@ export interface SeekerRegistrationState {
   documentName: string
   // In-memory ONLY — never written to storage.
   password: string
-  // BE echoes the email OTP in non-production for dev/QA convenience.
+  // BE echoes the OTPs in non-production for dev/QA convenience. Without these,
+  // QA cannot complete registration at all: there is no SMS/email sender wired.
   devEmailOtp?: string
+  devPhoneOtp?: string
 }
 
 const defaultState: SeekerRegistrationState = {

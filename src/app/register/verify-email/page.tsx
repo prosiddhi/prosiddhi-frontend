@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronLeft, ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -142,11 +143,7 @@ export default function RegisterVerifyEmailPage() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-3 mb-10 lg:mb-16">
-              <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg">
-                <ChevronLeft className="w-6 h-6 text-gray-600" />
-              </button>
-            </div>
+            <RegistrationProgress step="verifyEmail" onBack={handleBack} className="mb-10 lg:mb-16" />
 
             <div className="max-w-[953px]">
               <div className="mb-8 lg:mb-12 flex items-center gap-4">

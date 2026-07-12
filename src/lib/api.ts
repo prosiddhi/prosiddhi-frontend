@@ -550,9 +550,18 @@ export const meAPI = {
 }
 
 // Phone OTP (registration / generic) — POST /api/otp/{send,verify}
+
+// In NON-PRODUCTION the BE echoes the OTP in the send response so QA can complete
+// a flow without a real SMS gateway (MSG91 is not wired yet). It is absent in prod.
+export interface OtpSendResult {
+  phoneNumber: string
+  otp?: string
+  expiresIn?: string
+}
+
 export const otpAPI = {
   send: async (phoneNumber: string) => {
-    return apiRequest('/otp/send', {
+    return apiRequest<OtpSendResult>('/otp/send', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber }),
     })
