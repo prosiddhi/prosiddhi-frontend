@@ -16,8 +16,8 @@ Auto-loaded here:
   .claude/AGENT-WORKFLOW.md — agent roster + the dev loop + standing gates
   + the agents + a pre-commit type-check hook (active)
 Commands: /run-kickoff (re-orient + pending-work list) · /check-scope (pre-commit drift audit)
-Live tracker: docs/execution-playbook.md
-Status truth: docs/execution-playbook.md
+Live tracker: docs/STATUS.md
+Status truth: docs/STATUS.md
 Backend: LIVE + seeded at the URL in .env.local (ephemeral tunnel — tell me if it 502s).
 Jira: project PJP via the Atlassian MCP.
 
@@ -39,7 +39,7 @@ STATE: the auth foundation (AuthContext, ProtectedRoute, /login 3-method, api.ts
   ⭐ STEP 0 — verify it before building on it: npm run dev → /login → log in as a seeker against the live
      BE; confirm token stored, a protected page loads, 401 bounces to /login. Fix first if broken.
 
-ATTACK ORDER (per docs/execution-playbook.md):
+ATTACK ORDER (per docs/STATUS.md):
   Stage 0 — board cleanup (auth 77/78/79/80/82 → Done w/ "integration-unverified" caveat; close dup
             tickets 132–137; confirm .env.local BE URL is live).
   Stage 1 — auth finish: PJP-81 (registration screens), PJP-142 (forgot/reset password).

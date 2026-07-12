@@ -14,20 +14,20 @@ The canonical map of **when each gate fires**. Some gates are sub-agents (`.clau
 | main session | Main worker — implement + Jira close + playbook tick | "close / work on / implement PJP-XX" | edit + Jira |
 | **fe-auth-wirer** | Auth-foundation specialist (PJP-77→82) | auth / login / token / guards work | sub-agent (edit) |
 | **fe-specialist** | General FE pages, components, `api.ts` | any non-auth FE ticket | sub-agent (edit) |
-| **scope-drift-checker** | Drift gate vs `docs/_context/02-scope-locked.md` | a feature boundary moved | sub-agent (read-only) |
+| **scope-drift-checker** | Drift gate vs `docs/PRODUCT.md` | a feature boundary moved | sub-agent (read-only) |
 | **`/code-review`** | Pre-commit gate: correctness + FE↔BE contract + wired-vs-mock | **BEFORE every commit** | skill |
 | **`/security-review`** | Security pass | after auth / payments / admin / OTP changes; pre-freeze | skill |
 | inline explain | Change-set walkthrough + manual-test script | after the gate, before/at close | main session |
 
 ## The development loop (per ticket): **Ticket → Plan → Execute → Explain → Close**
 
-1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/execution-playbook.md`](../docs/execution-playbook.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
+1. **Ticket** — read the PJP ticket (Jira) + its "Wires to" endpoint in [`docs/STATUS.md`](../docs/STATUS.md). Confirm the BE path against `../prosiddhi-backend/src/routes/*.routes.ts`.
 2. **Plan** — draft a Template plan, post it as a Jira comment, and **STOP for the user's "go"** *unless* the user has given a standing "work the queue / complete all tickets" — then proceed without pausing per-ticket.
 3. **Execute** — implement (types → `api.ts` → context → component → page); type-check as you go.
 4. **Review — the pre-commit GATE** — run **`/code-review`** (correctness + FE↔BE contract + wired-vs-mock); run **`/security-review`** if auth/token/role/OTP touched; spawn **`scope-drift-checker`** if a feature boundary moved. Fix everything HIGH/MEDIUM before committing. (When the named skills are unavailable, approximate with `general-purpose` finder + verifier agents.)
 5. **Explain** — inline: walk the user through the change-set **high-level first**, then tell them **exactly what to manually test** (which URL, what to click, success vs failure).
 6. **Commit** — **Claude commits** per ticket: conventional message, reference the PJP ticket, **NO `Co-Authored-By: Claude` trailer** (project override of the harness default, locked 2026-06-15). The pre-commit hook re-runs type-check.
-7. **Close** — post the Jira closure comment + transition status (with confirmation), and **tick the ticket in `docs/execution-playbook.md`** once it's truly Done (live-smoke-verified, not just code-complete).
+7. **Close** — post the Jira closure comment + transition status (with confirmation), and **tick the ticket in `docs/STATUS.md`** once it's truly Done (live-smoke-verified, not just code-complete).
 
 ## Standing gates (non-negotiable before a commit)
 

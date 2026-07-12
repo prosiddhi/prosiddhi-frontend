@@ -1,66 +1,44 @@
-# Job Portal — Claude Operating Instructions
+# ProSiddhi Portal — Claude Operating Instructions
 
-**Project:** Azkashine Job Portal — a mobile-first, multilingual job portal connecting unskilled workers in India with employers, with phone-based identity, in-app audio messaging, and a low-cost subscription model.
+**This repo (`prosiddhi-frontend`) is the PORTAL** — the seeker + employer web app.
+Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API — Express 5 + Prisma) and **`prosiddhi-admin`** (the admin console). Mobile (`prosiddhi-mobile-app`) is **not started**.
 
-**Hard deadline:** QA handover **2026-06-22**. Code freeze **2026-06-21**. This is a **~5-week MVP** (sprint shifted 1 week 2026-05-15), not an enterprise build.
+## Read these first
+
+Four docs, that's it:
+
+1. **`docs/STATUS.md`** — ⭐ **what is done and what is left.** The single source of truth. **JIRA is stale — trust this instead.**
+2. **`docs/PRODUCT.md`** — what we're building, who for, and the locked rules (incl. what's permanently out of scope).
+3. **`docs/MONETIZATION.md`** — the employer billing system: pricing rules, what's built, what's broken.
+4. **`docs/DEPLOY.md`** — deploy + go-live.
+
+Current defect lists: `docs/qa/functional-audit-portal.md` (this repo) and `prosiddhi-admin/docs/qa/functional-audit-admin.md`.
+
+## Where the product stands
+
+The **web product is feature-complete** — seeker + employer flows, chat, EN/HI i18n, and the full **employer monetization** system (credits, Razorpay, GST invoices, a paid candidate database, team seats). The backend is feature-complete. The admin console is wired but is **missing two screens** (taxonomy management, monetization views). **Mobile is 0%.**
+
+What's left is in `STATUS.md` §3 — headline: **two seat bugs**, **outbound notifications**, **two admin screens**, a **QA-defect pass**, and **go-live config**.
+
+## Hard rules
+
+- **Never edit the backend.** It's Asrar's repo. Read `../prosiddhi-backend/src/routes/*.routes.ts` to confirm a contract, but don't change it.
+- **Always use the `api.ts` client** — never a raw `fetch`.
+- **Confirm every API path against the real backend routes** before wiring it. Do not trust a path from a doc or from memory.
+- **`npm run type-check` must exit 0** before any commit (a pre-commit hook enforces it).
+- **Commit per ticket**, conventional message, **no `Co-Authored-By` trailer**.
+- **Stay in locked scope.** Never reintroduce: **Aadhaar**, **escrow / platform-handled payments**, **WebSockets** for chat, **voice transcription**, **`.ics` invites**. These are gone, not deferred.
+
+## Gates before committing
+
+- `npm run type-check` (exit 0)
+- `/code-review` — must be green; it checks the FE↔BE contract against the real backend routes
+- `/security-review` — for anything touching auth, tokens, roles, or **payments**
 
 ## Team
 
-- **Shaik Ishaq** — Owner & Sponsor (Product Owner; pricing decisions)
-- **Nazir Hasan** — Frontend dev + acting Project Manager (the user)
-- **Asrar** — Backend dev (`job-portal-be` repo)
-- **Mobile dev** — **TBD** (Dheeraj off project 2026-05-15; new hire pending — major scope risk if not filled by ~Jun 1)
-- **Najeeb** — QA Lead
-- **Farhana** — QA junior (Mohamad.farhana@azkashine.com)
-- **Nayan** — Infra
+Shaik (owner/product) · **Nazir** (frontend + acting PM) · Asrar (backend) · Najeeb + Farhana (QA) · Nayan (infra) · **mobile: unowned**.
 
-## 5-stage plan
+## Working style
 
-| Stage | Output | State |
-|---|---|---|
-| 0 — Discovery | FE/BE/UX audit, gaps identified | done |
-| 0.5 — Decision locking | D1–D7 + Q1–Q13 locked; primers written | done |
-| 1 — Managerial | Charter, BE sync, PRD, RTM, Sprint Plan, DoD, Standup, Test Plan | done (Stage-1 artifacts consolidated/purged 2026-06-13; survivors flat in `docs/`) |
-| 2 — Technical | Security spec, OpenAPI scaffold, DB migrations spec | partly done (Security spec landed; OpenAPI + DB migrations deferred to Asrar in S1) |
-| 3 — Claude operating layer | Lean CLAUDE.md, slash commands, sub-agents, permissions | done (hooks deferred — not critical for v1) |
-| 4 — Execution | S1–S3 sprints; **CODING starts here**, not before | in progress — Sprint 1 (May 12–24) |
-
-## The three repos (standalone, siblings under `Prosiddhi/`)
-
-| Repo | What it is |
-|---|---|
-| **prosiddhi-frontend** | the **portal** — seeker + employer web app (this repo) |
-| **prosiddhi-admin** | the **admin** console (web-only, highest-privilege) |
-| **prosiddhi-backend** | the **API engine** (Express 5 + Prisma) — the real API contract, in `../prosiddhi-backend/src/routes/` |
-
-## Always read primers first
-
-Before any non-trivial task, read in order:
-1. `docs/_context/02-scope-locked.md` — **product summary + canonical locked scope** (D1–D7, Q1–Q13, IN/OUT, risks).
-2. `docs/execution-playbook.md` — the **live ticket tracker** (what's done / build next), with the status-reconciliation analysis as Appendix A.
-
-These replace re-ingesting the [Figma design file](https://www.figma.com/design/fzkZeIzkrU7MRLwunuYbTf/Job-Portal) ([mobile prototype view](https://www.figma.com/proto/fzkZeIzkrU7MRLwunuYbTf/Job-Portal?node-id=809-1687)) and the BE codebase. Figma is canonical for visuals.
-
-**Deeper sources (read only when the task needs them):** `docs/security-spec.md` (auth/data handling) · `docs/decisions-log.md` (cross-team decisions) · `docs/deployment-guide.md` (GCP) · `docs/test-plan.md` (QA) · `docs/charter.md` (charter + pricing) · `docs/research.md` (market research). Session bootstrap: `.claude/FE-SESSION-START.md`; agent workflow: `.claude/AGENT-WORKFLOW.md`.
-
-## Locked scope summary
-
-- **Aadhaar removed entirely** (Q3, Q4 revoked) — phone OTP is the only registration identity, no Aadhaar field anywhere, no fallback ID screens, no `AadhaarVerification` model.
-- **Escrow / platform-handled payments removed entirely** (Q12) — out forever, not just v2; revenue is subscription-only.
-- **WhatsApp Business in v1 via MSG91** (Q7 reversed) — OTP, status updates, interview reminders, payment confirmation; SMS as fallback.
-- **Mobile = seeker + employer parity** (D3 revised) — Dheeraj owns; full RN build for both roles. Admin stays web-only.
-- **Pricing = PROVISIONAL Option B** — ₹999/month employer with 14-day free trial; worker free forever. Awaiting Shaik Ishaq's final confirmation by **2026-05-18**.
-- **Application audio cap = 2 min** (Q10 revised); **chat audio cap = 60s**. Standard across web AND mobile.
-- **Auth = phone-OTP at registration + Email/password + Google OAuth as alternative login methods.** Same options for seekers and employers.
-
-## Do NOT mention
-
-The following are scrubbed entirely — not "deferred", not "v2", just gone:
-- WebSockets / real-time chat transport (polling is final)
-- Voice message transcription
-- `.ics` calendar invites for interviews
-- Aadhaar verification of any kind (mock or real)
-
-## Work agreement
-
-Propose then pause when scope is unclear; execute when scope is locked; **one major artifact per session**. Don't drift from locked scope — if tempted to defer a v1 feature or add a v2 feature, push back explicitly before changing anything.
+Plan first on multi-file work and wait for a go-ahead. Propose then pause when scope is unclear; execute when it's clear. If you find yourself reasoning toward a decision the docs already locked, defer to the docs — or push back explicitly before changing anything.

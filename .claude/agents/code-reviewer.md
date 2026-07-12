@@ -51,7 +51,7 @@ Hygiene (above) keeps the repo *clean*. This keeps the product *correct*. The bu
 - **copied-not-audited** — 90%-correct code pasted; the 10% delta (wrong model name, wrong path, wrong role) is invisible.
 
 ### C5 — Scope drift
-- If the diff touches a feature boundary, run the same check `scope-drift-checker` would (against `docs/_context/02-scope-locked.md`): no Aadhaar, audio caps (2-min apply / 60s chat), polling-not-WebSockets, pricing. Any re-introduced scrubbed feature = RED.
+- If the diff touches a feature boundary, run the same check `scope-drift-checker` would (against `docs/PRODUCT.md`): no Aadhaar, audio caps (2-min apply / 60s chat), polling-not-WebSockets, pricing. Any re-introduced scrubbed feature = RED.
 
 ## What you check, step by step
 ```

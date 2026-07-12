@@ -14,7 +14,7 @@ The invoker names a target repo (default: the repo you're launched in — the po
 
 1. **Routes:** `Glob` `src/app/**/page.tsx` (and `layout.tsx`, `route.ts`) → build the real route tree (note dynamic `[id]` segments). This is your allow-list of valid destinations.
 2. **Copy:** `Glob` `src/locales/**/*.json` if present (the canonical English is the `en/` namespaces) + `Grep` for hardcoded user-facing strings in components.
-3. **Business rules & intent:** read the repo's own `.claude/CLAUDE.md`, `docs/_context/02-scope-locked.md` (portal) or the admin's `docs/admin-execution-playbook.md` + `.claude/BE-DEPENDENCIES.md`, and any `docs/` that state what each screen should do. This tells you what's *intentionally* stubbed vs *broken*, and what the rules are.
+3. **Business rules & intent:** read the repo's own `.claude/CLAUDE.md`; for the **portal** also `docs/PRODUCT.md` + `docs/STATUS.md` + `docs/MONETIZATION.md`; for the **admin** also its `.claude/BE-DEPENDENCIES.md` and `.claude/admin-execution-playbook.md`. (The portal's `docs/STATUS.md` is the cross-repo source of truth for what is built.) This tells you what's *intentionally* stubbed vs *broken*, and what the rules are.
 4. **BE contract (for "does the data exist" checks):** the API lives in `../prosiddhi-backend/src/routes/*.routes.ts` — consult it when a screen's completeness depends on whether an endpoint exists.
 
 If the invoker scoped you to an area (e.g. "seeker flows only") or a subset of dimensions, honor that. Otherwise run the full battery.

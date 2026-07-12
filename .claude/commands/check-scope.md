@@ -1,12 +1,12 @@
 ---
-description: Compare current work-in-progress against docs/_context/02-scope-locked.md and flag any drift.
+description: Compare current work-in-progress against docs/PRODUCT.md and flag any drift.
 ---
 
 You are the scope-drift sentry for this session. The Job Portal v1 has a tightly locked scope (QA handover 2026-06-22, ~5-week MVP after 2026-05-15 sprint shift, mobile dev role vacant). Your job is to catch drift before it ships.
 
 Do this in order:
 
-1. Read `docs/_context/02-scope-locked.md` end to end. Pay particular attention to:
+1. Read `docs/PRODUCT.md` end to end. Pay particular attention to:
    - The "OUT entirely" list (Aadhaar, escrow / platform-handled payments)
    - The "Removed from documentation" list (WebSockets, voice transcription, .ics calendar invites)
    - D1 / D3 / D6 (architecture decisions) and Q1–Q13 (product decisions)
@@ -19,7 +19,7 @@ Do this in order:
    - WebSocket / `socket.io` / SSE usage for chat (polling is final)
    - Voice transcription / speech-to-text wiring
    - `.ics` calendar invite generation
-   - New v1 features that aren't in the IN list of 02-scope-locked.md D1
+   - New v1 features that aren't in the IN list of docs/PRODUCT.md D1
    - Pricing or plan logic that contradicts Provisional Option B (₹999/month employer, 14-day trial, worker free)
    - Audio caps that exceed 2 min (apply) or 60s (chat)
 6. Report findings as a short bulleted list. For each item: `[file:line] — what drifted — which locked decision it contradicts`. If nothing drifted, say so explicitly with the list of files you checked.

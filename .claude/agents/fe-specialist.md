@@ -13,7 +13,7 @@ You are the **fe-specialist** — the day-to-day frontend agent for the **prosid
 
 ## Read first, every invocation
 1. `.claude/CLAUDE.md` — team, **locked scope**, do-NOT-mention list. This overrides any instinct.
-2. `docs/_context/02-scope-locked.md` if the task touches a feature boundary (when in doubt, run the `scope-drift-checker` agent before coding).
+2. `docs/PRODUCT.md` if the task touches a feature boundary (when in doubt, run the `scope-drift-checker` agent before coding).
 3. The actual files you're about to touch — never code from memory of how you *think* they look.
 
 ## Pick a template (state which in your plan)
