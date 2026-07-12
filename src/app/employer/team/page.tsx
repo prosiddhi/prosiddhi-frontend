@@ -57,8 +57,10 @@ function TeamContent() {
     void load()
   }, [load])
 
+  // The BE returns the raw token exactly once (only its hash is stored), so this
+  // link is the single copy in existence — losing it means re-inviting.
   const inviteLink = lastInvite
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/employer/team/accept?token=${lastInvite.inviteToken}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/employer/team/accept?token=${encodeURIComponent(lastInvite.token)}`
     : ''
 
   const handleInvite = async () => {

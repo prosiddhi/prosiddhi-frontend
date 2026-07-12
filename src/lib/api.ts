@@ -1648,9 +1648,14 @@ export interface TeamSummary {
   seats: TeamSeat[] // PENDING + ACCEPTED only (REMOVED excluded)
 }
 export interface InviteResult {
-  seatId: string
+  inviteId: string
   email: string
-  inviteToken: string // one-shot; relay to the invitee
+  /**
+   * The RAW invite token — returned exactly once, at creation. The BE stores only
+   * its SHA-256 hash, so it can never be read back: if this value is lost, the
+   * only recovery is to re-invite. Never log it.
+   */
+  token: string
   expiresAt: string
 }
 export interface AcceptInviteResult {
