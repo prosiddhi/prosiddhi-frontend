@@ -117,7 +117,8 @@ Now: `EmployerInvite` with a **signed token returned once and stored only as a S
 ### 6.4 Go-live configuration *(still needs external config)*
 - **Razorpay** — real keys + a real webhook secret (test keys + a `local-dev-*` placeholder today).
 - **GST** — Azkashine's real GSTIN on invoices.
-- **Admin monetization surface** — ✅ backend endpoints **now exist** (`GET /api/admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on the dashboard stats); admin-console UI still to build.
+- **Admin monetization surface** — ✅ **DONE (2026-07-12)**: backend endpoints + the admin-console UI (`/admin/monetization` — payments · GST invoices · per-employer credits/seats/plan; read-only, since grant/revoke and refunds are v1.1 below).
+  - 🔴 **One BE gap:** there is **no admin-reachable invoice-PDF route**. The only one is `GET /api/employers/me/invoices/:id/pdf`, guarded by `authorize(EMPLOYER_*)` + `withEmployerContext` — an ADMIN token gets a **403** (verified). The console disables the download and says why. Needs `GET /api/admin/monetization/invoices/:id/pdf`.
 - **Outbound notification config** — MSG91 keys + DLT/WhatsApp template approval, FCM service account (the BE adapters are built and no-op safely until configured).
 - **OpenAI key** — optional; content-scan degrades gracefully without it.
 

@@ -13,7 +13,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 |---|---|---|
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
 | **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). All 2 criticals + 10 majors + minors fixed and verified in the running app; **audio removed**; several deeper defects found while verifying (i18n was silently reverting to English; the registration language picker was inert; an introduced open-redirect) all fixed. → `docs/qa/functional-audit-portal.md`. **GO for handover.** |
-| **Admin console** | `prosiddhi-admin` | 🟡 **Wired, but two whole screens are missing** (taxonomy, monetization). No mock data, no blockers — and the BE endpoints those screens need **now exist** (unblocked 2026-07-12). |
+| **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** *(One BE gap: admin invoice-PDF route — see §3.7.)* |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~60% built** (Flutter). Free product done + **EN/HI localised**; post-credit gate in. Pending: subscription screens, candidate DB, team seats, a few loose ends. *(Only in-app **checkout** is blocked, on the store-policy call — the plans/wallet **screens** are buildable now.)* → **`prosiddhi-mobile-app/docs/STATUS.md`** |
 
 ### Hosted backend
@@ -77,8 +77,8 @@ Login, dashboard, job-seeker management, employer management, document verificat
 
 **3. Portal — QA-defect pass** *(FE)* — ✅ **DONE 2026-07-12.** Both criticals (fake "Sanjay RK" name + dead `/settings`), all 10 majors and the minors are fixed and verified in the running app, and **audio was deleted** from the portal. Full detail in `docs/qa/functional-audit-portal.md`. Three deeper defects surfaced during verification and were also fixed: i18n was silently reverting to English on every navigation (a `LanguageDetector` cache clobbering the stored choice), the registration language picker was inert (never switched the app; offered 10 unshipped languages), and the new deep-link `returnUrl` initially shipped an open redirect (caught in security review, fixed with origin validation). Also fixed a latent next/image crash and a missing phone-OTP dev banner that blocked QA registration.
 
-**4. Admin — the Revenue card lies** *(Admin)*
-Caption still reads *"Indicative (₹500/subscription)"* but the backend now returns **real money** from `PaymentHistory`. Fix the caption and consume the `monthlyRevenue` series the API already returns.
+**4. Admin — the Revenue card lies** *(Admin)* — ✅ **FIXED 2026-07-12** (`2dc9cc9`).
+The card now shows real `PaymentHistory` money (exact rupees, en-IN grouped — the BE's own `formattedRevenue` is lossy above ₹1,00,000), renders the 12-month `monthlyRevenue` trend the client used to throw away, and adds a **Pending Verifications** card from the `pendingVerifications` block (also previously discarded).
 
 **5. Go-live config** *(Infra / PM)*
 Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` placeholder today) · **Azkashine GSTIN** on invoices · **MSG91 DLT** registration (SMS) · Meta **WhatsApp** template approval.
@@ -87,13 +87,17 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 **6. Outbound notifications** *(BE ✅ / FE + config left)* — ✅ **backend done (2026-07-12):** channel adapters for MSG91 **SMS + WhatsApp + email** and **FCM push**, fan-out wired into every notification producer, per-channel disable-able, idempotent + retry-safe, no-op safely when unconfigured (in-app keeps working). **Left:** external config (MSG91 keys + DLT/WhatsApp templates, FCM service account) and the notifications dropdown in the portal.
 
-**7. Admin — two missing screens** *(Admin; BE half ✅)*
-- **Taxonomy management** — the backend has **10 admin CRUD endpoints** for Category/Sector/JobTitle and the console has **no page, no nav item, not one API call**. Nobody can manage the taxonomy.
-- **Monetization views** — the **admin-namespaced BE endpoints now exist** (✅ 2026-07-12: `GET /api/admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on the dashboard stats). The **admin-console UI** (payments / invoices / credits / plans / team-seat surface) still to build.
+**7. Admin — two missing screens** *(Admin)* — ✅ **BOTH BUILT 2026-07-12**
+- **Taxonomy management** (`9dc2e0d`) — `/admin/taxonomy`: full Category → Sector → JobTitle CRUD, Sector↔JobTitle link/unlink, and a soft-delete tree that shows deleted rows flagged. *The gap that mattered most: 10 backend endpoints nobody could reach.*
+  - Three traps the UI is built around: a **JobTitle is global and M:N**, so creating one attaches it to nothing (a bare create is invisible in the tree — create-and-link does both); **Delete** removes a title from *every* sector while **Unlink** detaches it from one; **soft-delete is one-way** (the BE has no restore route). Renames **cascade** (`onUpdate: Cascade`) — verified live.
+- **Monetization views** (`1ef4cf5`) — `/admin/monetization`: payments (status/date filters, Razorpay order id for reconciliation), GST invoices (base / CGST+SGST vs IGST / total), and per-employer credits + seats + plan state. Read-only by design (no admin grant/revoke or refunds — those are v1.1).
+- 🔴 **ONE BE GAP LEFT: admin invoice-PDF route.** The only PDF endpoint is `GET /api/employers/me/invoices/:id/pdf`, guarded by `authorize(EMPLOYER_*)` + `withEmployerContext` — **an ADMIN token gets a 403** (verified against the running BE). The console disables the download and states why rather than shipping a button that always fails. **Needs a small BE ticket:** an admin-reachable `GET /api/admin/monetization/invoices/:id/pdf`.
 
-**8. QA defect pass** — **Portal: ✅ DONE (2026-07-12)** — all criticals + majors + minors fixed and live-verified (`docs/qa/functional-audit-portal.md`); the notifications dropdown (PJP-111) was built as part of it. **Admin: still open** — 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — incl. the money-adjacent payment override); see the admin audit doc.
+**8. QA defect pass** — **Portal: ✅ DONE (2026-07-12).** **Admin: ✅ DONE (2026-07-12)** (`ea1325d`, `e017f9b`) — all 5 majors and the minors fixed: the dead header Mail/Bell and the decorative dashboard/documents search are gone (a shared `AdminShell` makes the header search opt-in), the hardcoded "AD/Admin" chip shows the real signed-in admin (sessions predating the change backfill from `GET /admin/profile`), and **every write now confirms itself** — the money-adjacent payment override, all skills CRUD, all moderation actions, document verify/reject, taxonomy and report-resolve. Also: "Employee" → "Job Seekers", ProSiddhi branding, salary thousands separators, and `markViolation` now records **why** (it never sent `violationDetails`/`violationsCount`, though the API always accepted both).
 
-**9. Content moderation + reports** *(BE ✅ / Admin UI left)* — ✅ **backend done (2026-07-12):** `POST /api/admin/posts/:jobId/scan` (OpenAI omni-moderation + India scam-regex, degrades gracefully with no key, persists the flagged text) and a standalone reports queue `GET /api/admin/reports` + `PATCH /api/admin/reports/:id/resolve`. **Left:** the admin-console UI to consume both.
+**9. Content moderation + reports** *(BE ✅ / Admin UI ✅)* — ✅ **DONE 2026-07-12.** Backend shipped both; the console now consumes both.
+- **Reports queue** (`ba93679`) — `/admin/reports`: Open/Resolved/All, the report reason in full, the post's moderation status, and resolve-with-a-note. Resolve is one-way; a concurrent second resolve gets the BE's 409 and is surfaced as *"another admin resolved this first, their note was kept"* rather than as a failure.
+- **Content scan** (`e017f9b`) — the button was shipped **disabled** as "BE pending". That was no longer true: the endpoint **works today even with no OpenAI key**, because the India scam-regex layer needs none. It's live, and the findings panel shows the *offending text*, not just a verdict. With no key the response is a 200 with `openai.configured=false`, and the UI says so explicitly — *"only the scam-rule layer ran; a clean result does not mean OpenAI saw the post"* — because presenting a half-run scan as a clean bill of health on a moderation surface is worse than not scanning.
 
 **10. Portal — delete the audio UI** *(FE)* — ✅ **DONE 2026-07-12.** The 2-min apply recorder, the 60-sec chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, the audio params in `api.ts` and all audio i18n keys (incl. the "Voice Message" plan-feature advert) are gone; the mic Permissions-Policy was revoked. Verified in the running app: 0 `<audio>` elements, 0 mic icons, an application still submits end-to-end.
 
@@ -139,6 +143,28 @@ Nine backlog items delivered on `prosiddhi-backend`, each committed per unit, `t
 
 ---
 
+### 🛠️ Admin session — shipped 2026-07-12
+
+Six units delivered on `prosiddhi-admin`, each committed separately, `type-check` green, and **verified by driving the running app against a live backend on :5000** — not by reading code. All test data (taxonomy rows, a resolved report, a scanned job, a payment-status flip) was **restored afterwards**; the dev DB is back to its baseline.
+
+| # | What shipped | Verified | Commit |
+|---|---|---|---|
+| 1 | **Shared `AdminShell`** (sidebar+header extracted from 6 inline copies), real admin identity, dead chrome removed, **success toast on every write** | 9 nav links resolve, 0 dead header controls, live payment override toasts | `ea1325d` |
+| 2 | **Taxonomy management** — Category/Sector/JobTitle CRUD, M:N link/unlink, soft-delete tree | create → link → unlink (title survived in its 3 other sectors) → soft-delete; 17/17 | `9dc2e0d` |
+| 3 | **Revenue card** — real money, 12-month trend, Pending Verifications | rendered figures == `GET /dashboard/stats`; 10/10 | `2dc9cc9` |
+| 4 | **Monetization** — payments · GST invoices · credits & seats | 10 payments / 6 invoices / 24 wallets match the API; 20/20 | `1ef4cf5` |
+| 5 | **Reports queue + resolve** | resolve persisted the note; concurrent 2nd resolve → 409, first note intact; 14/14 | `ba93679` |
+| 6 | **Content scan live** + violation reasons + salary formatting | scan ran and declared its degraded OpenAI state; violation persisted 2 reasons + count 2; 13/13 | `e017f9b` |
+
+**Three things worth knowing** (they cost real debugging time):
+1. **A `JobTitle` is global and M:N with `Sector`.** Creating one attaches it to nothing, so a bare create is *invisible* in the tree. And **Delete ≠ Unlink**: delete removes the title from *every* sector.
+2. **The content scan works with no OpenAI key** — the India scam-regex layer needs none. It had been shipped disabled as "BE pending" when it was already functional.
+3. **Money needs two formatters.** Whole rupees for summaries; **exact to the paisa** for ledgers. A ₹499 pack + 18% GST bills at **₹588.82** — rounding that to "₹589" in a list an admin reconciles against Razorpay is a real error, not cosmetic.
+
+**Left for the backend:** an admin-reachable invoice-PDF route (§3.7).
+
+---
+
 ## 4. Known bugs (quick list)
 
 | # | Where | Bug |
@@ -150,9 +176,10 @@ Nine backlog items delivered on `prosiddhi-backend`, each committed per unit, `t
 | 5 | Portal | ✅ **FIXED 2026-07-12** — `/settings` is a real page (was a 404) |
 | 6 | Portal | ✅ **FIXED 2026-07-12** — Privacy / Terms / Contact built for real; all other dead footer links removed |
 | 7 | Portal | ✅ **FIXED 2026-07-12** — status pills, formatters, dates, job status and the Google-login path all translate now; **also** fixed the i18n cache bug that reverted the whole app to English on navigation |
-| 8 | Admin | Revenue card captioned "Indicative ₹500/subscription" — it's real money now |
-| 9 | Admin | No success confirmation on any write (incl. payment override) |
-| 10 | Admin | Dead header Mail/Bell buttons + dead dashboard search; hardcoded "AD/Admin" identity |
+| 8 | Admin | ✅ **FIXED 2026-07-12** — Revenue card shows real `PaymentHistory` money + the 12-month trend (was captioned "Indicative ₹500/subscription") |
+| 9 | Admin | ✅ **FIXED 2026-07-12** — every write confirms itself, incl. the payment override |
+| 10 | Admin | ✅ **FIXED 2026-07-12** — dead header Mail/Bell + dashboard search removed; header shows the real signed-in admin |
+| 11 | BE 🔒 | **NEW** — no admin-reachable invoice-PDF route; `GET /api/employers/me/invoices/:id/pdf` 403s for an ADMIN token, so the admin console cannot download an invoice |
 | — | Mobile | ✅ *All 4 earlier mobile bugs FIXED 2026-07-12 (gate, dead route, dead API URL, dropped filters). The "ungated revenue leak" was a mis-diagnosis — the BE always gated posting.* |
 
 ---
@@ -176,7 +203,7 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 |---|---|---|---|
 | **1** | **Backend — seat bugs + audio removal** 🔴 | Fix the **two seat bugs** ([MONETIZATION.md](MONETIZATION.md) §6): `seatCap = MAX(seats)` across active plans, and make seats real (`EmployerUser` 1:N, org-keyed subscriptions, one `resolveEmployerContext()`). **Remove the audio accept-paths.** *P0 — a multi-seat plan currently delivers no shared wallet.* | `prosiddhi-backend` |
 | **2** | **Portal QA fixes + audio removal** | The 2 criticals (both in `UserDropdown.tsx` — one fix clears both), then the 10 majors from `docs/qa/functional-audit-portal.md`. **Delete the audio UI** (2-min apply recorder, 60-sec chat recorder, the recorder hook). | `prosiddhi-frontend` |
-| **3** | **Admin: build + fix + docs** | **Build** the taxonomy management screen (the BE has 10 CRUD endpoints; there is *no* UI) + the admin-namespaced **monetization endpoints** (ours to build now) and their views. Fix the **Revenue-card lie**. Fix the 5 majors from `docs/qa/functional-audit-admin.md`. | `prosiddhi-admin` (+ BE) |
+| **3** | ~~**Admin: build + fix + docs**~~ ✅ **DONE 2026-07-12** | Taxonomy screen ✅ · monetization views ✅ · Revenue-card lie ✅ · the 5 majors ✅ · reports queue ✅ · content scan ✅. Six commits, each live-verified. Only an admin invoice-PDF **BE route** is left. | `prosiddhi-admin` |
 | **4** | **Mobile P0** | The **post-credit gate** (revenue leak), the broken `/forgot-password` route, the dead default API URL, the dropped search filters, and **delete the inert audio UI**. | `prosiddhi-mobile-app` |
 | **5** | **Mobile — monetization** | Full **in-app Razorpay** (D2): plans screen → checkout → verify → credit wallet → invoices. *Verify store policy first.* | `prosiddhi-mobile-app` |
 | **6+** | **Mobile — completion** | **i18n (EN/HI)** — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
