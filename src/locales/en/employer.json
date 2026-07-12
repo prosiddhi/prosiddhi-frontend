@@ -12,11 +12,9 @@
     "owner": "Owner",
     "statusActive": "Active",
     "statusPending": "Pending",
-    "removeFailed": "Couldn't remove this seat. Please try again.",
     "inviteTitle": "Invite a teammate",
     "emailPlaceholder": "teammate@company.com",
     "sendInvite": "Send invite",
-    "inviteFailed": "Couldn't create the invite. Please try again.",
     "inviteFull": "All your seats are in use. Upgrade to a Pro plan to add more team members.",
     "viewPlans": "View plans",
     "inviteCreated": "Invite created for {{email}}. Share this link with them:",
@@ -30,7 +28,6 @@
     "pendingInvitesTitle": "Pending invites",
     "removeMemberAria": "Remove {{email}} from the team",
     "revokeInviteAria": "Cancel the invite to {{email}}",
-    "revokeFailed": "Couldn't cancel this invite. Please try again.",
     "memberViewNote": "Only the account owner can invite or remove teammates.",
     "accept": {
       "title": "Join a team",
@@ -73,7 +70,8 @@
       "noSeat": "This team has no free seats left. Ask the account owner to upgrade their plan or free up a seat, then try again.",
       "workspaceConflict": "This account already runs its own company workspace with jobs, credits or payments, so it cannot also hold a seat on another team. Accept the invite with a different account.",
       "rateLimited": "Too many attempts. Please wait a minute and try again.",
-      "generic": "Something went wrong and we couldn't accept this invite. Please try again."
+      "generic": "Something went wrong and we couldn't accept this invite. Please try again.",
+      "notOwner": "Only the account owner can change the team. Ask them to make this change."
     }
   },
   "candidate": {

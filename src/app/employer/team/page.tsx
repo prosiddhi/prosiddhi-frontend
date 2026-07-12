@@ -25,6 +25,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { formatShortDate } from '@/lib/jobFormat'
+import { inviteErrorKey } from '@/lib/inviteErrors'
 import { invitePath } from '@/lib/inviteToken'
 import { teamAPI, type TeamSummary, type InviteResult } from '@/lib/api'
 import {
@@ -97,7 +98,10 @@ function TeamContent() {
       setEmail('')
       await load() // refresh roster + seat counts
     } catch (err) {
-      setInviteError(err instanceof Error ? err.message : t('employer:team.inviteFailed'))
+      // Localized via the shared invite error map — the BE's messages are English
+      // only, and an owner running the app in Hindi should not be told "That email
+      // is registered as a job seeker" in English.
+      setInviteError(t(inviteErrorKey(err)))
     } finally {
       setInviting(false)
     }
@@ -124,7 +128,7 @@ function TeamContent() {
     } catch (err) {
       // Surface inline — do NOT use the page-level `error` (that gate would
       // blank the whole roster/usage/invite view on a transient failure).
-      setRemoveError(err instanceof Error ? err.message : t('employer:team.removeFailed'))
+      setRemoveError(t(inviteErrorKey(err)))
     } finally {
       setRemovingId(null)
     }
@@ -140,7 +144,7 @@ function TeamContent() {
       if (lastInvite?.inviteId === inviteId) setLastInvite(null)
       await load()
     } catch (err) {
-      setRemoveError(err instanceof Error ? err.message : t('employer:team.revokeFailed'))
+      setRemoveError(t(inviteErrorKey(err)))
     } finally {
       setRemovingId(null)
     }

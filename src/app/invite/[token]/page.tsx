@@ -25,7 +25,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatShortDate } from '@/lib/jobFormat'
-import { teamAPI, ApiError, type InvitePeek } from '@/lib/api'
+import { teamAPI, type InvitePeek } from '@/lib/api'
+import { inviteErrorKey, isTerminalInviteError } from '@/lib/inviteErrors'
 import {
   clearInviteToken,
   invitePath,
@@ -35,58 +36,27 @@ import {
 } from '@/lib/inviteToken'
 import { Users, Loader2, AlertCircle, CheckCircle2, Building2, Mail } from 'lucide-react'
 
-type TFunc = ReturnType<typeof useTranslation>['t']
-
-/**
- * Map a failed accept to a human, actionable message.
- *
- * Branch on STATUS first. The BE's `reason` is only sent when it runs with
- * NODE_ENV=development (sendError gates the payload), so in production it is
- * absent — a `reason`-only map would silently degrade to "something went wrong"
- * on the exact surface where the user most needs to be told what to do. `reason`
- * refines the 400 case, which is the one status carrying two distinct meanings.
- */
-function messageForInviteError(err: unknown, t: TFunc): string {
-  if (!(err instanceof ApiError)) {
-    return err instanceof Error ? err.message : t('employer:invite.errors.generic')
-  }
-  switch (err.status) {
-    case 402: // NO_SEAT_AVAILABLE — the plan shrank between invite and accept.
-      return t('employer:invite.errors.noSeat')
-    case 403: // INVITE_EMAIL_MISMATCH (or a non-employer JWT, which we pre-empt).
-      return t('employer:invite.errors.emailMismatch')
-    case 409: // WORKSPACE_CONFLICT — they already run a real workspace of their own.
-      return t('employer:invite.errors.workspaceConflict')
-    case 404: // Unknown / spent / expired token.
-      return t('employer:invite.errors.invalid')
-    case 400:
-      // INVITE_INVALID = dead token. INVITE_REJECTED = a real token this account
-      // may not use (seeker email, already a teammate, self-invite). Without a
-      // reason (production) we must cover both without lying about either.
-      if (err.reason === 'INVITE_INVALID') return t('employer:invite.errors.invalid')
-      if (err.reason === 'INVITE_REJECTED') return t('employer:invite.errors.rejected')
-      return t('employer:invite.errors.badRequest')
-    case 429:
-      return t('employer:invite.errors.rateLimited')
-    default:
-      return t('employer:invite.errors.generic')
-  }
-}
-
 export default function InviteLandingPage() {
   const { t } = useTranslation()
   const router = useRouter()
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth()
 
+  // useParams() already returns the segment DECODED. Decoding it again would be
+  // both pointless (an invite token is base64url — it never needs unescaping) and
+  // a crash: decodeURIComponent('%') throws URIError, and this runs during render.
   const rawToken = useParams().token
-  const token = typeof rawToken === 'string' ? decodeURIComponent(rawToken) : ''
+  const token = typeof rawToken === 'string' ? rawToken : ''
   const tokenLooksReal = isValidInviteToken(token)
 
   const [invite, setInvite] = useState<InvitePeek | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  // Errors are held as i18n KEYS, not rendered sentences: a message raised in
+  // English must not stay English when the user switches to Hindi. It also keeps
+  // `t` out of the effect deps below — its identity changes on every language
+  // switch, which would otherwise re-hit the rate-limited peek endpoint.
+  const [loadErrorKey, setLoadErrorKey] = useState('')
   const [accepting, setAccepting] = useState(false)
-  const [acceptError, setAcceptError] = useState('')
+  const [acceptErrorKey, setAcceptErrorKey] = useState('')
   const [accepted, setAccepted] = useState(false)
 
   // Look the invite up. Public call — no JWT required, and none is needed to
@@ -95,7 +65,7 @@ export default function InviteLandingPage() {
     let cancelled = false
     if (!tokenLooksReal) {
       setLoading(false)
-      setLoadError(t('employer:invite.errors.invalid'))
+      setLoadErrorKey('employer:invite.errors.invalid')
       return
     }
     ;(async () => {
@@ -103,7 +73,7 @@ export default function InviteLandingPage() {
         const peek = await teamAPI.peekInvite(token)
         if (!cancelled) setInvite(peek)
       } catch (err) {
-        if (!cancelled) setLoadError(messageForInviteError(err, t))
+        if (!cancelled) setLoadErrorKey(inviteErrorKey(err))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -111,7 +81,7 @@ export default function InviteLandingPage() {
     return () => {
       cancelled = true
     }
-  }, [token, tokenLooksReal, t])
+  }, [token, tokenLooksReal])
 
   const emailMatches =
     !!invite &&
@@ -122,18 +92,24 @@ export default function InviteLandingPage() {
 
   const accept = useCallback(async () => {
     setAccepting(true)
-    setAcceptError('')
+    setAcceptErrorKey('')
     try {
       await teamAPI.acceptInvite(token)
       clearInviteToken() // single-use — it is spent now
       setAccepted(true)
     } catch (err) {
-      clearInviteToken() // don't re-drive a failing auto-accept on the next visit
-      setAcceptError(messageForInviteError(err, t))
+      // Only drop the carry-through on a TERMINAL failure (dead token, wrong
+      // account, real workspace). On a transient one — a network blip, a 429, a
+      // 500, an expired JWT — keeping the stash is what lets the journey survive:
+      // clearing it here would silently strand an invitee who did nothing wrong,
+      // and on a 401 they get logged out and would land on the dashboard with the
+      // invite gone and no sign it ever existed.
+      if (isTerminalInviteError(err)) clearInviteToken()
+      setAcceptErrorKey(inviteErrorKey(err))
     } finally {
       setAccepting(false)
     }
-  }, [token, t])
+  }, [token])
 
   // Auto-accept on RETURN from auth: they clicked once, went through sign-in or
   // registration, and came back. The stash proves it was this same tab's journey,
@@ -204,12 +180,14 @@ export default function InviteLandingPage() {
                 {t('employer:invite.goToDashboard')}
               </button>
             </div>
-          ) : loadError || !invite ? (
+          ) : loadErrorKey || !invite ? (
             /* Dead link — never a dead end: always give them somewhere to go. */
             <div className="text-center">
               <AlertCircle className="w-14 h-14 text-red-500 mx-auto mb-4" />
               <h1 className="text-xl font-semibold mb-2">{t('employer:invite.invalidTitle')}</h1>
-              <p className="text-sm text-[#717182] mb-6">{loadError || t('employer:invite.errors.invalid')}</p>
+              <p className="text-sm text-[#717182] mb-6">
+                {t(loadErrorKey || 'employer:invite.errors.invalid')}
+              </p>
               <Link
                 href={homeHref}
                 className="inline-flex w-full items-center justify-center py-2.5 border border-primary-50 text-primary-50 rounded-lg text-sm font-medium hover:bg-primary-50/5 transition-colors"
@@ -250,10 +228,10 @@ export default function InviteLandingPage() {
                 </p>
               </dl>
 
-              {acceptError && (
+              {acceptErrorKey && (
                 <div className="flex items-start gap-2 text-red-600 text-sm mb-4">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>{acceptError}</span>
+                  <span>{t(acceptErrorKey)}</span>
                 </div>
               )}
 
