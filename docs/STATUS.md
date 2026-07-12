@@ -63,12 +63,25 @@ Login, dashboard, job-seeker management, employer management, document verificat
 
 ### 🔴 P0 — blocks launch
 
-**1. Two seat bugs — ✅ FIXED on the backend (2026-07-12)** *(BE)*
+**1. Two seat bugs — ✅ DONE, BE **and** FE (2026-07-12)**
 - **Seat cap reads the wrong plan** — ✅ fixed. One `getEntitlements()` aggregates `seatCap = MAX(seats)` / `walletExpiry = MAX(expiresAt)`; no controller computes seats inline.
 - **Seats are roster-only** — ✅ fixed. New `EmployerUser` membership (1:N, the only authz edge), `Subscription`/`PaymentHistory` re-keyed to `employerId`, one `resolveEmployerContext()` every employer controller routes through. Shared org wallet/jobs/unlocks; OWNER vs MEMBER roles; soft-revoke removal; seat downgrade auto-suspends newest-first at request time + in the cron.
 - **Invite flow** — ✅ fixed. Hashed single-use email-bound 7-day token, owner-revocable, cap checked at invite + accept, public peek endpoint so the FE can carry the token through auth and auto-accept.
-- **Still needs the FE:** the portal `/invite/:token` landing page + token-through-auth plumbing (backend is ready).
+- **Portal — ✅ DONE 2026-07-12.** The FE is reconciled with the as-built contract and the missing landing page is built:
+  - The invite link was **dead**: the FE still read the pre-rework `inviteToken` field, so every link it produced was `?token=undefined`. **No invite could ever be accepted.**
+  - The roster **conflated members with invites** — it compared `status === 'ACCEPTED'`, an enum value that no longer exists, so every ACTIVE teammate rendered as "Pending". It now renders `members[]` (ACTIVE / **SUSPENDED**, the seat-downgrade state) and `invites[]` as separate groups, using `me.role` / `me.seatStatus` for the owner-vs-member view.
+  - **Remove vs revoke split** — `DELETE /me/team/:membershipId` vs the new `DELETE /me/team/invites/:inviteId`. Different id spaces; crossing them 404s (verified).
+  - **NEW public `/invite/<token>` landing page** — peeks the invite, then carries the token through sign-in *or* registration and **auto-accepts on return**, so the link really is clicked once. `/employer/team/accept` is retired to a redirect: **one accept path, not two.** Every BE error (`NO_SEAT_AVAILABLE`, `INVITE_EMAIL_MISMATCH`, `WORKSPACE_CONFLICT`, …) maps to an actionable EN/HI message.
+  - Also fixed en route: a **live open redirect** in the post-login `returnUrl` (an origin-passing URL could still yield a protocol-relative `//evil.com` pathname), a render crash on a malformed `/invite/%` param, and a transient-failure path that silently destroyed the invite journey.
+- ⚠️ **The cold path needs one BE fix that is NOT yet on `prosiddhi-backend/main` — see item 1a.**
 → Full detail in [MONETIZATION.md](MONETIZATION.md) §6.1–6.3.
+
+**1a. 🔴 BE — a trial credit lot blocks every new invitee** *(BE — needs Asrar coordination, then merge)*
+On `prosiddhi-backend`: branch **`fix/invite-trial-lot-blocks-cold-path`**, commit `2b5a3ad`. **Deliberately not merged to `main`** (team rule: coordinate BE commits with Asrar).
+
+`isDisposableShell()` counted **every** `CreditLot` — but registration **auto-grants a TRIAL lot**, so every freshly-registered employer looked like it "already runs its own company workspace". The **cold-start invite path therefore 409'd every single time**: invite a brand-new person → they register → accept fails `WORKSPACE_CONFLICT`, with no way through. That is the flagship path of the rebuilt flow. Counting only `SUBSCRIPTION` + `PACK` lots (money actually spent) fixes it — the same trap the payments check already sidesteps by filtering on `SUCCESS`: *a row the system wrote must not be mistaken for work the user did.*
+
+**Found by running the flow against a live server, not by reading code.** Verified after the fix: accept returns `MEMBER/ACTIVE` and the new member resolves the **org's** wallet (66 post / 657 download) instead of their own trial 1/3 — the entire point of a multi-seat plan. **Until this merges, team invites work only for people who already have an employer account.**
 
 **2. Backend — auth OTP leak + account-enumeration** 🔒 *(BE — found by the mobile session 2026-07-12)*
 - `POST /api/auth/forgot-password` returns the reset code in `data.otp`. Worse, the field is **present for a registered email and absent otherwise** → an **account-enumeration oracle**.
