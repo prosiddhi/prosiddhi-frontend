@@ -7,14 +7,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
-  Mail,
-  Bell,
   Home,
   Briefcase,
   Bookmark,
@@ -114,15 +112,7 @@ function ApplicationDetailsContent() {
           </nav>
 
           {/* Right side - User profile */}
-          <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
-            <button className="hidden sm:block hover:text-primary-50 transition-colors">
-              <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-            <button className="hidden sm:block hover:text-primary-50 transition-colors">
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-            <UserDropdown />
-          </div>
+          <HeaderActions />
         </div>
       </header>
 

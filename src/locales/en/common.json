@@ -156,5 +156,13 @@
     "hoursAgo_other": "{{count}} hours ago",
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "aria": "Notifications",
+    "ariaWithCount": "Notifications, {{count}} unread",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet.",
+    "loadError": "Couldn't load your notifications."
   }
 }

@@ -156,5 +156,13 @@
     "hoursAgo_other": "{{count}} घंटे पहले",
     "daysAgo_one": "{{count}} दिन पहले",
     "daysAgo_other": "{{count}} दिन पहले"
+  },
+  "notifications": {
+    "title": "सूचनाएँ",
+    "aria": "सूचनाएँ",
+    "ariaWithCount": "सूचनाएँ, {{count}} अपठित",
+    "markAllRead": "सभी पढ़ी हुई करें",
+    "empty": "अभी तक कोई सूचना नहीं।",
+    "loadError": "आपकी सूचनाएँ लोड नहीं हो सकीं।"
   }
 }

@@ -10,13 +10,11 @@ import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
 import {
-  Mail,
-  Bell,
   Home,
   Briefcase,
   Bookmark,
@@ -148,11 +146,7 @@ function JobDetailsContent() {
             </Link>
             <LanguageSwitcher />
           </nav>
-          <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
-            <button className="hidden sm:block hover:text-primary-50 transition-colors"><Mail className="w-5 h-5 sm:w-6 sm:h-6" /></button>
-            <button className="hidden sm:block hover:text-primary-50 transition-colors"><Bell className="w-5 h-5 sm:w-6 sm:h-6" /></button>
-            <UserDropdown />
-          </div>
+          <HeaderActions />
         </div>
       </header>
 
