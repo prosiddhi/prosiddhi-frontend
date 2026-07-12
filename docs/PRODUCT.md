@@ -41,9 +41,10 @@ Employer registers → buys credits → posts a job → reviews applicants
 - **No Aadhaar. Anywhere.** Not collected, not verified, not mocked. Permanently out of scope.
 
 **Content & media**
-- ⛔ **AUDIO IS OUT OF SCOPE FOR V1** *(decided 2026-07-12)* — **no audio anywhere**: no voice message on a job application, no audio in chat. **Do not build it on any surface.**
-  - *This reverses the earlier plan* (2-min application audio + 60-sec chat audio). The backend supports audio and the **web portal already has it built** — that UI must be **hidden/removed for V1**, and **mobile must not build it**. Revisit in v2.
-- **Chat is polling-based, text-only in V1.** (No WebSockets — that decision is final, not deferred.)
+- ⛔ **AUDIO IS REMOVED FROM THE PRODUCT** *(decided 2026-07-12)* — **no audio anywhere**: no voice message on a job application, no audio in chat. Not hidden, not feature-flagged — **removed**.
+  - *This reverses the original plan* (2-min application audio + 60-sec chat audio, once a headline feature). The **portal had it built and working**; that UI is being **deleted**. **Mobile must not build it** (its audio UI is inert and is being removed). The **backend's audio accept-paths are being removed** too — the DB columns may remain (dropping them is a destructive migration with no benefit).
+  - Do **not** reintroduce audio without an explicit product-owner decision.
+- **Chat is polling-based and text-only.** (No WebSockets — that decision is final, not deferred.)
 - Voice/TTS *playback* of the UI (the 🔊 icons) is **v2** — the icons exist but are intentionally inert.
 
 **Jobs & taxonomy**

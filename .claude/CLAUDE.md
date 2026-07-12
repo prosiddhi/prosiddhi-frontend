@@ -22,7 +22,8 @@ What's left is in `STATUS.md` §3 — headline: **two seat bugs**, **outbound no
 
 ## Hard rules
 
-- **Never edit the backend.** It's Asrar's repo. Read `../prosiddhi-backend/src/routes/*.routes.ts` to confirm a contract, but don't change it.
+- **We now own the backend** *(changed 2026-07-12)*. We hold the `prosiddhi-backend` code and make BE changes ourselves — the old "never edit the backend" rule is **retired**. ⚠️ **Coordinate with Asrar before committing to it**, or you'll collide.
+- **⛔ Audio is REMOVED from the product** — no application voice message, no chat audio. Don't build it, don't restore it.
 - **Always use the `api.ts` client** — never a raw `fetch`.
 - **Confirm every API path against the real backend routes** before wiring it. Do not trust a path from a doc or from memory.
 - **`npm run type-check` must exit 0** before any commit (a pre-commit hook enforces it).

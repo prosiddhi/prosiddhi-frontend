@@ -143,24 +143,26 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 
 | # | Session | Scope | Repo |
 |---|---|---|---|
-| **1** | **Portal QA fixes** | The 2 criticals (both in `UserDropdown.tsx` — one fix clears both) then the 10 majors from `docs/qa/functional-audit-portal.md`. **Also: hide/remove the audio UI** (audio is out of V1 — see §1). | `prosiddhi-frontend` |
-| **2** | **Admin: build + fix + docs** | **Build** the taxonomy management screen (the BE has 10 CRUD endpoints; there is *no* UI) and fix the Revenue-card lie (consume the real `monthlyRevenue`). **Fix** the 5 majors from `docs/qa/functional-audit-admin.md`. Update the admin's docs. | `prosiddhi-admin` |
-| **3** | **Mobile P0** | Plug the holes: the **post-credit gate** (revenue leak), the broken `/forgot-password` route, the dead default API URL, the dropped search filters, and **remove the inert audio UI**. | `prosiddhi-mobile-app` |
-| **4+** | **Mobile completion** | **i18n (EN/HI)** first — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
+| **1** | **Backend — seat bugs + audio removal** 🔴 | Fix the **two seat bugs** ([MONETIZATION.md](MONETIZATION.md) §6): `seatCap = MAX(seats)` across active plans, and make seats real (`EmployerUser` 1:N, org-keyed subscriptions, one `resolveEmployerContext()`). **Remove the audio accept-paths.** *P0 — a multi-seat plan currently delivers no shared wallet.* | `prosiddhi-backend` |
+| **2** | **Portal QA fixes + audio removal** | The 2 criticals (both in `UserDropdown.tsx` — one fix clears both), then the 10 majors from `docs/qa/functional-audit-portal.md`. **Delete the audio UI** (2-min apply recorder, 60-sec chat recorder, the recorder hook). | `prosiddhi-frontend` |
+| **3** | **Admin: build + fix + docs** | **Build** the taxonomy management screen (the BE has 10 CRUD endpoints; there is *no* UI) + the admin-namespaced **monetization endpoints** (ours to build now) and their views. Fix the **Revenue-card lie**. Fix the 5 majors from `docs/qa/functional-audit-admin.md`. | `prosiddhi-admin` (+ BE) |
+| **4** | **Mobile P0** | The **post-credit gate** (revenue leak), the broken `/forgot-password` route, the dead default API URL, the dropped search filters, and **delete the inert audio UI**. | `prosiddhi-mobile-app` |
+| **5** | **Mobile — monetization** | Full **in-app Razorpay** (D2): plans screen → checkout → verify → credit wallet → invoices. *Verify store policy first.* | `prosiddhi-mobile-app` |
+| **6+** | **Mobile — completion** | **i18n (EN/HI)** — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
 
-**In parallel — Asrar (backend), not in the sessions above:**
-1. 🔴 The **two seat bugs** (see [MONETIZATION.md](MONETIZATION.md) §6) — a multi-seat plan currently delivers no shared wallet.
-2. **Admin-namespaced monetization endpoints** (payments / invoices / credits list) — Session 2 needs these, or the admin screen has nothing behind it.
-3. **Outbound notifications** (MSG91 SMS/WhatsApp/email + FCM push).
+**Still unowned / not scheduled:** outbound notifications (MSG91 SMS/WhatsApp/email + FCM push), OpenAI content scan, reports queue.
 
-### Open decisions (blocking parts of the plan)
+> ⚠️ **We now own the backend (D3).** Coordinate with Asrar before touching `prosiddhi-backend` — if you both commit, you will collide.
 
-| # | Decision | Recommendation |
+### Decisions (locked 2026-07-12)
+
+| # | Decision | ✅ Locked |
 |---|---|---|
-| **D1** | **Portal audio — hide it, or delete it?** Audio is out of V1, but the portal has it **built and working** (2-min apply recorder, 60-sec chat recorder). | **Hide** behind a flag rather than delete — it's working code and audio returns in v2. |
-| **D2** | **Mobile payments — in-app Razorpay, or buy-on-web?** | **Buy-on-web.** Enforce the *gate* on mobile but send employers to the web to purchase. Closes the revenue leak cheaply, avoids native Razorpay risk, and sidesteps App Store / Play policy on in-app purchase of digital goods. |
-| **D3** | **Is English-only acceptable for a mobile launch?** | **No.** The product's core users are low-literacy **Hindi**-speaking workers, and mobile is currently English-only while the web has full EN/HI. Treat mobile i18n as a **launch blocker**, not polish. |
-| **D4** | **Mobile stack:** the locked scope says **React Native**; the app is **Flutter** (~19k lines of Dart, not portable). | Formally record Flutter as the stack so it stops resurfacing. |
+| **D1** | Portal audio — hide or delete? | 🔒 **DELETE. Remove the audio feature entirely** — portal, mobile, and the backend accept-paths. Not hidden, not flagged, **removed**. *(DB columns may remain — dropping them is a destructive migration with no benefit.)* |
+| **D2** | Mobile payments — in-app Razorpay or buy-on-web? | 🔒 **In-app Razorpay.** Mobile gets the full checkout (plans → `/api/billing/checkout` → `razorpay_flutter` → `/api/billing/verify-payment` → wallet). ⚠️ **Risk to verify:** Google Play / Apple may treat job-posting credits as *digital goods* and require their own in-app billing (15–30%). B2B services are often exempt — **confirm against store policy before building the checkout.** |
+| **D3** | **Who owns the backend?** | 🔒 **We do.** We hold the BE code and will make the backend changes ourselves — this **reverses the old "never edit the backend" rule.** ⚠️ **Coordinate with Asrar** so we don't both commit to `prosiddhi-backend` at once. |
+| **D4** | Is English-only acceptable for a mobile launch? | ⏸️ **Open.** Recommendation: **no** — the core users are low-literacy **Hindi** speakers and mobile is English-only while the web has full EN/HI. Treat mobile i18n as a **launch blocker**, not polish. |
+| **D5** | Mobile stack: the locked scope says **React Native**; the app is **Flutter** (~19k lines of Dart, not portable). | ⏸️ Formally record **Flutter** as the stack so it stops resurfacing. |
 
 ---
 
