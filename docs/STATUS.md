@@ -23,7 +23,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 ### ⛔ Audio is OUT of V1 (decided 2026-07-12)
 **No audio anywhere** — no application voice message, no chat audio. This **reverses the earlier plan**. The backend supports it and **the web portal already has it built**, so that UI must be **hidden/removed**; **mobile must not build it**. See §3.
 
-**Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). What remains is: **two seat bugs**, **outbound notifications**, **two missing admin screens**, a **QA-defect pass**, and **go-live config**.
+**Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are now FIXED on the backend** (real org membership + shared wallet, correct seat-cap aggregation, rebuilt invite flow), **audio accept-paths removed** (backward-tolerant), and the backend now has **admin monetization endpoints, a reports queue, content scan, and outbound notification channels** (MSG91 + FCM, no-op until keyed). What remains is mostly **frontend + external config**: the admin-console monetization/taxonomy screens, the portal invite-flow landing page, a QA-defect pass, and go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN). See the **backend session summary** at the end of §3.
 
 ---
 
@@ -62,11 +62,12 @@ Login, dashboard, job-seeker management, employer management, document verificat
 
 ### 🔴 P0 — blocks launch
 
-**1. Two seat bugs — a paid feature isn't delivering what customers pay for** *(BE)*
-- **Seat cap reads the wrong plan.** With two active plans it takes the *latest-expiring* plan's seats instead of the **highest**. A 2-seat Pro plan can silently collapse to 1 seat. (`team.service.ts:63-74` — fix: `seatCap = MAX(seats)` across active plans.)
-- **Seats are roster-only.** `User↔Employer` is still **1:1** and subscriptions are keyed by `userId`, so **each teammate has their own wallet** — a ₹11,999 / ₹21,999 multi-seat plan delivers **no shared credits, jobs or unlocks**. Needs `EmployerUser` (1:N), org-keyed subscriptions, one `resolveEmployerContext()`.
-- **Invite flow** must become one guided flow (invite token survives login/registration → auto-accept). Today the invitee must click the link **twice**.
-→ Full spec in [MONETIZATION.md](MONETIZATION.md) §6.
+**1. Two seat bugs — ✅ FIXED on the backend (2026-07-12)** *(BE)*
+- **Seat cap reads the wrong plan** — ✅ fixed. One `getEntitlements()` aggregates `seatCap = MAX(seats)` / `walletExpiry = MAX(expiresAt)`; no controller computes seats inline.
+- **Seats are roster-only** — ✅ fixed. New `EmployerUser` membership (1:N, the only authz edge), `Subscription`/`PaymentHistory` re-keyed to `employerId`, one `resolveEmployerContext()` every employer controller routes through. Shared org wallet/jobs/unlocks; OWNER vs MEMBER roles; soft-revoke removal; seat downgrade auto-suspends newest-first at request time + in the cron.
+- **Invite flow** — ✅ fixed. Hashed single-use email-bound 7-day token, owner-revocable, cap checked at invite + accept, public peek endpoint so the FE can carry the token through auth and auto-accept.
+- **Still needs the FE:** the portal `/invite/:token` landing page + token-through-auth plumbing (backend is ready).
+→ Full detail in [MONETIZATION.md](MONETIZATION.md) §6.1–6.3.
 
 **2. Backend — auth OTP leak + account-enumeration** 🔒 *(BE — found by the mobile session 2026-07-12)*
 - `POST /api/auth/forgot-password` returns the reset code in `data.otp`. Worse, the field is **present for a registered email and absent otherwise** → an **account-enumeration oracle**.
@@ -86,15 +87,15 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 ### 🟠 P1 — needed for a complete product
 
-**6. Outbound notifications** *(BE)* — everything is **in-app only** today. Needs MSG91 **SMS + WhatsApp + email** and **FCM push**, plus the notifications dropdown in the portal.
+**6. Outbound notifications** *(BE ✅ / FE + config left)* — ✅ **backend done (2026-07-12):** channel adapters for MSG91 **SMS + WhatsApp + email** and **FCM push**, fan-out wired into every notification producer, per-channel disable-able, idempotent + retry-safe, no-op safely when unconfigured (in-app keeps working). **Left:** external config (MSG91 keys + DLT/WhatsApp templates, FCM service account) and the notifications dropdown in the portal.
 
-**7. Admin — two missing screens** *(Admin, + BE)*
+**7. Admin — two missing screens** *(Admin; BE half ✅)*
 - **Taxonomy management** — the backend has **10 admin CRUD endpoints** for Category/Sector/JobTitle and the console has **no page, no nav item, not one API call**. Nobody can manage the taxonomy.
-- **Monetization views** — no payments / invoices / credits / plans / team-seat surface at all. Needs new **admin-namespaced BE endpoints** first (payments/invoices/credits lists) — ours to build now.
+- **Monetization views** — the **admin-namespaced BE endpoints now exist** (✅ 2026-07-12: `GET /api/admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on the dashboard stats). The **admin-console UI** (payments / invoices / credits / plans / team-seat surface) still to build.
 
 **8. QA defect pass** — portal: 10 major (dead legal/footer links, several strings that never translate to Hindi, dead Mail/Bell + hero CTA). Admin: 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — incl. the money-adjacent payment override). Full lists in the two audit docs.
 
-**9. Content moderation + reports** *(BE + Admin)* — OpenAI "Scan Content" (button honestly disabled today) and a standalone reports queue + resolve. Neither exists on either side.
+**9. Content moderation + reports** *(BE ✅ / Admin UI left)* — ✅ **backend done (2026-07-12):** `POST /api/admin/posts/:jobId/scan` (OpenAI omni-moderation + India scam-regex, degrades gracefully with no key, persists the flagged text) and a standalone reports queue `GET /api/admin/reports` + `PATCH /api/admin/reports/:id/resolve`. **Left:** the admin-console UI to consume both.
 
 **10. Portal — delete the audio UI** *(FE)* — audio is **removed from the product** (decision 2026-07-12), but the **portal still has it built and working** (2-min apply recorder, 60-sec chat recorder, the recorder hook, test-microphone page). **Delete it** so QA can't test it and users can't reach it. *(Mobile has already deleted its audio UI. The backend tolerates a stray audio field, so ordering is safe.)*
 
@@ -105,7 +106,36 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 **13. The other 8 languages** (web EN + HI done; mobile EN + HI done; the other 8 are for later).
 **14. Security** — move the JWT from `localStorage` to an httpOnly cookie (both web apps).
 **15. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
-**16. Audio** — revisit for v2 (removed from V1; the backend still supports it).
+**16. Audio** — revisit for v2 (removed from V1). The backend **accept-paths are now removed** (2026-07-12): apply + chat are text-only, but backward-tolerant — a stale client that still sends an `audio` field is accepted and the audio silently discarded, never a 400. The DB `audio*` columns remain (dropping them is a destructive migration with no benefit).
+
+---
+
+### 🛠️ Backend session — shipped 2026-07-12 (we now own the backend, D3)
+
+Nine backlog items delivered on `prosiddhi-backend`, each committed per unit, `type-check` green, and **verified end-to-end against a live server on :5000** (not from reading code). Commits: `feat(seats)`, `feat(audio)`, `feat(admin)`, `feat(notifications)`.
+
+| # | What shipped | Verified |
+|---|---|---|
+| 1 | **Seat-cap bug** — `getEntitlements()` aggregates `seatCap = MAX(seats)`, `walletExpiry = MAX(expiresAt)`; no inline seat math | 2-seat Pro (170d) + 1-seat Starter (180d) → cap 2, expiry 180d |
+| 2 | **Real org seats** — `EmployerUser` (1:N, only authz edge), `Subscription`/`PaymentHistory` re-keyed to `employerId`, one `resolveEmployerContext()`; OWNER/MEMBER roles; soft-revoke; request-time + cron seat-downgrade | shared wallet/jobs/unlocks; member manages applicants + chat; suspend-newest-first + restore; owner-protected |
+| 3 | **Invite flow** — hashed single-use email-bound 7-day token, owner-revocable, cap at invite+accept, public peek for token-through-auth | wrong account → 403, replay → 400, seeker-email refused |
+| 4 | **Audio removed** — apply + chat text-only, backward-tolerant (stray `audio` field discarded, never 400) | bogus audio upload → 201, columns null, temp file discarded |
+| 5 | **Admin monetization** — `GET /admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on dashboard stats | real data paginates; overview reuses the credit ledger |
+| 6 | **Reports queue** — `GET /admin/reports` + `PATCH /admin/reports/:id/resolve` (guarded) | queue lists, resolve works, double-resolve → 409 |
+| 7 | **Content scan** — `POST /admin/posts/:jobId/scan` (OpenAI omni-moderation + India scam-regex), degrades gracefully without a key, persists flagged text | scammy post → 5 regex hits + PENDING_REVIEW; clean post → none; no key → clear message |
+| 8 | **Outbound notifications** — MSG91 SMS/WhatsApp/Email + FCM push adapters, fan-out in every producer, per-channel disable-able, idempotent + retry-safe, no-op when unconfigured | accept fires in-app + 4 SKIPPED delivery rows; re-dispatch stays idempotent |
+| 9 | **Security/hygiene** — authz on every new route, Zod on every input, rate-limits on new endpoints, no secrets logged; `/code-review` + `/security-review` clean | reviews green, no high-confidence findings |
+
+**Migration:** run `prisma/migrations/2026-07-12_org_seats/up.sql` (data-preserving re-key + backfill; idempotent; reversible via `down.sql`) **before** `prisma db push`. Needs the `pgcrypto` extension (the migration creates it).
+
+**Still needs EXTERNAL config before these light up in prod:**
+- **MSG91** — `MSG91_AUTH_KEY` + **DLT-approved SMS template/sender IDs** + **Meta-approved WhatsApp template** + email template/domain. Until set, SMS/WhatsApp/Email deliveries record `SKIPPED`.
+- **FCM** — `FCM_SERVICE_ACCOUNT` (service-account JSON). Until set, push records `SKIPPED`. The mobile/portal must register device tokens via `POST /api/notifications/device-token`.
+- **OpenAI** — `OPENAI_API_KEY` (optional). Absent → content scan returns "not configured" and runs the scam-regex layer only.
+- **Razorpay** — real keys + webhook secret. **GST** — real Azkashine GSTIN.
+- All keys are documented (as optional) in `prosiddhi-backend/.env.example`.
+
+**Frontend follow-ups this unblocks:** portal `/invite/:token` landing page (backend ready), the notifications dropdown, the admin-console monetization + reports + content-scan + taxonomy screens.
 
 ---
 
@@ -113,8 +143,8 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 | # | Where | Bug |
 |---|---|---|
-| 1 | BE | Seat cap takes the latest-expiring plan's seats, not the highest |
-| 2 | BE | Seats are roster-only — teammates don't share the org wallet/jobs/unlocks |
+| 1 | BE | ✅ **FIXED 2026-07-12** — seat cap now `MAX(seats)` across active plans (`getEntitlements`) |
+| 2 | BE | ✅ **FIXED 2026-07-12** — real `EmployerUser` membership + org-keyed billing; teammates share the org wallet/jobs/unlocks |
 | 3 | BE 🔒 | `forgot-password` returns the OTP in the response **and** is an account-enumeration oracle; `otp/send` + register leak OTP too |
 | 4 | Portal | Fake "Sanjay RK" name in the header on every authed page |
 | 5 | Portal | Dead `/settings` link → 404 |

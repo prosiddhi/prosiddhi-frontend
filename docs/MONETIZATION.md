@@ -1,6 +1,6 @@
 # ProSiddhi — Monetization
 
-**The employer billing system: the rules, what's built, and what's still broken.** Updated **2026-07-12**.
+**The employer billing system: the rules, what's built, and what's still broken.** Updated **2026-07-12** (seat bugs §6.1–6.3 fixed on the backend; admin monetization endpoints shipped).
 Consolidates the former five `docs/pricing/*` files. Verified against the code in both repos.
 
 **Model in one line:** ProSiddhi monetizes the **employer** side only — **job seekers are free forever.** Employers buy **credits** and spend them to **post jobs** and **unlock candidates**, inside time-boxed plans.
@@ -77,7 +77,8 @@ Everything below is live on **both** the backend and the portal.
 | Candidate profile (snippet-gated) | `GET /api/employers/candidates/:jobSeekerId` |
 | Candidate unlock | `POST /api/employers/candidates/:jobSeekerId/unlock` |
 | Unlocked history | `GET /api/employers/me/unlocked-candidates` |
-| Team seats | `GET/POST /api/employers/me/team[/invite]` · `POST /api/employers/team/accept-invite` · `DELETE /api/employers/me/team/:seatId` |
+| Team seats *(real org membership — 2026-07-12)* | `GET /api/employers/me/team` · `GET /api/employers/me/entitlements` · `POST /api/employers/me/team/invite` · `GET /api/employers/team/invites/:token` *(public peek)* · `POST /api/employers/team/accept-invite` · `DELETE /api/employers/me/team/invites/:inviteId` · `DELETE /api/employers/me/team/:membershipId` |
+| Admin monetization *(2026-07-12)* | `GET /api/admin/monetization/{payments,invoices,employers}` · `pendingVerifications` on `GET /api/admin/dashboard/stats` |
 
 **Mechanics**
 - **Credit ledger** — every purchase creates a *lot* (kind, source, amount, expiry); spending draws lots soonest-expiring-first. Every grant/spend is written to an append-only audit table. This one model gives us merging, mixed expiries and the never-expiring pack for free.
@@ -89,40 +90,36 @@ Everything below is live on **both** the backend and the portal.
 
 ---
 
-## 6. What's BROKEN / LEFT 🔴
+## 6. What's BROKEN / LEFT
 
-### 6.1 Seat cap reads the wrong plan *(bug)*
-With two active plans, the code takes the seats of the **latest-expiring** plan instead of the **highest**. So a 2-seat Pro plan (170 days left) + a freshly-bought 1-seat Starter (180 days) resolves to **1 seat** — silently taking away a seat the customer paid for.
+### 6.1 Seat cap reads the wrong plan — ✅ FIXED (2026-07-12, BE)
+Was: with two active plans the code took the seats of the **latest-expiring** plan instead of the **highest**, so a 2-seat Pro (170d) + a fresh 1-seat Starter (180d) collapsed to **1 seat**.
 
-`team.service.ts:63-74` uses `findFirst(orderBy: { expiresAt: 'desc' })`. The fix is to **aggregate, never pick a plan** — these are two different aggregates over the same set:
-```
-walletExpiry = MAX(expiresAt) across active plans   ← already correct
-seatCap      = MAX(seats)     across active plans   ← currently wrong
-```
-Packs contribute **zero** seats. No active plan → 1 seat. **Do not block buying a plan while one is active** — stacking is intended; show an informational note instead.
+Now: one `getEntitlements(employerId)` (`services/employer-context.service.ts`) **aggregates, never picks a plan** — `seatCap = MAX(seats)` and `planExpiresAt = MAX(expiresAt)` over the active non-PACK plans. Packs contribute 0; no active plan → 1 seat. No controller computes seats inline. Buying while a plan is active is not blocked (stacking is intended). *Verified end-to-end: a 2-seat Pro (170d) + 1-seat Starter (180d) now resolves to seatCap 2, walletExpiry 180d.*
 
-### 6.2 Seats are roster-only — there is no shared workspace *(scope gap)*
-`User↔Employer` is still **1:1**, and subscriptions/payments are keyed by **`userId`**. So every teammate has **their own Employer row and their own wallet** — a ₹11,999 / ₹21,999 multi-seat plan currently delivers **no shared credits, jobs or unlocks.** The feature doesn't yet do what the customer is paying for.
+### 6.2 Seats are roster-only — ✅ FIXED (2026-07-12, BE)
+Was: `User↔Employer` was **1:1** and subscriptions/payments were keyed by **`userId`**, so every teammate had their own Employer row and wallet — a multi-seat plan delivered no shared credits/jobs/unlocks.
 
-**Decisions (locked 2026-07-07):**
-- **Shared company workspace**, not private lists. The org owns credits, jobs and unlocks; a seat only answers *"may this user act for this employer?"* (This isn't really a choice: the unlock dedupe key is `(employerId, candidateId)`, so private lists would re-charge a second teammate for a candidate the company already unlocked — contradicting "re-view is free".)
-- **A removed teammate's work stays with the company, permanently.** Removal revokes **access only** — their jobs stay live, their unlocked candidates stay unlocked. Nothing deleted, nothing refunded. The owner can't be removed.
-- **Attribution, not authorization** — store `createdByUserId` / `unlockedByUserId` and show "posted by X", but never gate on it. Roles stay simple: **OWNER** (invite/remove, buy plans) vs **MEMBER** (post, unlock, manage).
+Now: a real **shared company workspace**, exactly as the decisions below required.
+- **`EmployerUser` membership table** makes `User↔Employer` **1:N** and is the **only** authorization edge. **`Subscription` + `PaymentHistory` re-keyed to `employerId`**, so a plan funds one org wallet.
+- **One `resolveEmployerContext(userId) → { employerId, role, seatStatus }`** that every employer-scoped controller routes through (employer, credit, candidate, job, application, chat, billing, documents). No `userId` in any scoping/authz predicate. A data-preserving, reversible migration re-keys the tables and backfills each employer's user as the OWNER seat.
+- **Roles: OWNER** (invite/remove, buy plans) vs **MEMBER** (post, unlock, manage). Exactly one OWNER per employer; the OWNER can't be removed. Enforced by partial unique indexes (one OWNER per employer, one live membership per user).
+- **Attribution, not authorization** — `Job.createdByUserId` and `EmployerCandidateUnlock.unlockedByUserId` record "posted/unlocked by X"; nothing gates on them. Removal is a **soft revoke**: their jobs stay live, their unlocked candidates stay unlocked, nothing refunded, **no `CreditTransaction` written**; re-invite reactivates the same row.
+- **Seat downgrade**: when a bigger plan expires and the cap drops, over-cap members auto-suspend **newest-invited first** (OWNER always protected); a suspended member keeps read access but 402s on post/unlock/buy; auto-restore in invite order when the cap rises. Enforced at **request time** (resolveEmployerContext ranks seats live, so it's correct the instant a plan lapses) **and** in the daily cron (materializes the status column). *Verified: expiring the 2-seat plan with no cron run suspends the member on their next request; the owner is untouched; the cap rising restores them.*
 
-**To implement:** an `EmployerUser` membership table (`User↔Employer` → **1:N**), re-key `Subscription`/`PaymentHistory` to **`employerId`**, and route every employer-scoped controller through one `resolveEmployerContext(userId) → { employerId, role, seatStatus }`.
+### 6.3 The invite flow — ✅ FIXED (2026-07-12, BE)
+Was: an invited teammate was bounced to login, registered separately, then had to click the invite link a **second** time.
 
-**Seat downgrade** (when a bigger plan expires and the cap drops): auto-suspend over-cap members **newest-invited first**, owner always protected; show a banner to both the member and the owner, and 402 their actions; auto-restore in invite order when the cap rises.
+Now: `EmployerInvite` with a **signed token returned once and stored only as a SHA-256 hash** (timing-safe compare), **7-day expiry, single-use** (guarded claim), **owner-revocable**, and **bound to `invitedEmail`** — accepting from a different account is a **403**, so the link can't be used to steal a seat. Seat cap is checked at **both** invite and accept. An email already registered as a `JOB_SEEKER` is refused with a clear message; invite creation + token lookup are rate-limited. The public `GET /api/employers/team/invites/:token` peek returns just the bound email + company name so the frontend can register/sign-in inline, **carry the token through auth, and auto-accept** — the link is clicked once. *Verified: wrong-account accept → 403, replay → 400, the whole invite→accept→shared-wallet flow works.*
 
-### 6.3 The invite flow is broken UX
-Today an invited teammate is bounced to login, has to register separately, then **click the invite link a second time**. Note the irony: seats only exist on the **₹11,999 / ₹21,999** plans, so the roughest flow in the product hits the **highest-paying customers**.
+**FE work remaining:** the portal's `/invite/:token` landing page + carry-token-through-auth plumbing (the backend endpoints are ready).
 
-**Fix (it's redirect/state plumbing, not new screens):** the invite link carries a signed token; `/invite/:token` → if there's no account, register **inline with the email pre-filled and locked**; if there is, log in inline. **Carry the token through auth and auto-accept on return** — the link is clicked exactly once.
-**Guards:** bind the invite to the invited email and reject a mismatch (otherwise anyone with the link steals a seat); single-use, 7-day expiry, owner-revocable; check the seat cap at **both** invite time and accept time (the cap can drop in between); store the token hashed.
-
-### 6.4 Go-live configuration
-- **Razorpay** — test keys today, and the webhook secret is a `local-dev-*` placeholder. Both must be replaced.
-- **GST** — Azkashine's real GSTIN must be on the invoices.
-- No admin surface for payments/invoices/credits yet (see [STATUS.md](STATUS.md) §3).
+### 6.4 Go-live configuration *(still needs external config)*
+- **Razorpay** — real keys + a real webhook secret (test keys + a `local-dev-*` placeholder today).
+- **GST** — Azkashine's real GSTIN on invoices.
+- **Admin monetization surface** — ✅ backend endpoints **now exist** (`GET /api/admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on the dashboard stats); admin-console UI still to build.
+- **Outbound notification config** — MSG91 keys + DLT/WhatsApp template approval, FCM service account (the BE adapters are built and no-op safely until configured).
+- **OpenAI key** — optional; content-scan degrades gracefully without it.
 
 ---
 
