@@ -88,6 +88,32 @@ Everything below is live on **both** the backend and the portal.
 
 **Portal screens** — pricing page, Razorpay checkout, credit wallet + expiry nudge, post-credit gate + upsell, top-up modal, invoice history + PDF, candidate search + unlock confirm + unlocked history, team roster/invite/accept/remove.
 
+### 5.1 Error-code contract *(2026-07-12, BE)* — branch on `code`, not on the message
+
+Every error response can carry a stable, machine-readable **`code`** (top-level string, `UPPER_SNAKE_CASE`). **Clients MUST branch on `code`, never on the human `message`** — the message is prose and can be reworded or localised at any time.
+
+**The one rule that makes this reliable:**
+- **`code` is ALWAYS present** on a response that sets one — in **every** environment, prod included.
+- **`error`** (the nested detail object — `kind`, `seatCap`, `seatsUsed`, …) is **DEV-ONLY** (`NODE_ENV=development`). It exists for QA + the FE dev banners; **production clients must not depend on it** and won't receive it. *(This is exactly why `code` was added: the old discriminators lived only in the dev-gated `error`, so in prod there was nothing stable to branch on.)*
+
+**The closed set** (adding a code is additive/safe; renaming or removing one is breaking):
+
+| `code` | HTTP | When | Client remedy |
+|---|---|---|---|
+| `INSUFFICIENT_POST_CREDITS` | 402 | Posting/activating a job at 0 POST credits | Buy a plan / top-up (POST credits) |
+| `INSUFFICIENT_DOWNLOAD_CREDITS` | 402 | Unlocking a candidate at 0 DOWNLOAD credits | Buy a plan / pack (DOWNLOAD credits) |
+| `NO_SEAT_AVAILABLE` | 402 | Inviting beyond the plan's seat cap | **Owner** upgrades the plan or removes a teammate |
+| `SEAT_SUSPENDED` | 402 | The caller's seat is suspended (team is over cap) | **NOT a credits problem** — see the ⚠️ below |
+| `INVITE_EMAIL_MISMATCH` | 403 | Accepting an invite from the wrong account | Sign in with the invited email |
+| `WORKSPACE_CONFLICT` | 409 | Invitee already runs their own non-empty workspace | Use a fresh account, or the owner shuts down the other workspace |
+| `INVITE_INVALID` | 400 | Invite token invalid / already used / expired | Ask the owner to re-send the invite |
+| `INVITE_REJECTED` | 400/404 | Invite refused (self-invite, already a member, **seeker email**, no pending invite) | Show the returned `message`; fix per case |
+| `NOT_OWNER` | 403 | A MEMBER attempted an owner-only action (invite / remove / buy) | Only the OWNER can do this |
+
+> ⚠️ **`SEAT_SUSPENDED` must NEVER be surfaced as "buy credits".** The member is over the org's seat cap and **cannot fix it themselves** — they aren't the owner and can't purchase. The remedy is the **OWNER** freeing a seat (remove a teammate) or upgrading the plan. Only `INSUFFICIENT_POST_CREDITS` / `INSUFFICIENT_DOWNLOAD_CREDITS` are "top up" cases; the backend's `SEAT_SUSPENDED` message already says this correctly — don't override it with a credits CTA.
+
+All nine codes are on **authenticated employer routes**; an unauthenticated caller never reaches them. Regression guard: `prosiddhi-backend/scripts/verify-error-codes.ts` (provokes all nine against a prod-mode instance and asserts status + `code` present + `error` absent; and the same against dev asserting `error` present).
+
 ---
 
 ## 6. What's BROKEN / LEFT
