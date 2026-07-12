@@ -139,13 +139,27 @@ async function apiRequest<T>(
 
 export type UserRole = 'JOB_SEEKER' | 'EMPLOYER_INDIVIDUAL' | 'EMPLOYER_BUSINESS'
 
+/**
+ * The role profile the BE nests inside the login payload (`user.jobSeeker ||
+ * user.employer`). Only the fields the shared chrome needs are named; the rest
+ * of each profile is fetched from its own endpoint when a screen needs it.
+ * - Seeker → `fullName` (required in the DB) + `profilePhoto`.
+ * - Employer → `companyName` (business) or `fullName` (individual); both optional.
+ */
+export interface AuthUserProfile {
+  fullName?: string | null
+  companyName?: string | null
+  profilePhoto?: string | null
+  [key: string]: unknown
+}
+
 export interface AuthUser {
   id: string
   email: string
   role: UserRole
   accountStatus?: string
-  // Role profile (jobSeeker | employer) — shape varies; consumed loosely for now.
-  profile?: Record<string, unknown> | null
+  phoneNumber?: string | null
+  profile?: AuthUserProfile | null
 }
 
 export interface LoginResult {
@@ -510,6 +524,28 @@ export const authAPI = {
     return apiRequest('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ email, otp, newPassword }),
+    })
+  },
+
+  // Change the password of the signed-in user. POST /api/auth/change-password
+  // (authenticated). BE re-checks `currentPassword` and enforces the same
+  // 8-char upper/lower/number rule as registration.
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    return apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+  },
+}
+
+// Current-user (role-agnostic) endpoints — /api/me/*
+export const meAPI = {
+  // PATCH /api/me/language — persist the preferred language for ANY role (BR-9).
+  // BE allow-lists 'en' | 'hi'; anything else is a 400.
+  updateLanguage: async (language: 'en' | 'hi') => {
+    return apiRequest('/me/language', {
+      method: 'PATCH',
+      body: JSON.stringify({ language }),
     })
   },
 }
@@ -1698,10 +1734,66 @@ export const chatAPI = {
   markMessageRead: async (messageId: string) => {
     return apiRequest(`/messages/${messageId}/read`, { method: 'PATCH' })
   },
+}
 
-  // GET /api/notifications/unread-count → { count } (badge).
-  getUnreadNotificationCount: async () => {
+// ==========================================
+// NOTIFICATIONS (PJP-111 — in-app bell)
+// ==========================================
+
+// Mirrors the BE NotificationType enum. `entityId` points at the row the
+// notification is about (application / interview / document) — the type decides
+// how to route it.
+export type NotificationType =
+  | 'APPLICATION_SUBMITTED'
+  | 'APPLICATION_ACCEPTED'
+  | 'APPLICATION_REJECTED'
+  | 'INTERVIEW_SCHEDULED'
+  | 'DOCUMENT_VERIFIED'
+  | 'DOCUMENT_REJECTED'
+  | 'PROFILE_APPROVED'
+  | 'PROFILE_REJECTED'
+  | 'ADMIN_WARNING'
+  | 'ADMIN_PAYMENT_REMINDER'
+  | 'SYSTEM'
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  entityId?: string | null
+  read: boolean
+  createdAt: string
+}
+
+export interface NotificationsPayload {
+  items: AppNotification[]
+  unreadCount: number
+}
+
+export const notificationAPI = {
+  // GET /api/notifications?limit=&unreadOnly= → { items, unreadCount }.
+  // BE caps `limit` at 100 and returns newest-first; there is no pagination.
+  list: async (params: { limit?: number; unreadOnly?: boolean } = {}) => {
+    const { limit = 20, unreadOnly = false } = params
+    return apiRequest<NotificationsPayload>(
+      `/notifications?limit=${limit}&unreadOnly=${unreadOnly}`
+    )
+  },
+
+  // GET /api/notifications/unread-count → { count } (the bell badge).
+  unreadCount: async () => {
     return apiRequest<{ count: number }>('/notifications/unread-count')
+  },
+
+  // PATCH /api/notifications/:id/read
+  markRead: async (id: string) => {
+    return apiRequest<AppNotification>(`/notifications/${id}/read`, { method: 'PATCH' })
+  },
+
+  // PATCH /api/notifications/read-all → { count }
+  markAllRead: async () => {
+    return apiRequest<{ count: number }>('/notifications/read-all', { method: 'PATCH' })
   },
 }
 
@@ -1712,6 +1804,7 @@ export const chatAPI = {
 // Export everything
 export default {
   authAPI,
+  meAPI,
   otpAPI,
   emailOtpAPI,
   jobSeekerAPI,
@@ -1721,4 +1814,5 @@ export default {
   candidateAPI,
   teamAPI,
   chatAPI,
+  notificationAPI,
 }

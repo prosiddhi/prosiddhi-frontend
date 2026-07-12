@@ -1,3 +1,19 @@
+// User-uploaded media (profile photos, documents) is served off the BACKEND
+// origin — `lib/api.ts#resolveMediaUrl` builds those URLs by stripping `/api`
+// off NEXT_PUBLIC_API_URL. next/image refuses any host that isn't allowlisted
+// here and throws "Invalid src prop", which breaks the whole page, so the
+// allowlist is DERIVED from the same env var rather than hardcoded. A static
+// list silently drifts the moment the backend moves (localhost → hosted IP →
+// prod domain) and every user with a profile photo hits a blank screen.
+const apiOrigin = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+  try {
+    return new URL(raw)
+  } catch {
+    return new URL('http://localhost:5000')
+  }
+})()
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -21,7 +37,16 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    domains: ['localhost', 'your-cdn-domain.com'],
+    // `domains` is deprecated; remotePatterns also pins the path, so only the
+    // uploads directory of our own backend is proxyable — not any URL on that host.
+    remotePatterns: [
+      {
+        protocol: apiOrigin.protocol.replace(':', ''),
+        hostname: apiOrigin.hostname,
+        ...(apiOrigin.port ? { port: apiOrigin.port } : {}),
+        pathname: '/uploads/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

@@ -3,34 +3,30 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Languages, ChevronDown, Check } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { jobSeekerAPI } from '@/lib/api'
 import {
-  LANGUAGE_STORAGE_KEY,
-  SUPPORTED_LANGUAGES,
-} from '@/i18n/config'
+  useLanguagePreference,
+  type SupportedLanguage,
+} from '@/hooks/useLanguagePreference'
+import { SUPPORTED_LANGUAGES } from '@/i18n/config'
 
 // EN + HI only this release (Q6). Labels are intentionally shown in the target
 // script so a low-literacy user recognises their own language.
-const OPTIONS: { value: string; labelKey: string }[] = [
+export const LANGUAGE_OPTIONS: { value: SupportedLanguage; labelKey: string }[] = [
   { value: 'en', labelKey: 'language.english' },
   { value: 'hi', labelKey: 'language.hindi' },
 ]
 
 /**
- * LanguageSwitcher — the single in-header EN/HI control. Replaces the old
- * hardcoded "Languages: English" buttons. Persists the choice to localStorage
- * (source of truth) and, for a signed-in seeker, best-effort syncs it to the BE
- * via PUT /jobseekers/profile. Employers have no server-side language endpoint
- * yet (BR-9) — localStorage still keeps their choice across sessions.
+ * LanguageSwitcher — the in-header EN/HI control. The change itself lives in
+ * `useLanguagePreference` (localStorage + a role-agnostic server sync), shared
+ * with the language section of the Settings page.
  */
 export function LanguageSwitcher({ className = '' }: { className?: string }) {
-  const { t, i18n } = useTranslation()
-  const { user } = useAuth()
+  const { t } = useTranslation()
+  const { language: current, setLanguage } = useLanguagePreference()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const current = (i18n.language || 'en').split('-')[0]
   const currentLabel =
     current === 'hi' ? t('language.hindi') : t('language.english')
 
@@ -50,20 +46,9 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
     }
   }, [open])
 
-  const change = (lng: string) => {
+  const change = (lng: SupportedLanguage) => {
     setOpen(false)
-    if (lng === current) return
-    void i18n.changeLanguage(lng)
-    try {
-      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lng)
-    } catch {
-      // Ignore — i18next still holds the choice in memory for this session.
-    }
-    if (typeof document !== 'undefined') document.documentElement.lang = lng
-    // Best-effort server sync for seekers; never block or surface errors.
-    if (user?.role === 'JOB_SEEKER') {
-      void jobSeekerAPI.updateProfile({ preferredLanguage: lng }).catch(() => {})
-    }
+    setLanguage(lng)
   }
 
   return (
@@ -90,7 +75,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
           role="listbox"
           className="absolute right-0 mt-2 w-[180px] bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
         >
-          {OPTIONS.map((opt) => {
+          {LANGUAGE_OPTIONS.map((opt) => {
             const selected = opt.value === current
             return (
               <li key={opt.value} role="option" aria-selected={selected}>

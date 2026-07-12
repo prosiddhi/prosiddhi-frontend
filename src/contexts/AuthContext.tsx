@@ -21,6 +21,12 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   login: (token: string, user: AuthUser) => void
+  /**
+   * Merge fresh fields into the stored session user. Used after a profile save
+   * so the name/photo in the global header updates immediately instead of
+   * staying stale until the next login.
+   */
+  updateUser: (patch: Partial<AuthUser>) => void
   logout: () => void
 }
 
@@ -67,6 +73,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser)
   }, [])
 
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      try {
+        window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(next))
+      } catch {
+        // Storage full / unavailable — state still holds the update for this session.
+      }
+      return next
+    })
+  }, [])
+
   const logout = useCallback(() => {
     window.localStorage.removeItem(AUTH_TOKEN_KEY)
     window.localStorage.removeItem(AUTH_USER_KEY)
@@ -93,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!token,
     isLoading,
     login,
+    updateUser,
     logout,
   }
 

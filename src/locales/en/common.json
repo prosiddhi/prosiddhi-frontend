@@ -11,13 +11,51 @@
     "messages": "Messages",
     "notifications": "Notifications",
     "profile": "Profile",
-    "myApplication": "My Application",
     "myApplications": "My Applications",
     "myInterviews": "My Interviews",
-    "settings": "Setting",
+    "myJobs": "My Jobs",
+    "settings": "Settings",
     "logout": "Logout",
     "register": "Register",
-    "login": "Login"
+    "login": "Login",
+    "accountMenu": "Account menu"
+  },
+  "settings": {
+    "title": "Settings",
+    "roleSeeker": "Job seeker",
+    "roleEmployerIndividual": "Employer (individual)",
+    "roleEmployerBusiness": "Employer (business)",
+    "account": {
+      "title": "Account",
+      "email": "Email",
+      "phone": "Phone number",
+      "type": "Account type",
+      "editProfile": "Edit profile"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the language you want to use across ProSiddhi."
+    },
+    "password": {
+      "title": "Change password",
+      "description": "Use a password you don't use anywhere else.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "rule": "At least 8 characters, with one uppercase letter, one lowercase letter and one number.",
+      "show": "Show passwords",
+      "hide": "Hide passwords",
+      "submit": "Update password",
+      "success": "Password updated.",
+      "failed": "We couldn't update your password. Please try again.",
+      "weak": "At least 8 characters, with one uppercase letter, one lowercase letter and one number.",
+      "mismatch": "Passwords do not match.",
+      "sameAsCurrent": "Your new password must be different from your current one."
+    },
+    "signOut": {
+      "title": "Sign out",
+      "description": "You'll need to sign in again to use your account."
+    }
   },
   "language": {
     "label": "Language",

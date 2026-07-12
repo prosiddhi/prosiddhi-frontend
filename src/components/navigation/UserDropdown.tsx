@@ -3,24 +3,38 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { User, Briefcase, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { resolveMediaUrl } from '@/lib/api'
+import { displayName, profilePhoto } from '@/lib/userDisplay'
 
-interface UserDropdownProps {
-  userName?: string
-  userImage?: string
-}
-
-export function UserDropdown({ 
-  userName = 'Sanjay RK', 
-  userImage = '' 
-}: UserDropdownProps) {
+/**
+ * UserDropdown — the account menu in the global header on every authed screen.
+ *
+ * Identity comes from `useAuth()` alone. This component takes NO props: it used
+ * to accept `userName`/`userImage` with a hardcoded default that every one of
+ * its 22 call sites fell through to, so every logged-in user saw the same fake
+ * name. Removing the props removes the only way that can happen again.
+ *
+ * The menu is role-aware — the middle item points an employer at their jobs and
+ * a seeker at their applications, rather than sending everyone to the
+ * seeker-only /my-applications screen.
+ */
+export function UserDropdown() {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
 
+  const isEmployer = !!user?.role?.startsWith('EMPLOYER')
+  const name = displayName(user)
+  const photo = resolveMediaUrl(profilePhoto(user))
+
   // Employers get the company-profile screen; everyone else the seeker profile.
-  const profileHref = user?.role?.startsWith('EMPLOYER') ? '/employer/profile' : '/profile'
+  const profileHref = isEmployer ? '/employer/profile' : '/profile'
+  const workHref = isEmployer ? '/employer/jobs' : '/my-applications'
+  const workLabel = isEmployer ? t('nav.myJobs') : t('nav.myApplications')
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -67,13 +81,16 @@ export function UserDropdown({
       {/* User Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={t('nav.accountMenu')}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       >
         <div className="w-8 h-8 sm:w-[38px] sm:h-[38px] rounded-full bg-primary-50 overflow-hidden flex items-center justify-center">
-          {userImage ? (
+          {photo ? (
             <Image
-              src={userImage}
-              alt="Profile"
+              src={photo}
+              alt=""
               width={38}
               height={38}
               className="w-full h-full object-cover"
@@ -82,48 +99,54 @@ export function UserDropdown({
             <User className="w-5 h-5 text-white" />
           )}
         </div>
-        <span className="hidden sm:block text-sm lg:text-base">{userName}</span>
+        {name && <span className="hidden sm:block text-sm lg:text-base">{name}</span>}
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
         <>
           {/* Backdrop for mobile */}
-          <div 
-            className="fixed inset-0 z-40 md:hidden" 
+          <div
+            className="fixed inset-0 z-40 md:hidden"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Dropdown Content */}
-          <div className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn">
+          <div
+            role="menu"
+            className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
+          >
             {/* Profile */}
             <Link
               href={profileHref}
+              role="menuitem"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
             >
               <User className="w-4 h-4 text-gray-700" />
-              <span className="text-sm text-gray-900">Profile</span>
+              <span className="text-sm text-gray-900">{t('nav.profile')}</span>
             </Link>
 
-            {/* My Application */}
+            {/* My Jobs (employer) / My Applications (seeker) */}
             <Link
-              href="/my-applications"
+              href={workHref}
+              role="menuitem"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
             >
               <Briefcase className="w-4 h-4 text-gray-700" />
-              <span className="text-sm text-gray-900">My Application</span>
+              <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
 
-            {/* Setting */}
+            {/* Settings */}
             <Link
               href="/settings"
+              role="menuitem"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
             >
               <Settings className="w-4 h-4 text-gray-700" />
-              <span className="text-sm text-gray-900">Setting</span>
+              <span className="text-sm text-gray-900">{t('nav.settings')}</span>
             </Link>
 
             {/* Divider */}
@@ -132,10 +155,11 @@ export function UserDropdown({
             {/* Logout */}
             <button
               onClick={handleLogout}
+              role="menuitem"
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors w-full text-left"
             >
               <LogOut className="w-4 h-4 text-gray-700" />
-              <span className="text-sm text-gray-900">Logout</span>
+              <span className="text-sm text-gray-900">{t('nav.logout')}</span>
             </button>
           </div>
         </>

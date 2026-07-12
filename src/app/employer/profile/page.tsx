@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   employerAPI,
   resolveMediaUrl,
@@ -62,6 +63,7 @@ const SIZE_KEYS: Record<CompanySize, string> = {
 
 function EmployerProfileContent() {
   const { t } = useTranslation()
+  const { user, updateUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -139,6 +141,8 @@ function EmployerProfileContent() {
     try {
       const res = await employerAPI.updateProfilePhoto(file)
       setPhoto(res.profilePhoto)
+      // Keep the header avatar in step with the new photo.
+      updateUser({ profile: { ...user?.profile, profilePhoto: res.profilePhoto } })
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('profile:employer.photoError'))
     } finally {
@@ -184,6 +188,16 @@ function EmployerProfileContent() {
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
       const fresh = await employerAPI.getProfile()
       hydrate(fresh)
+      // The header reads its name from the session user — push the rename there
+      // too, or the old company/person name sticks until the next login.
+      updateUser({
+        profile: {
+          ...user?.profile,
+          fullName: fresh.employer?.fullName,
+          companyName: fresh.employer?.companyName,
+          profilePhoto: fresh.employer?.profilePhoto,
+        },
+      })
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {

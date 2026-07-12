@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   jobSeekerAPI,
   resolveMediaUrl,
@@ -56,6 +57,7 @@ const newKey = () => `row-${rowSeq++}`
 
 function SeekerProfileContent() {
   const { t } = useTranslation()
+  const { user, updateUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -129,6 +131,8 @@ function SeekerProfileContent() {
     try {
       const res = await jobSeekerAPI.updateProfilePhoto(file)
       setPhoto(res.profilePhoto)
+      // Keep the header avatar in step with the new photo.
+      updateUser({ profile: { ...user?.profile, profilePhoto: res.profilePhoto } })
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('profile:seeker.photoError'))
     } finally {
@@ -179,6 +183,15 @@ function SeekerProfileContent() {
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
       const fresh = await jobSeekerAPI.getProfile()
       hydrate(fresh)
+      // The header reads the name from the session user, so a rename here has to
+      // land there too — otherwise the old name sticks until the next login.
+      updateUser({
+        profile: {
+          ...user?.profile,
+          fullName: fresh.jobSeeker?.fullName,
+          profilePhoto: fresh.jobSeeker?.profilePhoto,
+        },
+      })
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {
