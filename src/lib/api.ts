@@ -1622,31 +1622,67 @@ export const candidateAPI = {
 }
 
 // ==========================================
-// TEAM SEATS APIs (Phase 3 — seat roster + invites)
+// TEAM SEATS APIs (rewritten 2026-07-12 against the rebuilt BE seat contract —
+// MONETIZATION.md §6.2/§6.3)
 // ==========================================
 //
-// Pro plans include multiple seats. The owner invites teammates by email; the
-// BE returns a one-shot invite TOKEN (no SMTP in v1 — the owner relays it, e.g.
-// via WhatsApp). The invitee accepts with their own employer JWT + the token.
+// A seat is a real ORG MEMBERSHIP, not a roster row: an accepted teammate acts
+// FOR the company — same wallet, same jobs, same unlocks. So the roster has two
+// distinct populations, and they must not be conflated:
+//
+//   members[] — people who ALREADY hold a seat (incl. the OWNER). Their id is an
+//               EmployerUser (membership) id. Status is ACTIVE | SUSPENDED |
+//               REMOVED — never 'PENDING'.
+//   invites[] — outstanding PENDING invitations. Nobody is behind them yet;
+//               their id is an EmployerInvite id. They still CONSUME a seat.
+//
+// Removing a member and revoking an invite are different endpoints keyed on
+// different ids (see removeMember vs revokeInvite) — crossing them 404s.
+//
+// SUSPENDED is not an error state: when a bigger plan lapses and the seat cap
+// drops, the BE auto-suspends over-cap members newest-invited-first (the OWNER
+// is always protected). They keep read access but are blocked from posting or
+// unlocking, and auto-restore if the cap rises again.
 
-export type TeamSeatStatus = 'PENDING' | 'ACCEPTED' | 'REMOVED'
+export type TeamMemberRole = 'OWNER' | 'MEMBER'
+export type TeamMemberStatus = 'ACTIVE' | 'SUSPENDED' | 'REMOVED'
 
-export interface TeamSeat {
+/** A held seat. `id` is the MEMBERSHIP id — what DELETE /me/team/:seatId takes. */
+export interface TeamMember {
   id: string
+  userId: string
   email: string
-  status: TeamSeatStatus
-  userId: string | null
+  name: string | null
+  role: TeamMemberRole
+  status: TeamMemberStatus
   invitedAt: string
   acceptedAt: string | null
   removedAt: string | null
 }
-export interface TeamSummary {
-  seatsTotal: number // from active plan.seats (default 1)
-  seatsUsed: number // owner + ACCEPTED + PENDING
-  seatsFree: number
-  owner: { id: string; email: string }
-  seats: TeamSeat[] // PENDING + ACCEPTED only (REMOVED excluded)
+
+/** An outstanding invitation. `id` is the INVITE id — what DELETE /me/team/invites/:inviteId takes. */
+export interface TeamInvite {
+  id: string
+  email: string
+  status: 'PENDING'
+  expiresAt: string
+  invitedAt: string
 }
+
+export interface TeamSummary {
+  seatCap: number
+  seatsTotal: number // === seatCap; kept because the BE sends both
+  seatsUsed: number // members + pending invites
+  seatsFree: number
+  planExpiresAt: string | null
+  owner: { id: string; userId: string; email: string } | null
+  /** Includes the OWNER row. Filter on `role`/`status` — do not assume index 0. */
+  members: TeamMember[]
+  invites: TeamInvite[]
+  /** Who is asking — lets the FE render the owner-vs-member view with no second call. */
+  me: { userId: string; role: TeamMemberRole; seatStatus: TeamMemberStatus }
+}
+
 export interface InviteResult {
   inviteId: string
   email: string
@@ -1659,33 +1695,52 @@ export interface InviteResult {
   expiresAt: string
 }
 export interface AcceptInviteResult {
-  seatId: string
+  membershipId: string
   employerId: string
+  role: TeamMemberRole
 }
 
 export const teamAPI = {
-  // GET /api/employers/me/team — seat usage + roster.
+  // GET /api/employers/me/team — seat usage + roster. Any seat may read it.
   getTeam: async () => {
     return apiRequest<TeamSummary>('/employers/me/team')
   },
-  // POST /api/employers/me/team/invite — 201 + one-shot token. 402
-  // { seatsTotal, seatsUsed } when full; 400 self-invite / duplicate pending.
+
+  // POST /api/employers/me/team/invite — owner only. 201 + the one-shot raw token.
+  // 402 when the plan has no free seat; 400 self-invite / seeker email / already
+  // on the team; 409 when the invitee already runs a real workspace of their own.
   invite: async (email: string) => {
     return apiRequest<InviteResult>('/employers/me/team/invite', {
       method: 'POST',
       body: JSON.stringify({ email }),
     })
   },
-  // POST /api/employers/team/accept-invite — invitee's own JWT + the token.
+
+  // POST /api/employers/team/accept-invite — the INVITEE's own employer JWT plus
+  // the raw token. The invite is email-bound: a different account gets a 403.
   acceptInvite: async (token: string) => {
     return apiRequest<AcceptInviteResult>('/employers/team/accept-invite', {
       method: 'POST',
       body: JSON.stringify({ token }),
     })
   },
-  // DELETE /api/employers/me/team/:seatId — soft-remove, frees a slot.
-  removeSeat: async (seatId: string) => {
-    return apiRequest<{ seatId: string }>(`/employers/me/team/${seatId}`, {
+
+  // DELETE /api/employers/me/team/:membershipId — owner only. Removes an ACCEPTED
+  // teammate. SOFT revoke: their jobs stay live, their unlocks stay unlocked,
+  // nothing is refunded. Takes a MEMBERSHIP id (TeamMember.id) — passing an
+  // invite id here 404s. To cancel an invitation use revokeInvite.
+  removeMember: async (membershipId: string) => {
+    return apiRequest<{ membershipId: string; seatId: string }>(
+      `/employers/me/team/${membershipId}`,
+      { method: 'DELETE' }
+    )
+  },
+
+  // DELETE /api/employers/me/team/invites/:inviteId — owner only. Cancels a
+  // PENDING invitation and frees the seat it was holding, killing its token.
+  // Takes an INVITE id (TeamInvite.id) — passing a membership id here 404s.
+  revokeInvite: async (inviteId: string) => {
+    return apiRequest<{ inviteId: string }>(`/employers/me/team/invites/${inviteId}`, {
       method: 'DELETE',
     })
   },

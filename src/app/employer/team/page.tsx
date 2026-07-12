@@ -1,10 +1,22 @@
 'use client'
 
-// Team seat management (Phase 3, EPIC C). Owner sees seat usage + roster,
-// invites teammates by email (BE returns a one-shot token — no SMTP in v1, so
-// we surface a copyable invite link the owner relays), and removes seats. Seat
-// cap comes from the active plan (Pro plans include 2–3 seats); at 0 free seats
-// the invite is gated with an upgrade prompt.
+// Team seat management, reconciled 2026-07-12 with the rebuilt BE seat contract
+// (MONETIZATION.md §6.2/§6.3). A seat is a real org membership now, so the roster
+// renders two DISTINCT populations:
+//
+//   members[] — people who hold a seat (incl. the OWNER). ACTIVE | SUSPENDED.
+//               Removing one is DELETE /me/team/:membershipId.
+//   invites[] — outstanding PENDING invitations, nobody behind them yet. They
+//               still consume a seat. Cancelling one is DELETE
+//               /me/team/invites/:inviteId — a DIFFERENT id and a DIFFERENT
+//               endpoint. Crossing the two 404s.
+//
+// SUSPENDED is a real, expected state: when a plan lapses and the seat cap drops,
+// the BE auto-suspends over-cap members (newest first, owner protected). We show
+// it rather than silently rendering them as active.
+//
+// The BE returns a one-shot raw token per invite (no SMTP in v1), so we surface a
+// copyable link to /invite/<token> — the public landing page — that the owner relays.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useCallback, useEffect, useState } from 'react'
@@ -24,6 +36,7 @@ import {
   Copy,
   Check,
   UserPlus,
+  PauseCircle,
 } from 'lucide-react'
 
 
@@ -38,6 +51,8 @@ function TeamContent() {
   const [inviteError, setInviteError] = useState('')
   const [lastInvite, setLastInvite] = useState<InviteResult | null>(null)
   const [copied, setCopied] = useState(false)
+  // One id at a time — a membership id when removing a teammate, an invite id
+  // when revoking an invitation. They never collide (different id spaces).
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState('')
 
@@ -94,11 +109,12 @@ function TeamContent() {
     }
   }
 
-  const handleRemove = async (seatId: string) => {
-    setRemovingId(seatId)
+  /** Remove an ACCEPTED teammate. Takes a MEMBERSHIP id — never an invite id. */
+  const handleRemoveMember = async (membershipId: string) => {
+    setRemovingId(membershipId)
     setRemoveError('')
     try {
-      await teamAPI.removeSeat(seatId)
+      await teamAPI.removeMember(membershipId)
       await load()
     } catch (err) {
       // Surface inline — do NOT use the page-level `error` (that gate would
@@ -109,7 +125,27 @@ function TeamContent() {
     }
   }
 
+  /** Cancel a PENDING invitation. Takes an INVITE id — never a membership id. */
+  const handleRevokeInvite = async (inviteId: string) => {
+    setRemovingId(inviteId)
+    setRemoveError('')
+    try {
+      await teamAPI.revokeInvite(inviteId)
+      // The revoked token is dead — stop offering its link for copying.
+      if (lastInvite?.inviteId === inviteId) setLastInvite(null)
+      await load()
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : t('employer:team.revokeFailed'))
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
   const seatsFull = team ? team.seatsFree <= 0 : false
+  const isOwner = team?.me.role === 'OWNER'
+  const seatSuspended = team?.me.seatStatus === 'SUSPENDED'
+  // The owner is inside members[] (role OWNER). REMOVED rows are history, not roster.
+  const roster = team ? team.members.filter((m) => m.status !== 'REMOVED') : []
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -152,6 +188,18 @@ function TeamContent() {
 
           {!loading && !error && team && (
             <div className="space-y-6">
+              {/* Your own seat is over the cap — a plan lapsed and the BE suspended
+                  the newest seats. Read still works; posting and unlocking 402. */}
+              {seatSuspended && (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-[12px]">
+                  <PauseCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-900">{t('employer:team.suspendedBannerTitle')}</p>
+                    <p className="text-amber-800">{t('employer:team.suspendedBannerBody')}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Seat usage */}
               <div className="bg-white border border-[#dddddd] rounded-[12px] p-5 flex items-center gap-4">
                 <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center text-[#236987] flex-shrink-0">
@@ -165,48 +213,103 @@ function TeamContent() {
                 </div>
               </div>
 
-              {/* Roster */}
+              {/* Roster — everyone who HOLDS a seat, owner included. */}
               <div className="bg-white border border-[#dddddd] rounded-[12px] p-5">
                 <h2 className="text-lg font-semibold text-black mb-4">{t('employer:team.roster')}</h2>
                 <ul className="divide-y divide-[#eee]">
-                  <li className="flex items-center gap-3 py-3">
-                    <div className="w-9 h-9 rounded-full bg-[#a9e5ff] flex items-center justify-center text-[#236987] text-sm font-semibold flex-shrink-0">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-black truncate">{team.owner.email}</p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-primary-50/10 text-primary-50 text-xs font-medium">
-                      {t('employer:team.owner')}
-                    </span>
-                  </li>
-                  {team.seats.map((seat) => (
-                    <li key={seat.id} className="flex items-center gap-3 py-3">
-                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-sm font-semibold flex-shrink-0">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-black truncate">{seat.email}</p>
-                      </div>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          seat.status === 'ACCEPTED' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {seat.status === 'ACCEPTED' ? t('employer:team.statusActive') : t('employer:team.statusPending')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(seat.id)}
-                        disabled={removingId === seat.id}
-                        aria-label={t('employer:team.remove')}
-                        className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-40"
-                      >
-                        {removingId === seat.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
-                    </li>
-                  ))}
+                  {roster.map((member) => {
+                    const isOwnerRow = member.role === 'OWNER'
+                    const isSuspended = member.status === 'SUSPENDED'
+                    return (
+                      <li key={member.id} className="flex items-center gap-3 py-3">
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${
+                            isOwnerRow ? 'bg-[#a9e5ff] text-[#236987]' : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          {member.name && (
+                            <p className="text-sm font-medium text-black truncate">{member.name}</p>
+                          )}
+                          <p className={`truncate ${member.name ? 'text-xs text-[#717182]' : 'text-sm font-medium text-black'}`}>
+                            {member.email}
+                          </p>
+                        </div>
+
+                        {isOwnerRow ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-primary-50/10 text-primary-50 text-xs font-medium whitespace-nowrap">
+                            {t('employer:team.owner')}
+                          </span>
+                        ) : (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                              isSuspended ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
+                            }`}
+                            title={isSuspended ? t('employer:team.statusSuspendedHint') : undefined}
+                          >
+                            {isSuspended ? t('employer:team.statusSuspended') : t('employer:team.statusActive')}
+                          </span>
+                        )}
+
+                        {/* The owner cannot be removed (the BE refuses too), and
+                            only the owner may remove anyone. */}
+                        {isOwner && !isOwnerRow && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(member.id)}
+                            disabled={removingId === member.id}
+                            aria-label={t('employer:team.removeMemberAria', { email: member.email })}
+                            className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-40"
+                          >
+                            {removingId === member.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
+
+                {/* Pending invites — a separate population. Nobody is behind these
+                    yet, but they hold a seat until accepted, revoked or expired. */}
+                {team.invites.length > 0 && (
+                  <>
+                    <h3 className="text-sm font-semibold text-black mt-6 mb-2">
+                      {t('employer:team.pendingInvitesTitle')}
+                    </h3>
+                    <ul className="divide-y divide-[#eee]">
+                      {team.invites.map((invite) => (
+                        <li key={invite.id} className="flex items-center gap-3 py-3">
+                          <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-black truncate">{invite.email}</p>
+                            <p className="text-xs text-[#717182]">
+                              {t('employer:team.expires', { date: formatShortDate(invite.expiresAt) })}
+                            </p>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium whitespace-nowrap">
+                            {t('employer:team.statusPending')}
+                          </span>
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeInvite(invite.id)}
+                              disabled={removingId === invite.id}
+                              aria-label={t('employer:team.revokeInviteAria', { email: invite.email })}
+                              className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-40"
+                            >
+                              {removingId === invite.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
                 {removeError && (
                   <div className="flex items-start gap-2 text-red-600 text-sm mt-3">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /><span>{removeError}</span>
@@ -214,7 +317,15 @@ function TeamContent() {
                 )}
               </div>
 
-              {/* Invite */}
+              {/* Invite — owner only. A MEMBER can read the roster but not change it
+                  (the BE gates every mutation on requireOwner), so don't show them a
+                  form that can only 403. */}
+              {!isOwner ? (
+                <div className="bg-white border border-[#dddddd] rounded-[12px] p-5">
+                  <h2 className="text-lg font-semibold text-black mb-2">{t('employer:team.inviteTitle')}</h2>
+                  <p className="text-sm text-[#717182]">{t('employer:team.memberViewNote')}</p>
+                </div>
+              ) : (
               <div className="bg-white border border-[#dddddd] rounded-[12px] p-5">
                 <h2 className="text-lg font-semibold text-black mb-4">{t('employer:team.inviteTitle')}</h2>
 
@@ -285,6 +396,7 @@ function TeamContent() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
         </div>
