@@ -282,7 +282,9 @@ function SettingsContent() {
             </p>
             <button
               type="button"
-              onClick={logout}
+              // Wrapped, not passed by reference: logout() now takes an optional
+              // redirect path, and React would hand it the click's MouseEvent.
+              onClick={() => logout()}
               className="flex items-center gap-2 min-h-[48px] px-6 border border-error-500 text-error-600 rounded-lg hover:bg-error-500 hover:text-white transition-colors"
             >
               <LogOut className="w-4 h-4" />

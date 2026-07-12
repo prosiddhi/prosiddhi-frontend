@@ -25,6 +25,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { formatShortDate } from '@/lib/jobFormat'
+import { invitePath } from '@/lib/inviteToken'
 import { teamAPI, type TeamSummary, type InviteResult } from '@/lib/api'
 import {
   ChevronLeft,
@@ -74,8 +75,12 @@ function TeamContent() {
 
   // The BE returns the raw token exactly once (only its hash is stored), so this
   // link is the single copy in existence — losing it means re-inviting.
+  //
+  // It points at the PUBLIC /invite/<token> landing page, not the old protected
+  // accept screen: the invitee usually has no account yet, and the old route
+  // bounced them to /login and dropped the token on the floor.
   const inviteLink = lastInvite
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/employer/team/accept?token=${encodeURIComponent(lastInvite.token)}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}${invitePath(lastInvite.token)}`
     : ''
 
   const handleInvite = async () => {

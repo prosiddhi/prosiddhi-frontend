@@ -7,6 +7,7 @@ import { X } from 'lucide-react'
 import Link from 'next/link'
 import { authAPI, emailOtpAPI, type LoginResult } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
 export default function EmployerVerifyEmailPage() {
@@ -79,6 +80,17 @@ export default function EmployerVerifyEmailPage() {
       })) as LoginResult
       login(result.token, result.user)
       reset()
+
+      // They may have started at a team invite (/invite/<token>) with no account:
+      // registration is the detour, not the destination. Send them back to finish
+      // it — the landing page auto-accepts and then hands them the dashboard. The
+      // path is rebuilt from the stashed TOKEN, never from a stored URL.
+      const pendingInvite = readInviteToken()
+      if (pendingInvite) {
+        router.push(invitePath(pendingInvite))
+        return
+      }
+
       // Individual auto-approves → dashboard. Corporate lands in PENDING_DOCUMENTS.
       router.push(isIndividual ? '/employer' : '/employer/register/under-review')
     } catch (err) {

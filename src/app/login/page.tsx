@@ -27,7 +27,13 @@ function homeForUser(user: AuthUser): string {
 
 // Employer-only areas. A seeker who lands on a /employer/* returnUrl would just be
 // bounced by ProtectedRoute, so send them home instead of through a dead redirect.
+//
+// /invite/<token> is the exception: it is a PUBLIC page that both roles may land on,
+// and it renders its own "you're signed in as the wrong kind of account" guidance.
+// Excluding it here would silently swallow a team invite — the invitee signs in and
+// gets dumped on the dashboard with no idea the invite existed.
 function returnUrlSuitsRole(returnUrl: string, user: AuthUser): boolean {
+  if (returnUrl.startsWith('/invite/')) return true
   const isEmployerArea = returnUrl.startsWith('/employer')
   const isEmployer = user.role !== 'JOB_SEEKER'
   return isEmployerArea === isEmployer

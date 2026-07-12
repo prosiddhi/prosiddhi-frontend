@@ -27,7 +27,28 @@ interface AuthContextValue {
    * staying stale until the next login.
    */
   updateUser: (patch: Partial<AuthUser>) => void
-  logout: () => void
+  /**
+   * Clear the session and navigate away. Defaults to /login.
+   *
+   * `redirectTo` must be an INTERNAL path (a single leading slash). It is used by
+   * the invite landing page to send someone who is signed in as the wrong account
+   * back to /login and then straight back to the invite they were holding.
+   */
+  logout: (redirectTo?: string) => void
+}
+
+/**
+ * A destination we are willing to send a logged-out user to.
+ *
+ * Two jobs. (1) It rejects anything that is not an internal path, so `logout()`
+ * can never become an open redirect: `//evil.com` and `/\evil.com` are both
+ * normalised to a cross-origin navigation by the URL parser, and `https://…` and
+ * `javascript:` are obvious. (2) The `typeof` check makes the bare `onClick={logout}`
+ * usages safe — React would otherwise hand the click's MouseEvent straight to
+ * `router.push()` as the redirect target.
+ */
+function isInternalPath(value: unknown): value is string {
+  return typeof value === 'string' && /^\/(?![/\\])/.test(value)
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -86,13 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const logout = useCallback(() => {
-    window.localStorage.removeItem(AUTH_TOKEN_KEY)
-    window.localStorage.removeItem(AUTH_USER_KEY)
-    setToken(null)
-    setUser(null)
-    router.push('/login')
-  }, [router])
+  const logout = useCallback(
+    (redirectTo?: string) => {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+      setToken(null)
+      setUser(null)
+      router.push(isInternalPath(redirectTo) ? redirectTo : '/login')
+    },
+    [router]
+  )
 
   // React to 401s surfaced by the API client.
   useEffect(() => {

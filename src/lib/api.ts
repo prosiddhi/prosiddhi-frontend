@@ -48,6 +48,32 @@ interface ApiEnvelope<T> {
   data: T
 }
 
+/**
+ * An HTTP error response from the backend, carrying the bits a caller needs to
+ * branch on instead of string-matching `.message`.
+ *
+ * ⚠️ `reason` IS NOT ALWAYS PRESENT. The BE's `sendError()` puts the payload in
+ * `error` but gates it on `NODE_ENV === 'development'`, so in production the
+ * response is `{ success, message, error: undefined }` and `reason` is stripped.
+ * Callers must therefore branch on `status` first and treat `reason` as a
+ * refinement, never as the sole discriminator — see `messageForInviteError()`
+ * in the invite landing page.
+ *
+ * Extends Error, so every existing `err instanceof Error ? err.message` catch
+ * block keeps working unchanged.
+ */
+export class ApiError extends Error {
+  readonly status: number
+  readonly reason?: string
+
+  constructor(message: string, status: number, reason?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.reason = reason
+  }
+}
+
 // Helper function for API requests. Returns the unwrapped `.data` payload.
 async function apiRequest<T>(
   endpoint: string,
@@ -114,10 +140,20 @@ async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
+    const body = await response.json().catch(() => ({
       message: response.statusText,
     }))
-    throw new Error(error.message || `HTTP error! status: ${response.status}`)
+    // `error.reason` is the BE's machine-readable discriminator — present only in
+    // development (sendError gates the payload on NODE_ENV). See ApiError.
+    const reason =
+      body?.error && typeof body.error === 'object' && typeof body.error.reason === 'string'
+        ? (body.error.reason as string)
+        : undefined
+    throw new ApiError(
+      body?.message || `HTTP error! status: ${response.status}`,
+      response.status,
+      reason
+    )
   }
 
   // 204 / empty bodies: nothing to unwrap.
@@ -1700,6 +1736,22 @@ export interface AcceptInviteResult {
   role: TeamMemberRole
 }
 
+/**
+ * The PUBLIC preview of an invite, for the /invite/:token landing page. The
+ * invitee has no account (let alone a JWT) when they first click the link, so
+ * this is deliberately unauthenticated — holding the token IS the authorization.
+ *
+ * It exposes nothing beyond the address the invite was already sent to and the
+ * company that sent it. `accountExists` only tells the FE whether to route the
+ * invitee to sign-in or to registration.
+ */
+export interface InvitePeek {
+  email: string
+  companyName: string | null
+  expiresAt: string
+  accountExists: boolean
+}
+
 export const teamAPI = {
   // GET /api/employers/me/team — seat usage + roster. Any seat may read it.
   getTeam: async () => {
@@ -1714,6 +1766,13 @@ export const teamAPI = {
       method: 'POST',
       body: JSON.stringify({ email }),
     })
+  },
+
+  // GET /api/employers/team/invites/:token — PUBLIC (no JWT). Powers the
+  // /invite/:token landing page. 404 when the token is unknown, already used or
+  // expired; IP-rate-limited by the BE against token guessing.
+  peekInvite: async (token: string) => {
+    return apiRequest<InvitePeek>(`/employers/team/invites/${encodeURIComponent(token)}`)
   },
 
   // POST /api/employers/team/accept-invite — the INVITEE's own employer JWT plus

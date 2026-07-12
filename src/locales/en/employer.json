@@ -43,6 +43,39 @@
       "failed": "Couldn't accept this invite — it may be invalid or expired."
     }
   },
+  "invite": {
+    "loading": "Checking this invite…",
+    "title": "You have been invited to join a team",
+    "titleWithCompany": "{{company}} has invited you to their team",
+    "body": "Join as a teammate to post jobs, message candidates and work from the same company account.",
+    "companyLabel": "Company",
+    "emailLabel": "Invited email",
+    "expires": "This invite expires on {{date}}",
+    "accept": "Accept invite",
+    "signInToAccept": "Sign in to accept",
+    "createAccount": "Create your account",
+    "registerInstead": "I don't have an account yet",
+    "signInInstead": "I already have an account",
+    "mustUseInvitedEmail": "Use {{email}} — this invite only works for that address.",
+    "switchAccount": "Sign in with a different account",
+    "wrongAccount": "You're signed in as {{signedInAs}}, but this invite was sent to {{invitedEmail}}. Sign in with that account to accept it.",
+    "seekerAccount": "You're signed in with a job seeker account. Team seats are for employer accounts only — sign in with an employer account to accept this invite.",
+    "invalidTitle": "This invite can't be used",
+    "successTitle": "You're on the team",
+    "successBody": "Your account now works from {{company}} — the same jobs, credits and unlocked candidates.",
+    "goToDashboard": "Go to dashboard",
+    "goToSignIn": "Go to sign in",
+    "errors": {
+      "invalid": "This invite link is invalid, has already been used, or has expired. Ask the person who invited you to send a new one.",
+      "rejected": "This invite can't be accepted with this account. Ask the person who invited you to send a new invite to the right email address.",
+      "badRequest": "This invite can't be used with this account. It may have expired, already been used, or been sent to a different kind of account. Ask the person who invited you to send a new one.",
+      "emailMismatch": "This invite was sent to a different email address. Sign in with the invited account to accept it.",
+      "noSeat": "This team has no free seats left. Ask the account owner to upgrade their plan or free up a seat, then try again.",
+      "workspaceConflict": "This account already runs its own company workspace with jobs, credits or payments, so it cannot also hold a seat on another team. Accept the invite with a different account.",
+      "rateLimited": "Too many attempts. Please wait a minute and try again.",
+      "generic": "Something went wrong and we couldn't accept this invite. Please try again."
+    }
+  },
   "candidate": {
     "back": "Back to search",
     "loading": "Loading candidate…",
