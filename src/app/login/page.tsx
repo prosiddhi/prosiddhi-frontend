@@ -173,7 +173,7 @@ export default function LoginPage() {
 
   const handleGoogleSuccess = async (idToken?: string) => {
     if (!idToken) {
-      setError('Google sign-in failed. Please try again.')
+      setError(t('auth:google.failed'))
       return
     }
     try {
@@ -193,7 +193,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Google sign-in failed. Please try again.'
+        err instanceof Error ? err.message : t('auth:google.failed')
       )
     } finally {
       setLoading(false)
@@ -223,7 +223,7 @@ export default function LoginPage() {
     e.preventDefault()
     const code = otp.join('')
     if (code.length !== 6) {
-      setError('Please enter the complete 6-digit OTP')
+      setError(t('auth:bindPhone.otpIncomplete'))
       return
     }
     try {
@@ -468,7 +468,7 @@ export default function LoginPage() {
               {/* Employers must pick a subtype — the BE needs the exact role on sign-up. */}
               {role === 'employer' && (
                 <div>
-                  <p className="text-base font-medium text-black mb-2">Employer type</p>
+                  <p className="text-base font-medium text-black mb-2">{t('auth:google.employerType')}</p>
                   <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg">
                     <button
                       type="button"
@@ -479,7 +479,7 @@ export default function LoginPage() {
                           : 'text-[#777776]'
                       }`}
                     >
-                      Individual Employer
+                      {t('auth:google.individualEmployer')}
                     </button>
                     <button
                       type="button"
@@ -490,7 +490,7 @@ export default function LoginPage() {
                           : 'text-[#777776]'
                       }`}
                     >
-                      Business Employer
+                      {t('auth:google.businessEmployer')}
                     </button>
                   </div>
                 </div>
@@ -499,13 +499,13 @@ export default function LoginPage() {
                 <GoogleLogin
                   onSuccess={(cred) => handleGoogleSuccess(cred.credential)}
                   onError={() =>
-                    setError('Google sign-in failed. Please try again.')
+                    setError(t('auth:google.failed'))
                   }
                   width="320"
                 />
               </div>
               {loading && (
-                <p className="text-center text-sm text-[#777776]">Signing you in…</p>
+                <p className="text-center text-sm text-[#777776]">{t('auth:google.signingIn')}</p>
               )}
             </div>
           )}
@@ -514,20 +514,20 @@ export default function LoginPage() {
           {mode === 'bindPhone' && (
             <div className="space-y-5">
               <p className="text-base text-black">
-                One last step — verify a phone number to finish setting up your account.
+                {t('auth:bindPhone.intro')}
               </p>
               {!otpSent ? (
                 <form onSubmit={handleBindSendOtp} className="space-y-5">
                   <div>
                     <label htmlFor="bind-phone" className="block text-base font-medium text-black mb-2">
-                      Phone Number
+                      {t('auth:bindPhone.phoneLabel')}
                     </label>
                     <input
                       id="bind-phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter 10-digit mobile number"
+                      placeholder={t('auth:bindPhone.phonePlaceholder')}
                       className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       required
                     />
@@ -537,14 +537,14 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
-                    {loading ? 'Sending…' : 'Send OTP'}
+                    {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleBindVerify} className="space-y-5">
                   <div>
                     <label className="block text-base font-medium text-black mb-2">
-                      Enter the 6-digit OTP
+                      {t('auth:bindPhone.otpLabel')}
                     </label>
                     <div className="flex justify-between gap-2">
                       {otp.map((d, i) => (
@@ -569,7 +569,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
-                    {loading ? 'Verifying…' : 'Verify & Continue'}
+                    {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>
                   <button
                     type="button"
@@ -579,7 +579,7 @@ export default function LoginPage() {
                     }}
                     className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                   >
-                    Change phone number
+                    {t('auth:bindPhone.changePhone')}
                   </button>
                 </form>
               )}

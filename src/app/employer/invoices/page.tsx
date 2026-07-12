@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { formatShortDate } from '@/lib/jobFormat'
 import { subscriptionAPI, type InvoicesPage } from '@/lib/api'
 import {
   ChevronLeft,
@@ -24,10 +25,6 @@ const PAGE_SIZE = 20
 
 function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function InvoicesContent() {
@@ -140,7 +137,7 @@ function InvoicesContent() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-black truncate">{inv.number}</p>
                       <p className="text-xs text-[#717182] truncate">
-                        {formatDate(inv.createdAt)}{inv.description ? ` · ${inv.description}` : ''}
+                        {formatShortDate(inv.createdAt)}{inv.description ? ` · ${inv.description}` : ''}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">

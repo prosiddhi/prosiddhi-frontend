@@ -8,6 +8,7 @@
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt } from 'lucide-react'
+import { formatShortDate } from '@/lib/jobFormat'
 import { useCredits } from '@/hooks/useCredits'
 
 // Plan-expiry nudge: derives the latest active subscription/trial expiry (max
@@ -27,14 +28,6 @@ function planExpiryNotice(
   if (latest <= now) return { level: 'expired', days: 0 }
   const days = Math.ceil((latest - now) / 86400000)
   return days <= 7 ? { level: 'soon', days } : null
-}
-
-// Absolute date like "12 Jul 2026" (wallet expiry is a calendar-relevant date).
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function Tile({
@@ -106,13 +99,13 @@ export function CreditWallet({ className }: { className?: string }) {
               icon={<FileText className="w-5 h-5" />}
               label={t('employer:wallet.postCredits')}
               balance={wallet.post.balance}
-              expiry={formatDate(wallet.post.expiresAt)}
+              expiry={formatShortDate(wallet.post.expiresAt)}
             />
             <Tile
               icon={<Unlock className="w-5 h-5" />}
               label={t('employer:wallet.downloadCredits')}
               balance={wallet.download.balance}
-              expiry={formatDate(wallet.download.expiresAt)}
+              expiry={formatShortDate(wallet.download.expiresAt)}
             />
           </div>
           {wallet.packNeverExpires && (

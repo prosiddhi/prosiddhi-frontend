@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { formatShortDate } from '@/lib/jobFormat'
 import { teamAPI, type TeamSummary, type InviteResult } from '@/lib/api'
 import {
   ChevronLeft,
@@ -25,10 +26,6 @@ import {
   UserPlus,
 } from 'lucide-react'
 
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
 
 function TeamContent() {
   const { t } = useTranslation()
@@ -281,7 +278,7 @@ function TeamContent() {
                       </button>
                     </div>
                     <p className="text-xs text-[#717182] mt-2">
-                      {t('employer:team.expires', { date: formatDate(lastInvite.expiresAt) })}
+                      {t('employer:team.expires', { date: formatShortDate(lastInvite.expiresAt) })}
                     </p>
                   </div>
                 )}

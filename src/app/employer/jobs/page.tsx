@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { employerAPI, type Job } from '@/lib/api'
+import { jobStatusLabel } from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime } from '@/lib/jobFormat'
 import {
   Plus,
@@ -205,7 +206,7 @@ function MyJobsContent() {
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="text-lg sm:text-xl font-semibold text-black">{job.title}</h3>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                            {job.status ? job.status.charAt(0) + job.status.slice(1).toLowerCase() : t('employer:jobs.statusUnknown')}
+                            {jobStatusLabel(job.status)}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">

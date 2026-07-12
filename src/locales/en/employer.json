@@ -307,7 +307,6 @@
     "noExpiredTitle": "No expired jobs",
     "noActiveBody": "Post a job to start receiving applications.",
     "noExpiredBody": "Jobs that are filled, closed, or past their expiry appear here.",
-    "statusUnknown": "Unknown",
     "views": "{{count}} views",
     "posted": "Posted {{time}}",
     "candidates": "Candidates",

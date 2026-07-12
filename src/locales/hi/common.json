@@ -115,5 +115,46 @@
     "listen": "सुनें",
     "comingSoon": "वॉइस सहायता जल्द आ रही है",
     "tooltip": "वॉइस सहायता — जल्द आ रही है"
+  },
+  "applicationStatus": {
+    "PENDING": "आवेदन किया",
+    "REVIEWED": "समीक्षा में",
+    "SHORTLISTED": "शॉर्टलिस्ट",
+    "ACCEPTED": "स्वीकृत",
+    "REJECTED": "अस्वीकृत",
+    "WITHDRAWN": "वापस लिया",
+    "BOOKMARKED": "सहेजा गया",
+    "unknown": "अज्ञात"
+  },
+  "jobStatus": {
+    "DRAFT": "ड्राफ़्ट",
+    "ACTIVE": "सक्रिय",
+    "INACTIVE": "निष्क्रिय",
+    "CLOSED": "बंद",
+    "FILLED": "भरा गया",
+    "CANCELLED": "रद्द",
+    "unknown": "अज्ञात"
+  },
+  "jobType": {
+    "FULL_TIME": "पूर्णकालिक",
+    "PART_TIME": "अंशकालिक",
+    "CONTRACT": "अनुबंध",
+    "TEMPORARY": "अस्थायी",
+    "INTERNSHIP": "इंटर्नशिप"
+  },
+  "salary": {
+    "range": "{{min}} - {{max}}",
+    "from": "{{amount}} से",
+    "upTo": "{{amount}} तक",
+    "negotiable": "बातचीत के अनुसार"
+  },
+  "time": {
+    "justNow": "अभी अभी",
+    "minutesAgo_one": "{{count}} मिनट पहले",
+    "minutesAgo_other": "{{count}} मिनट पहले",
+    "hoursAgo_one": "{{count}} घंटे पहले",
+    "hoursAgo_other": "{{count}} घंटे पहले",
+    "daysAgo_one": "{{count}} दिन पहले",
+    "daysAgo_other": "{{count}} दिन पहले"
   }
 }

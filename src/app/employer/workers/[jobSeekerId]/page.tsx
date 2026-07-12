@@ -16,7 +16,7 @@ import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { useCredits } from '@/hooks/useCredits'
 import { candidateAPI, type CandidateProfile } from '@/lib/api'
-import { initials } from '@/lib/jobFormat'
+import { initials, formatMonthYear } from '@/lib/jobFormat'
 import {
   ChevronLeft,
   MapPin,
@@ -32,13 +32,6 @@ import {
 } from 'lucide-react'
 
 const NO_CREDITS_RE = /insufficient\s+download\s+credit/i
-
-function fmtMonthYear(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-}
 
 function CandidateContent() {
   const { t } = useTranslation()
@@ -226,7 +219,7 @@ function CandidateContent() {
                         <p className="font-medium text-black">{w.position}</p>
                         {w.companyName && <p className="text-sm text-[#717182]">{w.companyName}</p>}
                         <p className="text-xs text-[#717182]">
-                          {fmtMonthYear(w.startDate)} – {w.currentlyWorking ? t('employer:candidate.present') : fmtMonthYear(w.endDate)}
+                          {formatMonthYear(w.startDate)} – {w.currentlyWorking ? t('employer:candidate.present') : formatMonthYear(w.endDate)}
                         </p>
                       </div>
                     ))}

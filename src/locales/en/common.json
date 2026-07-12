@@ -115,5 +115,46 @@
     "listen": "Listen",
     "comingSoon": "voice assistance coming soon",
     "tooltip": "Voice assistance — coming soon"
+  },
+  "applicationStatus": {
+    "PENDING": "Applied",
+    "REVIEWED": "Under Review",
+    "SHORTLISTED": "Shortlisted",
+    "ACCEPTED": "Accepted",
+    "REJECTED": "Rejected",
+    "WITHDRAWN": "Withdrawn",
+    "BOOKMARKED": "Bookmarked",
+    "unknown": "Unknown"
+  },
+  "jobStatus": {
+    "DRAFT": "Draft",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "CLOSED": "Closed",
+    "FILLED": "Filled",
+    "CANCELLED": "Cancelled",
+    "unknown": "Unknown"
+  },
+  "jobType": {
+    "FULL_TIME": "Full Time",
+    "PART_TIME": "Part Time",
+    "CONTRACT": "Contract",
+    "TEMPORARY": "Temporary",
+    "INTERNSHIP": "Internship"
+  },
+  "salary": {
+    "range": "{{min}} - {{max}}",
+    "from": "From {{amount}}",
+    "upTo": "Up to {{amount}}",
+    "negotiable": "Negotiable"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
   }
 }
