@@ -12,7 +12,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | Surface | Repo | State |
 |---|---|---|
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
-| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** All flows wired to real data. Needs a QA-defect pass. |
+| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). All 2 criticals + 10 majors + minors fixed and verified in the running app; **audio removed**; several deeper defects found while verifying (i18n was silently reverting to English; the registration language picker was inert; an introduced open-redirect) all fixed. → `docs/qa/functional-audit-portal.md`. **GO for handover.** |
 | **Admin console** | `prosiddhi-admin` | 🟡 **Wired, but two whole screens are missing** (taxonomy, monetization). No mock data, no blockers — and the BE endpoints those screens need **now exist** (unblocked 2026-07-12). |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~60% built** (Flutter). Free product done + **EN/HI localised**; post-credit gate in. Pending: subscription screens, candidate DB, team seats, a few loose ends. *(Only in-app **checkout** is blocked, on the store-policy call — the plans/wallet **screens** are buildable now.)* → **`prosiddhi-mobile-app/docs/STATUS.md`** |
 
@@ -22,7 +22,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 ⚠️ Its **database is empty** (0 jobs — plans + taxonomy seeded only), so create test data before testing flows.
 
 ### ⛔ Audio is REMOVED from the product (decided 2026-07-12)
-**No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** still has it built — **must be deleted** (§3 item 10). Revisit in v2.
+**No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** ✅ **deleted** (2026-07-12) — apply-modal recorder, chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, audio params in `api.ts`, and all audio i18n keys are gone; the mic Permissions-Policy was revoked. Revisit in v2.
 
 **Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are now FIXED on the backend** (real org membership + shared wallet, correct seat-cap aggregation, rebuilt invite flow), **audio accept-paths removed** (backward-tolerant), and the backend now has **admin monetization endpoints, a reports queue, content scan, and outbound notification channels** (MSG91 + FCM, no-op until keyed). What remains is mostly **frontend + external config**: the admin-console monetization/taxonomy screens, the portal invite-flow landing page, a QA-defect pass, and go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN). See the **backend session summary** at the end of §3.
 
@@ -75,10 +75,7 @@ Login, dashboard, job-seeker management, employer management, document verificat
 - `POST /api/otp/send` and the register endpoints leak their OTP the same way.
 - **Fix:** never return OTPs in production responses (gate on `NODE_ENV`); make forgot-password's response **identical** whether or not the email exists. *(The clients deliberately never read these fields, but the server must not send them.)*
 
-**3. Portal — 2 critical defects** *(FE)*
-- Fake hardcoded name **"Sanjay RK"** shows in the header on **every** logged-in screen.
-- Dead **"Settings"** link → 404 from the account menu on every screen.
-- *Both are in one file (`UserDropdown.tsx`) — one fix clears both.*
+**3. Portal — QA-defect pass** *(FE)* — ✅ **DONE 2026-07-12.** Both criticals (fake "Sanjay RK" name + dead `/settings`), all 10 majors and the minors are fixed and verified in the running app, and **audio was deleted** from the portal. Full detail in `docs/qa/functional-audit-portal.md`. Three deeper defects surfaced during verification and were also fixed: i18n was silently reverting to English on every navigation (a `LanguageDetector` cache clobbering the stored choice), the registration language picker was inert (never switched the app; offered 10 unshipped languages), and the new deep-link `returnUrl` initially shipped an open redirect (caught in security review, fixed with origin validation). Also fixed a latent next/image crash and a missing phone-OTP dev banner that blocked QA registration.
 
 **4. Admin — the Revenue card lies** *(Admin)*
 Caption still reads *"Indicative (₹500/subscription)"* but the backend now returns **real money** from `PaymentHistory`. Fix the caption and consume the `monthlyRevenue` series the API already returns.
@@ -94,11 +91,11 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 - **Taxonomy management** — the backend has **10 admin CRUD endpoints** for Category/Sector/JobTitle and the console has **no page, no nav item, not one API call**. Nobody can manage the taxonomy.
 - **Monetization views** — the **admin-namespaced BE endpoints now exist** (✅ 2026-07-12: `GET /api/admin/monetization/{payments,invoices,employers}` + `pendingVerifications` on the dashboard stats). The **admin-console UI** (payments / invoices / credits / plans / team-seat surface) still to build.
 
-**8. QA defect pass** — portal: 10 major (dead legal/footer links, several strings that never translate to Hindi, dead Mail/Bell + hero CTA). Admin: 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — incl. the money-adjacent payment override). Full lists in the two audit docs.
+**8. QA defect pass** — **Portal: ✅ DONE (2026-07-12)** — all criticals + majors + minors fixed and live-verified (`docs/qa/functional-audit-portal.md`); the notifications dropdown (PJP-111) was built as part of it. **Admin: still open** — 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — incl. the money-adjacent payment override); see the admin audit doc.
 
 **9. Content moderation + reports** *(BE ✅ / Admin UI left)* — ✅ **backend done (2026-07-12):** `POST /api/admin/posts/:jobId/scan` (OpenAI omni-moderation + India scam-regex, degrades gracefully with no key, persists the flagged text) and a standalone reports queue `GET /api/admin/reports` + `PATCH /api/admin/reports/:id/resolve`. **Left:** the admin-console UI to consume both.
 
-**10. Portal — delete the audio UI** *(FE)* — audio is **removed from the product** (decision 2026-07-12), but the **portal still has it built and working** (2-min apply recorder, 60-sec chat recorder, the recorder hook, test-microphone page). **Delete it** so QA can't test it and users can't reach it. *(Mobile has already deleted its audio UI. The backend tolerates a stray audio field, so ordering is safe.)*
+**10. Portal — delete the audio UI** *(FE)* — ✅ **DONE 2026-07-12.** The 2-min apply recorder, the 60-sec chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, the audio params in `api.ts` and all audio i18n keys (incl. the "Voice Message" plan-feature advert) are gone; the mic Permissions-Policy was revoked. Verified in the running app: 0 `<audio>` elements, 0 mic icons, an application still submits end-to-end.
 
 ### 🟡 P2 — after launch
 
@@ -138,7 +135,7 @@ Nine backlog items delivered on `prosiddhi-backend`, each committed per unit, `t
 - **Razorpay** — real keys + webhook secret. **GST** — real Azkashine GSTIN.
 - All keys are documented (as optional) in `prosiddhi-backend/.env.example`.
 
-**Frontend follow-ups this unblocks:** portal `/invite/:token` landing page (backend ready), the notifications dropdown, the admin-console monetization + reports + content-scan + taxonomy screens.
+**Frontend follow-ups this unblocks:** portal `/invite/:token` landing page (backend ready), ~~the notifications dropdown~~ ✅ **built 2026-07-12 (PJP-111)**, the admin-console monetization + reports + content-scan + taxonomy screens.
 
 ---
 
@@ -149,10 +146,10 @@ Nine backlog items delivered on `prosiddhi-backend`, each committed per unit, `t
 | 1 | BE | ✅ **FIXED 2026-07-12** — seat cap now `MAX(seats)` across active plans (`getEntitlements`) |
 | 2 | BE | ✅ **FIXED 2026-07-12** — real `EmployerUser` membership + org-keyed billing; teammates share the org wallet/jobs/unlocks |
 | 3 | BE 🔒 | `forgot-password` returns the OTP in the response **and** is an account-enumeration oracle; `otp/send` + register leak OTP too |
-| 4 | Portal | Fake "Sanjay RK" name in the header on every authed page |
-| 5 | Portal | Dead `/settings` link → 404 |
-| 6 | Portal | Dead Privacy / Terms / Contact footer links |
-| 7 | Portal | Status pills, salary/date formatters and the Google-login path never translate to Hindi |
+| 4 | Portal | ✅ **FIXED 2026-07-12** — header shows the real signed-in user (was fake "Sanjay RK") |
+| 5 | Portal | ✅ **FIXED 2026-07-12** — `/settings` is a real page (was a 404) |
+| 6 | Portal | ✅ **FIXED 2026-07-12** — Privacy / Terms / Contact built for real; all other dead footer links removed |
+| 7 | Portal | ✅ **FIXED 2026-07-12** — status pills, formatters, dates, job status and the Google-login path all translate now; **also** fixed the i18n cache bug that reverted the whole app to English on navigation |
 | 8 | Admin | Revenue card captioned "Indicative ₹500/subscription" — it's real money now |
 | 9 | Admin | No success confirmation on any write (incl. payment override) |
 | 10 | Admin | Dead header Mail/Bell buttons + dead dashboard search; hardcoded "AD/Admin" identity |

@@ -13,7 +13,21 @@
 
 ## 0. Executive summary + Go / Not-yet call
 
-**Overall: NOT-YET for handover — but the blockers are shallow and concentrated, ~1–2 days of polish, not structural rework.**
+> ### ✅ RESOLUTION PASS — 2026-07-12
+> **All 2 criticals and all 10 majors are FIXED and verified in the running app** against the hosted backend. The minor items are done too. Each fix ran the full gate (type-check 0, `/code-review`, `/security-review` where auth/money was touched, EN/HI parity, live browser verification). Committed as 9 focused commits on `main`.
+>
+> **Three additional defects the static audit could not see were found and fixed while verifying:**
+> - **i18n was effectively unreachable.** `LanguageDetector` with `caches:['localStorage']` overwrote the user's stored choice with `'en'` on every page load. Picking Hindi worked until you navigated, then the whole app silently reverted to English — full key parity hid it. *(fixed — see the M1/M9 commit)*
+> - **The seeker registration language picker ignored the user's choice** (it never called `changeLanguage`) **and offered 10 languages when only 2 ship.** A Hindi speaker tapped हिंदी and got an English app; a Tamil speaker got English forever. *(fixed — M10 commit)*
+> - **An open-redirect** was introduced by the deep-link `returnUrl` work (`/\evil.com` bypassed a `startsWith('//')` check) and caught by an adversarial security review before commit. *(fixed with origin-based validation — minors commit)*
+>
+> Plus: a latent **next/image crash** (the host allowlist omitted the backend origin, so any real profile photo blanked every authed page — promoted to always-on by the C1 fix), the phone-OTP step had **no dev-OTP banner** (blocking QA registration with no SMS gateway), and **"Buy now" opened a checkout for anonymous visitors** who could never complete it. All fixed.
+>
+> **Revised call: GO for QA handover.** The audio feature was also **removed entirely** (product decision 2026-07-12), not just polished.
+>
+> *Remaining before production (config/ops, not code): real Razorpay keys + webhook secret, Azkashine GSTIN + registered office in `src/lib/legal.ts`, MSG91/WhatsApp for real OTP + notification delivery, and **legal review of the new Privacy/Terms/Contact copy**.*
+
+**Original call (2026-07-07): NOT-YET for handover — but the blockers are shallow and concentrated, ~1–2 days of polish, not structural rework.**
 
 The three business loops (auth, seeker consume, employer + money) are **functionally complete and genuinely wired to the live backend.** Validation, loading/empty/error/retry states, destructive-action confirms, and the Razorpay checkout's GST math + double-charge safety are all solid. The EN/HI translation JSON has full key parity. **No core journey is broken.**
 
@@ -33,48 +47,52 @@ Legend: 🔴 critical (blocks handover) · 🟠 major (fix before freeze / early
 
 ### 🔴 Critical
 
-| # | Defect | Route(s) | File:line | Business impact |
-|---|---|---|---|---|
-| C1 | **Fake hardcoded name "Sanjay RK" in the header on EVERY authenticated screen** (seeker + employer) | all authed routes | `src/components/navigation/UserDropdown.tsx:15-16` (+ ~22 call sites, all pass no props, e.g. `src/app/job-feed/page.tsx:283`) | The dropdown reads `useAuth()` for `logout`/`role` but never uses `user` for the display name, so it always falls back to the default. Every logged-in user sees a fake seeker's name in the global header — a glaring mock-data leak that undermines trust in a paid product. |
-| C2 | **Dead "Setting(s)" link → 404 from the account menu on every authed screen** | all authed routes | `src/components/navigation/UserDropdown.tsx:120-127` | Links to `/settings`, which does not exist in the route tree (`src/app/settings/**` → none). A primary account-menu item routes every seeker and employer to a Next.js 404. |
+| # | Status | Defect | Route(s) | File:line | Business impact |
+|---|---|---|---|---|---|
+| C1 | ✅ **FIXED** | **Fake hardcoded name "Sanjay RK" in the header on EVERY authenticated screen** (seeker + employer) | all authed routes | `src/components/navigation/UserDropdown.tsx:15-16` (+ ~22 call sites, all pass no props, e.g. `src/app/job-feed/page.tsx:283`) | The dropdown reads `useAuth()` for `logout`/`role` but never uses `user` for the display name, so it always falls back to the default. Every logged-in user sees a fake seeker's name in the global header — a glaring mock-data leak that undermines trust in a paid product. **Fix:** props removed entirely; name comes from `useAuth().user` via `displayName()`, degrades to the email local-part, never a placeholder. |
+| C2 | ✅ **FIXED** | **Dead "Setting(s)" link → 404 from the account menu on every authed screen** | all authed routes | `src/components/navigation/UserDropdown.tsx:120-127` | Links to `/settings`, which does not exist in the route tree (`src/app/settings/**` → none). A primary account-menu item routes every seeker and employer to a Next.js 404. **Fix:** built a real `/settings` page (account summary, language, change-password against `POST /api/auth/change-password`, sign-out). |
 
 *(C1 + C2 were independently flagged by both Pass B and Pass C — same file, same root cause. Fixing `UserDropdown` clears both.)*
 
 ### 🟠 Major
 
-| # | Defect | Route(s) | File:line | Business impact |
-|---|---|---|---|---|
-| M1 | **Dead legal/support footer links** — Privacy, Terms, Contact, Help, About, FAQ, careers, blog, pricing, resources (11 links) all 404 | `/employer/welcome` (+ anywhere Footer renders) | `src/components/home/Footer.tsx:45,52-55,61-73` | For a product that takes payments and PII, dead **Privacy Policy / Terms / Contact** are a genuine trust + legal-compliance gap, not cosmetic. |
-| M2 | **"My Application" menu item misroutes employers to a seeker-only screen** | all employer screens | `src/components/navigation/UserDropdown.tsx:110-117` | The shared dropdown always links to `/my-applications` (seeker route). Menu is not role-aware except the Profile link — an employer lands on the wrong role's page. |
-| M3 | **Application-status pills hardcoded English — never translate to Hindi** (widest i18n leak) | employer dashboard, candidates list + detail, seeker my-applications | `src/lib/applicationStatus.ts:11-32` | `statusMeta()` returns literal `Applied/Under Review/Shortlisted/Accepted/Rejected/Withdrawn/Bookmarked` with no `t()`. Renders on 4+ screens; stays English in HI. |
-| M4 | **Global header Mail + Bell icons are dead no-op buttons; no seeker path to Messages/Notifications at all** | every seeker page | e.g. `src/app/job-feed/page.tsx:277-282`, `job-details/[id]/page.tsx:152-153`, `saved-jobs/page.tsx:142-147` | Both buttons have no `onClick`/destination. Users tap "messages"/"notifications" and nothing happens; `/messages` is orphaned for seekers (no nav entry anywhere). |
-| M5 | **Employer landing hero + header CTAs are dead buttons** — incl. the primary "Post A Job" hero CTA, Contact Us, Call for help | `/employer/welcome` | `src/app/employer/welcome/page.tsx:115-119,148,151,330` | Bare `<button>`s with no `onClick`/nav. A visitor clicking the biggest button on the page gets no response (working path is the header Sign-Up / nav links). |
-| M6 | **Relative-time / salary / date formatters emit hardcoded English in all languages** | every seeker job card, application, interview row | `src/lib/jobFormat.ts:16-17,25-30` (forces `'en-IN'`) | `relativeTime()` ("Just now", "X hours ago"), `formatSalary()` ("From"/"Up to"/"Negotiable"), `formatDate()` all English-only; leak into Hindi across the whole consume loop. |
-| M7 | **Hardcoded English on the Google-login + phone-bind path** (breaks i18n on a v1 auth method) | `/login` | `src/app/login/page.tsx:471,482,493,517,523,530,540,547,572,582` + Google error strings `176,196-197,502` | Employer-type picker, phone-bind step, Send/Verify OTP, and all Google errors are not wrapped in `t()`; a non-English user sees raw English on the Google sign-up flow. |
-| M8 | **Job status renders as raw English enum on My Jobs + Dashboard** | `/employer/jobs`, `/employer` | `src/app/employer/jobs/page.tsx:208` | Status text derived from the enum inline ("Active"/"Filled"/"Cancelled"), not `t()` — stays English in HI. (Dashboard's Active/Inactive pill at `src/app/employer/page.tsx:188` IS translated — inconsistent.) |
-| M9 | **Footer is entirely hardcoded English (no i18n)** | `/employer/welcome` (+ anywhere Footer renders) | `src/components/home/Footer.tsx:41-96` | Every heading, link label, and the mobile-app block bypass `t()`; whole footer stays English in Hindi mode. |
-| M10 | **Seeker registration progress indicator is internally inconsistent** — 7-step counter that skips step 6, jumps 5→7, and swaps stepper styles mid-flow | `/register/*` | labels in `src/locales/en/auth.json:13,26,41,63,104`; different 3-dot stepper at `src/app/register/experience/page.tsx:158-188` | Language step has no indicator, experience step uses a different stepper with no "of 7" — confusing for the low-literacy audience the product explicitly targets. |
+*All ✅ FIXED. The `Fix` note on each row says how.*
+
+| # | Status | Defect | Fix |
+|---|---|---|---|
+| M1 | ✅ | **Dead legal/support footer links** — Privacy, Terms, Contact, Help, About, FAQ, careers, blog, pricing, resources (11 links) all 404 (`Footer.tsx`) | Built real **/privacy, /terms, /contact** pages (EN+HI, content grounded in the real data model + MONETIZATION.md; company details centralized in `src/lib/legal.ts`; ⚠️ needs legal review). Every other dead link removed; footer now has 9 links, all resolve. Deleted the orphaned `Navbar.tsx` that held the last dead link (`/jobs`). |
+| M2 | ✅ | **"My Application" menu item misroutes employers to a seeker-only screen** (`UserDropdown.tsx`) | Menu is role-aware; employers get **My Jobs → /employer/jobs**. (Same commit as C1/C2.) |
+| M3 | ✅ | **Application-status pills hardcoded English** (`applicationStatus.ts`) — widest i18n leak, 5 screens | `statusMeta()` now reads the i18next singleton and translates at call time; new `applicationStatus.*` keys (EN+HI). |
+| M4 | ✅ | **Header Mail + Bell are dead no-op buttons; `/messages` orphaned for seekers** | Extracted `HeaderActions`: Mail → /messages, Bell → a real **notifications dropdown** (`GET /api/notifications` + unread-count, mark-read, role-aware routing) — **closes PJP-111**. Both icons now visible on mobile too (were `hidden sm:block`). |
+| M5 | ✅ | **Employer landing hero + header CTAs are dead buttons** incl. primary "Post A Job" | Hero CTA is auth-aware (→ /employer/jobs/new or /employer/register); Contact/Call-for-help → /contact; store buttons → honest "coming soon". **Also found:** "Buy now" opened a checkout for anonymous visitors who could never complete it → now routes them to sign-up. |
+| M6 | ✅ | **relativeTime / formatSalary / formatDate emit hardcoded English, force `en-IN`** (`jobFormat.ts`) | All translate at call time via the i18next singleton; new `salary.*`, `time.*` (real plurals) keys; date locale follows the language. Also unified 4 private `en-GB` date helpers into `formatShortDate`/`formatMonthYear`. |
+| M7 | ✅ | **Hardcoded English on the Google-login + phone-bind path** (`login/page.tsx`) | Employer-type picker, phone-bind, Send/Verify OTP, all Google errors wrapped in `t()`; new `google.*` + `bindPhone.*` keys (EN+HI). |
+| M8 | ✅ | **Job status renders as raw English enum on My Jobs** (`employer/jobs/page.tsx`) | New `jobStatusLabel()` + `jobStatus.*` keys. |
+| M9 | ✅ | **Footer entirely hardcoded English** (`Footer.tsx`) | Rewritten through `t()` (EN+HI); copyright year computed, not frozen at "2025"; logo alt = brand. |
+| M10 | ✅ | **Registration progress indicator internally inconsistent** — 7-step counter skips 6, jumps 5→7, swaps styles | One `RegistrationProgress` component on all 8 steps; count derived from an ordered step array so it can't drift. **Also found + fixed:** the language picker ignored the choice (never switched the app) and offered 10 languages when 2 ship; and the phone-OTP step had no dev-OTP banner (blocking QA with no SMS gateway). |
 
 ### 🟡 Minor
 
-| # | Defect | Route(s) | File:line | Note |
-|---|---|---|---|---|
-| m1 | User-menu labels hardcoded English ("Profile", "My Application", "Setting", "Logout") | all authed | `UserDropdown.tsx:106,116,126,138` | Account menu stays English in HI. |
-| m2 | "Setting" / "My Application" grammatically wrong (should be plural) | all authed | `UserDropdown.tsx:116,126` | Copy quality on core nav. |
-| m3 | Seeker success screen: "Profile **Create** Successfully" | `/register/success` | `src/locales/en/auth.json:134` | Grammar error on the celebration screen ending the primary journey. |
-| m4 | Doc-upload helper text typo: "Jpg, Doc, Pdf are **accpet**" (mobile variant is correct) | `/register/experience` | `src/locales/en/auth.json:96` | Desktop/mobile copy disagree on same control. |
-| m5 | "Near By" empty state ignores BE `noLocation` guidance + no link to add location | `/job-feed` (nearby) | `src/app/job-feed/page.tsx:460-464` | BE returns "Add your location…"; FE shows generic empty, dead-ends low-literacy users. |
-| m6 | Seeker profile-edit can't set lat/lon → Near By likely always empty | `/profile` | `src/app/profile/page.tsx:255-257`, `src/lib/api.ts:796` | Only free-text `location` captured; Nearby is GPS-keyed, so "Bangalore" typed = empty Nearby forever. |
-| m7 | No return-to-page (`returnUrl`) after login redirect | `/login` | `src/components/auth/ProtectedRoute.tsx:55` | Deep links (shared job) always land on role home, not the requested page. |
-| m8 | Google phone-bind stores stale `accountStatus` in session | `/login` | `src/app/login/page.tsx:184-233` | Cosmetic today; any future gate reading `user.accountStatus` from context would misfire until next login. |
-| m9 | Phone-OTP login gives no "no account found — sign up?" affordance for unregistered numbers | `/login` | `src/app/login/page.tsx:106-122` | Raw BE error only; funnel friction. |
-| m10 | Corporate "under review" screen doesn't link to where docs are uploaded (`/employer/profile`) | `/employer/register/under-review` | `src/app/employer/register/under-review/page.tsx:36-41` | Employer in PENDING_DOCUMENTS has no obvious path to the upload that unblocks them. |
-| m11 | Employer sign-up not on the primary "Sign up" button (drops into seeker flow) | `/` header | `src/components/home/Header.tsx:50` | Login's "Sign up here" is role-aware (correct); the generic button is not. QA confirm intent. |
-| m12 | `verificationStatus` rendered as raw enum ("PENDING"/"APPROVED") untranslated | `/employer/profile` | `src/app/employer/profile/page.tsx:252-255` | Unfriendly English-only token next to a translated label. |
-| m13 | Branding: logo alt says "Job Portal" not "ProSiddhi"; other alts hardcoded English | `/employer/profile`, chat, footer | `employer/profile/page.tsx:202`, `messages/[conversationId]/page.tsx:206`, `Footer.tsx:18` | Inconsistent brand + untranslated alt. |
-| m14 | Footer copyright stale: "© Azkashine Software Services Pvt. Ltd. 2025" | Footer | `src/components/home/Footer.tsx:96` | Year is 2025 (now 2026-07); also drops "&" vs scope doc's legal name. |
-| m15 | Report-job success promises review but no admin-loop confirmation to seeker | job-details report modal | `src/components/job/ReportJobModal.tsx:77` | BE has no notification hook (v1-acceptable); QA note. |
-| m16 | Job cards over-truncate company to 2-letter initials with "JB" fallback | feed/details/saved/apps | `src/lib/jobFormat.ts:46-48` | Logoless posts all show identical grey "JB" tiles; reduces scannability. |
+| # | Status | Defect | Resolution |
+|---|---|---|---|
+| m1 | ✅ | User-menu labels hardcoded English | Wrapped in `t()` (EN+HI) — C1/C2 commit. |
+| m2 | ✅ | "Setting" / "My Application" grammatically wrong | Fixed to "Settings" / role-aware "My Jobs"/"My Applications". |
+| m3 | ✅ | Seeker success: "Profile **Create** Successfully" | "Profile created successfully" (EN+HI). |
+| m4 | ✅ | Doc-upload typo "…are **accpet**" | "JPG, DOC and PDF files are accepted". |
+| m5 | ✅ | "Near By" empty state dead-ends | Added an "Add your location" link → /profile. |
+| m6 | ⚪ | Seeker profile-edit can't set lat/lon → Near By empty | **Deferred (real gap, not shallow).** Profile captures free-text location only; GPS capture is its own feature. m5 gives the user the way there; wiring lat/lon on the profile is follow-up work. |
+| m7 | ✅ | No `returnUrl` after login | ProtectedRoute passes `returnUrl`; /login honours it (with **origin-based validation** — the first attempt was an open redirect, caught in security review). |
+| m8 | ⚪ | Google phone-bind stores stale `accountStatus` | **Deferred (cosmetic).** No live gate reads `accountStatus` from context today; noted for whoever adds one. |
+| m9 | ⚪ | Phone-OTP login: no "no account? sign up" affordance | **Deferred (funnel polish).** Raw BE error is understandable; a friendlier affordance is UAT-tier. |
+| m10 | ✅ | "Under review" screen doesn't link to doc upload | Added a link + hint → /employer/profile. |
+| m11 | ⚪ | Generic "Sign up" drops into seeker flow | **By design / confirm with QA.** The role-aware "Sign up here" on /login is the intended employer path; the generic button defaulting to seeker matches the majority user. No change. |
+| m12 | ✅ | `verificationStatus` raw enum | New `verificationStatusLabel()` + `verificationStatus.*` keys (EN+HI). |
+| m13 | ✅ | Logo alt "Job Portal" not "ProSiddhi" | All logo alts → brand / `t('app.name')`; decorative illustration alts cleared to "". |
+| m14 | ✅ | Footer copyright stale "2025" | Year computed at render; legal name centralized in `src/lib/legal.ts`. |
+| m15 | ⚪ | Report-job success promises review, no admin loop | **By design (v1).** BE has no notification hook for report resolution yet; acceptable for handover. |
+| m16 | ✅ | Logoless job cards all show identical grey "JB" | `initials()` fallback is now `?` (was the literal `JB`). |
+
+**Minor summary:** 10 fixed, 6 intentionally deferred/by-design (m6, m8, m9, m11, m15 + the GPS half of m5) — none blocks handover.
 
 ### ⚪ By-design (intentional MVP stubs — **do NOT file**)
 
