@@ -24,7 +24,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 ### ⛔ Audio is REMOVED from the product (decided 2026-07-12)
 **No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** ✅ **deleted** (2026-07-12) — apply-modal recorder, chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, audio params in `api.ts`, and all audio i18n keys are gone; the mic Permissions-Policy was revoked. Revisit in v2.
 
-**Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are now FIXED on the backend** (real org membership + shared wallet, correct seat-cap aggregation, rebuilt invite flow), **audio accept-paths removed** (backward-tolerant), and the backend now has **admin monetization endpoints, a reports queue, content scan, and outbound notification channels** (MSG91 + FCM, no-op until keyed). What remains is mostly **frontend + external config**: the admin-console monetization/taxonomy screens, the portal invite-flow landing page, a QA-defect pass, and go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN). See the **backend session summary** at the end of §3.
+**Bottom line:** the web product is built end-to-end — backend, portal **and admin console** — **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are FIXED**, **audio is removed**, and the backend's newest work (admin monetization endpoints, reports queue, content scan, outbound notification channels) is now **all consumed by the admin console**. What remains is mostly **external config + mobile**: go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN), the mobile app, and a handful of small BE routes the admin console still needs (invoice PDF, taxonomy restore, audit log). See the **backend** and **admin** session summaries at the end of §3.
 
 ---
 
@@ -55,7 +55,9 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 - Offline/error handling.
 
 ### Admin console
-Login, dashboard, job-seeker management, employer management, document verification, post moderation (manual actions), skills catalog CRUD. **33 API functions, all hitting real backend routes. No mock data. No blockers.**
+Login/guard, dashboard (**real revenue + 12-month trend + pending-verifications**), job-seeker management, employer management, document verification, post moderation (manual actions **+ a live content scan**), skills catalog CRUD, **taxonomy management** (Category → Sector → JobTitle CRUD, M:N links, soft-delete tree), **monetization** (payments · GST invoices · employer credits & seats), and a **reports queue** with resolve.
+
+**10 pages · 55 API functions**, all hitting real backend routes. No mock data. No blockers. Every write confirms itself; the header shows the real signed-in admin; no dead chrome. *(Fixed 2026-07-12 — the whole QA-audit backlog: `prosiddhi-admin/docs/qa/functional-audit-admin.md`.)*
 
 ---
 
@@ -221,7 +223,7 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 | **5** | **Mobile — monetization** | Full **in-app Razorpay** (D2): plans screen → checkout → verify → credit wallet → invoices. *Verify store policy first.* | `prosiddhi-mobile-app` |
 | **6+** | **Mobile — completion** | **i18n (EN/HI)** — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
 
-**Still unowned / not scheduled:** outbound notifications (MSG91 SMS/WhatsApp/email + FCM push), OpenAI content scan, reports queue.
+**Still unowned / not scheduled:** outbound notifications (MSG91 SMS/WhatsApp/email + FCM push) — the BE adapters exist and no-op until keyed, so this is **external config**, not code. *(OpenAI content scan and the reports queue were on this list; both are now built AND consumed by the admin console.)*
 
 > ⚠️ **We now own the backend (D3).** Coordinate with Asrar before touching `prosiddhi-backend` — if you both commit, you will collide.
 
@@ -241,4 +243,10 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 
 JIRA shows **79 open tickets**, but many are **done in code** — the whole monetization set (**PJP-162…175, 180**), **PJP-110** (subscription UI), **PJP-72** (Google OAuth), **PJP-75/76**. The board was never updated when monetization shipped.
 
-**Until someone reconciles the board, treat this file as the truth.** The tickets that *are* genuinely still open map to §3 above: PJP-94 (content scan), PJP-102 (reports queue), PJP-96/97/98 (notification channels), PJP-111 (notifications dropdown), PJP-87 (staging/CI), the mobile stories, and the S3 hardening set.
+**Until someone reconciles the board, treat this file as the truth.**
+
+**Newly closable in code (2026-07-12) — the board still shows these as open:**
+- **PJP-94** (OpenAI content scan) — BE shipped **and** the admin console consumes it (`e017f9b`).
+- **PJP-102** (reports queue) — BE shipped **and** the admin console consumes it (`ba93679`).
+
+The tickets that *are* genuinely still open map to §3 above: PJP-96/97/98 (notification channels — the BE adapters exist; this is external config), PJP-87 (staging/CI), the mobile stories, and the S3 hardening set. **New, no ticket yet:** an admin-reachable invoice-PDF route, a taxonomy restore route, and PJP-99 (admin audit log) is still unbuilt.
