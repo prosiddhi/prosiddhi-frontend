@@ -68,41 +68,44 @@ Login, dashboard, job-seeker management, employer management, document verificat
 - **Invite flow** must become one guided flow (invite token survives login/registration → auto-accept). Today the invitee must click the link **twice**.
 → Full spec in [MONETIZATION.md](MONETIZATION.md) §6.
 
-**2. Portal — 2 critical defects** *(FE)*
+**2. Backend — auth OTP leak + account-enumeration** 🔒 *(BE — found by the mobile session 2026-07-12)*
+- `POST /api/auth/forgot-password` returns the reset code in `data.otp`. Worse, the field is **present for a registered email and absent otherwise** → an **account-enumeration oracle**.
+- `POST /api/otp/send` and the register endpoints leak their OTP the same way.
+- **Fix:** never return OTPs in production responses (gate on `NODE_ENV`); make forgot-password's response **identical** whether or not the email exists. *(The clients deliberately never read these fields, but the server must not send them.)*
+
+**3. Portal — 2 critical defects** *(FE)*
 - Fake hardcoded name **"Sanjay RK"** shows in the header on **every** logged-in screen.
 - Dead **"Settings"** link → 404 from the account menu on every screen.
 - *Both are in one file (`UserDropdown.tsx`) — one fix clears both.*
 
-**3. Admin — the Revenue card lies** *(Admin)*
+**4. Admin — the Revenue card lies** *(Admin)*
 Caption still reads *"Indicative (₹500/subscription)"* but the backend now returns **real money** from `PaymentHistory`. Fix the caption and consume the `monthlyRevenue` series the API already returns.
 
-**4. Go-live config** *(Infra / PM)*
+**5. Go-live config** *(Infra / PM)*
 Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` placeholder today) · **Azkashine GSTIN** on invoices · **MSG91 DLT** registration (SMS) · Meta **WhatsApp** template approval.
 
 ### 🟠 P1 — needed for a complete product
 
-**5. Outbound notifications** *(BE)* — everything is **in-app only** today. Needs MSG91 **SMS + WhatsApp + email** and **FCM push**, plus the notifications dropdown in the portal.
+**6. Outbound notifications** *(BE)* — everything is **in-app only** today. Needs MSG91 **SMS + WhatsApp + email** and **FCM push**, plus the notifications dropdown in the portal.
 
-**6. Admin — two missing screens** *(Admin)*
+**7. Admin — two missing screens** *(Admin, + BE)*
 - **Taxonomy management** — the backend has **10 admin CRUD endpoints** for Category/Sector/JobTitle and the console has **no page, no nav item, not one API call**. Nobody can manage the taxonomy.
-- **Monetization views** — no payments / invoices / credits / plans / team-seat surface at all. (Some of this also needs new admin-namespaced BE endpoints.)
+- **Monetization views** — no payments / invoices / credits / plans / team-seat surface at all. Needs new **admin-namespaced BE endpoints** first (payments/invoices/credits lists) — ours to build now.
 
-**7. QA defect pass** — portal: 10 major (dead legal/footer links, several strings that never translate to Hindi, dead Mail/Bell + hero CTA). Admin: 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — including the money-adjacent payment override). Full lists in the two audit docs.
+**8. QA defect pass** — portal: 10 major (dead legal/footer links, several strings that never translate to Hindi, dead Mail/Bell + hero CTA). Admin: 5 major (dead header Mail/Bell + search, hardcoded "AD/Admin" identity, **no success confirmation on any write action** — incl. the money-adjacent payment override). Full lists in the two audit docs.
 
-**8. Content moderation + reports** *(BE + Admin)* — OpenAI "Scan Content" (button is honestly disabled today) and a standalone reports queue + resolve. Neither exists on either side.
+**9. Content moderation + reports** *(BE + Admin)* — OpenAI "Scan Content" (button honestly disabled today) and a standalone reports queue + resolve. Neither exists on either side.
 
-**9. Remove audio from V1** *(FE + mobile)* — audio was descoped 2026-07-12 but the **portal already has it built**: the 2-min recorder in the apply modal and the 60-sec recorder in chat. **Hide/remove that UI** so QA doesn't test it and users can't reach it. (The backend can keep supporting it — it just goes unused.) Mobile: **don't build it**; remove the inert audio UI it already renders.
-
-**10. Mobile — plug the revenue leak** *(Mobile)* 🔴 **Post Job on mobile is completely ungated** — no credit check, so an employer can post **free** from the phone while the web charges credits. This bypasses the whole monetization system. Also: `/forgot-password` navigates to a **route that doesn't exist**, and the app defaults to a **dead dev tunnel URL**. → Full list in **`prosiddhi-mobile-app/docs/STATUS.md`**.
+**10. Portal — delete the audio UI** *(FE)* — audio is **removed from the product** (decision 2026-07-12), but the **portal still has it built and working** (2-min apply recorder, 60-sec chat recorder, the recorder hook, test-microphone page). **Delete it** so QA can't test it and users can't reach it. *(Mobile has already deleted its audio UI. The backend tolerates a stray audio field, so ordering is safe.)*
 
 ### 🟡 P2 — after launch
 
-**11. Mobile — feature completion.** ~45% built. Missing: **i18n (EN/HI — arguably a launch blocker**, since the core users are low-literacy Hindi speakers and the app is English-only**)**, My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset, and all employer monetization/candidate-DB/seats surfaces. *Open decision: buy-on-web vs in-app Razorpay (recommend **buy-on-web**).*
+**11. Mobile — feature completion.** ~60% built (verified 2026-07-12). The **free product is done and fully EN/HI-localised**; the post-credit **gate is in**. Remaining: **subscription/checkout** (in-app Razorpay — 🛑 *parked on the store-policy decision*, see mobile STATUS §7), **candidate database**, **team seats**, wire the **dead job edit/close/delete** methods, the i18n **model/display layer**, **Google OAuth**, a **credit-wallet screen**, and chat **Call HR**. → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker. *(Note: the earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
 **12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
-**13. The other 8 languages** (web EN + HI are done; mobile has none).
-**14. Security** — move the JWT from `localStorage` to an httpOnly cookie.
+**13. The other 8 languages** (web EN + HI done; mobile EN + HI done; the other 8 are for later).
+**14. Security** — move the JWT from `localStorage` to an httpOnly cookie (both web apps).
 **15. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
-**16. Audio** — revisit for v2 (descoped from V1; the backend already supports it).
+**16. Audio** — revisit for v2 (removed from V1; the backend still supports it).
 
 ---
 
@@ -112,17 +115,15 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 |---|---|---|
 | 1 | BE | Seat cap takes the latest-expiring plan's seats, not the highest |
 | 2 | BE | Seats are roster-only — teammates don't share the org wallet/jobs/unlocks |
-| 3 | Portal | Fake "Sanjay RK" name in the header on every authed page |
-| 4 | Portal | Dead `/settings` link → 404 |
-| 5 | Portal | Dead Privacy / Terms / Contact footer links |
-| 6 | Portal | Status pills, salary/date formatters and the Google-login path never translate to Hindi |
-| 7 | Admin | Revenue card captioned "Indicative ₹500/subscription" — it's real money now |
-| 8 | Admin | No success confirmation on any write (incl. payment override) |
-| 9 | Admin | Dead header Mail/Bell buttons + dead dashboard search; hardcoded "AD/Admin" identity |
-| 10 | **Mobile** | 🔴 **Post Job is UNGATED** — employers post free from the phone; bypasses monetization entirely |
-| 11 | Mobile | `/forgot-password` navigates to a route that doesn't exist → error page |
-| 12 | Mobile | Defaults to a dead dev-tunnel API URL if the build flag is omitted |
-| 13 | Mobile | Search collects `sector`/`jobTitle` filters but never sends them |
+| 3 | BE 🔒 | `forgot-password` returns the OTP in the response **and** is an account-enumeration oracle; `otp/send` + register leak OTP too |
+| 4 | Portal | Fake "Sanjay RK" name in the header on every authed page |
+| 5 | Portal | Dead `/settings` link → 404 |
+| 6 | Portal | Dead Privacy / Terms / Contact footer links |
+| 7 | Portal | Status pills, salary/date formatters and the Google-login path never translate to Hindi |
+| 8 | Admin | Revenue card captioned "Indicative ₹500/subscription" — it's real money now |
+| 9 | Admin | No success confirmation on any write (incl. payment override) |
+| 10 | Admin | Dead header Mail/Bell buttons + dead dashboard search; hardcoded "AD/Admin" identity |
+| — | Mobile | ✅ *All 4 earlier mobile bugs FIXED 2026-07-12 (gate, dead route, dead API URL, dropped filters). The "ungated revenue leak" was a mis-diagnosis — the BE always gated posting.* |
 
 ---
 
