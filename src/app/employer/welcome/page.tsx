@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { PricingPlans } from '@/components/employer/PricingPlans'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Phone,
   Facebook,
@@ -21,9 +22,17 @@ import {
 
 function EmployerLandingPageContent() {
   const { t } = useTranslation()
+  const { isAuthenticated, user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // This is a PUBLIC marketing page, so the hero CTA has to work for both a
+  // signed-in employer (take them to the form) and an anonymous visitor (take them
+  // to sign-up, which is the conversion path — not /login, which would be a
+  // dead-end for someone who has no account yet).
+  const isEmployer = isAuthenticated && !!user?.role?.startsWith('EMPLOYER')
+  const postJobHref = isEmployer ? '/employer/jobs/new' : '/employer/register'
 
   const offers = [
     {
@@ -112,11 +121,11 @@ function EmployerLandingPageContent() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-8">
-            <button className="hidden sm:flex items-center gap-1 text-sm lg:text-base text-black hover:text-primary-50 transition-colors">
+            <Link href="/contact" className="hidden sm:flex items-center gap-1 text-sm lg:text-base text-black hover:text-primary-50 transition-colors">
               <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
               <span className="hidden lg:inline">{t('employer:landing.help')}</span>
               <span className="lg:hidden">{t('employer:landing.helpShort')}</span>
-            </button>
+            </Link>
 
             <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-white rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
               {t('employer:landing.signUp')}
@@ -145,12 +154,21 @@ function EmployerLandingPageContent() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-5">
-                <button className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-white rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors">
+                {/* The biggest button on the page was a dead <button>. A signed-in
+                    employer goes straight to the post form; a visitor goes to
+                    sign-up, which is the actual conversion path. */}
+                <Link
+                  href={postJobHref}
+                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-white rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors"
+                >
                   {t('employer:landing.postAJob')}
-                </button>
-                <button className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 border border-[#3a7a96] rounded-lg text-sm sm:text-base text-black hover:bg-gray-50 transition-colors">
+                </Link>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 border border-[#3a7a96] rounded-lg text-sm sm:text-base text-black hover:bg-gray-50 transition-colors"
+                >
                   {t('employer:landing.contactUs')}
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -238,7 +256,7 @@ function EmployerLandingPageContent() {
                 <div className={`bg-gradient-to-b ${offer.gradient} h-[250px] sm:h-[280px] lg:h-[316px] rounded-xl mb-4 relative overflow-hidden`}>
                   {/* Visual elements for each card */}
                   {index === 0 && (
-                    <div className="absolute inset-0 p-12">
+                    <div className="absolute inset-0 p-12" aria-hidden="true">
                       {/* Candidate list visual */}
                       <div className="space-y-3">
                         <div className="bg-white border border-[#b5b5b5] rounded-lg p-3 flex items-center gap-3">
@@ -247,9 +265,9 @@ function EmployerLandingPageContent() {
                             <div className="h-1 bg-gray-300 rounded w-3/4" />
                             <div className="h-1 bg-gray-300 rounded w-1/2" />
                           </div>
-                          <button className="px-3 py-1 bg-gray-300 rounded text-xs text-white">
+                          <span className="px-3 py-1 bg-gray-300 rounded text-xs text-white">
                             {t('employer:landing.offers.select')}
-                          </button>
+                          </span>
                         </div>
                         <div className="bg-white rounded-lg p-3 flex items-center gap-3 shadow-lg">
                           <div className="w-11 h-11 bg-primary-50 rounded" />
@@ -257,9 +275,9 @@ function EmployerLandingPageContent() {
                             <div className="h-1 bg-gray-300 rounded w-3/4" />
                             <div className="h-1 bg-gray-300 rounded w-1/2" />
                           </div>
-                          <button className="px-3 py-1 bg-primary-50 rounded text-xs text-white">
+                          <span className="px-3 py-1 bg-primary-50 rounded text-xs text-white">
                             {t('employer:landing.offers.selected')}
-                          </button>
+                          </span>
                         </div>
                         <div className="bg-white border border-[#b5b5b5] rounded-lg p-3 flex items-center gap-3">
                           <div className="w-11 h-11 bg-[#1a5252] rounded" />
@@ -267,15 +285,15 @@ function EmployerLandingPageContent() {
                             <div className="h-1 bg-gray-300 rounded w-3/4" />
                             <div className="h-1 bg-gray-300 rounded w-1/2" />
                           </div>
-                          <button className="px-3 py-1 bg-gray-300 rounded text-xs text-white">
+                          <span className="px-3 py-1 bg-gray-300 rounded text-xs text-white">
                             {t('employer:landing.offers.select')}
-                          </button>
+                          </span>
                         </div>
                       </div>
                     </div>
                   )}
                   {index === 1 && (
-                    <div className="absolute inset-0 p-12">
+                    <div className="absolute inset-0 p-12" aria-hidden="true">
                       {/* Job post form visual */}
                       <div className="bg-white rounded-lg p-4 space-y-4">
                         <div className="space-y-2">
@@ -293,14 +311,14 @@ function EmployerLandingPageContent() {
                           <div className="h-3 bg-gray-300 rounded w-3/4" />
                           <div className="h-2 bg-gray-300 rounded w-1/2" />
                         </div>
-                        <button className="px-4 py-1 bg-primary-50 rounded text-xs text-white ml-auto block">
+                        <span className="px-4 py-1 bg-primary-50 rounded text-xs text-white ml-auto block">
                           {t('employer:landing.offers.postAJob')}
-                        </button>
+                        </span>
                       </div>
                     </div>
                   )}
                   {index === 2 && (
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
                       {/* Contact visual */}
                       <div className="bg-white rounded-lg p-3 flex items-center gap-3 shadow-lg">
                         <div className="w-11 h-11 bg-primary-50 rounded" />
@@ -308,12 +326,12 @@ function EmployerLandingPageContent() {
                           <div className="h-1 bg-gray-300 rounded w-3/4" />
                           <div className="h-1 bg-gray-300 rounded w-1/2" />
                         </div>
-                        <button className="p-2 bg-primary-50 rounded">
+                        <span className="p-2 bg-primary-50 rounded">
                           <PhoneCall className="w-3 h-3 text-white" />
-                        </button>
-                        <button className="p-2 bg-gray-600 rounded">
+                        </span>
+                        <span className="p-2 bg-gray-600 rounded">
                           <MessageCircle className="w-3 h-3 text-white" />
-                        </button>
+                        </span>
                       </div>
                     </div>
                   )}
@@ -327,9 +345,12 @@ function EmployerLandingPageContent() {
           </div>
 
           <div className="text-center">
-            <button className="px-4 sm:px-6 py-2 sm:py-2.5 border border-[#1e5166] rounded-lg text-base sm:text-lg lg:text-xl text-black hover:bg-gray-50 transition-colors">
+            <Link
+              href="/contact"
+              className="inline-block px-4 sm:px-6 py-2 sm:py-2.5 border border-[#1e5166] rounded-lg text-base sm:text-lg lg:text-xl text-black hover:bg-gray-50 transition-colors"
+            >
               {t('employer:landing.offers.callForHelp')}
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -376,15 +397,10 @@ function EmployerLandingPageContent() {
                 </div>
 
                 <div>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-medium mb-3 sm:mb-4">{t('employer:landing.cta.downloadApp')}</p>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <a href="#" className="w-full sm:w-[140px] h-[40px] sm:h-[43px] bg-black rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors">
-                      <span className="text-white text-xs sm:text-sm">{t('employer:landing.cta.appStore')}</span>
-                    </a>
-                    <a href="#" className="w-full sm:w-[132px] h-[40px] bg-black rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors">
-                      <span className="text-white text-xs sm:text-sm">{t('employer:landing.cta.googlePlay')}</span>
-                    </a>
-                  </div>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-medium mb-2">{t('employer:landing.cta.downloadApp')}</p>
+                  {/* The app is not on either store yet, so there is nothing to link
+                      to. Two dead href="#" buttons implied there was. */}
+                  <p className="text-sm text-[#717182]">{t('legal:footer.mobileBody', { ns: 'legal' })}</p>
                 </div>
               </div>
             </div>

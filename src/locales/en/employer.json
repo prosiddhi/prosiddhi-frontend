@@ -237,16 +237,6 @@
       "enterpriseTitle": "Enterprise",
       "enterpriseSubtitle": "Just for browsers and limited plan",
       "monthly": "Monthly",
-      "enterpriseFeatures": {
-        "f1": "Unlimited job postings",
-        "f2": "Dedicated support manager",
-        "f3": "Advanced analytics & reporting",
-        "f4": "24/7 priority support",
-        "f5": "Free job listing duration",
-        "f6": "Custom integration options",
-        "f7": "Featured & premium listings",
-        "f8": "Advanced Near Employee Find Solution"
-      },
       "startFreePlan": "Start Free Plan"
     },
     "cta": {

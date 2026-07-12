@@ -14,8 +14,10 @@
 //   • the permanent free tier + 14-day trial stays as a callout
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
 
@@ -81,11 +83,33 @@ function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) 
 
 export function PricingPlans() {
   const { t } = useTranslation()
+  const router = useRouter()
+  const { isAuthenticated, user } = useAuth()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selected, setSelected] = useState<Plan | null>(null)
   const [tab, setTab] = useState<Tab>('basic')
+
+  // This catalog renders on the PUBLIC employer landing as well as on the
+  // signed-in /employer/plans screen. An anonymous visitor could open the checkout
+  // modal, fill in their GSTIN and place of supply, hit Pay — and only then get a
+  // 401, which logs them out and throws away everything they typed. You cannot buy
+  // credits without an account, so send them to sign up instead of into a checkout
+  // they cannot finish.
+  const canCheckout =
+    isAuthenticated && !!user?.role?.startsWith('EMPLOYER')
+
+  const handleBuy = useCallback(
+    (plan: Plan) => {
+      if (!canCheckout) {
+        router.push('/employer/register')
+        return
+      }
+      setSelected(plan)
+    },
+    [canCheckout, router]
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -169,7 +193,7 @@ export function PricingPlans() {
       {!loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
           {shown.map((plan) => (
-            <PlanCard key={plan.code} plan={plan} onBuy={setSelected} />
+            <PlanCard key={plan.code} plan={plan} onBuy={handleBuy} />
           ))}
         </div>
       )}
