@@ -1,0 +1,237 @@
+{
+  "lastUpdated": "Last updated {{date}}",
+  "footer": {
+    "candidates": "For Candidates",
+    "employers": "For Employers",
+    "companyLegal": "Company & Legal",
+    "browseJobs": "Browse Jobs",
+    "savedJobs": "Saved Jobs",
+    "myApplications": "My Applications",
+    "postJob": "Post a Job",
+    "findWorkers": "Find Workers",
+    "pricing": "Pricing",
+    "contact": "Contact Us",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "mobileTitle": "Our mobile app is on the way",
+    "mobileBody": "The ProSiddhi Android app is in development. Until it launches, everything works in your mobile browser.",
+    "copyright": "© {{year}} {{company}}. All rights reserved."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "intro": "This policy explains what personal information ProSiddhi collects, why we collect it, who we share it with, and the control you have over it. We have written it in plain language on purpose.",
+    "whoWeAre": {
+      "title": "Who we are",
+      "body": "ProSiddhi is a job portal operated by {{company}} (\"we\", \"us\"). We connect job seekers with employers in India. We are the data fiduciary for the information described below."
+    },
+    "whatWeCollect": {
+      "title": "What we collect",
+      "seekerIntro": "If you are a job seeker, we collect:",
+      "seeker": [
+        "Your phone number — this is how you register, and we verify it with a one-time password (OTP).",
+        "Your name, email address, and a password (which we store only in an encrypted, unreadable form).",
+        "Your date of birth and gender, if you provide them.",
+        "Your location. This is the town or area you type in, and — only if you allow it in your browser — your GPS coordinates, which we use to show you jobs near you.",
+        "Your profile photo, short bio, work experience, skills, and the kind of work you are looking for.",
+        "Any documents you choose to upload, such as an identity proof, address proof, or a skill or education certificate.",
+        "The jobs you apply to, save, or report, and the messages you exchange with employers."
+      ],
+      "employerIntro": "If you are an employer, we collect:",
+      "employer": [
+        "Your name, phone number, email address, and password.",
+        "For a business: your company name, address, size, founding date, GST number and company registration (CIN) number, plus any documents you upload for verification.",
+        "The jobs you post, the applications you receive, and the candidates you unlock.",
+        "A record of your purchases and the invoices we issue for them."
+      ]
+    },
+    "noAadhaar": {
+      "title": "We never ask for your Aadhaar",
+      "body": "ProSiddhi does not collect, request, store, or verify Aadhaar numbers — anywhere, for anyone. If a page or a person ever asks you for your Aadhaar in the name of ProSiddhi, it is not us. Please report it to us."
+    },
+    "howWeUse": {
+      "title": "How we use your information",
+      "items": [
+        "To create and secure your account, and to sign you in.",
+        "To show job seekers relevant jobs, including jobs near their location.",
+        "To let you apply to jobs and to let employers review those applications.",
+        "To let you and an employer message each other about a job.",
+        "To let employers search the candidate database and, where they have paid to do so, see a candidate's contact details.",
+        "To take payments from employers, issue GST invoices, and keep the accounting records the law requires.",
+        "To verify employers and documents, and to review job posts that users report.",
+        "To send you service messages about your account, applications, and interviews."
+      ],
+      "noSelling": "We do not sell your personal information, and we do not use it to serve you third-party advertising."
+    },
+    "whoWeShare": {
+      "title": "Who we share it with",
+      "items": [
+        "The employer you apply to. When you apply for a job, that employer can see your profile, your work experience and skills, your application message, and any documents attached to your profile.",
+        "Employers who unlock your profile. Employers can search our candidate database. They see only a limited preview — your contact details stay hidden until an employer pays a credit to unlock them. Once unlocked, that employer can see your phone number and email.",
+        "Our staff. A small number of our administrators can see your account in order to verify documents, approve businesses, and act on reports.",
+        "Our payment provider, Razorpay, which processes employer payments.",
+        "Authorities, where the law requires it."
+      ]
+    },
+    "payments": {
+      "title": "Payments",
+      "body": "Job seekers never pay us anything. Employers pay for credits through Razorpay. Your card, UPI, or bank details are handled by Razorpay and are never sent to or stored on our servers — we only receive confirmation that a payment succeeded, along with the payment identifiers we need to issue your invoice."
+    },
+    "storage": {
+      "title": "Cookies and browser storage",
+      "body": "We keep two things in your browser's local storage: a sign-in token, so you stay logged in, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out."
+    },
+    "rights": {
+      "title": "Your rights",
+      "intro": "Under India's Digital Personal Data Protection Act, you can:",
+      "items": [
+        "See the personal information we hold about you — most of it is on your profile page, which you can view at any time.",
+        "Correct anything that is wrong — you can edit your profile yourself.",
+        "Ask us to delete your account and your personal information.",
+        "Withdraw your consent, and complain to us or to the Data Protection Board."
+      ],
+      "howTo": "To exercise any of these rights, contact us using the details below."
+    },
+    "deletion": {
+      "title": "If you delete your account",
+      "body": "We stop showing your profile, and we stop serving your contact details to employers — including to an employer who had already unlocked you. Your name and contact details are no longer supplied to anyone. We do keep a limited record that an unlock happened, because the employer genuinely spent a credit, and we keep payment and invoice records for as long as tax law requires us to."
+    },
+    "security": {
+      "title": "How we protect your information",
+      "body": "Passwords are stored hashed, never in a readable form. Traffic between your device and us is encrypted. Access to our systems is restricted. No service can promise perfect security, but if a breach ever affects your personal information, we will tell you and the authorities as the law requires."
+    },
+    "children": {
+      "title": "Children",
+      "body": "ProSiddhi is not for anyone under 18. We do not knowingly collect information from children. If you believe a child has created an account, tell us and we will remove it."
+    },
+    "changes": {
+      "title": "Changes to this policy",
+      "body": "If we change this policy in a way that materially affects you, we will update the date at the top of this page and tell you in the app."
+    },
+    "contact": {
+      "title": "Contact us",
+      "body": "For any question about this policy, or to exercise any of your rights, email us at {{email}}. We are {{company}}."
+    }
+  },
+  "terms": {
+    "title": "Terms & Conditions",
+    "intro": "These terms are the agreement between you and {{company}} when you use ProSiddhi. By creating an account, you accept them.",
+    "eligibility": {
+      "title": "Who can use ProSiddhi",
+      "body": "You must be at least 18 years old and able to enter into a contract under Indian law. You must give us true information, and keep it up to date."
+    },
+    "account": {
+      "title": "Your account",
+      "body": "You register with your phone number, which we verify by OTP. You are responsible for what happens on your account, so keep your password to yourself. Tell us at once if you think someone else is using it. One person or business, one account — do not create accounts to get another free trial."
+    },
+    "whatWeAre": {
+      "title": "What ProSiddhi is — and is not",
+      "body": "ProSiddhi is a platform that introduces job seekers to employers. That is all it is.",
+      "items": [
+        "We are not your employer, and we are not a recruitment or staffing agency.",
+        "We do not employ, supply, or vouch for any worker, and we do not guarantee anyone a job, an interview, or a reply.",
+        "We do not verify that every job post is genuine. Job posts are written by employers. Use your judgement, and report anything that looks wrong.",
+        "The agreement to work — the wage, the hours, the conditions — is strictly between the worker and the employer."
+      ]
+    },
+    "noWages": {
+      "title": "We never handle your wages",
+      "body": "ProSiddhi does not collect, hold, escrow, or pay wages, and we take no commission from what a worker earns. An employer pays a worker directly. We will never ask a job seeker to pay us, or to pay an employer, for a job. If anyone asks you for money for a job on ProSiddhi, it is a scam — do not pay, and report it to us."
+    },
+    "seekers": {
+      "title": "For job seekers",
+      "body": "ProSiddhi is free for job seekers, and it will stay free. You are never charged to register, to search, to apply, or to message an employer."
+    },
+    "employers": {
+      "title": "For employers",
+      "intro": "Employers buy credits to use the platform.",
+      "items": [
+        "A post credit is spent when you publish a job. That job stays live for 30 days.",
+        "A download credit is spent the first time you unlock a candidate's full profile and contact details. Opening or contacting that same candidate again later is free, forever.",
+        "You cannot post a job until your account is activated: an individual must verify their email; a business must be approved by our team.",
+        "Every new employer gets a free trial of 1 post credit and 3 unlock credits, valid for 14 days, once."
+      ]
+    },
+    "credits": {
+      "title": "Credits, tax, and refunds",
+      "items": [
+        "All prices are shown before tax. GST at 18% is added on top and shown as a separate line at checkout.",
+        "We issue a GST invoice for every purchase, which you can download at any time.",
+        "Credits that come with a time-limited plan expire when that plan expires, and unused credits are then lost. Credits from the one-off ₹499 pack never expire.",
+        "Credits are always spent soonest-to-expire first.",
+        "Purchases are not refundable. There is no cancellation — a plan simply runs to its end date and lapses. To continue, buy again.",
+        "If you delete a job within 24 hours of publishing it and it has received no applications, we return the post credit. Otherwise the credit is spent.",
+        "When your plan expires you get a 3-day grace period: jobs already live stay live and candidates you already unlocked stay visible, but you cannot post or unlock. Candidates you have unlocked are never taken away from you."
+      ]
+    },
+    "conduct": {
+      "title": "Rules for using ProSiddhi",
+      "intro": "You must not:",
+      "items": [
+        "Post a job that does not exist, or advertise anything unlawful, unsafe, bonded, or forced.",
+        "Ask a job seeker for money, or for their Aadhaar, at any stage.",
+        "Discriminate unlawfully, or post anything abusive, obscene, misleading, or fraudulent.",
+        "Impersonate someone else, or use another person's documents.",
+        "Copy, scrape, or resell candidate data, or use a candidate's contact details for anything other than the role you unlocked them for.",
+        "Attack, overload, or try to break into the platform."
+      ]
+    },
+    "moderation": {
+      "title": "Reports, moderation, and suspension",
+      "body": "Anyone can report a job post. Our administrators review reports and may warn an employer, take a post down, or suspend an account. We may suspend or close any account that breaks these terms or the law, without a refund. If we close your account for no fault of yours, we will tell you why."
+    },
+    "content": {
+      "title": "Your content",
+      "body": "What you upload stays yours. You give us permission to store and display it on ProSiddhi so that the platform can do its job — for example, to show your profile to an employer you applied to. You confirm that you have the right to upload whatever you upload."
+    },
+    "availability": {
+      "title": "Availability and liability",
+      "body": "We work to keep ProSiddhi running, but we cannot promise it will never be unavailable. To the extent the law allows, we are not liable for anything that happens between a worker and an employer, for any job you do or do not get, or for any indirect loss. Nothing in these terms limits liability that cannot be limited by law. Where we are liable, our total liability is limited to what you paid us in the previous 12 months — which, for a job seeker, is nothing."
+    },
+    "changes": {
+      "title": "Changes to these terms",
+      "body": "We may update these terms. If a change matters to you, we will tell you in the app and update the date at the top of this page. Continuing to use ProSiddhi after that means you accept the new terms."
+    },
+    "law": {
+      "title": "Governing law",
+      "body": "These terms are governed by the law of India, and the courts of India have jurisdiction over any dispute."
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Questions about these terms? Email us at {{email}}."
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "intro": "We would rather hear from you than have you stuck. Here is how to reach a real person.",
+    "email": {
+      "title": "Email us",
+      "body": "This is the fastest way to reach us. We read every message.",
+      "cta": "Email {{email}}"
+    },
+    "help": {
+      "title": "What to tell us",
+      "intro": "So we can help you quickly, please include:",
+      "items": [
+        "The phone number or email address on your account.",
+        "Whether you are a job seeker or an employer.",
+        "What you were trying to do, and what happened instead."
+      ]
+    },
+    "report": {
+      "title": "Reporting a job or a user",
+      "body": "If a job post looks fake, unsafe, or is asking you for money, use the Report button on the job itself — that sends it straight to our moderators. If you cannot reach the post, email us and we will act on it."
+    },
+    "scam": {
+      "title": "A warning worth repeating",
+      "body": "ProSiddhi is free for job seekers. Nobody at ProSiddhi will ever ask you to pay for a job, or ask you for your Aadhaar. If someone does, it is a scam. Please tell us."
+    },
+    "privacyRequests": {
+      "title": "Privacy requests",
+      "body": "To see, correct, or delete the personal information we hold about you, email us at the address above with the subject \"Privacy request\". See our <privacy>Privacy Policy</privacy> for the detail."
+    },
+    "company": {
+      "title": "Company",
+      "operatedBy": "ProSiddhi is operated by {{company}}."
+    }
+  }
+}

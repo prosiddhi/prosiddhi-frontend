@@ -11,7 +11,6 @@
 // so translation files stay small and reviewable; `common` is the default ns.
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
 
 import enCommon from '@/locales/en/common.json'
 import enAuth from '@/locales/en/auth.json'
@@ -21,6 +20,7 @@ import enEmployer from '@/locales/en/employer.json'
 import enChat from '@/locales/en/chat.json'
 import enProfile from '@/locales/en/profile.json'
 import enTaxonomy from '@/locales/en/taxonomy.json'
+import enLegal from '@/locales/en/legal.json'
 
 import hiCommon from '@/locales/hi/common.json'
 import hiAuth from '@/locales/hi/auth.json'
@@ -30,6 +30,7 @@ import hiEmployer from '@/locales/hi/employer.json'
 import hiChat from '@/locales/hi/chat.json'
 import hiProfile from '@/locales/hi/profile.json'
 import hiTaxonomy from '@/locales/hi/taxonomy.json'
+import hiLegal from '@/locales/hi/legal.json'
 
 // EN + HI are the only v1-complete locales (Q6: hard-gated to 100% by code freeze).
 // The other 8 soft-launch in S3 and are NOT selectable yet.
@@ -45,6 +46,7 @@ export const NAMESPACES = [
   'chat',
   'profile',
   'taxonomy',
+  'legal',
 ] as const
 
 export const resources = {
@@ -57,6 +59,7 @@ export const resources = {
     chat: enChat,
     profile: enProfile,
     taxonomy: enTaxonomy,
+    legal: enLegal,
   },
   hi: {
     common: hiCommon,
@@ -67,13 +70,27 @@ export const resources = {
     chat: hiChat,
     profile: hiProfile,
     taxonomy: hiTaxonomy,
+    legal: hiLegal,
   },
 } as const
 
 // Guard against re-init under Fast Refresh / repeated imports.
 if (!i18n.isInitialized) {
   i18n
-    .use(LanguageDetector)
+    // NOTE: i18next-browser-languagedetector is deliberately NOT used.
+    //
+    // It used to be wired up with `caches: ['localStorage']`. Because `lng` below
+    // pins the initial language to 'en', the detector's cache step wrote 'en' back
+    // over the user's stored choice on EVERY page load — before I18nProvider's
+    // mount effect could read it. Net effect: picking Hindi worked until you
+    // navigated, then the app silently reverted to English and the stored
+    // preference was destroyed. For a product whose core users are Hindi-speaking,
+    // that made the whole Hindi translation unreachable.
+    //
+    // Detection is I18nProvider's job (it reads storage after mount, which is what
+    // keeps SSR and the first client paint identical); writing is
+    // useLanguagePreference's job. One reader, one writer, no third party racing
+    // them.
     .use(initReactI18next)
     .init({
       resources,
@@ -85,11 +102,6 @@ if (!i18n.isInitialized) {
       supportedLngs: [...SUPPORTED_LANGUAGES],
       ns: [...NAMESPACES],
       defaultNS: 'common',
-      detection: {
-        order: ['localStorage'],
-        lookupLocalStorage: LANGUAGE_STORAGE_KEY,
-        caches: ['localStorage'],
-      },
       interpolation: {
         // React already escapes values, so i18next must not double-escape.
         escapeValue: false,

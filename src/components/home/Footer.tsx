@@ -2,98 +2,92 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Linkedin, Github, Instagram, Facebook } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
 
+/**
+ * Footer — every link here goes somewhere real.
+ *
+ * It used to carry 11 links to routes that do not exist (Careers, Blog, Help
+ * Centre, FAQ, About, Career Advice, Employer Resources, Pricing, …), plus four
+ * `href="#"` social icons. Dead Privacy / Terms / Contact links are a compliance
+ * problem for a product that takes payments and holds PII, so those three are now
+ * real pages; everything else that led nowhere is gone rather than faked.
+ *
+ * Social icons were removed outright: we have no confirmed accounts to point at,
+ * and an icon that goes nowhere is worse than no icon. Add them back with real
+ * URLs when the business has them.
+ *
+ * Auth-gated destinations (job feed, post a job, …) are intentional: a logged-out
+ * visitor is sent to /login, which is a real screen — not a 404.
+ */
 export function Footer() {
+  const { t } = useTranslation('legal')
+
+  const linkClass = 'hover:text-white transition-colors'
+
   return (
     <footer className="bg-[#232323] text-white py-[47px]">
       <div className="max-w-[1920px] mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex flex-col lg:flex-row justify-between items-start gap-12 lg:gap-8 mb-[73px]">
-          {/* Logo and Social */}
+          {/* Logo */}
           <div className="w-full lg:w-auto">
-            <div className="relative w-[192px] h-[53px] mb-5">
+            <div className="relative w-[192px] h-[53px]">
               <Image
                 src="/assets/footer_logo.png"
-                alt="Job Portal Logo"
+                alt={t('app.name', { ns: 'common' })}
                 fill
                 className="object-contain"
               />
             </div>
-            <div className="flex gap-[30px]">
-              <a href="#" className="w-7 h-7 flex items-center justify-center hover:text-primary-50 transition-colors">
-                <Linkedin className="w-7 h-7" />
-              </a>
-              <a href="#" className="w-7 h-7 flex items-center justify-center hover:text-primary-50 transition-colors">
-                <Github className="w-7 h-7" />
-              </a>
-              <a href="#" className="w-7 h-7 flex items-center justify-center hover:text-primary-50 transition-colors">
-                <Instagram className="w-7 h-7" />
-              </a>
-              <a href="#" className="w-7 h-7 flex items-center justify-center hover:text-primary-50 transition-colors">
-                <Facebook className="w-7 h-7" />
-              </a>
-            </div>
           </div>
 
           {/* Footer Links */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-[132px] flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-[100px] flex-1">
             <div>
-              <h3 className="text-[18px] mb-4">For Candidates</h3>
+              <h3 className="text-[18px] mb-4">{t('footer.candidates')}</h3>
               <ul className="space-y-2 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/employee" className="hover:text-white transition-colors">Browse Jobs</Link></li>
-                <li><Link href="/employee#categories" className="hover:text-white transition-colors">Browse Categories</Link></li>
-                <li><Link href="/career-advice" className="hover:text-white transition-colors">Career Advice</Link></li>
-                <li><Link href="/saved-jobs" className="hover:text-white transition-colors">Saved Jobs</Link></li>
+                <li><Link href="/job-feed" className={linkClass}>{t('footer.browseJobs')}</Link></li>
+                <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
+                <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-[18px] mb-4">For Employers</h3>
+              <h3 className="text-[18px] mb-4">{t('footer.employers')}</h3>
               <ul className="space-y-2 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/employer/welcome" className="hover:text-white transition-colors">Post a Job</Link></li>
-                <li><Link href="/employer/welcome#candidates" className="hover:text-white transition-colors">Browse Candidates</Link></li>
-                <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="/employer-resources" className="hover:text-white transition-colors">Employer Resources</Link></li>
+                <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
+                <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
+                <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-[18px] mb-4">Company</h3>
+              <h3 className="text-[18px] mb-4">{t('footer.companyLegal')}</h3>
               <ul className="space-y-2 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                <li><Link href="/careers" className="hover:text-white transition-colors">Careers</Link></li>
-                <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-[18px] mb-4">Support</h3>
-              <ul className="space-y-2 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/help" className="hover:text-white transition-colors">Help Centre</Link></li>
-                <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-white transition-colors">Terms and Conditions</Link></li>
-                <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+                <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
+                <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
+                <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
               </ul>
             </div>
           </div>
 
-          {/* Mobile App Download */}
-          <div className="w-full lg:w-auto lg:max-w-[379px]">
-            <h3 className="text-2xl sm:text-[32px] font-medium mb-6 leading-tight sm:leading-[38px]">
-              Download our Mobile App platform
+          {/* Mobile app — honest about not having shipped yet, instead of two
+              dead store buttons. */}
+          <div className="w-full lg:w-auto lg:max-w-[340px]">
+            <h3 className="text-xl sm:text-2xl font-medium mb-3 leading-tight">
+              {t('footer.mobileTitle')}
             </h3>
-            <div className="flex gap-4">
-              <a href="#" className="w-[140px] h-[43px] bg-black rounded-lg flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors">
-                <span className="text-white text-sm">App Store</span>
-              </a>
-              <a href="#" className="w-[132px] h-[40px] bg-black rounded-lg flex items-center justify-center border border-white/20 hover:bg-white/10 transition-colors">
-                <span className="text-white text-sm">Google Play</span>
-              </a>
-            </div>
+            <p className="text-sm text-[rgba(255,255,255,0.7)] leading-relaxed">
+              {t('footer.mobileBody')}
+            </p>
           </div>
         </div>
 
         <div className="border-t border-white/10 pt-[18px] text-center">
           <p className="text-sm sm:text-base text-white">
-            © Azkashine Software Services Pvt. Ltd. 2025
+            {t('footer.copyright', {
+              year: currentYear(),
+              company: COMPANY_LEGAL_NAME,
+            })}
           </p>
         </div>
       </div>
