@@ -41,8 +41,9 @@ Employer registers → buys credits → posts a job → reviews applicants
 - **No Aadhaar. Anywhere.** Not collected, not verified, not mocked. Permanently out of scope.
 
 **Content & media**
-- **Voice is a first-class feature:** a seeker may attach a **2-minute** audio message to an application; chat supports **60-second** audio messages.
-- **Chat is polling-based.** (No WebSockets — that decision is final, not deferred.)
+- ⛔ **AUDIO IS OUT OF SCOPE FOR V1** *(decided 2026-07-12)* — **no audio anywhere**: no voice message on a job application, no audio in chat. **Do not build it on any surface.**
+  - *This reverses the earlier plan* (2-min application audio + 60-sec chat audio). The backend supports audio and the **web portal already has it built** — that UI must be **hidden/removed for V1**, and **mobile must not build it**. Revisit in v2.
+- **Chat is polling-based, text-only in V1.** (No WebSockets — that decision is final, not deferred.)
 - Voice/TTS *playback* of the UI (the 🔊 icons) is **v2** — the icons exist but are intentionally inert.
 
 **Jobs & taxonomy**

@@ -11,10 +11,17 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 
 | Surface | Repo | State |
 |---|---|---|
-| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the web apps need is live, incl. the full billing system. |
+| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
 | **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** All flows wired to real data. Needs a QA-defect pass. |
 | **Admin console** | `prosiddhi-admin` | 🟡 **Wired, but two whole screens are missing** (taxonomy, monetization). No mock data, no blockers. |
-| **Mobile app** | `prosiddhi-mobile-app` | ❌ **Not started.** Unowned. |
+| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~45% built** (Flutter). Good code, real service layer, no mocks — but **no monetization, no i18n**, and **Post Job is ungated (revenue leak)**. → **`prosiddhi-mobile-app/docs/STATUS.md`** |
+
+### Hosted backend
+**`http://103.225.224.149:5000`** — verified **fully current** (2026-07-12): every endpoint is deployed, incl. monetization, candidate DB, team seats and taxonomy. **Nothing is missing on the API side.**
+⚠️ Its **database is empty** (0 jobs — plans + taxonomy seeded only), so create test data before testing flows.
+
+### ⛔ Audio is OUT of V1 (decided 2026-07-12)
+**No audio anywhere** — no application voice message, no chat audio. This **reverses the earlier plan**. The backend supports it and **the web portal already has it built**, so that UI must be **hidden/removed**; **mobile must not build it**. See §3.
 
 **Bottom line:** the web product is built end-to-end, **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). What remains is: **two seat bugs**, **outbound notifications**, **two missing admin screens**, a **QA-defect pass**, and **go-live config**.
 
@@ -25,8 +32,8 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 ### Backend
 - **Auth** — phone-OTP, email+password, **Google OAuth**; email verification; forgot/reset password; soft-delete.
 - **Jobs** — CRUD, **3-level taxonomy** validation, 30-day live window, recommendations, saved jobs, reports.
-- **Applications** — apply with 2-min audio, status workflow, interviews.
-- **Chat** — polling, text + 60-sec audio, read receipts.
+- **Applications** — apply (+ 2-min audio — *built, but audio is now **descoped from V1**, see §1*), status workflow, interviews.
+- **Chat** — polling, text + 60-sec audio (*audio **descoped from V1***), read receipts.
 - **Profiles** — seeker + employer, documents, skills.
 - **Taxonomy** — Category → Sector → JobTitle (soft-delete), public `GET /api/categories`, **+ 10 admin CRUD endpoints**.
 - **Search** — Postgres full-text search for **jobs and candidates** (`tsvector` + trigram typo fallback).
@@ -84,13 +91,18 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 **8. Content moderation + reports** *(BE + Admin)* — OpenAI "Scan Content" (button is honestly disabled today) and a standalone reports queue + resolve. Neither exists on either side.
 
+**9. Remove audio from V1** *(FE + mobile)* — audio was descoped 2026-07-12 but the **portal already has it built**: the 2-min recorder in the apply modal and the 60-sec recorder in chat. **Hide/remove that UI** so QA doesn't test it and users can't reach it. (The backend can keep supporting it — it just goes unused.) Mobile: **don't build it**; remove the inert audio UI it already renders.
+
+**10. Mobile — plug the revenue leak** *(Mobile)* 🔴 **Post Job on mobile is completely ungated** — no credit check, so an employer can post **free** from the phone while the web charges credits. This bypasses the whole monetization system. Also: `/forgot-password` navigates to a **route that doesn't exist**, and the app defaults to a **dead dev tunnel URL**. → Full list in **`prosiddhi-mobile-app/docs/STATUS.md`**.
+
 ### 🟡 P2 — after launch
 
-**9. Mobile app** — 0%, unowned. Biggest scope risk to the full vision.
-**10. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
-**11. The other 8 languages** (EN + HI are done).
-**12. Security** — move the JWT from `localStorage` to an httpOnly cookie.
-**13. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
+**11. Mobile — feature completion.** ~45% built. Missing: **i18n (EN/HI — arguably a launch blocker**, since the core users are low-literacy Hindi speakers and the app is English-only**)**, My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset, and all employer monetization/candidate-DB/seats surfaces. *Open decision: buy-on-web vs in-app Razorpay (recommend **buy-on-web**).*
+**12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
+**13. The other 8 languages** (web EN + HI are done; mobile has none).
+**14. Security** — move the JWT from `localStorage` to an httpOnly cookie.
+**15. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
+**16. Audio** — revisit for v2 (descoped from V1; the backend already supports it).
 
 ---
 
@@ -107,6 +119,10 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 | 7 | Admin | Revenue card captioned "Indicative ₹500/subscription" — it's real money now |
 | 8 | Admin | No success confirmation on any write (incl. payment override) |
 | 9 | Admin | Dead header Mail/Bell buttons + dead dashboard search; hardcoded "AD/Admin" identity |
+| 10 | **Mobile** | 🔴 **Post Job is UNGATED** — employers post free from the phone; bypasses monetization entirely |
+| 11 | Mobile | `/forgot-password` navigates to a route that doesn't exist → error page |
+| 12 | Mobile | Defaults to a dead dev-tunnel API URL if the build flag is omitted |
+| 13 | Mobile | Search collects `sector`/`jobTitle` filters but never sends them |
 
 ---
 
