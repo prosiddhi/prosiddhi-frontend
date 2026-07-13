@@ -1,7 +1,7 @@
 # ProSiddhi — Status
 
-**The single source of truth for what is done and what is left.** Updated **2026-07-12**.
-Verified by reading the code in all three repos — **not** from tickets. Where this doc and JIRA disagree, **this doc is right** (see §6).
+**The single source of truth for what is done and what is left.** Updated **2026-07-13**.
+Verified by reading the code in all three repos **and running the flows against a live backend** — **not** from tickets. Where this doc and JIRA disagree, **this doc is right** (see §6).
 
 Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](MONETIZATION.md) (pricing rules + billing) · [DEPLOY.md](DEPLOY.md) (deploy + go-live) · [qa/functional-audit-portal.md](qa/functional-audit-portal.md) (portal defect list) · `prosiddhi-admin/docs/qa/functional-audit-admin.md` (admin defect list).
 
@@ -12,7 +12,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | Surface | Repo | State |
 |---|---|---|
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
-| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). All 2 criticals + 10 majors + minors fixed and verified in the running app; **audio removed**; several deeper defects found while verifying (i18n was silently reverting to English; the registration language picker was inert; an introduced open-redirect) all fixed. → `docs/qa/functional-audit-portal.md`. **GO for handover.** |
+| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). All 2 criticals + 10 majors + minors fixed and verified in the running app; **audio removed**; several deeper defects found while verifying (i18n was silently reverting to English; the registration language picker was inert; two open redirects) all fixed. **Team invites reconciled with the rebuilt seat contract + the public `/invite/<token>` page built** (2026-07-12) — the feature had been dead three ways. → `docs/qa/functional-audit-portal.md`. **GO for handover** *(one BE bug blocks cold-start invites — §3 item 1a)*. |
 | **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** *(One BE gap: admin invoice-PDF route — see §3.7.)* |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~60% built** (Flutter). Free product done + **EN/HI localised**; post-credit gate in. Pending: subscription screens, candidate DB, team seats, a few loose ends. *(Only in-app **checkout** is blocked, on the store-policy call — the plans/wallet **screens** are buildable now.)* → **`prosiddhi-mobile-app/docs/STATUS.md`** |
 
@@ -40,7 +40,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 - **Search** — Postgres full-text search for **jobs and candidates** (`tsvector` + trigram typo fallback).
 - **Monetization — all of it.** 8 plans, per-lot credit ledger, Razorpay checkout + webhook + client-verify (cannot double-grant), **GST invoices + PDF**, post-credit gate, delete-refund, credit wallet, 14-day trial grant, daily crons (30-day job window + 3-day post-expiry grace).
 - **Candidate database** — FTS search, snippet gating (contact hidden), **atomic paid unlock** with dedupe, unlocked history.
-- **Team seats** — roster, invite, accept, remove *(see the gaps in §3)*.
+- **Team seats** — roster, invite, accept, remove, revoke, public invite-peek *(one open bug — see §3 item 1a)*.
 - **Admin API** — queues, document verification, moderation, skills CRUD, **real revenue** from `PaymentHistory`.
 - Rate limiting, webhook audit log.
 
@@ -50,7 +50,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 - **Employer** — dashboard, post/manage jobs (taxonomy triple), candidate management, chat, profile.
 - **Monetization** — pricing page, Razorpay checkout, credit wallet + expiry nudge, post-credit gate + upsell, top-up modal, **invoice history + PDF**.
 - **Candidate database** — snippet search, explicit "use 1 credit to unlock" confirm, unlocked-candidates history.
-- **Team seats** — roster, invite link, accept, remove.
+- **Team seats** — roster (members vs pending invites, ACTIVE/**SUSPENDED** seats, owner-vs-member view), invite by email, revoke an invite, remove a member, and the **public `/invite/<token>` landing page** that carries the token through sign-in *or* registration and auto-accepts. *(Cold start — an invitee with no account — additionally needs the BE fix in §3 item 1a.)*
 - **i18n** — English + Hindi, complete.
 - Offline/error handling.
 
@@ -180,6 +180,30 @@ Six units delivered on `prosiddhi-admin`, each committed separately, `type-check
 
 ---
 
+### 🛠️ Portal session — team invites, shipped 2026-07-12
+
+Reconciled the portal with the rebuilt seat contract and built the one missing screen. Six commits on `prosiddhi-frontend`, `type-check` green on each, **verified by running the real flow against a live backend on :5000** — not by reading code.
+
+The feature was **completely dead in three independent ways**, and the first hid the other two:
+
+| # | What was broken | Now | Commit |
+|---|---|---|---|
+| 1 | **Every invite link was `?token=undefined`** — the FE still read the pre-rework `inviteToken` field. **No invite could ever be accepted.** | Real `token` / `inviteId` fields | `99bcecd` |
+| 2 | **Roster showed ACTIVE teammates as "Pending"** — compared `status === 'ACCEPTED'`, an enum value the rebuilt BE no longer emits. Pending invites and held seats were one list. | `members[]` (ACTIVE / **SUSPENDED**) and `invites[]` as separate groups; owner-vs-member view off `me.role`/`me.seatStatus` | `46bbd74` |
+| 3 | **Remove and revoke were the same control** — but they take ids from different spaces (membership vs invite). | Split: `DELETE /me/team/:membershipId` vs `DELETE /me/team/invites/:inviteId` (crossing them 404s — verified) | `46bbd74` |
+| 4 | **No landing page**, and the one accept screen sat behind `ProtectedRoute` — an invitee without an account was bounced to `/login` and **the token was dropped**. | **Public `/invite/<token>`**: peek → carry the token through sign-in *or* registration → **auto-accept on return**. `/employer/team/accept` retired to a redirect: **one accept path, not two.** | `81aef07` |
+
+**Verified end-to-end, not from reading code:** invite → public peek → *fresh* registration → accept → the new member resolves the **org's** wallet (66 post / 657 download) instead of their own trial 1/3 — the entire point of a multi-seat plan. Negatives too: replay → 400, wrong account → 403, member-invites → 403.
+
+**Two things worth knowing** (both cost real debugging time, both are load-bearing):
+
+1. **The BE strips `reason` outside development.** `sendError()` gates the payload on `NODE_ENV === 'development'`, so `{ reason: 'INVITE_EMAIL_MISMATCH' }` **is not sent in production**. Any FE error map keyed on `reason` degrades to "something went wrong" in prod — on exactly the surface where the user most needs telling what to do. `lib/inviteErrors.ts` therefore branches on **HTTP status** and treats `reason` only as a refinement. *Worth fixing on the BE: `reason` is machine-readable, not sensitive, and should ship in prod.*
+2. **A trial credit lot made the cold path impossible** — see §3 item 1a. Registration auto-grants a TRIAL lot; `isDisposableShell()` counted every lot; so every new invitee 409'd. **This is the flagship path and it had never worked.**
+
+**Also fixed en route (found by the security + code reviews):** a **live open redirect** in the post-login `returnUrl` — resolving against our origin and then forwarding `url.pathname` accepts `https://ours.com//evil.com`, whose *pathname* is `//evil.com`, which Next hard-navigates off-site. Pre-existing, but the invite flow deliberately routes invitees through `/login?returnUrl=…`, and a sign-in page is where a phishing bounce pays off. Both redirect guards now go through one arbiter (`lib/safeRedirect.ts`), proven against 9 attack strings. Plus a render crash on `/invite/%` and a transient-failure path that silently destroyed the invite journey on a network blip or expired JWT.
+
+---
+
 ## 4. Known bugs (quick list)
 
 | # | Where | Bug |
@@ -195,6 +219,10 @@ Six units delivered on `prosiddhi-admin`, each committed separately, `type-check
 | 9 | Admin | ✅ **FIXED 2026-07-12** — every write confirms itself, incl. the payment override |
 | 10 | Admin | ✅ **FIXED 2026-07-12** — dead header Mail/Bell + dashboard search removed; header shows the real signed-in admin |
 | 11 | BE 🔒 | **NEW** — no admin-reachable invoice-PDF route; `GET /api/employers/me/invoices/:id/pdf` 403s for an ADMIN token, so the admin console cannot download an invoice |
+| 12 | **BE** 🔴 | **NEW — OPEN, blocks the invite feature.** A **TRIAL credit lot** (auto-granted at registration) makes `isDisposableShell()` treat every brand-new account as "already runs its own workspace", so **accepting an invite 409s for anyone who doesn't already have an employer account** — the cold-start path never worked. **Fix is written and verified** on branch `fix/invite-trial-lot-blocks-cold-path` (`2b5a3ad`), **not merged** — needs Asrar coordination. → §3 item 1a |
+| 13 | BE | **NEW — open, low.** `sendError()` only includes the `reason` discriminator when `NODE_ENV=development`, so clients can't branch on it in production. The portal works around this by branching on HTTP status; `reason` isn't sensitive and should just ship in prod |
+| 14 | Portal | ✅ **FIXED 2026-07-12** — the invite flow was dead three ways: every link was `?token=undefined`, the roster rendered ACTIVE teammates as "Pending", and there was no landing page (invitees without an account lost the token at `/login`). → §3 item 1 |
+| 15 | Portal 🔒 | ✅ **FIXED 2026-07-12** — **open redirect** in the post-login `returnUrl`: an origin-passing URL could still yield a protocol-relative pathname (`https://ours.com//evil.com` → `//evil.com`) that Next hard-navigates off-site. Both redirect guards now share one validator (`lib/safeRedirect.ts`) |
 | — | Mobile | ✅ *All 4 earlier mobile bugs FIXED 2026-07-12 (gate, dead route, dead API URL, dropped filters). The "ungated revenue leak" was a mis-diagnosis — the BE always gated posting.* |
 
 ---
