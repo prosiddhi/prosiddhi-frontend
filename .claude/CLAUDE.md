@@ -28,7 +28,7 @@ What's left is in `STATUS.md` §3 — headline: **two seat bugs**, **outbound no
 - **Confirm every API path against the real backend routes** before wiring it. Do not trust a path from a doc or from memory.
 - **`npm run type-check` must exit 0** before any commit (a pre-commit hook enforces it).
 - **Commit per ticket**, conventional message, **no `Co-Authored-By` trailer**.
-- **Stay in locked scope.** Never reintroduce: **Aadhaar**, **escrow / platform-handled payments**, **WebSockets** for chat, **voice transcription**, **`.ics` invites**. These are gone, not deferred.
+- **Stay in locked scope.** Never reintroduce: **Aadhaar**, **escrow / platform-handled payments**, **WebSockets** for chat, **voice transcription**. These are gone, not deferred. *(**`.ics` interview invites** were RE-ADDED to scope 2026-07-16 by Nazir (PO) — permitted for the interview email only; see `docs/PRODUCT.md` §5.)*
 
 ## Gates before committing
 

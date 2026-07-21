@@ -124,7 +124,7 @@ Audio duration: FE enforces at record time, BE re-verifies on receipt using ffpr
 
 **A03 Injection** — Prisma 6 is parameterized by default; no raw SQL anywhere in the BE today. **Policy:** raw SQL via `$queryRaw` / `$executeRaw` is prohibited without an explicit security review note in the PR. Audit any new use.
 
-**A04 Insecure Design** — [02-scope-locked.md](_context/02-scope-locked.md) is the design contract. PRs that introduce features not in the locked scope (Aadhaar, escrow, WebSockets, voice transcription, .ics invites) are scope drift and get rejected at review.
+**A04 Insecure Design** — [02-scope-locked.md](_context/02-scope-locked.md) is the design contract. PRs that introduce features not in the locked scope (Aadhaar, escrow, WebSockets, voice transcription) are scope drift and get rejected at review. *(`.ics` interview invites were re-added to scope 2026-07-16 by the PO — see PRODUCT.md §5.)*
 
 **A05 Security Misconfiguration** — fix audit bug d: `JWT_SECRET` default literal removed; boot assertion added. `.env` files never committed (verify `.gitignore`). Production deploys must not use the example secrets in `.env.example`.
 

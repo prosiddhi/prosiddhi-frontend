@@ -66,7 +66,7 @@ These are **gone** — not deferred, not "v2". Do not reintroduce them:
 - **Escrow / platform-handled payments** between worker and employer. We never touch wages; they settle directly. Revenue is subscription/credits only.
 - **WebSockets** for chat (polling is final).
 - **Voice message transcription.**
-- **`.ics` calendar invites** for interviews.
+- ~~**`.ics` calendar invites** for interviews.~~ → **REVERSED 2026-07-16** (Nazir, PO): `.ics` interview invites are back **in scope**, attached to the interview email. This one use only — nothing else in this list is reopened. See `notifications`/email integration.
 
 ## 6. Deferred to v2 / later
 
