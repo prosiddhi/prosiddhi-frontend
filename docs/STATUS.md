@@ -1,7 +1,9 @@
 # ProSiddhi — Status
 
-**The single source of truth for what is done and what is left.** Updated **2026-07-13**.
+**The single source of truth for what is done and what is left.** Updated **2026-07-27**.
 Verified by reading the code in all three repos **and running the flows against a live backend** — **not** from tickets. Where this doc and JIRA disagree, **this doc is right** (see §6).
+
+**Latest (2026-07-27):** admin console gained the **super-admin management, admin-adds-user, and audit-log** screens + SUPER_ADMIN role-gating (only the per-entity "history" tab is left). Backend gained the matching **SUPER_ADMIN role, admin-user CRUD, admin-adds-user, and an append-only audit log**. **Outbound email is now wired** — OTP delivery, team-invite links, and the interview `.ics` all send via MSG91 (committed `e7be075`; needs the server-side email env + MSG91 IP whitelist to go live — see `go-live-config.md`). Docs pruned to the lean source-of-truth set.
 
 Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](MONETIZATION.md) (pricing rules + billing) · [DEPLOY.md](DEPLOY.md) (deploy + go-live) · [qa/functional-audit-portal.md](qa/functional-audit-portal.md) (portal defect list) · `prosiddhi-admin/docs/qa/functional-audit-admin.md` (admin defect list).
 
@@ -11,9 +13,9 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 
 | Surface | Repo | State |
 |---|---|---|
-| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system. |
+| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system, the **SUPER_ADMIN role + admin-user CRUD + admin-adds-user + append-only audit log**, and **outbound email delivery** (OTP / invites / interview `.ics`). |
 | **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). All 2 criticals + 10 majors + minors fixed and verified in the running app; **audio removed**; several deeper defects found while verifying (i18n was silently reverting to English; the registration language picker was inert; two open redirects) all fixed. **Team invites reconciled with the rebuilt seat contract + the public `/invite/<token>` page built** (2026-07-12) — the feature had been dead three ways. → `docs/qa/functional-audit-portal.md`. **GO for handover** *(one BE bug blocks cold-start invites — §3 item 1a)*. |
-| **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** *(One BE gap: admin invoice-PDF route — see §3.7.)* |
+| **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27) with SUPER_ADMIN role-gating — only the per-entity "history" tab remains.** → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** *(One BE gap: admin invoice-PDF route — see §3.7.)* |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~60% built** (Flutter). Free product done + **EN/HI localised**; post-credit gate in. Pending: subscription screens, candidate DB, team seats, a few loose ends. *(Only in-app **checkout** is blocked, on the store-policy call — the plans/wallet **screens** are buildable now.)* → **`prosiddhi-mobile-app/docs/STATUS.md`** |
 
 ### Hosted backend
@@ -24,7 +26,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 ### ⛔ Audio is REMOVED from the product (decided 2026-07-12)
 **No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** ✅ **deleted** (2026-07-12) — apply-modal recorder, chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, audio params in `api.ts`, and all audio i18n keys are gone; the mic Permissions-Policy was revoked. Revisit in v2.
 
-**Bottom line:** the web product is built end-to-end — backend, portal **and admin console** — **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are FIXED**, **audio is removed**, and the backend's newest work (admin monetization endpoints, reports queue, content scan, outbound notification channels) is now **all consumed by the admin console**. What remains is mostly **external config + mobile**: go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN), the mobile app, and a handful of small BE routes the admin console still needs (invoice PDF, taxonomy restore, audit log). See the **backend** and **admin** session summaries at the end of §3.
+**Bottom line:** the web product is built end-to-end — backend, portal **and admin console** — **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). The **two seat bugs are FIXED**, **audio is removed**, and the backend's newest work (admin monetization endpoints, reports queue, content scan, outbound notification channels) is now **all consumed by the admin console**. What remains is mostly **external config + mobile**: go-live config (MSG91 DLT/WhatsApp templates, FCM, OpenAI key, real Razorpay keys, GSTIN), the mobile app, and one small BE route the admin console still needs (invoice PDF — taxonomy restore and the audit log are now built). See the **backend** and **admin** session summaries at the end of §3.
 
 ---
 

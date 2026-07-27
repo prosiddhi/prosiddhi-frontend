@@ -297,7 +297,7 @@ work in v1 exactly as planned. Only the OTP use case dies.
 
 **What I recommend:** amend Q7 to drop WhatsApp OTP. SMS becomes the sole OTP channel (with email OTP already
 built as a second factor for email verification). WhatsApp remains in v1 for notifications. If you agree, I'll
-record it in `docs/decisions-log.md` and update `docs/_context/02-scope-locked.md`.
+record it in `docs/PRODUCT.md` §5 (locked scope) and `.claude/CLAUDE.md`.
 
 ---
 

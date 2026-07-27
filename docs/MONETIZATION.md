@@ -1,7 +1,7 @@
 # ProSiddhi — Monetization
 
 **The employer billing system: the rules, what's built, and what's still broken.** Updated **2026-07-12** (seat bugs §6.1–6.3 fixed on the backend; admin monetization endpoints shipped).
-Consolidates the former five `docs/pricing/*` files. Verified against the code in both repos.
+Consolidated from the former pricing docs (since removed). Verified against the code in both repos.
 
 **Model in one line:** ProSiddhi monetizes the **employer** side only — **job seekers are free forever.** Employers buy **credits** and spend them to **post jobs** and **unlock candidates**, inside time-boxed plans.
 

@@ -1,9 +1,9 @@
 # ProSiddhi — Corrected Deploy Runbook (backend + frontend, Vodafone VM)
 
-This runbook supersedes the matching sections of `deployment-guide-vodafone-vm.md` for
-the **backend** (`prosiddhi-backend`) and **web portal** (`prosiddhi-frontend`). It folds
-in the code fixes made on 2026-06-25 and the corrections found while verifying the guide
-against the actual code. Admin console is a separate repo, not covered here.
+This is the deploy runbook for the **backend** (`prosiddhi-backend`) and **web portal**
+(`prosiddhi-frontend`). It folds in the code fixes made on 2026-06-25 and the corrections
+found while verifying against the actual code. Admin console is a separate repo, not covered
+here. For the per-environment config each surface needs, see `go-live-config.md`.
 
 ---
 
