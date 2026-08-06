@@ -802,10 +802,7 @@ export interface SeekerWorkExperience {
   toYear: string
 }
 
-// Matches BE jobSeekerRegisterSchema (auth.validator.ts). NOTE: dateOfBirth +
-// gender are intentionally NOT here — the BE has no field for them yet
-// (tracked as BR-1 in docs/be-requests.md). The UI still collects them; they're
-// held client-side until the BE accepts them.
+// Matches BE jobSeekerRegisterSchema (auth.validator.ts).
 export interface SeekerRegisterData {
   fullName: string
   /**
@@ -831,6 +828,17 @@ export interface SeekerRegisterData {
   latitude?: number
   longitude?: number
   location?: string
+  /**
+   * BR-1. `YYYY-MM-DD` — the value a native `<input type="date">` produces.
+   *
+   * Optional on the BE schema, but that is the ONLY place a minimum age is
+   * enforced: `dateOfBirthSchema` rejects a future date and anything under 18.
+   * Omit it and that check simply never runs. The UI requires it, so always
+   * send it.
+   */
+  dateOfBirth?: string
+  /** BR-1. Must match the BE `Gender` enum exactly: MALE | FEMALE | OTHER. */
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
   workExperiences?: SeekerWorkExperience[]
   profilePic?: File
   document?: File
@@ -888,6 +896,12 @@ export const jobSeekerAPI = {
     if (data.latitude != null) fd.append('latitude', String(data.latitude))
     if (data.longitude != null) fd.append('longitude', String(data.longitude))
     if (data.location) fd.append('location', data.location)
+    // BR-1 — these were collected as REQUIRED by the profile step and then
+    // never sent, so the backend's age >= 18 refinement never ran and nothing
+    // enforced a minimum age at registration. Both fields have been accepted by
+    // jobSeekerRegisterSchema since BR-3; only this client was still behind.
+    if (data.dateOfBirth) fd.append('dateOfBirth', data.dateOfBirth)
+    if (data.gender) fd.append('gender', data.gender)
     // Map the UI shape (designation/fromYear/toYear) to the BE WorkExperience
     // shape (position/startDate/endDate). The BE requires position + a parseable
     // startDate, so only rows with both a designation AND a fromYear are sent.

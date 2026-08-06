@@ -10,6 +10,25 @@ import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
+/**
+ * Mirrors the BE `dateOfBirthSchema` refinement (auth.validator.ts): the date
+ * must be in the past AND indicate age >= 18. Same calendar arithmetic — the
+ * year difference, stepped back one if the birthday has not occurred yet — so
+ * the two cannot disagree on a boundary date.
+ *
+ * `iso` is the YYYY-MM-DD an <input type="date"> produces.
+ */
+function isAtLeast18(iso: string): boolean {
+  const dob = new Date(iso)
+  if (isNaN(dob.getTime())) return false
+  const now = new Date()
+  if (dob >= now) return false
+  let age = now.getFullYear() - dob.getFullYear()
+  const m = now.getMonth() - dob.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--
+  return age >= 18
+}
+
 export default function RegisterProfilePage() {
   const router = useRouter()
   const { t } = useTranslation()
@@ -65,10 +84,17 @@ export default function RegisterProfilePage() {
       setError(t('auth:profile.errorEmail'))
       return false
     }
-    // BR-1: DOB + gender are required in the UI but held client-side only
-    // (the BE has no field for them yet — see docs/be-requests.md).
+    // BR-1: DOB + gender are required, and both are sent with register.
     if (!dateOfBirth) {
       setError(t('auth:profile.errorDob'))
+      return false
+    }
+    // Age >= 18, checked HERE because this is where the field lives. The BE
+    // enforces the same rule, but its rejection arrives at the register call —
+    // six screens later, on a password screen with no date field on it. The
+    // server stays the backstop; this is so the user can actually act on it.
+    if (!isAtLeast18(dateOfBirth)) {
+      setError(t('auth:profile.errorDobAge'))
       return false
     }
     if (!gender) {

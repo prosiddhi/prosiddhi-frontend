@@ -80,6 +80,11 @@ export default function RegisterPasswordPage() {
         preferredSector: data.preferredSector,
         preferredJobTitle: data.preferredJobTitle,
         preferredLanguage: data.language,
+        // Collected as required on the profile step. The BE's age >= 18 check
+        // lives on dateOfBirth, so omitting it silently disables the only
+        // minimum-age enforcement there is.
+        dateOfBirth: data.dateOfBirth || undefined,
+        gender: (data.gender || undefined) as 'MALE' | 'FEMALE' | 'OTHER' | undefined,
         workExperiences: data.workExperiences,
         profilePic: data.profilePic,
         document: data.document,

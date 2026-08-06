@@ -35,8 +35,10 @@ export interface SeekerRegistrationState {
    * walks back and forward through the form. Reset it whenever `email` changes.
    */
   emailVerified: boolean
-  // BR-1 (docs/be-requests.md): collected in UI, held here only — the BE
-  // register schema has no field for these yet, so they are NOT sent.
+  // BR-1. Collected as required on the profile step and sent with register.
+  // dateOfBirth is YYYY-MM-DD; gender is the BE Gender enum (MALE/FEMALE/OTHER).
+  // The BE enforces age >= 18 on dateOfBirth — it is the only minimum-age check
+  // in the product, so it must actually be sent.
   dateOfBirth: string
   gender: string
   // BR-3 — 3-level taxonomy (Category → Sector → JobTitle). preferredCategory is
