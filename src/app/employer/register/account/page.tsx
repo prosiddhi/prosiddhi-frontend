@@ -63,14 +63,13 @@ export default function AccountSetupPage() {
     try {
       setLoading(true)
       setError('')
-      const result = await employerAPI.registerIndividual({
+      await employerAPI.registerIndividual({
         email: email.trim(),
+        password,
         fullName: fullName.trim(),
         phoneNumber: data.phoneNumber,
         designation: designation.trim() || undefined,
       })
-      await employerAPI.setPassword(email.trim(), password)
-      update({ devEmailOtp: result?.emailVerification?.otp })
       router.push('/employer/register/verify-email')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('employerRegister:account.createFailed'))

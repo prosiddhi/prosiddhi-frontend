@@ -80,8 +80,9 @@ export default function CompanyDetailsPage() {
     try {
       setLoading(true)
       setError('')
-      const result = await employerAPI.registerBusiness({
+      await employerAPI.registerBusiness({
         email: data.email,
+        password: data.password,
         phoneNumber: data.phoneNumber,
         companyName: form.companyName.trim(),
         companyEmail: form.companyEmail.trim(),
@@ -91,8 +92,6 @@ export default function CompanyDetailsPage() {
         gstNumber: form.gstNumber.trim(),
         registrationNumber: form.registrationNumber.trim(),
       })
-      await employerAPI.setPassword(data.email, data.password)
-      update({ devEmailOtp: result?.emailVerification?.otp })
       router.push('/employer/register/verify-email')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('employerRegister:companyDetails.registerFailed'))

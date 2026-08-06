@@ -43,10 +43,13 @@ export default function RegisterPasswordPage() {
       setLoading(true)
       setError('')
 
-      // 1) Create the seeker (BE auto-sends the email-verification OTP).
-      const result = await jobSeekerAPI.register({
+      // Create the seeker. Both contacts are already verified at this point and
+      // the password ships WITH the account — there is no set-password step and
+      // nothing left to verify afterwards.
+      await jobSeekerAPI.register({
         fullName: data.fullName,
         email: data.email,
+        password,
         phoneNumber: data.phoneNumber,
         preferredCategory: data.preferredCategory || undefined,
         preferredSector: data.preferredSector,
@@ -57,13 +60,8 @@ export default function RegisterPasswordPage() {
         document: data.document,
       })
 
-      // 2) Set the account password.
-      await jobSeekerAPI.setPassword(data.email, password)
-
-      // Hold the password in memory ONLY (never localStorage) — the verify step
-      // needs it to log in after email verification. devEmailOtp is echoed by
-      // the BE in non-production to make dev/QA verification easy.
-      update({ password, devEmailOtp: result?.emailVerification?.otp })
+      // Held in memory ONLY (never storage) until the login below consumes it.
+      update({ password })
 
       router.push('/register/verify-email')
     } catch (err) {

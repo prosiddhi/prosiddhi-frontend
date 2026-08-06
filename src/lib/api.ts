@@ -65,13 +65,53 @@ interface ApiEnvelope<T> {
 export class ApiError extends Error {
   readonly status: number
   readonly reason?: string
+  /**
+   * Field-level validation errors, from the BE's top-level `errors` array.
+   *
+   * Unlike `reason`, this DOES survive production: `sendError()` routes the
+   * pre-mapped `[{path, message}]` shape that `middleware/validate.ts` produces
+   * into `errors` rather than the dev-gated `error` slot. It is therefore the
+   * only machine-readable discriminator registration can rely on in prod — see
+   * the spec's §3.6. Business-rule errors carry no `errors` array at all; those
+   * must be branched on status + message instead.
+   */
+  readonly errors?: ApiFieldError[]
 
-  constructor(message: string, status: number, reason?: string) {
+  constructor(
+    message: string,
+    status: number,
+    reason?: string,
+    errors?: ApiFieldError[]
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.reason = reason
+    this.errors = errors
   }
+}
+
+/** One entry of the BE's `errors` array — `path` is a dotted field name. */
+export interface ApiFieldError {
+  path: string
+  message: string
+}
+
+/**
+ * Group an error's field-level messages by field name.
+ *
+ * A single field can fail more than one rule at once — a weak password returns
+ * BOTH "at least 8 characters" AND the upper/lower/number rule — so the value is
+ * an array and a form must render all of them. Returns `{}` for anything that
+ * is not a field-validation failure, which lets a caller fall back to the
+ * message-level mapping without a second type check.
+ */
+export function fieldErrorsByPath(err: unknown): Record<string, string[]> {
+  if (!(err instanceof ApiError) || !err.errors?.length) return {}
+  return err.errors.reduce<Record<string, string[]>>((acc, e) => {
+    ;(acc[e.path] ||= []).push(e.message)
+    return acc
+  }, {})
 }
 
 // Helper function for API requests. Returns the unwrapped `.data` payload.
@@ -149,10 +189,21 @@ async function apiRequest<T>(
       body?.error && typeof body.error === 'object' && typeof body.error.reason === 'string'
         ? (body.error.reason as string)
         : undefined
+    // Field errors live in a SEPARATE top-level key and are not dev-gated.
+    const errors: ApiFieldError[] | undefined = Array.isArray(body?.errors)
+      ? (body.errors as unknown[]).filter(
+          (e): e is ApiFieldError =>
+            !!e &&
+            typeof e === 'object' &&
+            typeof (e as ApiFieldError).path === 'string' &&
+            typeof (e as ApiFieldError).message === 'string'
+        )
+      : undefined
     throw new ApiError(
       body?.message || `HTTP error! status: ${response.status}`,
       response.status,
-      reason
+      reason,
+      errors?.length ? errors : undefined
     )
   }
 
@@ -191,7 +242,13 @@ export interface AuthUserProfile {
 
 export interface AuthUser {
   id: string
-  email: string
+  /**
+   * NULL for a phone-only job seeker. Email is optional at seeker registration
+   * (many blue-collar workers have none), so the BE stores `null` and puts
+   * `null` in the JWT payload too. Every surface that renders this must handle
+   * the absence — do not widen it back to `string`.
+   */
+  email: string | null
   role: UserRole
   accountStatus?: string
   phoneNumber?: string | null
@@ -514,8 +571,13 @@ export const authAPI = {
 
   // Phone-OTP login step 1: request the login OTP. Step 2 is authAPI.login
   // with { identifier: <phone>, otp }.
+  //
+  // This is the ONLY source of a LOGIN-purpose code — POST /otp/send issues a
+  // REGISTRATION-purpose one that login will not accept. The response shape is
+  // deliberately NOT shared with OtpSendResult: `expiresIn` is a number here
+  // (10) and a string there ("10 minutes").
   loginPhoneSend: async (phoneNumber: string) => {
-    return apiRequest('/auth/login-phone-send', {
+    return apiRequest<PhoneLoginSendResult>('/auth/login-phone-send', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber }),
     })
@@ -543,9 +605,25 @@ export const authAPI = {
     })
   },
 
+  // Change / add the email on the logged-in account. POST /api/auth/change-email.
+  // Authenticated. Pair with emailOtpAPI.send(newEmail, 'CHANGE_EMAIL') first —
+  // the BE checks `otp` against `newEmail` under that purpose. This is how a
+  // phone-only seeker gains an email after registering; the existing password
+  // keeps working and the new address becomes a valid login identifier.
+  changeEmail: async (newEmail: string, otp: string) => {
+    return apiRequest('/auth/change-email', {
+      method: 'POST',
+      body: JSON.stringify({ newEmail, otp }),
+    })
+  },
+
   // Email verification (6-digit OTP). POST /api/auth/verify-email-otp.
-  // Required before a registered user can log in — BE login rejects unverified
-  // emails (auth.service login + phone-OTP login both gate on emailVerified).
+  //
+  // ⚠️ NOT part of registration any more. Both contacts are verified BEFORE the
+  // account exists (register consumes the marks), so a registration screen must
+  // call emailOtpAPI.verify(email, otp, 'REGISTRATION') instead. This endpoint
+  // remains only for admin-added accounts, which are created already-registered
+  // with an unverified email.
   verifyEmailOtp: async (email: string, otp: string) => {
     return apiRequest('/auth/verify-email-otp', {
       method: 'POST',
@@ -595,6 +673,16 @@ export interface OtpSendResult {
   expiresIn?: string
 }
 
+/**
+ * POST /auth/login-phone-send. Same idea, DIFFERENT shape — `expiresIn` is the
+ * number 10, not the string "10 minutes". Kept separate on purpose so nothing
+ * grows a shared parser that silently mis-renders one of them.
+ */
+export interface PhoneLoginSendResult {
+  otp?: string
+  expiresIn?: number
+}
+
 export const otpAPI = {
   send: async (phoneNumber: string) => {
     return apiRequest<OtpSendResult>('/otp/send', {
@@ -611,13 +699,25 @@ export const otpAPI = {
 }
 
 // Generic Email OTP — POST /api/email-otp/{send,verify}. The BE keys OTPs by
-// (email, purpose), so `purpose` is required on both calls (used by forgot-
-// password etc.). Registration email-verify uses authAPI.verifyEmailOtp instead.
+// (email, purpose), so `purpose` is required on both calls.
+//
+// REGISTRATION is now the registration path too: verifying under this purpose
+// leaves a server-side "verified" mark that the register call consumes. The
+// mark does NOT expire (only the 6-digit code does, after 10 minutes), so a
+// long form between verifying and registering is safe — but it IS single-use,
+// so a replayed register finds it already burned.
 export type EmailOtpPurpose = 'REGISTRATION' | 'CHANGE_EMAIL' | 'FORGOT_PASSWORD'
+
+// `otp` is echoed in non-production only; absent in production. Never make a
+// flow depend on it.
+export interface EmailOtpSendResult {
+  otp?: string
+  expiresIn?: number | string
+}
 
 export const emailOtpAPI = {
   send: async (email: string, purpose: EmailOtpPurpose) => {
-    return apiRequest('/email-otp/send', {
+    return apiRequest<EmailOtpSendResult>('/email-otp/send', {
       method: 'POST',
       body: JSON.stringify({ email, purpose }),
     })
@@ -628,6 +728,59 @@ export const emailOtpAPI = {
       body: JSON.stringify({ email, otp, purpose }),
     })
   },
+}
+
+/**
+ * What went wrong on a register call, in terms a screen can act on.
+ *
+ * ⚠️ Registration business errors carry NO machine-readable discriminator in
+ * production — `sendError()` omits the `error` field entirely there and these
+ * paths pass no `code`. All we get is the HTTP status plus `message`, so this
+ * matches on the known message set. That is fragile by construction: if the BE
+ * rewords one of these strings, the branch degrades to `unknown` and the raw
+ * message is shown. Recorded as a known limitation; a `code` on these responses
+ * is a future BE ticket, not something to paper over here.
+ *
+ * Field-level errors are the exception — `errors[].path` DOES survive prod, so
+ * they are checked first and are reliable.
+ */
+export type RegisterFailure =
+  /**
+   * "Phone number must be verified before registration."
+   *
+   * THREE different causes collapse into this one message: the phone was never
+   * verified, the verification was already consumed by an earlier register
+   * (marks are single-use), or the phone belongs to an existing account whose
+   * mark is gone. They are indistinguishable to us — so the only safe response
+   * is to send the user back to re-verify their phone. Never auto-retry the
+   * register call, and never claim "phone already in use": two of the three
+   * causes would make that a lie.
+   */
+  | { kind: 'phoneUnverified' }
+  /** Email was supplied but not verified under purpose REGISTRATION. */
+  | { kind: 'emailUnverified' }
+  /** Another account already owns this email — a clear, actionable message. */
+  | { kind: 'emailTaken' }
+  /**
+   * Another account already owns this phone. Only reachable when the phone
+   * verification succeeded, which is why it is distinguishable from the
+   * collapsed case above — when it does surface it is unambiguous.
+   */
+  | { kind: 'phoneTaken' }
+  /** Zod field failures, keyed by field name; one field may carry several. */
+  | { kind: 'fields'; fields: Record<string, string[]> }
+  | { kind: 'unknown'; message: string }
+
+export function classifyRegisterError(err: unknown): RegisterFailure {
+  const fields = fieldErrorsByPath(err)
+  if (Object.keys(fields).length) return { kind: 'fields', fields }
+
+  const message = err instanceof Error ? err.message : ''
+  if (message.includes('Phone number must be verified')) return { kind: 'phoneUnverified' }
+  if (message.includes('Email must be verified')) return { kind: 'emailUnverified' }
+  if (message.includes('User with this email already exists')) return { kind: 'emailTaken' }
+  if (message.includes('User with this phone number already exists')) return { kind: 'phoneTaken' }
+  return { kind: 'unknown', message }
 }
 
 // ==========================================
@@ -655,8 +808,20 @@ export interface SeekerWorkExperience {
 // held client-side until the BE accepts them.
 export interface SeekerRegisterData {
   fullName: string
-  email: string
-  phoneNumber: string // E.164
+  /**
+   * OPTIONAL — the seeker is often an unskilled worker with no email, so phone
+   * is the primary identity. Omit the key entirely (or pass ''; the BE
+   * normalises '' → absent). When supplied it must ALREADY be verified under
+   * purpose REGISTRATION or the register call 400s.
+   */
+  email?: string
+  /**
+   * Required. The account is created WITH its password — there is no follow-up
+   * /set-password call any more (that route is deleted; it was unauthenticated
+   * and let anyone claim an unfinished signup).
+   */
+  password: string
+  phoneNumber: string // E.164, must already be verified
   // BR-3 — 3-level taxonomy. preferredCategory optional on the BE; sector +
   // jobTitle required. The FE sends the full triple (validateTriple checks path).
   preferredCategory?: string
@@ -671,11 +836,20 @@ export interface SeekerRegisterData {
   document?: File
 }
 
+/**
+ * The register response. `emailVerification` is GONE — the account is created
+ * already-verified, so there is no OTP to hand back and nothing left to verify.
+ */
 export interface SeekerRegisterResult {
   userId: string
-  email: string
-  // `otp` present only in non-production (BE returns it for dev/QA); always has expiresIn.
-  emailVerification?: { otp?: string; expiresIn?: number }
+  /** NULL when the seeker registered without an email. */
+  email: string | null
+  phoneNumber: string
+  accountStatus: string
+  emailVerified: boolean
+  phoneVerified: boolean
+  filesUploaded?: { profilePic: boolean; document: boolean }
+  workExperiencesAdded?: number
 }
 
 export const jobSeekerAPI = {
@@ -692,12 +866,20 @@ export const jobSeekerAPI = {
 
   // Step 3: register the seeker (POST /api/jobseekers/register). Always sent as
   // multipart (the BE route uses multer; files are optional, workExperiences is
-  // a JSON string the controller JSON.parses). BE auto-sends the email-OTP and
-  // returns emailVerification. No token yet — caller must verifyEmailOtp → login.
+  // a JSON string the controller JSON.parses).
+  //
+  // PRECONDITION: the phone is already verified, and the email too if one is
+  // given — the BE reads both marks here and 400s otherwise. It also CONSUMES
+  // them, so this call is not safely repeatable: a retry gets the "phone must be
+  // verified" message, which is indistinguishable from never having verified.
+  // The account comes out ACTIVE with its password set; the caller logs in next.
   register: async (data: SeekerRegisterData) => {
     const fd = new FormData()
     fd.append('fullName', data.fullName)
-    fd.append('email', data.email)
+    // Only send `email` when there is one. The BE tolerates '' but omitting the
+    // key is the honest signal for a phone-only seeker.
+    if (data.email?.trim()) fd.append('email', data.email.trim())
+    fd.append('password', data.password)
     fd.append('phoneNumber', data.phoneNumber)
     if (data.preferredCategory) fd.append('preferredCategory', data.preferredCategory)
     fd.append('preferredSector', data.preferredSector)
@@ -728,13 +910,10 @@ export const jobSeekerAPI = {
     })
   },
 
-  // Step 4: set the account password (POST /api/jobseekers/set-password).
-  setPassword: async (email: string, password: string) => {
-    return apiRequest('/jobseekers/set-password', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-  },
+  // setPassword REMOVED — POST /jobseekers/set-password is deleted on the BE
+  // (404). It was unauthenticated, guarded only by "does a password already
+  // exist", so anyone who knew an email could claim an unfinished signup.
+  // `password` now ships with register() above.
 
   // Login (email/password). Prefer authAPI.login for the new /login page.
   login: async (credentials: { identifier: string; password: string }) => {
@@ -1108,9 +1287,12 @@ export interface MessagesPayload {
 }
 
 // Employer registration is JSON-only for both types (docs are uploaded
-// separately after email-verify per the 2026-05-13 split). Both register calls
-// auto-send the email-verification OTP and return no token — the caller must
-// verifyEmailOtp → login, same as the seeker flow.
+// separately after approval per the 2026-05-13 split).
+//
+// Both register calls now require BOTH contacts to be verified up front and
+// carry the password themselves; they create the account already-verified and
+// return no token, so the caller logs in immediately afterwards. Email is
+// mandatory for employers (unlike seekers).
 export type CompanySize =
   | 'SIZE_1_10'
   | 'SIZE_11_50'
@@ -1120,15 +1302,17 @@ export type CompanySize =
   | 'SIZE_1000_PLUS'
 
 export interface EmployerIndividualData {
-  email: string
+  email: string // required + must already be verified
+  password: string
   fullName: string
-  phoneNumber: string // E.164
+  phoneNumber: string // E.164, must already be verified
   designation?: string
 }
 
 export interface EmployerBusinessData {
-  email: string
-  phoneNumber: string // E.164
+  email: string // required + must already be verified
+  password: string
+  phoneNumber: string // E.164, must already be verified
   companyName: string
   companyEmail: string
   companyAddress: string
@@ -1138,10 +1322,20 @@ export interface EmployerBusinessData {
   registrationNumber: string
 }
 
+/**
+ * `emailVerification` is GONE (the account is created already-verified).
+ *
+ * `accountStatus` is the branch point: individual → ACTIVE (trial credits are
+ * granted here — 1 post / 3 downloads, 14 days); business → PENDING_DOCUMENTS
+ * with no credits until an admin approves the uploaded documents.
+ */
 export interface EmployerRegisterResult {
   userId: string
   email: string
-  emailVerification?: { otp?: string; expiresIn?: number }
+  phoneNumber?: string
+  accountStatus: string
+  emailVerified: boolean
+  phoneVerified: boolean
 }
 
 export const employerAPI = {
@@ -1161,13 +1355,9 @@ export const employerAPI = {
     })
   },
 
-  // Set the account password. POST /api/employers/set-password.
-  setPassword: async (email: string, password: string) => {
-    return apiRequest('/employers/set-password', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-  },
+  // setPassword REMOVED — POST /employers/set-password is deleted on the BE
+  // (404), same reason as the seeker one. `password` ships with both register
+  // calls above.
 
   // Login (email/password). Prefer authAPI.login for the new /login page.
   login: async (credentials: { identifier: string; password: string }) => {
