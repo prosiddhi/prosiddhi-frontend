@@ -28,6 +28,7 @@
     "account": {
       "title": "Account",
       "email": "Email",
+      "emailNone": "Not added",
       "phone": "Phone number",
       "type": "Account type",
       "editProfile": "Edit profile"

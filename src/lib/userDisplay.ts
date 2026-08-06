@@ -7,7 +7,8 @@
 //   - EMPLOYER_INDIVIDUAL → profile.fullName (a person hiring a maid), else companyName
 //
 // Both employer name fields are nullable, so every path degrades to the email
-// local-part rather than to a placeholder. There is no hardcoded fallback name.
+// local-part — and, for a phone-only seeker who has NO email, to the phone
+// number. There is no hardcoded fallback name.
 
 import type { AuthUser } from './api'
 
@@ -26,8 +27,9 @@ export function displayName(user?: AuthUser | null): string {
   if (preferred) return preferred
 
   // Last resort — never show a fake name. The email local-part is at least
-  // genuinely the user's own.
-  return user.email?.split('@')[0] || ''
+  // genuinely the user's own; a phone-only seeker has none, so fall through to
+  // the phone, which is their identity on this product.
+  return user.email?.split('@')[0] || user.phoneNumber?.trim() || ''
 }
 
 /** The stored profile photo path, if any. Callers resolve it via `resolveMediaUrl`. */

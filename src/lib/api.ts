@@ -1793,7 +1793,10 @@ export interface UnlockedCandidate {
   createdAt: string
   skills: CandidateSkillLink[]
   workExperience: CandidateExperience[]
-  email: string
+  // NULLABLE — `User.email` is `String?` in Prisma and candidate.service passes
+  // it straight through, so a phone-only seeker unlocks with no email at all.
+  // The phone is the guaranteed contact, which is what the employer paid for.
+  email: string | null
   phoneNumber: string
   unlockedAt: string
 }

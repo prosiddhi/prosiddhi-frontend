@@ -133,9 +133,17 @@ function SettingsContent() {
               {t('settings.account.title')}
             </h2>
             <dl className="space-y-3 text-sm">
+              {/* A phone-only seeker has no email — this rendered as a blank
+                  value, which reads as data loss rather than as "none given".
+                  Say so instead. Adding one is a later pass; this is only the
+                  honest empty state. */}
               <div className="flex justify-between gap-4">
                 <dt className="text-[#717182]">{t('settings.account.email')}</dt>
-                <dd className="text-black break-all text-right">{user?.email}</dd>
+                <dd className="text-black break-all text-right">
+                  {user?.email || (
+                    <span className="text-[#717182]">{t('settings.account.emailNone')}</span>
+                  )}
+                </dd>
               </div>
               {phone && (
                 <div className="flex justify-between gap-4">
