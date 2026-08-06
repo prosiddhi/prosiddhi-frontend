@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
-import { ChevronLeft, ChevronRight, X, MailCheck } from 'lucide-react'
+import { ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
-import { ChevronRight, ChevronLeft, X, Eye, EyeOff } from 'lucide-react'
+import { ChevronRight, X, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -25,7 +25,9 @@ export default function RegisterPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { login } = useAuth()
-  const { data, update, reset, hydrated } = useSeekerRegistration()
+  // No `update` — the password is deliberately never written to the shared
+  // context here; it goes straight from local state into register() + login().
+  const { data, reset, hydrated } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
