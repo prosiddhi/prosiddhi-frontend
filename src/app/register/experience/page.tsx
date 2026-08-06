@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
-import { ChevronRight, ChevronLeft, X, Upload, Plus } from 'lucide-react'
+import { ChevronRight, ChevronLeft, X, Upload, Plus, Trash2 } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -58,8 +58,24 @@ export default function RegisterExperiencePage() {
     setExperiences([...experiences, newExperience])
   }
 
+  /**
+   * Remove a row — defect 7. "Add Experiences" existed with no way back, so a
+   * mistyped or accidental row was permanent for the rest of registration.
+   *
+   * The last row is never removed, only cleared: the section is optional, and
+   * an empty form with no visible fields and only an "Add" link reads as
+   * broken. Clearing leaves them exactly where they started.
+   */
+  const handleRemoveExperience = (id: string) => {
+    setExperiences((prev) =>
+      prev.length === 1
+        ? [{ id: prev[0].id, designation: '', fromYear: '', toYear: '' }]
+        : prev.filter((exp) => exp.id !== id)
+    )
+  }
+
   const handleExperienceChange = (id: string, field: keyof Omit<Experience, 'id'>, value: string) => {
-    setExperiences(experiences.map(exp => 
+    setExperiences(experiences.map(exp =>
       exp.id === id ? { ...exp, [field]: value } : exp
     ))
   }
@@ -182,8 +198,8 @@ export default function RegisterExperiencePage() {
 
                 {/* Experience Entries */}
                 <div className="space-y-6 mb-4">
-                  {experiences.map((exp) => (
-                    <div key={exp.id} className="grid grid-cols-[434px_265px_265px] gap-6">
+                  {experiences.map((exp, index) => (
+                    <div key={exp.id} className="grid grid-cols-[434px_265px_265px_auto] gap-6">
                       {/* Designation */}
                       <div>
                         <label className="text-[20px] font-medium text-black mb-4 block">
@@ -224,6 +240,18 @@ export default function RegisterExperiencePage() {
                           placeholder={t('auth:experience.toYearPlaceholder')}
                           className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
+                      </div>
+
+                      {/* Remove — defect 7. Aligned to the inputs, not the labels. */}
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExperience(exp.id)}
+                          aria-label={t('auth:experience.removeRowAria', { number: index + 1 })}
+                          className="h-[69px] w-[69px] flex items-center justify-center rounded-[10px] border border-[#b5b5b5] text-[#767676] hover:border-error-500 hover:text-error-500 transition-colors"
+                        >
+                          <Trash2 className="w-6 h-6" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -364,13 +392,25 @@ export default function RegisterExperiencePage() {
 
             {/* Experience Entries */}
             <div className="space-y-6 mb-4">
-              {experiences.map((exp) => (
-                <div key={exp.id} className="space-y-4">
+              {experiences.map((exp, index) => (
+                <div key={exp.id} className="space-y-4 pb-4 border-b border-gray-100 last:border-b-0">
                   {/* Designation */}
                   <div>
-                    <label className="text-base font-medium text-black mb-2 block">
-                      {t('auth:experience.designationLabel')}
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-base font-medium text-black">
+                        {t('auth:experience.designationLabel')}
+                      </label>
+                      {/* Remove — defect 7 */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExperience(exp.id)}
+                        aria-label={t('auth:experience.removeRowAria', { number: index + 1 })}
+                        className="flex items-center gap-1 min-h-[44px] px-2 text-sm text-[#767676] hover:text-error-500 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span>{t('auth:experience.removeRow')}</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={exp.designation}
