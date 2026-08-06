@@ -378,7 +378,14 @@ Test **S** is not optional — it is the only check that proves the dev-only fie
 
 9. **`src/app/invite/[token]/page.tsx:256` passes `user?.email ?? ''` as `signedInAs`.** Left untouched: it is inside a §6 DO-NOT-TOUCH path, and it is unreachable in practice because an invitee is an employer, whose email is mandatory. It would surface only if seekers ever became invitable. Recorded so the next null-email sweep does not have to rediscover it.
 
-10. **The BE has two reachable duplicate-contact errors, not one** — see the new **N-14** row in §3.5. Handled in the FE error map; no BE change requested.
+10. **The BE has two duplicate-contact errors, but only one is reachable** — see **N-14** in §3.5. Handled in the FE error map; no BE change requested.
+
+    ⚠️ **Correction from the live pass (2026-08-06).** N-14 could not be reproduced. `POST /otp/send` **refuses an already-registered phone outright** — `400 {"message":"This phone number is already registered"}` — so a fresh verified mark can never be obtained for one, and the duplicate-phone check at register is unreachable through the real flow. A returning user meets the clearer error **at the phone-entry step**, not at register. Consequences:
+    - The `phoneTaken` branch of `classifyRegisterError` is **defensive coverage only**. Left in place — it is correct if the BE ever reorders those checks — but it is not the live path.
+    - The **email** duplicate (N-13) *is* reachable and confirmed working, because `/email-otp/send` deliberately does **not** check existence (which is also why it is not an enumeration oracle).
+    - `/otp/send`'s refusal *is* a phone-enumeration oracle. **Pre-existing BE behaviour, not introduced here**, and it is the same trade-off that makes the error actionable. Worth a decision, not a fix in this pass.
+
+11. **A seeker's date of birth and gender are collected and then discarded.** `/register/profile` marks both **required** and blocks Next without them, but `jobSeekerAPI.register` never sends them — and the BE schema *does* accept them now (`auth.validator.ts` `dateOfBirth: dateOfBirthSchema.optional()`, `gender: z.nativeEnum(Gender)`, enum `MALE|FEMALE|OTHER`, exactly what the FE collects). The comment in `api.ts` claiming "the BE has no field for them yet (BR-1)" is **stale**. Two consequences: the user types data for nothing, and **the BE's `age >= 18` check never runs**, so nothing on the platform currently enforces the minimum age at registration. Not fixed here — it is not named in §5 and §11 forbids unscoped improvement — but it deserves its own ticket, and the age point makes it more than cosmetic on a blue-collar jobs product.
 
 ---
 
