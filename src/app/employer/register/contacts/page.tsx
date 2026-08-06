@@ -82,6 +82,17 @@ export default function EmployerContactsPage() {
       const phoneFailed = phoneResult.status === 'rejected'
       const emailFailed = emailResult.status === 'rejected'
 
+      // Prefer the server's own words. The most likely real failure here is
+      // "This phone number is already registered" — /otp/send refuses a phone
+      // that already has an account — and a generic "couldn't send the code,
+      // check it and try again" would send a returning employer round a loop
+      // retyping a number that was correct all along. The sign-in link at the
+      // bottom of this screen is the way out.
+      const reasonOf = (result: PromiseSettledResult<unknown>) =>
+        result.status === 'rejected' && result.reason instanceof Error
+          ? result.reason.message
+          : ''
+
       // Changing either contact invalidates whatever was verified before, so
       // the flags are recomputed from what the user just entered.
       update({
@@ -96,15 +107,18 @@ export default function EmployerContactsPage() {
       })
 
       if (phoneFailed && emailFailed) {
-        setError(t('employerRegister:contacts.bothSendFailed'))
+        setError(
+          [reasonOf(phoneResult), reasonOf(emailResult)].filter(Boolean).join(' ') ||
+            t('employerRegister:contacts.bothSendFailed')
+        )
         return
       }
       if (phoneFailed) {
-        setError(t('employerRegister:contacts.phoneSendFailed'))
+        setError(reasonOf(phoneResult) || t('employerRegister:contacts.phoneSendFailed'))
         return
       }
       if (emailFailed) {
-        setError(t('employerRegister:contacts.emailSendFailed'))
+        setError(reasonOf(emailResult) || t('employerRegister:contacts.emailSendFailed'))
         return
       }
 

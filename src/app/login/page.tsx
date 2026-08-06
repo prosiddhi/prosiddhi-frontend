@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -105,8 +105,19 @@ function LoginContent() {
   const { t } = useTranslation()
   const { login } = useAuth()
 
-  const [role, setRole] = useState<LoginRole>(() => initialRoleFor(returnUrl))
+  const [role, setRole] = useState<LoginRole>('seeker')
+  // Set once the destination is known, unless the user has already picked. A
+  // lazy useState initializer is NOT enough: this component reads
+  // `useSearchParams`, which is empty during the server render, so the
+  // initializer captures null and the Employer tab never preselects. Verified —
+  // the SSR markup came back with Job Seeker active for an /employer returnUrl.
+  const [roleTouched, setRoleTouched] = useState(false)
   const [tab, setTab] = useState<Tab>('email')
+
+  useEffect(() => {
+    if (roleTouched) return
+    setRole(initialRoleFor(returnUrl))
+  }, [returnUrl, roleTouched])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -143,6 +154,8 @@ function LoginContent() {
 
   const switchRole = (next: LoginRole) => {
     setRole(next)
+    // An explicit choice outranks the inferred one from here on.
+    setRoleTouched(true)
     setError('')
   }
 
