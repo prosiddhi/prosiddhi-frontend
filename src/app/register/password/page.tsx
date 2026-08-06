@@ -25,7 +25,7 @@ export default function RegisterPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { login } = useAuth()
-  const { data, update, reset } = useSeekerRegistration()
+  const { data, update, reset, hydrated } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -41,9 +41,14 @@ export default function RegisterPasswordPage() {
 
   // Guard: must have reached here through the full flow. Email is NOT a
   // prerequisite (it is optional) — the taxonomy choice is.
+  //
+  // The password itself is intentionally NOT part of this check: it is the one
+  // thing that is never persisted, so requiring it here would send every
+  // refreshing user back to step 2 — which is the bug being fixed.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneVerified || !data.preferredJobTitle) router.replace('/register/phone')
-  }, [data.phoneVerified, data.preferredJobTitle, router])
+  }, [hydrated, data.phoneVerified, data.preferredJobTitle, router])
 
   const handleCreate = async () => {
     if (!PASSWORD_RULE.test(password)) {

@@ -12,8 +12,10 @@
 // Both contact verifications now live on the SERVER — the client only records
 // that they happened — so restoring progress cannot forge a verification.
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { SeekerWorkExperience } from '@/lib/api'
+
+const STORAGE_KEY = 'prosiddhi.register.seeker'
 
 export interface SeekerRegistrationState {
   language: string
@@ -72,10 +74,67 @@ const defaultState: SeekerRegistrationState = {
   password: '',
 }
 
+/**
+ * What is safe to write to sessionStorage — an ALLOWLIST, deliberately.
+ *
+ * A denylist would silently start persisting any field added later, which is
+ * how a secret ends up in storage by accident. Three things are kept out:
+ *
+ *  - `password` — NEVER persisted, anywhere, under any condition. This is the
+ *    whole reason the context exists (PJP-81 AC / audit §2.4).
+ *  - `profilePic` / `document` — File handles; they do not survive JSON, and a
+ *    half-restored File is worse than none.
+ *  - `devPhoneOtp` / `devEmailOtp` — live one-time codes. Dev-only, but writing
+ *    a credential to storage to save a click is not a trade worth making; the
+ *    resend button covers it.
+ *
+ * Everything left is non-secret progress. Both verifications live on the SERVER
+ * — these flags only record that they happened — so restoring them cannot forge
+ * a verification: the register call re-checks with the backend regardless.
+ */
+const PERSISTED_KEYS = [
+  'language',
+  'phoneNumber',
+  'phoneVerified',
+  'fullName',
+  'email',
+  'emailVerified',
+  'dateOfBirth',
+  'gender',
+  'preferredCategory',
+  'preferredSector',
+  'preferredJobTitle',
+  'workExperiences',
+  'documentName',
+] as const satisfies readonly (keyof SeekerRegistrationState)[]
+
+type PersistedState = Pick<
+  SeekerRegistrationState,
+  (typeof PERSISTED_KEYS)[number]
+>
+
+function toPersisted(data: SeekerRegistrationState): PersistedState {
+  return PERSISTED_KEYS.reduce((acc, key) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(acc as any)[key] = data[key]
+    return acc
+  }, {} as PersistedState)
+}
+
 interface SeekerRegistrationContextValue {
   data: SeekerRegistrationState
   update: (patch: Partial<SeekerRegistrationState>) => void
   reset: () => void
+  /**
+   * False until the sessionStorage read has happened.
+   *
+   * Every step guard MUST wait for this. They run on mount, and before
+   * hydration the state is still the empty default — so a guard that checks
+   * immediately bounces a refreshing user back to the start. That was defect 8
+   * ("the last step asks for my mobile number again"), and persistence alone
+   * does not fix it.
+   */
+  hydrated: boolean
 }
 
 const SeekerRegistrationContext =
@@ -87,11 +146,47 @@ export function SeekerRegistrationProvider({
   children: ReactNode
 }) {
   const [data, setData] = useState<SeekerRegistrationState>(defaultState)
+  // Starts false on the server AND on the first client render, so the markup
+  // matches and React does not report a hydration mismatch.
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<PersistedState>
+        setData((prev) => ({ ...prev, ...saved }))
+      }
+    } catch {
+      // Corrupt JSON or storage disabled — start clean rather than trap the
+      // user on a screen that cannot restore.
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(data)))
+    } catch {
+      // Private mode / quota. The flow still works in-memory for this tab.
+    }
+  }, [data, hydrated])
+
   const update = (patch: Partial<SeekerRegistrationState>) =>
     setData((prev) => ({ ...prev, ...patch }))
-  const reset = () => setData(defaultState)
+
+  const reset = () => {
+    setData(defaultState)
+    try {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // Nothing to do — the in-memory reset above is what matters.
+    }
+  }
+
   return (
-    <SeekerRegistrationContext.Provider value={{ data, update, reset }}>
+    <SeekerRegistrationContext.Provider value={{ data, update, reset, hydrated }}>
       {children}
     </SeekerRegistrationContext.Provider>
   )

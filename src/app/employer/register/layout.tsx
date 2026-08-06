@@ -1,8 +1,9 @@
 import { EmployerRegistrationProvider } from './EmployerRegistrationContext'
 
-// Wraps every /employer/register/* step so they share one in-memory
-// registration state (password included) without touching localStorage.
-// See EmployerRegistrationContext.tsx.
+// Wraps every /employer/register/* step so they share one registration state.
+// The PASSWORD lives in memory only and is never written to any web storage;
+// non-secret progress is mirrored to sessionStorage so a refresh does not
+// restart the flow. See EmployerRegistrationContext.tsx.
 export default function EmployerRegisterLayout({
   children,
 }: {

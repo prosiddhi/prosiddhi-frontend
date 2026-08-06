@@ -33,16 +33,27 @@ function toE164(raw: string): string | null {
 export default function EmployerContactsPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useEmployerRegistration()
+  const { data, update, hydrated } = useEmployerRegistration()
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber.replace(/^\+91/, ''))
   const [email, setEmail] = useState(data.email)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Guard: the employer type is chosen on the previous screen.
+  // Guard: the employer type is chosen on the previous screen. Waits for the
+  // sessionStorage restore before judging.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.companyType) router.replace('/employer/register')
-  }, [data.companyType, router])
+  }, [hydrated, data.companyType, router])
+
+  // Seed the inputs from restored progress once, without clobbering typing.
+  useEffect(() => {
+    if (!hydrated) return
+    setPhoneNumber((prev) => prev || data.phoneNumber.replace(/^\+91/, ''))
+    setEmail((prev) => prev || data.email)
+    // One-shot on hydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const handleNext = async () => {
     const e164 = toE164(phoneNumber)

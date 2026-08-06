@@ -23,7 +23,7 @@ export default function CompanyDetailsPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { login } = useAuth()
-  const { data, update, reset } = useEmployerRegistration()
+  const { data, update, reset, hydrated } = useEmployerRegistration()
   const [form, setForm] = useState({
     companyName: data.companyName,
     companyEmail: data.companyEmail,
@@ -40,11 +40,32 @@ export default function CompanyDetailsPage() {
   // previous step. The password is in memory only, so a hard refresh legitimately
   // sends them back to re-enter it.
   useEffect(() => {
+    if (!hydrated) return
     if (data.companyType !== 'corporate') router.replace('/employer/register')
     else if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
     } else if (!data.password) router.replace('/employer/register/account')
-  }, [data.companyType, data.phoneVerified, data.emailVerified, data.password, router])
+  }, [hydrated, data.companyType, data.phoneVerified, data.emailVerified, data.password, router])
+
+  // Seed the company form from restored progress once, without clobbering typing.
+  useEffect(() => {
+    if (!hydrated) return
+    setForm((prev) =>
+      Object.values(prev).some(Boolean)
+        ? prev
+        : {
+            companyName: data.companyName,
+            companyEmail: data.companyEmail,
+            companyAddress: data.companyAddress,
+            companyFoundedDate: data.companyFoundedDate,
+            companySize: data.companySize as CompanySize | '',
+            gstNumber: data.gstNumber,
+            registrationNumber: data.registrationNumber,
+          }
+    )
+    // One-shot on hydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const set = (name: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }))

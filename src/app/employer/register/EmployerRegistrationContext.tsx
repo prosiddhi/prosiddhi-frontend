@@ -11,8 +11,10 @@
 // Both contact verifications live on the SERVER now — the flags below only
 // record that they happened, so restoring them cannot forge a verification.
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { CompanySize } from '@/lib/api'
+
+const STORAGE_KEY = 'prosiddhi.register.employer'
 
 export type EmployerType = 'individual' | 'corporate' | ''
 
@@ -61,10 +63,54 @@ const defaultState: EmployerRegistrationState = {
   registrationNumber: '',
 }
 
+/**
+ * Safe to persist — an ALLOWLIST, so a field added later cannot leak into
+ * storage by default. `password` is excluded permanently; the dev OTP echoes
+ * are excluded because they are live one-time codes.
+ *
+ * The verified flags are safe to restore: the marks live on the SERVER and the
+ * register call re-checks them, so a restored flag cannot forge anything.
+ */
+const PERSISTED_KEYS = [
+  'companyType',
+  'phoneNumber',
+  'phoneVerified',
+  'email',
+  'emailVerified',
+  'fullName',
+  'designation',
+  'companyName',
+  'companyEmail',
+  'companyAddress',
+  'companyFoundedDate',
+  'companySize',
+  'gstNumber',
+  'registrationNumber',
+] as const satisfies readonly (keyof EmployerRegistrationState)[]
+
+type PersistedState = Pick<
+  EmployerRegistrationState,
+  (typeof PERSISTED_KEYS)[number]
+>
+
+function toPersisted(data: EmployerRegistrationState): PersistedState {
+  return PERSISTED_KEYS.reduce((acc, key) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(acc as any)[key] = data[key]
+    return acc
+  }, {} as PersistedState)
+}
+
 interface EmployerRegistrationContextValue {
   data: EmployerRegistrationState
   update: (patch: Partial<EmployerRegistrationState>) => void
   reset: () => void
+  /**
+   * False until sessionStorage has been read. Step guards MUST wait for it —
+   * they run on mount, when the state is still the empty default, and would
+   * otherwise bounce a refreshing user back to the start (defect 8).
+   */
+  hydrated: boolean
 }
 
 const EmployerRegistrationContext =
@@ -76,11 +122,44 @@ export function EmployerRegistrationProvider({
   children: ReactNode
 }) {
   const [data, setData] = useState<EmployerRegistrationState>(defaultState)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<PersistedState>
+        setData((prev) => ({ ...prev, ...saved }))
+      }
+    } catch {
+      // Corrupt JSON or storage disabled — start clean.
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(data)))
+    } catch {
+      // Private mode / quota — in-memory still works for this tab.
+    }
+  }, [data, hydrated])
+
   const update = (patch: Partial<EmployerRegistrationState>) =>
     setData((prev) => ({ ...prev, ...patch }))
-  const reset = () => setData(defaultState)
+
+  const reset = () => {
+    setData(defaultState)
+    try {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // The in-memory reset above is what matters.
+    }
+  }
+
   return (
-    <EmployerRegistrationContext.Provider value={{ data, update, reset }}>
+    <EmployerRegistrationContext.Provider value={{ data, update, reset, hydrated }}>
       {children}
     </EmployerRegistrationContext.Provider>
   )

@@ -16,7 +16,7 @@ const OTP_LENGTH = 6
 export default function RegisterOTPPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { data, update, hydrated } = useSeekerRegistration()
   const phoneNumber = data.phoneNumber
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
@@ -25,10 +25,12 @@ export default function RegisterOTPPage() {
   const [canResend, setCanResend] = useState(false)
   const [countdown, setCountdown] = useState(30)
 
-  // Guard: in-memory flow — a refresh/deep-link loses the phone; restart.
+  // Guard: wait for the restore before judging — the phone survives a refresh
+  // now, but not before sessionStorage has been read.
   useEffect(() => {
+    if (!hydrated) return
     if (!phoneNumber) router.replace('/register/phone')
-  }, [phoneNumber, router])
+  }, [hydrated, phoneNumber, router])
 
   useEffect(() => {
     if (countdown > 0) {

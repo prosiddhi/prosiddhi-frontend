@@ -20,7 +20,7 @@ interface Experience {
 export default function RegisterExperiencePage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { data, update, hydrated } = useSeekerRegistration()
   const [experiences, setExperiences] = useState<Experience[]>(
     data.workExperiences.length
       ? data.workExperiences.map((e, i) => ({ id: String(i + 1), ...e }))
@@ -29,10 +29,24 @@ export default function RegisterExperiencePage() {
   const [document, setDocument] = useState<File | null>(data.document ?? null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Guard: must have chosen a sector (categories step) first.
+  // Guard: must have chosen a sector (categories step) first. Waits for the
+  // sessionStorage restore before judging.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.preferredSector) router.replace('/register/phone')
-  }, [data.preferredSector, router])
+  }, [hydrated, data.preferredSector, router])
+
+  // Seed the rows from restored progress once, unless something was typed here.
+  useEffect(() => {
+    if (!hydrated || !data.workExperiences.length) return
+    setExperiences((prev) =>
+      prev.some((e) => e.designation || e.fromYear || e.toYear)
+        ? prev
+        : data.workExperiences.map((e, i) => ({ id: String(i + 1), ...e }))
+    )
+    // One-shot on hydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const handleAddExperience = () => {
     const newExperience: Experience = {

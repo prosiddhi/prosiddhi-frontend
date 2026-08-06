@@ -1,9 +1,10 @@
 import { SeekerRegistrationProvider } from './SeekerRegistrationContext'
 
-// Wraps every /register/* step so they share one in-memory registration state.
-// The provider stays mounted across client-side step navigation (App Router
-// keeps the layout alive), so accumulated data — including the password —
-// survives without touching localStorage. See SeekerRegistrationContext.tsx.
+// Wraps every /register/* step so they share one registration state. The
+// provider stays mounted across client-side step navigation (App Router keeps
+// the layout alive). The PASSWORD lives in memory only and is never written to
+// any web storage; non-secret progress is mirrored to sessionStorage so a
+// refresh does not restart the flow. See SeekerRegistrationContext.tsx.
 export default function RegisterLayout({
   children,
 }: {

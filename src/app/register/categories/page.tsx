@@ -14,7 +14,7 @@ import type { TaxonomyTriple } from '@/lib/api'
 export default function RegisterCategoriesPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { data, update, hydrated } = useSeekerRegistration()
   const [triple, setTriple] = useState<TaxonomyTriple>({
     category: data.preferredCategory || undefined,
     sector: data.preferredSector || undefined,
@@ -26,9 +26,27 @@ export default function RegisterCategoriesPage() {
   // itself is no longer a prerequisite — it is optional — so this can no longer
   // key on its presence the way it used to.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneVerified) router.replace('/register/phone')
     else if (data.email && !data.emailVerified) router.replace('/register/verify-email')
-  }, [data.phoneVerified, data.email, data.emailVerified, router])
+  }, [hydrated, data.phoneVerified, data.email, data.emailVerified, router])
+
+  // Restored progress lands after the first render — seed the picker from it
+  // once, without overwriting a choice already made on this screen.
+  useEffect(() => {
+    if (!hydrated) return
+    setTriple((prev) =>
+      prev.category || prev.sector || prev.jobTitle
+        ? prev
+        : {
+            category: data.preferredCategory || undefined,
+            sector: data.preferredSector || undefined,
+            jobTitle: data.preferredJobTitle || undefined,
+          }
+    )
+    // One-shot on hydrate; the taxonomy fields would re-run it on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const handleTripleChange = (next: TaxonomyTriple) => {
     setTriple(next)

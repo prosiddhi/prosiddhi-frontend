@@ -27,7 +27,7 @@ const OTP_LENGTH = 6
 export default function RegisterVerifyEmailPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { data, update, hydrated } = useSeekerRegistration()
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -38,9 +38,10 @@ export default function RegisterVerifyEmailPage() {
   // Guard: reachable only with a verified phone and an email to verify. No
   // password check — the account does not exist yet at this point.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneVerified) router.replace('/register/phone')
     else if (!data.email) router.replace('/register/profile')
-  }, [data.phoneVerified, data.email, router])
+  }, [hydrated, data.phoneVerified, data.email, router])
 
   useEffect(() => {
     if (countdown > 0) {

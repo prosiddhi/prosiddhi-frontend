@@ -13,7 +13,7 @@ import { useSeekerRegistration } from '../SeekerRegistrationContext'
 export default function RegisterProfilePage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { data, update, hydrated } = useSeekerRegistration()
 
   const [fullName, setFullName] = useState(data.fullName)
   const [email, setEmail] = useState(data.email)
@@ -24,10 +24,24 @@ export default function RegisterProfilePage() {
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Guard: in-memory flow — require a verified phone before this step.
+  // Guard: require a verified phone. Waits for the sessionStorage restore.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneVerified) router.replace('/register/phone')
-  }, [data.phoneVerified, router])
+  }, [hydrated, data.phoneVerified, router])
+
+  // Restored progress arrives after the first render, so seed the inputs from
+  // it once — without clobbering anything already typed on this screen.
+  useEffect(() => {
+    if (!hydrated) return
+    setFullName((prev) => prev || data.fullName)
+    setEmail((prev) => prev || data.email)
+    setDateOfBirth((prev) => prev || data.dateOfBirth)
+    setGender((prev) => prev || data.gender)
+    // Seeding from the restore is a one-shot effect keyed on `hydrated`; adding
+    // the data fields here would re-run it on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

@@ -28,7 +28,7 @@ const OTP_LENGTH = 6
 export default function EmployerVerifyPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useEmployerRegistration()
+  const { data, update, hydrated } = useEmployerRegistration()
   const [phoneOtp, setPhoneOtp] = useState('')
   const [emailOtp, setEmailOtp] = useState('')
   const [phoneError, setPhoneError] = useState('')
@@ -39,8 +39,9 @@ export default function EmployerVerifyPage() {
 
   // Guard: both contacts must have been collected on the previous screen.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneNumber || !data.email) router.replace('/employer/register/contacts')
-  }, [data.phoneNumber, data.email, router])
+  }, [hydrated, data.phoneNumber, data.email, router])
 
   useEffect(() => {
     if (timer <= 0) return

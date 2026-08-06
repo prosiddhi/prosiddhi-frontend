@@ -26,7 +26,7 @@ export default function AccountSetupPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { login } = useAuth()
-  const { data, update, reset } = useEmployerRegistration()
+  const { data, update, reset, hydrated } = useEmployerRegistration()
   const isIndividual = data.companyType === 'individual'
 
   const [fullName, setFullName] = useState(data.fullName)
@@ -42,10 +42,20 @@ export default function AccountSetupPage() {
 
   // Guard: both contacts must already be verified — register consumes both marks.
   useEffect(() => {
+    if (!hydrated) return
     if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
     }
-  }, [data.phoneVerified, data.emailVerified, router])
+  }, [hydrated, data.phoneVerified, data.emailVerified, router])
+
+  // Seed from restored progress once, without clobbering typing.
+  useEffect(() => {
+    if (!hydrated) return
+    setFullName((prev) => prev || data.fullName)
+    setDesignation((prev) => prev || data.designation)
+    // One-shot on hydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const handleNext = async () => {
     if (isIndividual && fullName.trim().length < 2) {
