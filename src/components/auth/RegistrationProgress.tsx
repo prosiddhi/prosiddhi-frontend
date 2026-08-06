@@ -24,34 +24,56 @@ import { ChevronLeft } from 'lucide-react'
  * is derived from it, so adding a step cannot silently break the count again.
  */
 export const REGISTRATION_STEPS = [
-  'language', // /register
+  'language', // /register              — language + role
   'phone', // /register/phone
   'otp', // /register/otp
-  'profile', // /register/profile
+  'profile', // /register/profile       — name, DOB, gender, optional email
+  'verifyEmail', // /register/verify-email  — ONLY when an email was entered
   'categories', // /register/categories
   'experience', // /register/experience
-  'password', // /register/password
-  'verifyEmail', // /register/verify-email
+  'password', // /register/password      — creates the account
 ] as const
 
 export type RegistrationStep = (typeof REGISTRATION_STEPS)[number]
 
-export const TOTAL_STEPS = REGISTRATION_STEPS.length
+/**
+ * The steps THIS user will actually walk through.
+ *
+ * `verifyEmail` moved ahead of account creation (the backend now requires both
+ * contacts verified before register) and is conditional: a seeker's email is
+ * optional, so a seeker who gives none never sees that screen. Counting a step
+ * the user will never reach is exactly the lie this component exists to
+ * prevent — they would sit on "step 7 of 8" and then be finished.
+ */
+export function registrationSteps(includeEmailStep: boolean): RegistrationStep[] {
+  return REGISTRATION_STEPS.filter(
+    (step) => step !== 'verifyEmail' || includeEmailStep
+  )
+}
 
 export function RegistrationProgress({
   step,
+  includeEmailStep = false,
   onBack,
   className = '',
 }: {
   /** Which step this screen is — by name, so the numbering can never drift. */
   step: RegistrationStep
+  /**
+   * Whether this user entered an email, and so will see the email-verify step.
+   * Pass the registration context's `email` presence. Being ON that step implies
+   * it regardless, so the screen itself cannot mis-count.
+   */
+  includeEmailStep?: boolean
   /** Renders a back chevron when provided. */
   onBack?: () => void
   className?: string
 }) {
   const { t } = useTranslation()
 
-  const current = REGISTRATION_STEPS.indexOf(step) + 1
+  const steps = registrationSteps(includeEmailStep || step === 'verifyEmail')
+  const TOTAL_STEPS = steps.length
+  const current = steps.indexOf(step) + 1
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -74,7 +96,7 @@ export function RegistrationProgress({
         aria-valuemax={TOTAL_STEPS}
         aria-label={t('auth:registration.stepOf', { current, total: TOTAL_STEPS })}
       >
-        {REGISTRATION_STEPS.map((name, i) => (
+        {steps.map((name, i) => (
           <div
             key={name}
             className={`w-[22px] sm:w-[30px] h-[8px] rounded transition-colors ${
