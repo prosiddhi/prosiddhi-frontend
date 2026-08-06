@@ -7,27 +7,43 @@ import { ChevronRight, ChevronLeft, X, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { jobSeekerAPI } from '@/lib/api'
+import { authAPI, classifyRegisterError, jobSeekerAPI } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
-// Mirrors the BE setPasswordSchema (min 8 + upper + lower + digit).
+// Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
+/**
+ * The account-creation step.
+ *
+ * Everything before this point only left server-side verification marks; the
+ * account itself is created HERE, password included, and the user is logged in
+ * immediately afterwards. There is no post-register verification step any more.
+ */
 export default function RegisterPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useSeekerRegistration()
+  const { login } = useAuth()
+  const { data, update, reset } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Field-level messages from the BE, keyed by field. A weak password fails two
+  // rules at once, so this is a list per field and all of them are rendered.
+  const [fieldErrors, setFieldErrors] = useState<string[]>([])
+  // Drives the "re-verify your phone" action. Retrying the register call would
+  // fail identically every time — the verification mark is already spent.
+  const [needsPhoneReverify, setNeedsPhoneReverify] = useState(false)
 
-  // Guard: must have reached here through the full flow.
+  // Guard: must have reached here through the full flow. Email is NOT a
+  // prerequisite (it is optional) — the taxonomy choice is.
   useEffect(() => {
-    if (!data.preferredJobTitle || !data.email) router.replace('/register/phone')
-  }, [data.preferredJobTitle, data.email, router])
+    if (!data.phoneVerified || !data.preferredJobTitle) router.replace('/register/phone')
+  }, [data.phoneVerified, data.preferredJobTitle, router])
 
   const handleCreate = async () => {
     if (!PASSWORD_RULE.test(password)) {
@@ -42,6 +58,8 @@ export default function RegisterPasswordPage() {
     try {
       setLoading(true)
       setError('')
+      setFieldErrors([])
+      setNeedsPhoneReverify(false)
 
       // Create the seeker. Both contacts are already verified at this point and
       // the password ships WITH the account — there is no set-password step and
@@ -60,16 +78,69 @@ export default function RegisterPasswordPage() {
         document: data.document,
       })
 
-      // Held in memory ONLY (never storage) until the login below consumes it.
-      update({ password })
+      // Log straight in. A phone-only seeker has no email to log in with, so the
+      // identifier is the phone — the backend accepts phone + password now.
+      const result = await authAPI.login('seeker', {
+        identifier: data.email || data.phoneNumber,
+        password,
+      })
 
-      router.push('/register/verify-email')
+      // Hand the session to AuthContext, then clear the registration state,
+      // which is what drops the plaintext password out of memory.
+      login(result.token, result.user)
+      reset()
+
+      router.push('/register/success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:password.errorCreate'))
+      handleRegisterFailure(err)
     } finally {
       setLoading(false)
     }
   }
+
+  /**
+   * Turn a register/login failure into something the user can act on.
+   *
+   * In production these errors carry no machine-readable code — only an HTTP
+   * status and a message — so `classifyRegisterError` matches the known message
+   * set, with a generic fallback when it does not recognise one.
+   */
+  const handleRegisterFailure = (err: unknown) => {
+    const failure = classifyRegisterError(err)
+    switch (failure.kind) {
+      case 'fields':
+        // `password` is the only field the user can fix from this screen; the
+        // rest were collected earlier, so surface those as a general message.
+        setFieldErrors(failure.fields.password ?? [])
+        setError(
+          failure.fields.password
+            ? ''
+            : Object.values(failure.fields).flat().join(' ')
+        )
+        break
+      case 'phoneUnverified':
+        // "Never verified", "already used" and "already registered" are ONE
+        // message on the backend — indistinguishable. Re-verifying the phone is
+        // the only response that is correct for all three. Never auto-retry the
+        // register call, and never say "phone already in use".
+        setError(t('auth:password.errorPhoneReverify'))
+        setNeedsPhoneReverify(true)
+        break
+      case 'emailUnverified':
+        setError(t('auth:password.errorEmailUnverified'))
+        break
+      case 'emailTaken':
+        setError(t('auth:password.errorEmailTaken'))
+        break
+      case 'phoneTaken':
+        setError(t('auth:password.errorPhoneTaken'))
+        break
+      default:
+        setError(failure.message || t('auth:password.errorCreate'))
+    }
+  }
+
+  const handleReverifyPhone = () => router.push('/register/phone')
 
   const handleBack = () => router.push('/register/experience')
 
@@ -104,7 +175,12 @@ export default function RegisterPasswordPage() {
               </Link>
             </div>
 
-            <RegistrationProgress step="password" onBack={handleBack} className="mb-10 lg:mb-16" />
+            <RegistrationProgress
+              step="password"
+              includeEmailStep={!!data.email}
+              onBack={handleBack}
+              className="mb-10 lg:mb-16"
+            />
 
             <div className="max-w-[953px]">
               <div className="mb-10 lg:mb-16">
@@ -113,8 +189,17 @@ export default function RegisterPasswordPage() {
               </div>
 
               {error && (
-                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600">{error}</p>
+                  {needsPhoneReverify && (
+                    <button
+                      type="button"
+                      onClick={handleReverifyPhone}
+                      className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
+                    >
+                      {t('auth:password.reverifyPhone')}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -135,6 +220,16 @@ export default function RegisterPasswordPage() {
                     </button>
                   </div>
                   <p className="text-sm text-gray-500 mt-2">{t('auth:password.passwordHint')}</p>
+                  {/* Every rule the BE rejected, not just the first — a weak
+                      password commonly fails both the length and the
+                      composition rule, and fixing one at a time is miserable. */}
+                  {fieldErrors.length > 0 && (
+                    <ul role="alert" className="mt-2 list-disc pl-5 space-y-1">
+                      {fieldErrors.map((message) => (
+                        <li key={message} className="text-sm text-red-600">{message}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div>

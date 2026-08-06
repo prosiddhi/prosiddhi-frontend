@@ -7,6 +7,7 @@ import { ChevronRight, ChevronLeft, X, ImageIcon, Pencil } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { emailOtpAPI } from '@/lib/api'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 export default function RegisterProfilePage() {
@@ -20,6 +21,7 @@ export default function RegisterProfilePage() {
   const [gender, setGender] = useState(data.gender)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Guard: in-memory flow — require a verified phone before this step.
@@ -41,7 +43,11 @@ export default function RegisterProfilePage() {
       setError(t('auth:profile.errorName'))
       return false
     }
-    if (!email.trim() || !email.includes('@')) {
+    // Email is OPTIONAL — the seeker is often an unskilled worker with no email
+    // address at all (PRODUCT.md §2), and the backend supports registering with
+    // a phone alone. Only validate the FORMAT, and only when something was
+    // actually typed. Do not reintroduce a required check here.
+    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
       setError(t('auth:profile.errorEmail'))
       return false
     }
@@ -58,10 +64,47 @@ export default function RegisterProfilePage() {
     return true
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateForm()) return
-    update({ fullName: fullName.trim(), email: email.trim(), dateOfBirth, gender })
-    router.push('/register/categories')
+
+    const trimmedEmail = email.trim()
+    const base = { fullName: fullName.trim(), dateOfBirth, gender }
+
+    // No email → skip the verify step entirely. Nothing is sent, and the flow
+    // never shows a screen that would read as "you must supply an email".
+    if (!trimmedEmail) {
+      update({ ...base, email: '', emailVerified: false })
+      router.push('/register/categories')
+      return
+    }
+
+    // Already verified this exact address (they walked back and forward again).
+    // The server-side mark does not expire, so re-sending a code would only
+    // make them retype one for no reason.
+    if (data.emailVerified && data.email === trimmedEmail) {
+      update({ ...base, email: trimmedEmail })
+      router.push('/register/categories')
+      return
+    }
+
+    // Verify BEFORE the account exists — register consumes the mark and rejects
+    // an unverified email outright.
+    try {
+      setLoading(true)
+      setError('')
+      const res = await emailOtpAPI.send(trimmedEmail, 'REGISTRATION')
+      update({
+        ...base,
+        email: trimmedEmail,
+        emailVerified: false,
+        devEmailOtp: res?.otp,
+      })
+      router.push('/register/verify-email')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('auth:profile.errorEmailSend'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleBack = () => router.push('/register/otp')
@@ -97,7 +140,12 @@ export default function RegisterProfilePage() {
               </Link>
             </div>
 
-            <RegistrationProgress step="profile" onBack={handleBack} className="mb-16" />
+            <RegistrationProgress
+              step="profile"
+              includeEmailStep={!!email.trim()}
+              onBack={handleBack}
+              className="mb-16"
+            />
 
             <div className="max-w-[1200px]">
               <div className="mb-16">
@@ -147,14 +195,19 @@ export default function RegisterProfilePage() {
                 </div>
 
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.emailLabel')}</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block">
+                    {t('auth:profile.emailLabel')}{' '}
+                    <span className="text-[#767676] font-normal">{t('auth:profile.emailOptional')}</span>
+                  </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
                     placeholder={t('auth:profile.emailPlaceholder')}
-                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
+                    disabled={loading}
+                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] disabled:opacity-50"
                   />
+                  <p className="text-[16px] text-[#767676] mt-3">{t('auth:profile.emailHint')}</p>
                 </div>
 
                 <div className="max-w-[953px]">
@@ -185,9 +238,12 @@ export default function RegisterProfilePage() {
               <div className="flex justify-end max-w-[953px]">
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60"
+                  disabled={loading}
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
-                  <span className="text-[20px]">{t('buttons.next')}</span>
+                  <span className="text-[20px]">
+                    {loading ? t('auth:profile.sendingCode') : t('buttons.next')}
+                  </span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
@@ -230,13 +286,19 @@ export default function RegisterProfilePage() {
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">{t('auth:profile.emailLabel')}</label>
+              <label className="text-base font-medium mb-2 block">
+                {t('auth:profile.emailLabel')}{' '}
+                <span className="text-[#767676] font-normal">{t('auth:profile.emailOptional')}</span>
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                className="w-full h-14 px-3 border rounded-lg"
+                placeholder={t('auth:profile.emailPlaceholder')}
+                disabled={loading}
+                className="w-full h-14 px-3 border rounded-lg disabled:opacity-50"
               />
+              <p className="text-sm text-[#767676] mt-2">{t('auth:profile.emailHint')}</p>
             </div>
 
             <div>
@@ -266,9 +328,10 @@ export default function RegisterProfilePage() {
 
           <button
             onClick={handleNext}
-            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white py-3 rounded-lg"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white py-3 rounded-lg disabled:opacity-50"
           >
-            <span>{t('buttons.next')}</span>
+            <span>{loading ? t('auth:profile.sendingCode') : t('buttons.next')}</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>

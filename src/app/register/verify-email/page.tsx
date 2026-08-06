@@ -7,17 +7,27 @@ import { ChevronLeft, ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { authAPI, emailOtpAPI, type LoginResult } from '@/lib/api'
-import { useAuth } from '@/contexts/AuthContext'
+import { emailOtpAPI } from '@/lib/api'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 const OTP_LENGTH = 6
 
+/**
+ * Verify the seeker's email BEFORE the account exists.
+ *
+ * This screen used to run last, against an already-created account, and called
+ * authAPI.verifyEmailOtp. The backend inverted that: register now REQUIRES both
+ * contacts to be verified already and consumes the marks, so verification has
+ * to happen here — under purpose REGISTRATION, via the generic email-OTP
+ * endpoints. Do not call authAPI.verifyEmailOtp from registration; that route
+ * is for admin-added accounts now.
+ *
+ * The whole screen is SKIPPED when the seeker gave no email (it is optional).
+ */
 export default function RegisterVerifyEmailPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { login } = useAuth()
-  const { data, update, reset } = useSeekerRegistration()
+  const { data, update } = useSeekerRegistration()
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,10 +35,12 @@ export default function RegisterVerifyEmailPage() {
   const [canResend, setCanResend] = useState(false)
   const [countdown, setCountdown] = useState(30)
 
-  // Guard: only reachable after the account is created (password set in memory).
+  // Guard: reachable only with a verified phone and an email to verify. No
+  // password check — the account does not exist yet at this point.
   useEffect(() => {
-    if (!data.email || !data.password) router.replace('/register/phone')
-  }, [data.email, data.password, router])
+    if (!data.phoneVerified) router.replace('/register/phone')
+    else if (!data.email) router.replace('/register/profile')
+  }, [data.phoneVerified, data.email, router])
 
   useEffect(() => {
     if (countdown > 0) {
@@ -68,21 +80,13 @@ export default function RegisterVerifyEmailPage() {
       setLoading(true)
       setError('')
 
-      // 1) Verify the email OTP (unlocks login on the BE).
-      await authAPI.verifyEmailOtp(data.email, code)
+      // Leaves a server-side "verified" mark that the register call at the end
+      // of the flow consumes. The mark does not expire, so the rest of the form
+      // can take as long as it needs.
+      await emailOtpAPI.verify(data.email, code, 'REGISTRATION')
 
-      // 2) Log in with the password set on the previous step → JWT + user.
-      const result = (await authAPI.login('seeker', {
-        identifier: data.email,
-        password: data.password,
-      })) as LoginResult
-
-      // 3) Hand the session to AuthContext, then clear the in-memory reg state
-      //    (drops the plaintext password from memory).
-      login(result.token, result.user)
-      reset()
-
-      router.push('/register/success')
+      update({ emailVerified: true })
+      router.push('/register/categories')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth:verifyEmail.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
@@ -97,9 +101,7 @@ export default function RegisterVerifyEmailPage() {
     try {
       setResendLoading(true)
       setError('')
-      const res = (await emailOtpAPI.send(data.email, 'REGISTRATION')) as
-        | { otp?: string }
-        | undefined
+      const res = await emailOtpAPI.send(data.email, 'REGISTRATION')
       update({ devEmailOtp: res?.otp })
       setCanResend(false)
       setCountdown(30)
@@ -110,7 +112,9 @@ export default function RegisterVerifyEmailPage() {
     }
   }
 
-  const handleBack = () => router.push('/register/password')
+  // Back to the email field — the way to correct a typo, or to drop the email
+  // entirely and continue without one.
+  const handleBack = () => router.push('/register/profile')
 
   return (
     <div className="relative min-h-screen bg-white">
@@ -204,7 +208,7 @@ export default function RegisterVerifyEmailPage() {
                   disabled={otp.join('').length !== OTP_LENGTH || loading}
                   className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-8 lg:px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-base lg:text-[20px]">{loading ? t('auth:verifyEmail.verifying') : t('auth:verifyEmail.verifyFinish')}</span>
+                  <span className="text-base lg:text-[20px]">{loading ? t('auth:verifyEmail.verifying') : t('auth:verifyEmail.verifyContinue')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>

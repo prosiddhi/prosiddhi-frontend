@@ -155,7 +155,7 @@ export default function RegisterExperiencePage() {
                 </p>
               </div>
 
-              <RegistrationProgress step="experience" className="mb-16" />
+              <RegistrationProgress step="experience" includeEmailStep={!!data.email} className="mb-16" />
 
               {/* Work Experiences Section */}
               <div className="mb-12">
@@ -337,7 +337,7 @@ export default function RegisterExperiencePage() {
             </p>
           </div>
 
-          <RegistrationProgress step="experience" className="mb-8" />
+          <RegistrationProgress step="experience" includeEmailStep={!!data.email} className="mb-8" />
 
           {/* Work Experiences Section */}
           <div className="mb-8">

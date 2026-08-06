@@ -15,8 +15,9 @@ export default function RegisterSuccessPage() {
   const handleStartExplore = () => {
     // Remember the tutorial preference (non-sensitive UI flag).
     localStorage.setItem('showTutorial', showTutorial.toString())
-    // The seeker is authenticated by now (handoff happened on email-verify).
-    // Land on the job feed — the seeker home. (/tutorial is a v2 backlog screen.)
+    // The seeker is authenticated by now — the password step registered the
+    // account and logged straight in. Land on the job feed, the seeker home.
+    // (/tutorial is a v2 backlog screen.)
     router.push('/job-feed')
   }
 

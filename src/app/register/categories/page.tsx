@@ -22,10 +22,13 @@ export default function RegisterCategoriesPage() {
   })
   const [error, setError] = useState('')
 
-  // Guard: must have completed the profile step (email set).
+  // Guard: a verified phone, plus a verified email IF one was given. Email
+  // itself is no longer a prerequisite — it is optional — so this can no longer
+  // key on its presence the way it used to.
   useEffect(() => {
-    if (!data.email) router.replace('/register/phone')
-  }, [data.email, router])
+    if (!data.phoneVerified) router.replace('/register/phone')
+    else if (data.email && !data.emailVerified) router.replace('/register/verify-email')
+  }, [data.phoneVerified, data.email, data.emailVerified, router])
 
   const handleTripleChange = (next: TaxonomyTriple) => {
     setTriple(next)
@@ -87,7 +90,12 @@ export default function RegisterCategoriesPage() {
               </Link>
             </div>
 
-            <RegistrationProgress step="categories" onBack={handleBack} className="mb-10 lg:mb-16" />
+            <RegistrationProgress
+              step="categories"
+              includeEmailStep={!!data.email}
+              onBack={handleBack}
+              className="mb-10 lg:mb-16"
+            />
 
             <div className="max-w-[953px]">
               <div className="mb-10 lg:mb-16">
