@@ -4,6 +4,7 @@ import { Suspense, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
@@ -11,7 +12,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
 
-type Tab = 'email' | 'phone' | 'google'
+// `phoneOtp` and `phonePassword` are BOTH phone-identified; they differ only in
+// the credential. Arm 3 (phone + password) exists because a seeker who
+// registered without an email has no other password login — the phone IS their
+// identity.
+type Tab = 'email' | 'phoneOtp' | 'phonePassword' | 'google'
 
 // New Google sign-ups land in PENDING_OTP_VERIFICATION; we hold them on /login
 // in a phone-bind view before sending them to their dashboard.
@@ -59,6 +64,30 @@ function destinationAfterLogin(user: AuthUser, returnUrl: string | null): string
   return path
 }
 
+/**
+ * Which role tab to open on — defect 12.
+ *
+ * A logged-out click on an employer link (the footer's "Post a Job", or any
+ * other employer deep link) arrives here as `/login?returnUrl=/employer/…`
+ * because those pages render ProtectedRoute themselves. Reading the intent off
+ * that is what makes the Employer tab preselect for EVERY employer destination
+ * rather than a hard-coded handful.
+ *
+ * ⚠️ It reads the path that `safeInternalPath` has already validated and
+ * normalised — NEVER the raw query string. This function must not become a
+ * second way to turn attacker-supplied input into navigation; `safeInternalPath`
+ * stays the single arbiter (an open redirect was fixed here once already).
+ * Choosing a tab is the only thing this decides — it never routes anywhere.
+ */
+function initialRoleFor(returnUrl: string | null): LoginRole {
+  const path = safeInternalPath(returnUrl)
+  if (!path) return 'seeker'
+  // A team invite is an invitation into an employer workspace, so the invitee
+  // is an employer even though the path is not under /employer.
+  if (path.startsWith('/employer') || path.startsWith('/invite/')) return 'employer'
+  return 'seeker'
+}
+
 // Normalize a raw phone input to E.164 with a +91 default.
 function toE164(raw: string): string {
   const trimmed = raw.trim()
@@ -76,7 +105,7 @@ function LoginContent() {
   const { t } = useTranslation()
   const { login } = useAuth()
 
-  const [role, setRole] = useState<LoginRole>('seeker')
+  const [role, setRole] = useState<LoginRole>(() => initialRoleFor(returnUrl))
   const [tab, setTab] = useState<Tab>('email')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -137,6 +166,36 @@ function LoginContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // --- Phone + password (arm 3) ---
+  // The only password login available to a seeker who registered without an
+  // email. Same endpoint as the email arm; only the identifier differs.
+  const handlePhonePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!phone || !password) return
+    try {
+      setLoading(true)
+      setError('')
+      const result = await authAPI.login(role, {
+        identifier: toE164(phone),
+        password,
+      })
+      onLoginSuccess(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // "Forgot password?" is email-based, so it is a dead end for a phone-only
+  // seeker — the exact user arm 3 exists for. Offer the phone-OTP route as the
+  // way back in instead.
+  const switchToPhoneOtp = () => {
+    setTab('phoneOtp')
+    setError('')
+    setOtpSent(false)
   }
 
   // --- Phone/OTP step 1: send ---
@@ -277,8 +336,8 @@ function LoginContent() {
     }
   }
 
-  const tabBtn = (id: Tab, label: string) =>
-    `flex-1 py-2.5 text-sm sm:text-base font-medium rounded-lg transition-colors ${
+  const tabBtn = (id: Tab) =>
+    `py-2.5 px-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
       tab === id ? 'bg-primary-50 text-white' : 'bg-[#f3f3f3] text-[#777776] hover:bg-gray-200'
     }`
 
@@ -294,6 +353,20 @@ function LoginContent() {
         </button>
 
         <div className="w-full">
+          {/* Logo — this was a bare modal asking for credentials with nothing
+              identifying the site. Matches the registration screens. */}
+          <div className="flex justify-center mb-5">
+            <div className="relative w-[180px] sm:w-[210px] h-[50px] sm:h-[58px]">
+              <Image
+                src="/assets/logo.png"
+                alt={t('app.name')}
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
@@ -330,14 +403,17 @@ function LoginContent() {
 
           {/* Method tabs (hidden during the post-Google phone-bind step) */}
           {mode === 'login' && (
-          <div className="flex gap-2 mb-6">
-            <button type="button" onClick={() => switchTab('email')} className={tabBtn('email', 'Email')}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+            <button type="button" onClick={() => switchTab('email')} className={tabBtn('email')}>
               {t('auth:login.tabEmail')}
             </button>
-            <button type="button" onClick={() => switchTab('phone')} className={tabBtn('phone', 'Phone')}>
-              {t('auth:login.tabPhone')}
+            <button type="button" onClick={() => switchTab('phoneOtp')} className={tabBtn('phoneOtp')}>
+              {t('auth:login.tabPhoneOtp')}
             </button>
-            <button type="button" onClick={() => switchTab('google')} className={tabBtn('google', 'Google')}>
+            <button type="button" onClick={() => switchTab('phonePassword')} className={tabBtn('phonePassword')}>
+              {t('auth:login.tabPhonePassword')}
+            </button>
+            <button type="button" onClick={() => switchTab('google')} className={tabBtn('google')}>
               {t('auth:login.tabGoogle')}
             </button>
           </div>
@@ -428,7 +504,7 @@ function LoginContent() {
           )}
 
           {/* --- Phone + OTP tab --- */}
-          {mode === 'login' && tab === 'phone' && (
+          {mode === 'login' && tab === 'phoneOtp' && (
             <div className="space-y-6">
               <div>
                 <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
@@ -497,6 +573,72 @@ function LoginContent() {
                 </form>
               )}
             </div>
+          )}
+
+          {/* --- Phone + Password tab (login arm 3) --- */}
+          {mode === 'login' && tab === 'phonePassword' && (
+            <form onSubmit={handlePhonePasswordSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="pp-phone" className="block text-base font-medium text-black mb-2">
+                  {t('auth:login.phoneLabel')}
+                </label>
+                <input
+                  id="pp-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('auth:login.phonePlaceholder')}
+                  className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="pp-password" className="block text-base font-medium text-black mb-2">
+                  {t('auth:login.passwordLabel')}
+                </label>
+                <div className="relative">
+                  <input
+                    id="pp-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('auth:login.passwordPlaceholder')}
+                    className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded transition-colors"
+                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+              >
+                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
+              </button>
+
+              {/* Phone-first recovery. "Forgot password?" resets via EMAIL, so it
+                  is a dead end for exactly the user this tab serves. */}
+              <div className="text-center">
+                <p className="text-sm text-[#777776] mb-1">{t('auth:login.forgotPasswordPhone')}</p>
+                <button
+                  type="button"
+                  onClick={switchToPhoneOtp}
+                  className="text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                >
+                  {t('auth:login.useOtpInstead')}
+                </button>
+              </div>
+            </form>
           )}
 
           {/* --- Google tab (PJP-72) --- */}
