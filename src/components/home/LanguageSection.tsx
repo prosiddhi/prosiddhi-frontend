@@ -1,49 +1,48 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Briefcase, Users } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
+import {
+  useLanguagePreference,
+  type SupportedLanguage,
+} from '@/hooks/useLanguagePreference'
 
-const languages = [
+/**
+ * Only the languages we actually SHIP — defect 2.
+ *
+ * This list offered ten. Eight of them have no translations at all (PRODUCT.md:
+ * EN + HI are complete, the rest are post-MVP), so a Tamil speaker could pick
+ * தமிழ் on the home page and get an English app. Offering a language we cannot
+ * render is a promise broken immediately, to precisely the low-literacy user
+ * this section exists to serve.
+ *
+ * Matches src/app/register/page.tsx, which already ships the honest list. Add a
+ * language here only when its translation file lands.
+ */
+const languages: { value: SupportedLanguage; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'हिंदी (Hindi)' },
-  { value: 'ta', label: 'தமிழ் (Tamil)' },
-  { value: 'te', label: 'తెలుగు (Telugu)' },
-  { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-  { value: 'ml', label: 'മലയാളം (Malayalam)' },
-  { value: 'mr', label: 'मराठी (Marathi)' },
-  { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
-  { value: 'bn', label: 'বাংলা (Bengali)' },
-  { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
 ]
 
 export function LanguageSection() {
   const router = useRouter()
+  const { t } = useTranslation()
+  // The selection was written to a `selectedLanguage` localStorage key that
+  // NOTHING reads — i18next keys off its own storage entry — so choosing a
+  // language here changed nothing at all. `useLanguagePreference` is the one
+  // place that actually switches the app (and syncs it to the account when
+  // signed in), so the choice now takes effect immediately.
+  const { language, setLanguage } = useLanguagePreference()
   const [step, setStep] = useState<'language' | 'userType'>('language')
-  const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [selectedUserType, setSelectedUserType] = useState<'employee' | 'employer' | null>(null)
 
-  // Set default language to English if none exists
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('selectedLanguage')
-    if (!savedLanguage) {
-      // Set English as default
-      localStorage.setItem('selectedLanguage', 'en')
-      console.log('Default language set to English')
-    } else {
-      setSelectedLanguage(savedLanguage)
-    }
-  }, [])
-
-  const selectedLang = languages.find(lang => lang.value === selectedLanguage)
+  const selectedLang = languages.find((lang) => lang.value === language)
 
   const handleLanguageContinue = () => {
-    // Save selected language before moving to next step
-    localStorage.setItem('selectedLanguage', selectedLanguage)
-    console.log('Language saved:', selectedLanguage)
-    
     setStep('userType')
     // Scroll to top of section when moving to next step
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -54,19 +53,11 @@ export function LanguageSection() {
   }
 
   const handleGetStarted = () => {
-    if (selectedUserType) {
-      localStorage.setItem('selectedLanguage', selectedLanguage)
-      localStorage.setItem('userType', selectedUserType)
-      console.log('Language saved:', selectedLanguage)
-      console.log('User type:', selectedUserType)
-      
-      // Navigate based on user type
-      if (selectedUserType === 'employee') {
-        router.push('/employee')
-      } else {
-        router.push('/employer/welcome')
-      }
-    }
+    if (!selectedUserType) return
+    // The language is already applied by setLanguage; only the role choice
+    // needs remembering here.
+    localStorage.setItem('userType', selectedUserType)
+    router.push(selectedUserType === 'employee' ? '/employee' : '/employer/welcome')
   }
 
   const handleBack = () => {
@@ -104,14 +95,14 @@ export function LanguageSection() {
               {/* Title with Audio Icon */}
               <div className="flex items-center gap-2 mb-2">
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black text-center">
-                  Select Your Native Language
+                  {t('home.languageTitle')}
                 </h2>
-                <VoiceButton label="Select your native language" iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
+                <VoiceButton label={t('home.languageTitleVoice')} iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
               </div>
 
               {/* Description */}
               <p className="text-xs sm:text-sm text-[#767676] text-center max-w-[457px] mb-4 px-4">
-                Please confirm your native or local language for better User Experience
+                {t('home.languageDescription')}
               </p>
 
               {/* Language Dropdown */}
@@ -137,11 +128,13 @@ export function LanguageSection() {
                       <button
                         key={lang.value}
                         onClick={() => {
-                          setSelectedLanguage(lang.value)
+                          // Switches the whole app immediately — the point of
+                          // the fix. The next thing they see is translated.
+                          setLanguage(lang.value)
                           setIsDropdownOpen(false)
                         }}
                         className={`w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm lg:text-base hover:bg-primary-10 transition-colors ${
-                          selectedLanguage === lang.value
+                          language === lang.value
                             ? 'bg-primary-10 text-primary-70'
                             : 'text-text-body'
                         }`}
@@ -158,7 +151,7 @@ export function LanguageSection() {
                 onClick={handleLanguageContinue}
                 className="bg-primary-50 hover:bg-primary-60 text-white px-8 sm:px-12 lg:px-14 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base lg:text-lg font-normal transition-colors shadow-md hover:shadow-lg"
               >
-                Continue
+                {t('buttons.continue')}
               </button>
             </div>
           ) : (
@@ -166,14 +159,14 @@ export function LanguageSection() {
               {/* Title with Audio Icon */}
               <div className="flex items-center justify-center gap-2 mb-2 px-4">
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-black text-center">
-                  What are you looking for?
+                  {t('home.roleTitle')}
                 </h2>
-                <VoiceButton label="What are you looking for" iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
+                <VoiceButton label={t('home.roleTitleVoice')} iconClassName="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600" className="p-1 sm:p-1.5" />
               </div>
 
               {/* Description */}
               <p className="text-xs sm:text-sm text-[#767676] text-center mb-4 px-4">
-                Please select your role to get started
+                {t('home.roleDescription')}
               </p>
 
               {/* User Type Options */}
@@ -198,10 +191,10 @@ export function LanguageSection() {
                     <h3 className={`text-sm sm:text-base lg:text-lg font-semibold mb-0.5 ${
                       selectedUserType === 'employee' ? 'text-primary-70' : 'text-black'
                     }`}>
-                      Looking for a Job
+                      {t('home.seekerTitle')}
                     </h3>
                     <p className="text-xs text-[#767676]">
-                      I am a job seeker (Employee)
+                      {t('home.seekerSubtitle')}
                     </p>
                   </div>
                   <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -235,10 +228,10 @@ export function LanguageSection() {
                     <h3 className={`text-sm sm:text-base lg:text-lg font-semibold mb-0.5 ${
                       selectedUserType === 'employer' ? 'text-primary-70' : 'text-black'
                     }`}>
-                      Looking to Hire
+                      {t('home.employerTitle')}
                     </h3>
                     <p className="text-xs text-[#767676]">
-                      I am an employer
+                      {t('home.employerSubtitle')}
                     </p>
                   </div>
                   <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -259,14 +252,14 @@ export function LanguageSection() {
                   onClick={handleBack}
                   className="w-full sm:flex-1 bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base lg:text-lg font-normal transition-colors shadow-md order-2 sm:order-1"
                 >
-                  Back
+                  {t('buttons.back')}
                 </button>
                 <button
                   onClick={handleGetStarted}
                   disabled={!selectedUserType}
                   className="w-full sm:flex-1 bg-primary-50 hover:bg-primary-60 text-white px-6 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base lg:text-lg font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg order-1 sm:order-2"
                 >
-                  Get Started
+                  {t('buttons.getStarted')}
                 </button>
               </div>
             </div>

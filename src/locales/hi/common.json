@@ -63,6 +63,18 @@
     "english": "English",
     "hindi": "हिन्दी (Hindi)"
   },
+  "home": {
+    "languageTitle": "अपनी मातृभाषा चुनें",
+    "languageTitleVoice": "अपनी मातृभाषा चुनें",
+    "languageDescription": "बेहतर अनुभव के लिए कृपया अपनी मातृभाषा या स्थानीय भाषा की पुष्टि करें",
+    "roleTitle": "आप क्या खोज रहे हैं?",
+    "roleTitleVoice": "आप क्या खोज रहे हैं",
+    "roleDescription": "शुरू करने के लिए कृपया अपनी भूमिका चुनें",
+    "seekerTitle": "नौकरी की तलाश है",
+    "seekerSubtitle": "मैं एक नौकरी खोजने वाला हूँ (कर्मचारी)",
+    "employerTitle": "कर्मचारी रखने हैं",
+    "employerSubtitle": "मैं एक नियोक्ता हूँ"
+  },
   "buttons": {
     "apply": "आवेदन करें",
     "applyNow": "अभी आवेदन करें",
