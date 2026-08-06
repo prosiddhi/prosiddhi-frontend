@@ -370,6 +370,16 @@ Test **S** is not optional — it is the only check that proves the dev-only fie
 5. **The BE refuses to boot in production if `RAZORPAY_WEBHOOK_SECRET` is weak/short/missing** (`src/utils/razorpay.ts`) — deliberate. Relevant only when standing up a prod-mode server for test S.
 6. `docs/STATUS.md` known-bug **#3** (forgot-password OTP leak + enumeration oracle) is **dev-only** — captured production responses for a registered and an unregistered email are byte-identical with no `otp`. Recommend closing it. Not a code change here.
 
+### Added during implementation (2026-08-06)
+
+7. **Web and mobile registration flows have DIVERGED.** `prosiddhi-mobile-app` `37dedcb` shipped a separate seeker-skippable email screen and two sequential employer OTP screens; the web ships Option A (email folded into the profile step, one dual-code employer screen). Per **A-1** the web is canonical and **mobile is to be aligned to it** — that work is not in this pass and is currently unowned (mobile has no owner). Until it happens, the two clients teach users two different flows and the QA pack describes only the web one.
+
+8. **An employer can pay to unlock a candidate and receive no email address.** `User.email` is `String?` and `candidate.service` passes it straight through, so a phone-only seeker unlocks with a phone number only. The FE now hides the empty email row rather than showing a bare icon, but the *product* question — is a phone-only unlock worth the same credit? — is for the PO. Nothing in the pricing rules currently distinguishes them.
+
+9. **`src/app/invite/[token]/page.tsx:256` passes `user?.email ?? ''` as `signedInAs`.** Left untouched: it is inside a §6 DO-NOT-TOUCH path, and it is unreachable in practice because an invitee is an employer, whose email is mandatory. It would surface only if seekers ever became invitable. Recorded so the next null-email sweep does not have to rediscover it.
+
+10. **The BE has two reachable duplicate-contact errors, not one** — see the new **N-14** row in §3.5. Handled in the FE error map; no BE change requested.
+
 ---
 
 ## 11. OUT OF SCOPE — loud
