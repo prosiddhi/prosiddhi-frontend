@@ -18,7 +18,7 @@ export default function EmployerRegistrationPage() {
   const handleNext = () => {
     if (selectedType) {
       update({ companyType: selectedType })
-      router.push('/employer/register/phone')
+      router.push('/employer/register/contacts')
     }
   }
 

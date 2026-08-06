@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
-import { employerAPI, type CompanySize } from '@/lib/api'
+import { authAPI, classifyRegisterError, employerAPI, type CompanySize } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
 const SIZE_VALUES: CompanySize[] = [
@@ -20,7 +22,8 @@ const SIZE_VALUES: CompanySize[] = [
 export default function CompanyDetailsPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useEmployerRegistration()
+  const { login } = useAuth()
+  const { data, update, reset } = useEmployerRegistration()
   const [form, setForm] = useState({
     companyName: data.companyName,
     companyEmail: data.companyEmail,
@@ -33,12 +36,15 @@ export default function CompanyDetailsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Guard: only corporate, only after account email + password are set.
+  // Guard: corporate only, both contacts verified, and a password chosen on the
+  // previous step. The password is in memory only, so a hard refresh legitimately
+  // sends them back to re-enter it.
   useEffect(() => {
-    if (data.companyType !== 'corporate' || !data.password) {
-      router.replace('/employer/register')
-    }
-  }, [data.companyType, data.password, router])
+    if (data.companyType !== 'corporate') router.replace('/employer/register')
+    else if (!data.phoneVerified || !data.emailVerified) {
+      router.replace('/employer/register/contacts')
+    } else if (!data.password) router.replace('/employer/register/account')
+  }, [data.companyType, data.phoneVerified, data.emailVerified, data.password, router])
 
   const set = (name: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -92,9 +98,47 @@ export default function CompanyDetailsPage() {
         gstNumber: form.gstNumber.trim(),
         registrationNumber: form.registrationNumber.trim(),
       })
-      router.push('/employer/register/verify-email')
+
+      // Creates the account PENDING_DOCUMENTS — no trial credits until an admin
+      // approves the documents they upload next. Log in regardless: they need a
+      // session to reach the upload screen at all.
+      const result = await authAPI.login('employer', {
+        identifier: data.email,
+        password: data.password,
+      })
+      login(result.token, result.user)
+      reset()
+
+      // Preserve the team-invite carry-through: they may have started at
+      // /invite/<token> with no account. Rebuilt from the stashed TOKEN, never
+      // from a stored URL.
+      const pendingInvite = readInviteToken()
+      router.push(
+        pendingInvite ? invitePath(pendingInvite) : '/employer/register/under-review'
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employerRegister:companyDetails.registerFailed'))
+      const failure = classifyRegisterError(err)
+      switch (failure.kind) {
+        case 'fields':
+          setError(Object.values(failure.fields).flat().join(' '))
+          break
+        case 'phoneUnverified':
+          // Three causes, one message — see the account screen. Send them back
+          // to re-verify rather than guessing which one it was.
+          setError(t('employerRegister:account.errorPhoneReverify'))
+          break
+        case 'emailUnverified':
+          setError(t('employerRegister:account.errorEmailUnverified'))
+          break
+        case 'emailTaken':
+          setError(t('employerRegister:account.errorEmailTaken'))
+          break
+        case 'phoneTaken':
+          setError(t('employerRegister:account.errorPhoneTaken'))
+          break
+        default:
+          setError(failure.message || t('employerRegister:companyDetails.registerFailed'))
+      }
     } finally {
       setLoading(false)
     }

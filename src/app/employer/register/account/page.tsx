@@ -5,40 +5,51 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
-import { employerAPI } from '@/lib/api'
+import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
-// Mirrors the BE setPasswordSchema (min 8 + upper + lower + digit).
+// Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
+/**
+ * Account details.
+ *
+ * The email moved OUT of this screen — it is collected and verified up front on
+ * /contacts, because the backend requires both contacts verified before the
+ * register call. What is left is the name/designation (individual only) and the
+ * password. For an individual this is also the last step, so it registers and
+ * logs in here; a business collects company details first.
+ */
 export default function AccountSetupPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const { data, update } = useEmployerRegistration()
+  const { login } = useAuth()
+  const { data, update, reset } = useEmployerRegistration()
   const isIndividual = data.companyType === 'individual'
 
   const [fullName, setFullName] = useState(data.fullName)
   const [designation, setDesignation] = useState(data.designation)
-  const [email, setEmail] = useState(data.email)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<string[]>([])
+  const [needsReverify, setNeedsReverify] = useState(false)
 
-  // Guard: require a verified phone first.
+  // Guard: both contacts must already be verified — register consumes both marks.
   useEffect(() => {
-    if (!data.phoneVerified) router.replace('/employer/register/phone')
-  }, [data.phoneVerified, router])
+    if (!data.phoneVerified || !data.emailVerified) {
+      router.replace('/employer/register/contacts')
+    }
+  }, [data.phoneVerified, data.emailVerified, router])
 
   const handleNext = async () => {
     if (isIndividual && fullName.trim().length < 2) {
       setError(t('employerRegister:account.nameTooShort'))
-      return
-    }
-    if (!email.trim() || !email.includes('@')) {
-      setError(t('employerRegister:account.emailInvalid'))
       return
     }
     if (!PASSWORD_RULE.test(password)) {
@@ -50,35 +61,80 @@ export default function AccountSetupPage() {
       return
     }
 
-    // Persist account fields to in-memory context (password never to storage).
-    update({ email: email.trim(), password, fullName: fullName.trim(), designation })
+    // Held in memory only — never written to storage.
+    update({ password, fullName: fullName.trim(), designation })
 
-    // Corporate collects company details next, then registers there.
+    // Corporate collects company details next, and registers there.
     if (!isIndividual) {
       router.push('/employer/register/company-details')
       return
     }
 
-    // Individual registers now (JSON), then sets the password.
     try {
       setLoading(true)
       setError('')
+      setFieldErrors([])
+      setNeedsReverify(false)
+
+      // Creates the account ACTIVE, with trial credits granted (1 post,
+      // 3 downloads, 14 days). No verification step follows.
       await employerAPI.registerIndividual({
-        email: email.trim(),
+        email: data.email,
         password,
         fullName: fullName.trim(),
         phoneNumber: data.phoneNumber,
         designation: designation.trim() || undefined,
       })
-      router.push('/employer/register/verify-email')
+
+      const result = await authAPI.login('employer', {
+        identifier: data.email,
+        password,
+      })
+      login(result.token, result.user)
+      reset()
+
+      // They may have started at a team invite (/invite/<token>) with no
+      // account: registration is the detour, not the destination. Send them back
+      // to finish it — the landing page auto-accepts and then hands them the
+      // dashboard. The path is rebuilt from the stashed TOKEN, never a stored URL.
+      const pendingInvite = readInviteToken()
+      router.push(pendingInvite ? invitePath(pendingInvite) : '/employer')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employerRegister:account.createFailed'))
+      const failure = classifyRegisterError(err)
+      switch (failure.kind) {
+        case 'fields':
+          setFieldErrors(failure.fields.password ?? [])
+          setError(
+            failure.fields.password ? '' : Object.values(failure.fields).flat().join(' ')
+          )
+          break
+        case 'phoneUnverified':
+          // One message, three possible causes — never verified, mark already
+          // consumed, or the phone belongs to an existing account. Re-verifying
+          // is the only response that is right for all three; retrying the
+          // register call would fail identically every time.
+          setError(t('employerRegister:account.errorPhoneReverify'))
+          setNeedsReverify(true)
+          break
+        case 'emailUnverified':
+          setError(t('employerRegister:account.errorEmailUnverified'))
+          setNeedsReverify(true)
+          break
+        case 'emailTaken':
+          setError(t('employerRegister:account.errorEmailTaken'))
+          break
+        case 'phoneTaken':
+          setError(t('employerRegister:account.errorPhoneTaken'))
+          break
+        default:
+          setError(failure.message || t('employerRegister:account.createFailed'))
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleBack = () => router.push('/employer/register/otp')
+  const handleBack = () => router.push('/employer/register/verify')
   const handleClose = () => router.push('/')
 
   return (
@@ -95,8 +151,17 @@ export default function AccountSetupPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
+              {needsReverify && (
+                <button
+                  type="button"
+                  onClick={() => router.push('/employer/register/verify')}
+                  className="mt-3 text-sm font-semibold text-primary-50 underline hover:text-primary-60"
+                >
+                  {t('employerRegister:account.reverifyContacts')}
+                </button>
+              )}
             </div>
           )}
 
@@ -134,19 +199,22 @@ export default function AccountSetupPage() {
               </>
             )}
 
+            {/* Email is NOT edited here — it was verified on /contacts and the
+                register call consumes that verification, so changing it at this
+                point would silently invalidate it. Shown read-only for
+                confidence, with a link back to the step that can change it. */}
             <div>
-              <label htmlFor="email" className="block text-base sm:text-lg font-medium text-black mb-3">
-                {t('employerRegister:account.email')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                placeholder={t('employerRegister:account.emailPlaceholder')}
-                disabled={loading}
-                className="w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
-              />
+              <p className="block text-base sm:text-lg font-medium text-black mb-1">
+                {t('employerRegister:account.email')}
+              </p>
+              <p className="text-base text-black break-all">{data.email}</p>
+              <button
+                type="button"
+                onClick={() => router.push('/employer/register/contacts')}
+                className="mt-1 text-sm font-medium text-primary-50 hover:text-primary-60"
+              >
+                {t('employerRegister:account.changeEmail')}
+              </button>
             </div>
 
             <div>
@@ -167,6 +235,15 @@ export default function AccountSetupPage() {
                 </button>
               </div>
               <p className="mt-2 text-xs sm:text-sm text-gray-500">{t('employerRegister:account.passwordHint')}</p>
+              {/* Every rule the BE rejected — a weak password usually fails both
+                  the length and the composition rule at once. */}
+              {fieldErrors.length > 0 && (
+                <ul role="alert" className="mt-2 list-disc pl-5 space-y-1">
+                  {fieldErrors.map((message) => (
+                    <li key={message} className="text-sm text-red-600">{message}</li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div>

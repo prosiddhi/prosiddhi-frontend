@@ -1,11 +1,15 @@
 'use client'
 
-// In-memory state holder for the multi-step employer registration flow.
-// Same rationale as the seeker flow (SeekerRegistrationContext): the BE only
-// mints a JWT after register → set-password → email-verify → login, so the
-// password must survive across steps — but it must never be persisted to
-// localStorage (PJP-81 AC / audit §2.4). State lives in React context mounted
-// by src/app/employer/register/layout.tsx; a hard refresh restarts the flow.
+// State holder for the multi-step employer registration flow.
+//
+// Same rationale as SeekerRegistrationContext: the PASSWORD lives here and
+// nowhere else. PJP-81's acceptance criteria forbid persisting a plaintext
+// password to any web storage (audit §2.4), and that constraint is the reason
+// this context exists. Everything else is non-secret progress and may be
+// persisted so a mid-flow refresh does not restart the flow.
+//
+// Both contact verifications live on the SERVER now — the flags below only
+// record that they happened, so restoring them cannot forge a verification.
 
 import { createContext, useContext, useState, ReactNode } from 'react'
 import type { CompanySize } from '@/lib/api'
@@ -14,11 +18,14 @@ export type EmployerType = 'individual' | 'corporate' | ''
 
 export interface EmployerRegistrationState {
   companyType: EmployerType
+  // Contacts — BOTH are mandatory for an employer and BOTH must be verified
+  // before the register call, which consumes the marks.
   phoneNumber: string // E.164
   phoneVerified: boolean
-  // Account (both types)
   email: string
-  password: string // in-memory ONLY
+  emailVerified: boolean
+  // In-memory ONLY — never written to storage.
+  password: string
   // Individual only
   fullName: string
   designation: string
@@ -30,7 +37,9 @@ export interface EmployerRegistrationState {
   companySize: CompanySize | ''
   gstNumber: string
   registrationNumber: string
-  // BE echoes the email OTP in non-production for dev/QA convenience.
+  // BE echoes the OTPs in non-production only. Absent in production — never
+  // make a flow depend on them.
+  devPhoneOtp?: string
   devEmailOtp?: string
 }
 
@@ -39,6 +48,7 @@ const defaultState: EmployerRegistrationState = {
   phoneNumber: '',
   phoneVerified: false,
   email: '',
+  emailVerified: false,
   password: '',
   fullName: '',
   designation: '',

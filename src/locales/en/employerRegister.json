@@ -11,22 +11,36 @@
     "corporate": "Corporate",
     "corporateDesc": "Owned by Shareholder"
   },
-  "phone": {
-    "label": "Enter Phone Number",
-    "placeholder": "Enter the Phone Number",
-    "mustBe10Digits": "Phone number must be 10 digits",
-    "invalid": "Enter a valid 10-digit phone number",
-    "sendFailed": "Failed to send OTP. Please try again.",
-    "sending": "Sending..."
+  "contacts": {
+    "subtitle": "We'll verify your phone and email before creating your account",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "Enter the Phone Number",
+    "phoneInvalid": "Enter a valid 10-digit phone number",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "Enter your email",
+    "emailInvalid": "Please enter a valid email",
+    "hint": "We'll send a 6-digit code to each. You'll enter both on the next screen.",
+    "sendCodes": "Send codes",
+    "sending": "Sending...",
+    "phoneSendFailed": "We couldn't send the code to that phone number. Check it and try again.",
+    "emailSendFailed": "We couldn't send the code to that email. Check it and try again.",
+    "bothSendFailed": "We couldn't send the codes. Please check your details and try again."
   },
-  "otp": {
-    "sentTo": "We sent a 6-digit code to {{phone}}",
-    "label": "Enter the OTP Number",
-    "resendQuestion": "Resend the OTP?",
-    "resendIn": "Resend the OTP? {{seconds}}s",
-    "resendFailed": "Failed to resend OTP",
-    "invalid": "Invalid OTP. Please try again.",
-    "verifying": "Verifying..."
+  "verify": {
+    "title": "Verify your phone and email",
+    "subtitle": "Enter both 6-digit codes to continue",
+    "phoneLabel": "Code sent to your phone",
+    "emailLabel": "Code sent to your email",
+    "sentTo": "Sent to {{target}}",
+    "devMode": "Dev mode — your code is",
+    "incomplete": "Enter the 6-digit code",
+    "phoneInvalid": "That phone code is not right. Please try again.",
+    "emailInvalid": "That email code is not right. Please try again.",
+    "alreadyVerified": "Verified",
+    "verifyContinue": "Verify & continue",
+    "verifying": "Verifying...",
+    "resend": "Resend the codes",
+    "resendIn": "Resend the codes in {{seconds}}s"
   },
   "account": {
     "fullName": "Full Name",
@@ -35,7 +49,7 @@
     "designationOptional": "(optional)",
     "designationPlaceholder": "e.g. Owner, Manager",
     "email": "Email",
-    "emailPlaceholder": "Enter your email",
+    "changeEmail": "Change email",
     "password": "Enter the Password",
     "confirmPassword": "Confirm Password",
     "passwordHint": "At least 8 characters, with an uppercase, a lowercase, and a number.",
@@ -45,7 +59,12 @@
     "passwordMismatch": "Passwords do not match",
     "createFailed": "Could not create your account. Please try again.",
     "creating": "Creating...",
-    "createAccount": "Create account"
+    "createAccount": "Create account",
+    "errorPhoneReverify": "We could not confirm your phone number. Please verify your contacts again to finish creating your account.",
+    "errorEmailUnverified": "Your email is not verified yet. Please verify your contacts before creating your account.",
+    "errorEmailTaken": "An account already uses that email. Sign in instead, or go back and use a different one.",
+    "errorPhoneTaken": "An account already uses that phone number. Please sign in instead.",
+    "reverifyContacts": "Verify my phone and email again"
   },
   "companyDetails": {
     "subtitle": "Tell us about your company",
@@ -64,7 +83,7 @@
     "gstPlaceholder": "15-character GSTIN",
     "cin": "Company Registration Number (CIN)",
     "cinPlaceholder": "Enter CIN Number",
-    "docsNotice": "You'll upload your GST / CIN / ISO documents after verifying your email. Admin approval is required before you can post jobs.",
+    "docsNotice": "You'll upload your GST / CIN / ISO documents after creating your account. Admin approval is required before you can post jobs.",
     "nameTooShort": "Company name must be at least 2 characters",
     "emailInvalid": "Please enter a valid company email",
     "addressTooShort": "Company address must be at least 5 characters",
@@ -81,20 +100,6 @@
       "SIZE_501_1000": "501-1000 employees",
       "SIZE_1000_PLUS": "1000+ employees"
     }
-  },
-  "verifyEmail": {
-    "title": "Verify your email",
-    "sentTo": "We sent a 6-digit code to",
-    "devMode": "Dev mode — your code is",
-    "incomplete": "Please enter the complete 6-digit code",
-    "invalid": "Invalid code. Please try again.",
-    "resendFailed": "Failed to resend the code",
-    "verifying": "Verifying...",
-    "verifyFinish": "Verify & finish",
-    "resend": "Resend the code",
-    "resendIn": "Resend the code in {{seconds}}s",
-    "spamHint": "Didn't receive the email? Check your spam folder.",
-    "backToSignIn": "Back to sign in"
   },
   "underReview": {
     "title": "Your account is under review",
