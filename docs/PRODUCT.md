@@ -1,6 +1,6 @@
 # ProSiddhi — The Product
 
-**What we're building, who for, and the rules that are locked.** Updated **2026-07-12**.
+**What we're building, who for, and the rules that are locked.** Updated **2026-08-06**.
 For *build status* see [STATUS.md](STATUS.md). For *pricing/billing* see [MONETIZATION.md](MONETIZATION.md).
 
 ---
@@ -9,12 +9,12 @@ For *build status* see [STATUS.md](STATUS.md). For *pricing/billing* see [MONETI
 
 A **mobile-first, multilingual job portal connecting unskilled / blue-collar workers with employers in India.**
 
-**Brand:** ProSiddhi (product) · Azkashine Software & Services Pvt Ltd (the company; invoices issue under its GSTIN).
+**Brand:** ProSiddhi (product) · **AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED** (the legal entity; invoices issue under its GSTIN). ⚠️ `src/lib/legal.ts` still carries the wrong form ("Azkashine Software & Services Pvt. Ltd.") and an **empty GSTIN and registered office** — all three must be corrected before invoices go live.
 
 **Three surfaces, one backend:**
 - **Portal** (`prosiddhi-frontend`) — job seekers + employers, web.
 - **Admin console** (`prosiddhi-admin`) — internal, web only.
-- **Mobile app** (`prosiddhi-mobile-app`) — seeker + employer parity. *Not started.*
+- **Mobile app** (`prosiddhi-mobile-app`) — seeker + employer parity. **Flutter, ~85% built.** Missing the checkout and invoices; **never run on a device.**
 
 ## 2. Who it's for
 
@@ -26,7 +26,7 @@ A **mobile-first, multilingual job portal connecting unskilled / blue-collar wor
 
 ```
 Seeker registers → completes profile → browses jobs (recommended / nearby / search / category)
-                 → applies (optionally with a 2-min voice message) → chats → interviews
+                 → applies → chats → interviews
 Employer registers → buys credits → posts a job → reviews applicants
                    → (or) searches the candidate database and pays to unlock a candidate
                    → accepts / rejects / schedules an interview → chats
@@ -37,7 +37,12 @@ Employer registers → buys credits → posts a job → reviews applicants
 ## 4. Key product rules (locked)
 
 **Identity & auth**
-- **Phone OTP is the only registration identity.** Login also supports **email + password** and **Google OAuth** — same three options for seekers and employers.
+- **Phone is the primary identity, and a verified phone is mandatory for every role.** *(Rebuilt 2026-08-03; see STATUS.md §3 item 3a.)*
+  - **A job seeker may register with a phone alone — email is OPTIONAL for them.** This is deliberate: the seeker is often an unskilled, low-literacy worker with no email address (§2). They can add one later. Do not reintroduce a required-email check on the seeker flow.
+  - **Both employer types must supply and verify an email.** Enforced in the UI *and* by the backend.
+  - Both contacts are verified **before** the account exists, and the password arrives with it. There is no "set your password afterwards" step — that route was unauthenticated and is deleted.
+- **Login:** email + password · phone + OTP · **phone + password** · Google OAuth. The third is the only password login a phone-only seeker has.
+- **Minimum age 18.** Enforced on date of birth at registration, on the server *and* in the UI. A blue-collar job board in India cannot be casual about this.
 - **No Aadhaar. Anywhere.** Not collected, not verified, not mocked. Permanently out of scope.
 
 **Content & media**
@@ -50,14 +55,14 @@ Employer registers → buys credits → posts a job → reviews applicants
 **Jobs & taxonomy**
 - Jobs are classified by a **3-level taxonomy: Category → Sector → Job Title**, validated as a triple. Job titles are marked `PORTABLE` (e.g. Helper — works across sectors) or `SECTOR_LOCKED` (e.g. Welder).
 - A published job is live for **30 days**, independent of the employer's plan length.
-- Employers **cannot** post until an admin approves them (business) or they verify their email (individual).
+- Employers **cannot** post until an admin approves them (business). An individual employer is ACTIVE at registration and receives the 14-day trial there.
 
 **Languages**
 - **English + Hindi are complete.** Eight more Indian languages are planned (soft-launch, post-MVP).
 
 **Moderation & trust**
 - Job posts are moderated **reactively** — seekers report; admins warn, flag violations, deactivate or delete.
-- AI content-scanning (OpenAI) is **specified but not built** — the admin's "Scan Content" button is honestly disabled.
+- AI content-scanning **is built and live** in the admin console. It works **without** an OpenAI key, because the India scam-regex layer needs none; with no key the response says so explicitly, so a clean result is never mistaken for "OpenAI reviewed this".
 
 ## 5. Permanently OUT of scope
 
@@ -79,7 +84,7 @@ TTS voice playback · skill assessment tests · job ratings & reviews · the 8 a
 | Owner / Sponsor (product + pricing decisions) | **Shaik Ishaq** |
 | Frontend + acting PM | **Nazir Hasan** |
 | Backend | **Asrar** |
-| Mobile | **unowned** — vacancy (biggest scope risk) |
+| Mobile | **Sailaja** *(since July 2026)* |
 | QA | **Najeeb** (lead) · **Farhana** |
 | Infra | **Nayan** |
 
