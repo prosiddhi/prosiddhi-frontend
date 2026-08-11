@@ -93,7 +93,7 @@ function EmployerProfileContent() {
   const originalGst = useRef('')
   const originalReg = useRef('')
 
-  const isBusiness = employerType === 'EMPLOYER_BUSINESS'
+  const isBusiness = employerType === 'BUSINESS'
 
   const hydrate = useCallback((p: EmployerProfile) => {
     const e = p.employer
