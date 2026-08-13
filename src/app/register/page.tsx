@@ -116,7 +116,7 @@ export default function RegisterPage() {
               Matches /register/password, which already renders it. */}
           <div className="relative w-[160px] sm:w-[200px] h-[44px] sm:h-[56px] mb-6">
             <Image
-              src="/assets/logo.png"
+              src="/assets/prosiddhi-logo-horizontal.png"
               alt={t('app.name')}
               fill
               className="object-contain object-left"

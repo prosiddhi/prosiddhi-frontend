@@ -179,7 +179,7 @@ export default function RegisterPasswordPage() {
           <div className="max-w-[1400px] mx-auto px-4 lg:px-16 py-8 lg:py-16">
             <div className="flex items-start justify-between mb-10 lg:mb-24">
               <div className="relative w-[160px] lg:w-[236px] h-[44px] lg:h-[66px]">
-                <Image src="/assets/logo.png" alt="Logo" fill className="object-contain object-left" priority />
+                <Image src="/assets/prosiddhi-logo-horizontal.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
                 <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>

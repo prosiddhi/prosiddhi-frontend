@@ -34,7 +34,7 @@ export function Footer() {
           <div className="w-full lg:w-auto">
             <div className="relative w-[192px] h-[53px]">
               <Image
-                src="/assets/footer_logo.png"
+                src="/assets/prosiddhi-logo-horizontal-dark.png"
                 alt={t('app.name', { ns: 'common' })}
                 fill
                 className="object-contain"

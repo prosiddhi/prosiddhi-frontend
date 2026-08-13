@@ -20,9 +20,19 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Job Portal - Find Jobs Near You',
+  title: 'ProSiddhi - Find Jobs Near You',
   description: 'Search and apply for jobs in your language. No degree needed, just your effort.',
   keywords: ['jobs', 'employment', 'workers', 'India', 'job search'],
+  // Icon-only mark — the wordmark is unreadable at 16–32px. The .ico carries
+  // 16/32/48 for the tab; the PNGs cover higher-DPI and Android home-screen use.
+  icons: {
+    icon: [
+      { url: '/assets/prosiddhi-favicon.ico', sizes: 'any' },
+      { url: '/assets/prosiddhi-icon-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/assets/prosiddhi-icon-192.png', type: 'image/png', sizes: '192x192' },
+    ],
+    apple: '/assets/prosiddhi-icon-192.png',
+  },
 }
 
 export default function RootLayout({

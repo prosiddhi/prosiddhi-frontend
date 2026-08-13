@@ -371,7 +371,7 @@ function LoginContent() {
           <div className="flex justify-center mb-5">
             <div className="relative w-[180px] sm:w-[210px] h-[50px] sm:h-[58px]">
               <Image
-                src="/assets/logo.png"
+                src="/assets/prosiddhi-logo-horizontal.png"
                 alt={t('app.name')}
                 fill
                 className="object-contain"

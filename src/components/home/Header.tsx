@@ -15,7 +15,7 @@ export function Header() {
         <Link href="/" className="flex items-center">
           <div className="relative w-[142px] h-[39px]">
             <Image
-              src="/assets/logo.png"
+              src="/assets/prosiddhi-logo-horizontal.png"
               alt={t('app.name')}
               fill
               className="object-contain"

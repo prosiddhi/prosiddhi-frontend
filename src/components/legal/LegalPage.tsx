@@ -35,7 +35,7 @@ export function LegalPage({
           <Link href="/" className="flex items-center">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
               <Image
-                src="/assets/logo.png"
+                src="/assets/prosiddhi-logo-horizontal.png"
                 alt={t('common:app.name')}
                 fill
                 className="object-contain"

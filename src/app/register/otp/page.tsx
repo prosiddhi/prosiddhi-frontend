@@ -145,7 +145,7 @@ export default function RegisterOTPPage() {
             <div className="flex items-start justify-between mb-24">
               <div className="relative w-[236px] h-[66px]">
                 <Image
-                  src="/assets/logo.png"
+                  src="/assets/prosiddhi-logo-horizontal.png"
                   alt="Logo"
                   fill
                   className="object-contain object-left"
@@ -241,7 +241,7 @@ export default function RegisterOTPPage() {
             <ChevronLeft className="w-6 h-6 text-gray-600" />
           </button>
           <div className="relative w-[140px] h-[40px]">
-            <Image src="/assets/logo.png" alt="Logo" fill className="object-contain" priority />
+            <Image src="/assets/prosiddhi-logo-horizontal.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <Link href="/" className="flex items-center gap-1 bg-error-500 text-white px-3 py-2 rounded-lg text-sm">
             <span>{t('auth:register.close')}</span>

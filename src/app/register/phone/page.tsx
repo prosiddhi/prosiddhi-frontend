@@ -105,7 +105,7 @@ export default function RegisterPhonePage() {
             <div className="flex items-start justify-between mb-24">
               <div className="relative w-[236px] h-[66px]">
                 <Image
-                  src="/assets/logo.png"
+                  src="/assets/prosiddhi-logo-horizontal.png"
                   alt="Logo"
                   fill
                   className="object-contain object-left"
@@ -185,7 +185,7 @@ export default function RegisterPhonePage() {
           </button>
           <div className="relative w-[140px] h-[40px]">
             <Image
-              src="/assets/logo.png"
+              src="/assets/prosiddhi-logo-horizontal.png"
               alt="Logo"
               fill
               className="object-contain"

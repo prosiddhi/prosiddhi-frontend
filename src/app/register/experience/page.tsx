@@ -155,7 +155,7 @@ export default function RegisterExperiencePage() {
               {/* Logo */}
               <div className="relative w-[236px] h-[66px]">
                 <Image
-                  src="/assets/logo.png"
+                  src="/assets/prosiddhi-logo-horizontal.png"
                   alt={t('app.name')}
                   fill
                   className="object-contain object-left"
@@ -349,7 +349,7 @@ export default function RegisterExperiencePage() {
           {/* Logo */}
           <div className="relative w-[140px] h-[40px]">
             <Image
-              src="/assets/logo.png"
+              src="/assets/prosiddhi-logo-horizontal.png"
               alt={t('app.name')}
               fill
               className="object-contain object-left"
