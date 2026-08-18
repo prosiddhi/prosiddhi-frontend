@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
+import { CITY_KEYS } from '@/lib/cities'
 import { Footer } from '@/components/home/Footer'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
@@ -20,8 +22,30 @@ import {
 
 export default function EmployeeLandingPage() {
   const { t } = useTranslation()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
+
+  /**
+   * Hand the search to the job feed, which is where filtering actually happens.
+   *
+   * Both controls used to be decorative: the location was a `<button>` with no
+   * handler, and Search was a bare `<Link href="/job-feed">` that dropped the
+   * typed keyword entirely — so a seeker could type "welder", press Search, and
+   * get an unfiltered feed with no indication anything had been ignored.
+   * (DEF-004 + DEF-014.)
+   *
+   * The feed reads both parameters on mount. City keys come from the shared
+   * list so the two screens cannot offer different cities.
+   */
+  const runSearch = () => {
+    const params = new URLSearchParams()
+    const q = searchQuery.trim()
+    if (q) params.set('search', q)
+    if (location) params.set('city', location)
+    const qs = params.toString()
+    router.push(qs ? `/job-feed?${qs}` : '/job-feed')
+  }
 
   const categories = [
     { name: t('seeker:landing.categories.construction'), icon: '/assets/constructions.png' },
@@ -118,25 +142,41 @@ export default function EmployeeLandingPage() {
                   placeholder={t('seeker:landing.searchPlaceholder')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') runSearch() }}
                   className="w-full h-12 pl-10 pr-3 bg-[#f3f3f5] rounded-lg text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               </div>
 
-              {/* Location Selector */}
+              {/* Location Selector — the same city list the job feed offers, so
+                  a choice made here survives the hand-off. */}
               <div className="w-[215px] relative">
-                <button className="w-full h-12 px-10 bg-[#f3f3f5] rounded-lg text-base text-gray-500 flex items-center justify-between hover:bg-gray-100 transition-colors">
-                  <span>{t('seeker:landing.selectLocation')}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <select
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  aria-label={t('seeker:landing.selectLocation')}
+                  className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-gray-500 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-50"
+                >
+                  <option value="">{t('seeker:landing.selectLocation')}</option>
+                  {CITY_KEYS.map(key => (
+                    <option key={key} value={key}>
+                      {t(`seeker:jobFeed.city.${key}`)}
+                    </option>
+                  ))}
+                </select>
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
               </div>
 
               {/* Search Button */}
-              <Link href="/job-feed" className="px-[43px] py-3.5 bg-primary-50 text-white rounded-lg flex items-center gap-2 hover:bg-primary-60 transition-colors">
+              <button
+                type="button"
+                onClick={runSearch}
+                className="px-[43px] py-3.5 bg-primary-50 text-white rounded-lg flex items-center gap-2 hover:bg-primary-60 transition-colors"
+              >
                 <Search className="w-5 h-5" />
                 <span className="text-base">{t('seeker:landing.searchJobs')}</span>
-              </Link>
+              </button>
 
               {/* Voice Search */}
               <VoiceButton label={t('seeker:landing.voiceSearchLabel')} iconClassName="w-6 h-6 text-gray-600" className="p-3" />

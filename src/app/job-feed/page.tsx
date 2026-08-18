@@ -2,7 +2,9 @@
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { CITY_COORDS, CITY_KEYS, toCityKey } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
@@ -33,14 +35,8 @@ import { HeaderActions } from '@/components/navigation/HeaderActions'
 type Tab = 'all' | 'recommended' | 'nearby'
 const PAGE_SIZE = 10
 
-// City centroids — the BE has no city-name filter, so the location dropdown is
-// wired via lat/lon + maxDistance instead (no BE change needed).
-const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
-  bangalore: { lat: 12.9716, lon: 77.5946 },
-  delhi: { lat: 28.6139, lon: 77.209 },
-  mumbai: { lat: 19.076, lon: 72.8777 },
-  pune: { lat: 18.5204, lon: 73.8567 },
-}
+// City centroids live in @/lib/cities — the seeker landing page offers the same
+// dropdown and hands its choice here through the URL, so the two must not drift.
 
 // Job-type option values; labels are looked up via t('seeker:jobFeed.jobType.<value>').
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'TEMPORARY', 'INTERNSHIP'] as const
@@ -91,6 +87,27 @@ function JobFeedPageContent() {
   const [taxonomyDraft, setTaxonomyDraft] = useState<TaxonomyTriple>({})
   const [showFilters, setShowFilters] = useState(false)
   const [applied, setApplied] = useState<AppliedFilters>(EMPTY_FILTERS)
+
+  // Seed from the URL, so the seeker landing page's search bar actually lands
+  // somewhere: /job-feed?search=welder&city=pune arrives already filtered.
+  //
+  // Read in an EFFECT, not a lazy useState initialiser. useSearchParams is empty
+  // during the server render, so an initialiser captures nulls and the values are
+  // lost — the exact bug that made the login page's role hint silently fail
+  // (DEF-012). By the time effects run, the params are there.
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const search = searchParams.get('search')?.trim() ?? ''
+    const city = toCityKey(searchParams.get('city'))
+    if (!search && !city) return
+    setSearchDraft(search)
+    setCityDraft(city)
+    setApplied((prev) => ({ ...prev, search, city }))
+    // Deliberately mount-only: this seeds the INITIAL filters. Re-running it
+    // whenever the user edits filters would keep dragging them back to whatever
+    // the URL said.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [data, setData] = useState<JobsPage | null>(null)
   const [loading, setLoading] = useState(true)
@@ -317,10 +334,11 @@ function JobFeedPageContent() {
                     className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
                   >
                     <option value="">{t('seeker:jobFeed.anyLocation')}</option>
-                    <option value="bangalore">{t('seeker:jobFeed.city.bangalore')}</option>
-                    <option value="delhi">{t('seeker:jobFeed.city.delhi')}</option>
-                    <option value="mumbai">{t('seeker:jobFeed.city.mumbai')}</option>
-                    <option value="pune">{t('seeker:jobFeed.city.pune')}</option>
+                    {CITY_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {t(`seeker:jobFeed.city.${key}`)}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
