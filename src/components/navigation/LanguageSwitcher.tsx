@@ -8,27 +8,22 @@ import {
   type SupportedLanguage,
 } from '@/hooks/useLanguagePreference'
 import { SUPPORTED_LANGUAGES } from '@/i18n/config'
-import { LANGUAGES } from '@/lib/jobCategories'
+import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
 
 /**
- * The languages offered by the in-app switcher, named in their own script so a
- * low-literacy user recognises their own language.
+ * Re-exported for the call sites that already import it from here (settings).
  *
  * **Endonyms are data, not translations.** These labels used to be i18n keys
  * (`language.english`, `language.hindi`) resolved with `t()`, which is wrong on
  * its face: "தமிழ்" is "தமிழ்" in every locale. Keeping them in the locale files
- * meant 10 files each carrying all 10 names — 100 strings that must stay
- * byte-identical, every one of them foreign script inside its own file. They now
- * come from the single locked list in lib/jobCategories.ts.
+ * meant 10 files each carrying all 10 names — 100 strings that had to stay
+ * byte-identical, every one of them foreign script inside its own file.
  *
- * Filtered by SUPPORTED_LANGUAGES so the picker only ever offers languages the UI
- * is genuinely translated into — the profile's `preferredLanguage` field is a
- * separate, wider list.
+ * The single definition lives in lib/jobCategories.ts, so the header switcher,
+ * the home language section and the registration picker cannot drift apart —
+ * which is exactly what happened when each kept its own copy.
  */
-export const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] =
-  LANGUAGES.filter((l) =>
-    (SUPPORTED_LANGUAGES as readonly string[]).includes(l.value)
-  ).map((l) => ({ value: l.value as SupportedLanguage, label: l.label }))
+export { LANGUAGE_OPTIONS }
 
 /**
  * LanguageSwitcher — the in-header EN/HI control. The change itself lives in

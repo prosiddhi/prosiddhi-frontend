@@ -6,6 +6,11 @@
 // use the live tree via useCategories + TaxonomyPicker. Only the language list
 // remains here.
 
+import {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/i18n/languages'
+
 // The 10 v1 languages (Q6 / scope-locked). `value` is the BE `preferredLanguage`
 // code; `label` is the human name shown in the picker.
 export interface LanguageOption {
@@ -25,3 +30,21 @@ export const LANGUAGES: LanguageOption[] = [
   { value: 'te', label: 'తెలుగు (Telugu)' },
   { value: 'bn', label: 'বাংলা (Bengali)' },
 ]
+
+/**
+ * The languages a **UI picker** may offer: the list above, narrowed to the locales the
+ * app is actually translated into (`SUPPORTED_LANGUAGES`).
+ *
+ * Every picker must use this. Three screens — the header switcher, the home language
+ * section and the registration step-one picker — each kept their own hardcoded copy,
+ * frozen at English + Hindi. When the other eight locales shipped, all three silently
+ * went on offering two, because nothing tied them to the languages that exist.
+ *
+ * The distinction still matters: `LANGUAGES` is the wider catalogue used for the
+ * profile's `preferredLanguage` field, which may offer a language the UI cannot render.
+ * A picker that switches the app must not.
+ */
+export const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] =
+  LANGUAGES.filter((l) =>
+    (SUPPORTED_LANGUAGES as readonly string[]).includes(l.value)
+  ).map((l) => ({ value: l.value as SupportedLanguage, label: l.label }))

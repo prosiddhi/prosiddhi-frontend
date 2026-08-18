@@ -9,6 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from './SeekerRegistrationContext'
+import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
 import {
   useLanguagePreference,
   type SupportedLanguage,
@@ -17,19 +18,16 @@ import {
 /**
  * Only the languages we actually SHIP.
  *
- * This list used to offer ten — Tamil, Kannada, Malayalam, Marathi, Gujarati,
- * Odia, Telugu, Bengali — none of which have translations (PRODUCT.md: EN + HI are
- * complete, the other eight are post-MVP). A Tamil speaker picked தமிழ் on the very
- * first screen of registration and got an English app, permanently. Offering a
- * language we cannot render is a promise we break immediately, to precisely the
- * low-literacy user this screen exists to serve.
+ * This list once offered ten languages that had no translations, so a Tamil
+ * speaker picked தமிழ் on the very first screen of registration and got an
+ * English app, permanently. It was cut to a hardcoded English + Hindi, which was
+ * honest then and became wrong the moment the other eight locales shipped — the
+ * list had no link to the translations, so it silently kept offering two.
  *
- * Add a language here only when its translation file lands.
+ * It now derives from LANGUAGE_OPTIONS (the catalogue narrowed to
+ * SUPPORTED_LANGUAGES), so it tracks the locales that actually exist.
  */
-const languages: { value: SupportedLanguage; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'हिंदी' },
-]
+const languages = LANGUAGE_OPTIONS
 
 /**
  * Who is signing up. Asked HERE, at step one, because the two paths diverge

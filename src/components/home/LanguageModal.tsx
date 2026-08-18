@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, ChevronDown, Briefcase, Users } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
+import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
 
 interface LanguageModalProps {
   isOpen: boolean
@@ -10,18 +11,11 @@ interface LanguageModalProps {
   onSave: (language: string, userType: 'employee' | 'employer') => void
 }
 
-const languages = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'हिंदी (Hindi)' },
-  { value: 'ta', label: 'தமிழ் (Tamil)' },
-  { value: 'te', label: 'తెలుగు (Telugu)' },
-  { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-  { value: 'ml', label: 'മലയാളം (Malayalam)' },
-  { value: 'mr', label: 'मराठी (Marathi)' },
-  { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
-  { value: 'bn', label: 'বাংলা (Bengali)' },
-  { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-]
+// Was a hardcoded list that offered Punjabi and omitted Odia — contradicting the
+// locked 10 in lib/jobCategories.ts. This component is currently unreferenced, but a
+// wrong language list is exactly the thing someone copies out of dead code, so it now
+// reads the same single definition as every live picker.
+const languages = LANGUAGE_OPTIONS
 
 export function LanguageModal({ isOpen, onClose, onSave }: LanguageModalProps) {
   const [step, setStep] = useState<'language' | 'userType'>('language')

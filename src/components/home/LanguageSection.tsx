@@ -5,27 +5,23 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, Briefcase, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
-import {
-  useLanguagePreference,
-  type SupportedLanguage,
-} from '@/hooks/useLanguagePreference'
+import { useLanguagePreference } from '@/hooks/useLanguagePreference'
+import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
 
 /**
  * Only the languages we actually SHIP — defect 2.
  *
- * This list offered ten. Eight of them have no translations at all (PRODUCT.md:
- * EN + HI are complete, the rest are post-MVP), so a Tamil speaker could pick
- * தமிழ் on the home page and get an English app. Offering a language we cannot
- * render is a promise broken immediately, to precisely the low-literacy user
- * this section exists to serve.
+ * This list once offered ten languages that had no translations, so a Tamil
+ * speaker could pick தமிழ் and get an English app. It was then cut to a
+ * hardcoded English + Hindi, which was honest at the time and became wrong the
+ * moment the other eight locales shipped — the list had no link to the
+ * translations, so it silently kept offering two.
  *
- * Matches src/app/register/page.tsx, which already ships the honest list. Add a
- * language here only when its translation file lands.
+ * It now derives from LANGUAGE_OPTIONS, which is the catalogue narrowed to
+ * SUPPORTED_LANGUAGES. Adding a locale to i18n now updates this picker on its
+ * own; no list to remember.
  */
-const languages: { value: SupportedLanguage; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'हिंदी (Hindi)' },
-]
+const languages = LANGUAGE_OPTIONS
 
 export function LanguageSection() {
   const router = useRouter()
