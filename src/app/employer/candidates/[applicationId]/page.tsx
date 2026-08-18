@@ -21,6 +21,7 @@ import {
   Check,
   X,
   Bookmark,
+  Star,
   Loader2,
   AlertCircle,
 } from 'lucide-react'
@@ -40,6 +41,7 @@ function CandidateDetailContent() {
 
   const [acceptOpen, setAcceptOpen] = useState(false)
   const [bookmarking, setBookmarking] = useState(false)
+  const [shortlisting, setShortlisting] = useState(false)
   const [actionError, setActionError] = useState('')
 
   // Inline reject panel.
@@ -86,6 +88,31 @@ function CandidateDetailContent() {
     }
   }
 
+  /**
+   * Mark the candidate SHORTLISTED (DEF-033).
+   *
+   * The Shortlisted tab on the candidates list has always filtered for this
+   * status, but nothing in the employer UI could ever set it — so the tab was
+   * empty by construction. The backend supported it the whole time: SHORTLISTED
+   * is in the Prisma enum, in the `ApplicationStatus` Zod enum the route
+   * validates against, and `PUT /api/applications/:id/status` accepts it.
+   * Only the button was missing.
+   */
+  const handleShortlist = async () => {
+    setShortlisting(true)
+    setActionError('')
+    try {
+      await employerAPI.updateApplicationStatus(applicationId, 'SHORTLISTED')
+      refetch()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : t('employer:candidateDetail.shortlistFailed')
+      )
+    } finally {
+      setShortlisting(false)
+    }
+  }
+
   const handleReject = async () => {
     const reason = rejectReason.trim()
     if (reason && reason.length < 10) {
@@ -112,6 +139,35 @@ function CandidateDetailContent() {
   const experience = seeker?.workExperience ?? []
   const documents = seeker?.documents ?? []
   const isTerminal = app?.status === 'ACCEPTED' || app?.status === 'REJECTED'
+  /**
+   * When to offer Shortlist. The BE imposes almost nothing here — its only
+   * status guard is that an ACCEPTED application cannot be REJECTED — so every
+   * restriction below is a product rule the client has to hold.
+   *
+   * Status is a SINGLE column, so setting SHORTLISTED overwrites whatever was
+   * there. That makes three states unsafe to offer it from:
+   *
+   *   ACCEPTED / REJECTED  the decision is already made; shortlisting is
+   *                        "still deciding", so it would be a regression.
+   *   WITHDRAWN            the SEEKER pulled out. Shortlisting would erase that
+   *                        and resurface them as a live candidate — the employer
+   *                        would be working a list of people who are gone.
+   *   BOOKMARKED           it would silently destroy the bookmark, and there is
+   *                        no way back: toggleBookmark only accepts
+   *                        PENDING/REVIEWED/BOOKMARKED, so from SHORTLISTED the
+   *                        bookmark cannot be restored. The employer can
+   *                        un-bookmark and then shortlist — two clicks, but
+   *                        nothing is lost and nothing happens that they did not
+   *                        ask for.
+   *
+   * And SHORTLISTED itself, where the button would be a no-op.
+   */
+  const canShortlist =
+    !!app &&
+    !isTerminal &&
+    app.status !== 'SHORTLISTED' &&
+    app.status !== 'WITHDRAWN' &&
+    app.status !== 'BOOKMARKED'
   // BE toggleBookmark only accepts PENDING/REVIEWED (→bookmark) or BOOKMARKED (→un-bookmark);
   // any other status throws. Only show the button when the toggle is actually valid.
   const canBookmark =
@@ -297,6 +353,12 @@ function CandidateDetailContent() {
                   {!isTerminal && (
                     <button onClick={() => { setRejectOpen(true); setActionError('') }} className="inline-flex items-center gap-2 px-6 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium">
                       <X className="w-5 h-5" /> {t('employer:candidateDetail.reject')}
+                    </button>
+                  )}
+                  {canShortlist && (
+                    <button onClick={handleShortlist} disabled={shortlisting} className="inline-flex items-center gap-2 px-6 py-3 border border-primary-50 text-primary-70 rounded-lg hover:bg-primary-10 transition-colors text-sm font-medium disabled:opacity-60">
+                      {shortlisting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Star className="w-5 h-5" />}
+                      {t('employer:candidateDetail.shortlist')}
                     </button>
                   )}
                   {canBookmark && (

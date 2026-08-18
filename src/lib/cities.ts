@@ -35,5 +35,8 @@ export const CITY_KEYS = Object.keys(CITY_COORDS)
 export function toCityKey(value: string | null | undefined): string {
   if (!value) return ''
   const key = value.trim().toLowerCase()
-  return key in CITY_COORDS ? key : ''
+  // CITY_KEYS.includes, NOT `key in CITY_COORDS`: `in` walks the prototype
+  // chain, so `?city=constructor` (or `toString`, `__proto__`, …) would pass as
+  // a "known city" and then index to undefined coordinates.
+  return CITY_KEYS.includes(key) ? key : ''
 }

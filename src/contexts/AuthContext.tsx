@@ -109,9 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
       router.push(safeInternalPath(redirectTo) ?? '/login')
-      // Same reason as login(): drop every cached route render from the session
-      // that just ended, so the next user cannot be served one (DEF-025).
-      router.refresh()
+      // No router.refresh() here — setUser(null) changes the identity, and the
+      // identity effect purges the cache for every transition including this
+      // one. Refreshing here too just costs a second RSC round-trip per logout.
     },
     [router]
   )
@@ -133,8 +133,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * (`action-queue.js` marks it `discarded` on ACTION_NAVIGATE), and every
    * caller of `login()` pushes immediately afterwards — so a refresh there is
    * silently thrown away. An effect runs after that handler completes, which
-   * puts the refresh *after* the navigation, the same working order `logout()`
-   * uses.
+   * puts the refresh *after* the navigation, where it survives.
+   *
+   * It covers every transition — sign-in, sign-out and an expired token — so
+   * those paths deliberately do NOT call refresh themselves.
    */
   const lastIdentityRef = useRef<string | null | undefined>(undefined)
   useEffect(() => {
@@ -155,9 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
       router.push('/login')
-      // An expired/revoked token ends a session just as much as pressing Log out
-      // does, so the route cache has to go the same way (DEF-025).
-      router.refresh()
+      // Cache purge is handled by the identity effect, same as logout().
     }
     window.addEventListener('auth:unauthorized', onUnauthorized)
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized)

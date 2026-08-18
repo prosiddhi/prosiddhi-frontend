@@ -421,6 +421,8 @@
     "confirmReject": "Confirm Reject",
     "accept": "Accept",
     "reject": "Reject",
+    "shortlist": "Shortlist",
+    "shortlistFailed": "Could not shortlist this candidate. Please try again.",
     "bookmarked": "Bookmarked",
     "bookmark": "Bookmark"
   },
