@@ -95,14 +95,22 @@ function JobFeedPageContent() {
   // during the server render, so an initialiser captures nulls and the values are
   // lost — the exact bug that made the login page's role hint silently fail
   // (DEF-012). By the time effects run, the params are there.
+  //
+  // `seeded` gates the first fetch. Without it the feed fires an UNFILTERED
+  // request on mount, then a second filtered one once this effect has run — two
+  // round-trips to show one list, on a product built for low-end devices and
+  // metered data.
   const searchParams = useSearchParams()
+  const [seeded, setSeeded] = useState(false)
   useEffect(() => {
     const search = searchParams.get('search')?.trim() ?? ''
     const city = toCityKey(searchParams.get('city'))
-    if (!search && !city) return
-    setSearchDraft(search)
-    setCityDraft(city)
-    setApplied((prev) => ({ ...prev, search, city }))
+    if (search || city) {
+      setSearchDraft(search)
+      setCityDraft(city)
+      setApplied((prev) => ({ ...prev, search, city }))
+    }
+    setSeeded(true)
     // Deliberately mount-only: this seeds the INITIAL filters. Re-running it
     // whenever the user edits filters would keep dragging them back to whatever
     // the URL said.
@@ -169,6 +177,9 @@ function JobFeedPageContent() {
   // Fetch on tab/page/filter change. The `ignore` flag drops stale responses
   // when the user switches tab/page before an in-flight request resolves.
   useEffect(() => {
+    // Wait for the URL seeding above, so an arrival from the landing page makes
+    // ONE filtered request rather than an unfiltered one it immediately discards.
+    if (!seeded) return
     let ignore = false
     const run = async () => {
       setLoading(true)
@@ -213,7 +224,7 @@ function JobFeedPageContent() {
     return () => {
       ignore = true
     }
-  }, [tab, page, applied, reloadKey, t])
+  }, [seeded, tab, page, applied, reloadKey, t])
 
   // Both the search bar and the filter panel commit the full draft state, so the
   // two controls never disagree about what's currently applied.

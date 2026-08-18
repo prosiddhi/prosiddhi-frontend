@@ -36,7 +36,7 @@ export const GSTIN = ''
  * Last substantive revision of the policies. Bump this whenever the wording
  * changes — it is what users and auditors read as the effective date.
  */
-export const POLICY_LAST_UPDATED = '2026-07-12'
+export const POLICY_LAST_UPDATED = '2026-08-18'
 
 /** Current year, for the footer copyright — never hardcode it again. */
 export function currentYear(): number {

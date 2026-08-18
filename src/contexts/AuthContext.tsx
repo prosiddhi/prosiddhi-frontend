@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
+    // The route-cache purge is NOT done here — see the effect below.
   }, [])
 
   const updateUser = useCallback((patch: Partial<AuthUser>) => {
@@ -107,9 +109,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
       router.push(safeInternalPath(redirectTo) ?? '/login')
+      // Same reason as login(): drop every cached route render from the session
+      // that just ended, so the next user cannot be served one (DEF-025).
+      router.refresh()
     },
     [router]
   )
+
+  /**
+   * Purge the App Router client cache whenever the signed-in identity changes
+   * (DEF-025 — "after logging in as a different user, the previous user's page
+   * is shown").
+   *
+   * Next 14 caches the RSC payload of every route the browser has visited, and
+   * `router.push()` does not invalidate it. So after signing out of one account
+   * and into another in the same tab, navigating back to a route the PREVIOUS
+   * user visited can serve their cached render. Storage and React state were
+   * always cleared correctly; this cache is the one place a finished session
+   * could still surface.
+   *
+   * Why an effect and not a line inside `login()`: a pending refresh is
+   * **discarded** by a navigation dispatched in the same tick
+   * (`action-queue.js` marks it `discarded` on ACTION_NAVIGATE), and every
+   * caller of `login()` pushes immediately afterwards — so a refresh there is
+   * silently thrown away. An effect runs after that handler completes, which
+   * puts the refresh *after* the navigation, the same working order `logout()`
+   * uses.
+   */
+  const lastIdentityRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (isLoading) return
+    const current = user?.id ?? null
+    const previous = lastIdentityRef.current
+    lastIdentityRef.current = current
+    // `undefined` means this is the first settle after hydration — the cache
+    // belongs to this same session, so there is nothing to purge.
+    if (previous === undefined || previous === current) return
+    router.refresh()
+  }, [isLoading, user?.id, router])
 
   // React to 401s surfaced by the API client.
   useEffect(() => {
@@ -118,6 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
       router.push('/login')
+      // An expired/revoked token ends a session just as much as pressing Log out
+      // does, so the route cache has to go the same way (DEF-025).
+      router.refresh()
     }
     window.addEventListener('auth:unauthorized', onUnauthorized)
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized)
