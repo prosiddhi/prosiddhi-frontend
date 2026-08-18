@@ -44,13 +44,22 @@ const DIGIT = /\d/u
  *    nor \p{M} covers them, and a correctly-typed Hindi name like "क्‍ष" or a
  *    Malayalam name using ZWNJ was rejected by characters the user cannot see.
  *
+ * 3. **Every dash, not just the ASCII one.** `\p{Pd}` is used in place of a
+ *    literal "-", for exactly the reason U+2019 is allowed above. A name pasted
+ *    from Word, a PDF or a messaging app carries U+2010 HYPHEN, U+2011
+ *    NON-BREAKING HYPHEN or U+2013 EN DASH — each indistinguishable from "-" on
+ *    screen. Allowing only U+002D rejected "Anne‑Marie" with the *digits*
+ *    message, about a name containing no digit. `\p{Pd}` includes U+002D, so
+ *    nothing that was accepted before stops being accepted.
+ *
  * Devanagari and other non-ASCII digits (०१२) are still rejected: they are
  * \p{Nd}, not \p{L} or \p{M}, so this allowlist excludes them even though the
- * DIGIT check above only matches ASCII 0-9.
+ * DIGIT check above only matches ASCII 0-9. U+2212 MINUS SIGN stays rejected
+ * too — it is \p{Sm}, a maths operator, not name punctuation.
  */
 // ZWNJ and ZWJ are written as escapes on purpose: as literal characters they are
 // invisible in the source, and a later edit would silently delete them.
-const ALLOWED = /^[\p{L}\p{M}\s'’,.\u200C\u200D-]+$/u
+const ALLOWED = /^[\p{L}\p{M}\s'’,.\u200C\u200D\p{Pd}]+$/u
 
 export const NAME_MIN_LENGTH = 2
 
