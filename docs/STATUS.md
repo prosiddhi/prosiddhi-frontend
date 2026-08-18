@@ -233,11 +233,42 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 **10. Portal — delete the audio UI** *(FE)* — ✅ **DONE 2026-07-12.** The 2-min apply recorder, the 60-sec chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, the audio params in `api.ts` and all audio i18n keys (incl. the "Voice Message" plan-feature advert) are gone; the mic Permissions-Policy was revoked. Verified in the running app: 0 `<audio>` elements, 0 mic icons, an application still submits end-to-end.
 
+**3e. 🔴 The whole location subsystem is inert — nothing captures coordinates** *(FE + mobile)* — **OPEN, traced 2026-08-18.**
+
+The backend's geography is built and correct: Haversine distance (`R = 6371km`), a Near By endpoint with a radius, and a location component worth **up to 20 points** in the recommendation score (full marks inside 10 km, then exponential decay `20 × e^(-(d-10)/15)`). **No client ever supplies a coordinate.**
+
+- The portal's **post-job form sends no lat/long** — `CreateJobData` has no such fields, though `job.validator.ts` accepts them.
+- The portal **never sets a seeker's coordinates** either.
+- The **mobile app has no location package at all** — no `geolocator`, no `permission_handler` in `pubspec.yaml`. Its profile service exposes a `latitude` parameter that no screen fills.
+
+**What that means in production, today:**
+
+| Surface | Actual behaviour |
+|---|---|
+| Seeker **Near By** tab | Empty for **every** seeker — `getNearbyForSeeker` returns `noLocation: true` |
+| Location score in **Recommended** | **0 for every job** — the branch requires all four coordinates |
+| Portal **city dropdown** | Filters on coordinates no job has → no results |
+
+This is the real **DEF-035** ("Near By returns the same as All Jobs"). The earlier hypothesis — geolocation blocked over HTTP — was **wrong**; the app never requests geolocation at all. **The fix is client-side data capture, not a filter bug:** geolocation permission + capture on mobile, and a geocoded address (or a map pin) on the job form. Until then the 20-point weight and the Near By tab are dead weight, and the tab shows an empty state to every user.
+
+**3f. Job-feed filtering — three things to know before touching it** *(BE)* — **OPEN, low, recorded 2026-08-18.**
+
+- **Taxonomy filters are case-SENSITIVE.** `where.category = category` is a plain equality with no `mode: 'insensitive'` — unlike the recommendation engine, which compares `.toLowerCase()` on both sides. Same two fields, two different rules: a differently-cased category name silently returns an empty feed instead of matching.
+- **Salary is an OVERLAP test, not a floor.** `minSalary` becomes `salaryMax >= min` and `maxSalary` becomes `salaryMin <= max`. So filtering "at least ₹15,000" returns a job advertised at ₹10,000–20,000 — its range touches the filter, but the seeker may be offered ₹10,000. Standard range semantics, and arguably right, but it is not what the label promises.
+- **The geo path loads the entire matching set into memory.** When `latitude`/`longitude` are supplied, `findMany` runs with **no `take`/`skip`**, pulls every ACTIVE job, then filters and sorts by distance in JavaScript. Fine at today's volumes; it is a scale wall, and it sits on the same request path as the city dropdown. Belongs with the load-testing work in item 12.
+
+*(`skills` uses `hasSome` — ANY skill matches, not all. Deliberate, but worth knowing when reading results.)*
+
 ### 🟡 P2 — after launch
 
 **11. Mobile — feature completion.** **~85% built** (this section previously said ~60%, which was stale by two sessions). The free product, **candidate database**, **team seats**, chat and **all 10 languages** are all done, the post-credit gate is in, registration is reworked and verified, and branding shipped 2026-08-13. **Remaining: the checkout** (blocked — **D2 must be reopened**, see [store-policy-assessment.md](store-policy-assessment.md)), **invoices** (never built), **Google sign-in enablement** (built but switched off; needs Cloud-console OAuth clients), FAQ/Help, and **push** (FCM config). 🔴 **And getting it onto a device at all — it has never run on hardware or an emulator, because no dev machine has an Android SDK.** → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker, **but it is dated 2026-07-13 and behind** — it predates the registration rework, the branding, and six UI fixes.
    - **Only the checkout is parked:** the plans catalog + wallet + "what each plan allows" screens are pure `GET /api/plans` + `/credits` display and can be built now. Only the **"tap Buy → pay"** step waits on the in-app Razorpay + store-policy call. (Interim: the Buy button can stub, or deep-link to the working web checkout.)
    - *(The earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
+**17. Employers get no candidate recommendations — never scoped.** *(product)*
+Seekers have a real matching engine (job title 30 · sector 20 · skills 20 · location 20 · title-contains 15 · work-experience tokens 15 · category 10 · recency 10, scope-aware for `PORTABLE` vs `SECTOR_LOCKED` titles). **Employers have a search box and nothing else** — `GET /employers/search/workers`, Postgres FTS ranked by `ts_rank_cd` with a +1.0 bonus when the query fuzzily matches the candidate's location. Nothing suggests candidates for a job an employer has posted.
+
+This was never deferred; it was never scoped. Worth noting that **revenue is employer-side** — they pay per candidate unlock — so "candidates matched to your job" is the missing feature closest to the money, and the seeker-side engine is most of the logic already.
+
 **12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
 **13. The other 8 languages** — ✅ **BUILT 2026-08-17.** All **10** locales now ship on **both** the
 portal and the mobile app: en · hi · ta · kn · ml · mr · gu · or · te · bn.
