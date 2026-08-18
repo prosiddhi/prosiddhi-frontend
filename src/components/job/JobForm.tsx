@@ -40,11 +40,7 @@ interface FormState {
   paymentType: PaymentTypeValue
   jobType: JobTypeValue | ''
   urgencyLevel: UrgencyLevelValue
-  duration: string
   numberOfPositions: string
-  expiresAt: string
-  showEmailToSeekers: boolean
-  showPhoneToSeekers: boolean
 }
 
 function buildInitialState(initial?: Partial<PostJobData>): FormState {
@@ -63,12 +59,7 @@ function buildInitialState(initial?: Partial<PostJobData>): FormState {
     paymentType: initial?.paymentType ?? 'MONTHLY',
     jobType: initial?.jobType ?? '',
     urgencyLevel: initial?.urgencyLevel ?? 'MEDIUM',
-    duration: initial?.duration ?? '',
     numberOfPositions: initial?.numberOfPositions != null ? String(initial.numberOfPositions) : '1',
-    // Render an ISO datetime back into a yyyy-mm-dd value for the date input.
-    expiresAt: initial?.expiresAt ? initial.expiresAt.slice(0, 10) : '',
-    showEmailToSeekers: initial?.showEmailToSeekers ?? false,
-    showPhoneToSeekers: initial?.showPhoneToSeekers ?? false,
   }
 }
 
@@ -135,10 +126,6 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       ...(skillsArray.length ? { skillsRequired: skillsArray } : {}),
       ...(f.salaryMin ? { salaryMin: Number(f.salaryMin) } : {}),
       ...(f.salaryMax ? { salaryMax: Number(f.salaryMax) } : {}),
-      ...(f.duration.trim() ? { duration: f.duration.trim() } : {}),
-      ...(f.expiresAt ? { expiresAt: new Date(f.expiresAt).toISOString() } : {}),
-      showEmailToSeekers: f.showEmailToSeekers,
-      showPhoneToSeekers: f.showPhoneToSeekers,
     }
     onSubmit(data)
   }
@@ -249,27 +236,13 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>{t('employer:jobForm.durationLabel')}</label>
-              <input className={inputCls} value={f.duration} onChange={(e) => set('duration', e.target.value)} placeholder={t('employer:jobForm.durationPlaceholder')} />
-            </div>
-            <div>
-              <label className={labelCls}>{t('employer:jobForm.expiresOnLabel')}</label>
-              <input type="date" className={inputCls} value={f.expiresAt} onChange={(e) => set('expiresAt', e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <label className="flex items-center gap-2 text-sm text-black cursor-pointer">
-              <input type="checkbox" checked={f.showEmailToSeekers} onChange={(e) => set('showEmailToSeekers', e.target.checked)} />
-              {t('employer:jobForm.showEmail')}
-            </label>
-            <label className="flex items-center gap-2 text-sm text-black cursor-pointer">
-              <input type="checkbox" checked={f.showPhoneToSeekers} onChange={(e) => set('showPhoneToSeekers', e.target.checked)} />
-              {t('employer:jobForm.showPhone')}
-            </label>
-          </div>
+          {/* Duration, "Expires On" and the two contact toggles used to sit here.
+              The backend dropped all four columns in fe246f1 (2026-08-06), so the
+              form was collecting input the server discarded — and the expiry date
+              was never real anyway: a job lives `liveUntil`, 30 days per POST
+              credit, whatever date the employer picked. Employer contact is now
+              always shown to seekers, by product decision, so there is nothing
+              left to toggle. */}
         </section>
 
         {shownError && (
