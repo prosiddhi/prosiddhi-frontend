@@ -53,7 +53,7 @@
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "passwordHint": "At least 8 characters, with an uppercase, a lowercase, and a number.",
-    "nameTooShort": "Please enter your full name (at least 2 characters)",
+    "nameTooShort": "Please enter your full name (letters only, no numbers)",
     "passwordWeak": "Password needs 8+ characters with an uppercase, a lowercase, and a number",
     "passwordMismatch": "Passwords do not match",
     "createFailed": "Could not create your account. Please try again.",

@@ -77,12 +77,16 @@ function SeekerProfileContent() {
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
   const photoRef = useRef<HTMLInputElement>(null)
+  // Original name — the DEF-030 rule fires only on an edit, never on a legacy
+  // value the server sent us. See the note in handleSave.
+  const originalFullName = useRef('')
 
   const hydrate = useCallback((p: SeekerProfile) => {
     const js = p.jobSeeker
     setJobSeekerId(js?.id ?? null)
     setPhoto(js?.profilePhoto ?? null)
     setFullName(js?.fullName ?? '')
+    originalFullName.current = (js?.fullName ?? '').trim()
     setBio(js?.bio ?? '')
     setLocation(js?.location ?? '')
     setTriple({
@@ -157,7 +161,13 @@ function SeekerProfileContent() {
   const handleSave = async () => {
     // Registration rejects a numeric name (DEF-030); without the same guard here
     // the rule is one edit away from being undone.
-    if (fullName.trim() && !isValidPersonName(fullName)) {
+    //
+    // Only on an EDIT. Validating the value the server sent would lock out any
+    // account whose stored name predates this rule — and those exist, since the
+    // backend mirror is still open, so "Test User 1" is creatable via the API
+    // today. Such a user could not save ANY profile change, not even their bio,
+    // and the error would point at a field they never touched.
+    if (fullName.trim() !== originalFullName.current && !isValidPersonName(fullName)) {
       setSaveError(t('auth:profile.errorName'))
       return
     }

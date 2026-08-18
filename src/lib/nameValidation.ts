@@ -27,11 +27,30 @@ const LETTER = /\p{L}/u
 const DIGIT = /\d/u
 
 /**
- * Allowed name characters: letters, combining marks, spaces, and the three
- * punctuation marks real names use. Deliberately NOT a general "no symbols"
- * rule — enumerating what is allowed is safer than guessing what is not.
+ * Allowed name characters: letters, combining marks, spaces, and the punctuation
+ * real names use. Deliberately NOT a general "no symbols" rule — enumerating what
+ * is allowed is safer than guessing what is not.
+ *
+ * Two classes here are easy to miss and both caused real rejections:
+ *
+ * 1. **U+2019, the typographic apostrophe.** Phone keyboards on iOS and Android
+ *    substitute it for the ASCII ' automatically, so "O’Brien" typed on a phone
+ *    carries U+2019 and looks identical to "O'Brien" on screen. Allowing only
+ *    U+0027 rejected it with no visible reason — on a mobile-first product whose
+ *    users are almost all on phones.
+ *
+ * 2. **U+200C ZWNJ and U+200D ZWJ.** These are invisible characters that control
+ *    how Indic conjuncts render. They are Unicode category Cf, so neither \p{L}
+ *    nor \p{M} covers them, and a correctly-typed Hindi name like "क्‍ष" or a
+ *    Malayalam name using ZWNJ was rejected by characters the user cannot see.
+ *
+ * Devanagari and other non-ASCII digits (०१२) are still rejected: they are
+ * \p{Nd}, not \p{L} or \p{M}, so this allowlist excludes them even though the
+ * DIGIT check above only matches ASCII 0-9.
  */
-const ALLOWED = /^[\p{L}\p{M}\s'.\-]+$/u
+// ZWNJ and ZWJ are written as escapes on purpose: as literal characters they are
+// invisible in the source, and a later edit would silently delete them.
+const ALLOWED = /^[\p{L}\p{M}\s'’,.\u200C\u200D-]+$/u
 
 export const NAME_MIN_LENGTH = 2
 

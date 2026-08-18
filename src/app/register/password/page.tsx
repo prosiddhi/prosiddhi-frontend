@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { authAPI, classifyRegisterError, jobSeekerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { isValidPersonName } from '@/lib/nameValidation'
 
 // Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -47,10 +48,19 @@ export default function RegisterPasswordPage() {
   // The password itself is intentionally NOT part of this check: it is the one
   // thing that is never persisted, so requiring it here would send every
   // refreshing user back to step 2 — which is the bug being fixed.
+  // `fullName` is checked here as well as on the profile step, because THIS is the
+  // call that creates the account and it reads from sessionStorage. A journey
+  // started before the DEF-030 rule shipped still holds whatever name was stored
+  // then, so the profile step's guard never ran for it. Send those back to the
+  // step that owns the field rather than registering an invalid name.
   useEffect(() => {
     if (!hydrated) return
-    if (!data.phoneVerified || !data.preferredJobTitle) router.replace('/register/phone')
-  }, [hydrated, data.phoneVerified, data.preferredJobTitle, router])
+    if (!data.phoneVerified || !data.preferredJobTitle) {
+      router.replace('/register/phone')
+      return
+    }
+    if (!isValidPersonName(data.fullName ?? '')) router.replace('/register/profile')
+  }, [hydrated, data.phoneVerified, data.preferredJobTitle, data.fullName, router])
 
   const handleCreate = async () => {
     if (!PASSWORD_RULE.test(password)) {

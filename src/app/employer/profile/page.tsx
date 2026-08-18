@@ -91,6 +91,9 @@ function EmployerProfileContent() {
   const [gstNumber, setGstNumber] = useState('')
   const [registrationNumber, setRegistrationNumber] = useState('')
 
+  // Original name — so the DEF-030 rule fires only on an edit, never on a legacy
+  // value loaded from the server.
+  const originalFullName = useRef('')
   // Original GST/CIN — to detect a change that triggers BE re-verification.
   const originalGst = useRef('')
   const originalReg = useRef('')
@@ -111,6 +114,7 @@ function EmployerProfileContent() {
     setCompanySize((e?.companySize as CompanySize) ?? '')
     setGstNumber(e?.gstNumber ?? '')
     setRegistrationNumber(e?.registrationNumber ?? '')
+    originalFullName.current = (e?.fullName ?? '').trim()
     originalGst.current = e?.gstNumber ?? ''
     originalReg.current = e?.registrationNumber ?? ''
   }, [])
@@ -162,7 +166,14 @@ function EmployerProfileContent() {
   const handleSave = async () => {
     // Same name rule as registration (DEF-030). Individual employers only — a
     // business's `companyName` is a different field with different rules.
-    if (!isBusiness && fullName.trim() && !isValidPersonName(fullName)) {
+    //
+    // Only checked when the user actually EDITED the name. Validating whatever
+    // the server sent would lock out any account whose stored name predates this
+    // rule — and such accounts exist, because the backend mirror is still an open
+    // ticket, so "Test User 1" is creatable through the API today. That user would
+    // be unable to save ANY change, even to an unrelated field, and the error
+    // would talk about their name while they were editing something else.
+    if (!isBusiness && fullName.trim() !== originalFullName.current && !isValidPersonName(fullName)) {
       setSaveError(t('auth:profile.errorName'))
       return
     }
