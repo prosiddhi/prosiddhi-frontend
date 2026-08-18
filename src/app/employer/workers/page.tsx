@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import {
   candidateAPI,
   type WorkerSnippet,
@@ -33,6 +32,8 @@ import {
   Mail,
   Unlock,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 type Tab = 'search' | 'unlocked'
 
@@ -337,9 +338,14 @@ function WorkersSearchContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:workers.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">

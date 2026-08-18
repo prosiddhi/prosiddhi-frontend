@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { employerAPI, type Job } from '@/lib/api'
 import { jobStatusLabel } from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime } from '@/lib/jobFormat'
@@ -25,6 +24,8 @@ import {
   Briefcase,
   CheckCircle2,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 type Tab = 'active' | 'expired'
 
@@ -128,10 +129,15 @@ function MyJobsContent() {
               <Plus className="w-4 h-4" />
               {t('employer:jobs.postJob')}
             </Link>
-            <UserDropdown />
+            <HeaderActions />
           </div>
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

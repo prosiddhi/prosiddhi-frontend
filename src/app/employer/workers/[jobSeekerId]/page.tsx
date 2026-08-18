@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { useCredits } from '@/hooks/useCredits'
 import { candidateAPI, type CandidateProfile } from '@/lib/api'
@@ -30,6 +29,8 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 const NO_CREDITS_RE = /insufficient\s+download\s+credit/i
 
@@ -103,9 +104,14 @@ function CandidateContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:workers.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8">

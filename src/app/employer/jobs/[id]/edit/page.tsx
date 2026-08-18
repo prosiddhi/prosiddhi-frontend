@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { JobForm } from '@/components/job/JobForm'
 import {
   jobSeekerAPI,
@@ -17,6 +16,8 @@ import {
   type UrgencyLevelValue,
 } from '@/lib/api'
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function EditJobContent() {
   const { t } = useTranslation()
@@ -55,12 +56,11 @@ function EditJobContent() {
           paymentType: (job.paymentType as PaymentTypeValue) ?? undefined,
           jobType: (job.jobType as JobTypeValue) ?? undefined,
           urgencyLevel: (job.urgencyLevel as UrgencyLevelValue) ?? undefined,
-          duration: job.duration ?? undefined,
           numberOfPositions: job.numberOfPositions ?? undefined,
-          expiresAt: job.expiresAt ?? undefined,
           companyName: job.companyName ?? undefined,
-          showEmailToSeekers: job.showEmailToSeekers ?? false,
-          showPhoneToSeekers: job.showPhoneToSeekers ?? false,
+          // duration / expiresAt / showEmailToSeekers / showPhoneToSeekers were
+          // hydrated here from a response that no longer carries them (dropped by
+          // the BE in fe246f1).
         })
       } catch (err) {
         if (!ignore) setLoadError(err instanceof Error ? err.message : t('employer:jobEdit.loadFailed'))
@@ -95,9 +95,14 @@ function EditJobContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:jobEdit.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

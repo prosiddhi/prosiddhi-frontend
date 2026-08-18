@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
@@ -25,6 +24,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function CandidateDetailContent() {
   const { t } = useTranslation()
@@ -125,9 +126,14 @@ function CandidateDetailContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:candidateDetail.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">

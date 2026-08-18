@@ -9,7 +9,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { formatShortDate } from '@/lib/jobFormat'
 import { subscriptionAPI, type InvoicesPage } from '@/lib/api'
 import {
@@ -20,6 +19,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 const PAGE_SIZE = 20
 
@@ -84,9 +85,14 @@ function InvoicesContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:invoices.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8">

@@ -5,7 +5,6 @@ import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
 import { useAuth } from '@/contexts/AuthContext'
 import { verificationStatusLabel } from '@/lib/applicationStatus'
@@ -17,6 +16,8 @@ import {
   type CompanySize,
 } from '@/lib/api'
 import { Camera, Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 const EMPLOYER_DOC_TYPES = [
   { value: 'GST_CERTIFICATE', label: 'GST Certificate' },
@@ -217,9 +218,14 @@ function EmployerProfileContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">

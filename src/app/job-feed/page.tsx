@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
@@ -28,6 +27,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 type Tab = 'all' | 'recommended' | 'nearby'
 const PAGE_SIZE = 10
@@ -274,6 +275,11 @@ function JobFeedPageContent() {
           <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       {/* Hero Section */}
       <section className="relative bg-[#f5fcff] py-12 sm:py-16 lg:py-20 overflow-hidden">

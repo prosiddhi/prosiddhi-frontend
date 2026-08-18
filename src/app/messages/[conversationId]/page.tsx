@@ -18,6 +18,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 
 const POLL_MS = 10_000
 
@@ -173,6 +174,11 @@ function ChatContent() {
           <UserDropdown />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 w-full max-w-[900px] mx-auto px-3 sm:px-6 py-4 flex flex-col">
         {loading && (

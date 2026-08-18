@@ -30,6 +30,7 @@ import {
   X,
   Search,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -213,6 +214,11 @@ function SeekerProfileContent() {
           <UserDropdown />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">

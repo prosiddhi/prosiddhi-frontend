@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { employerAPI, type EmployerApplicationItem } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
@@ -18,6 +17,8 @@ import {
   AlertCircle,
   ChevronRight,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 type Tab = { key: string; label: string; status?: string }
 
@@ -86,9 +87,14 @@ function CandidatesContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:candidates.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

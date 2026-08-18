@@ -6,12 +6,13 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { JobForm } from '@/components/job/JobForm'
 import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
 import { employerAPI, type PostJobData } from '@/lib/api'
 import { ChevronLeft, Loader2 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 // The BE 402 message when a publish is attempted at zero POST credits
 // (job.controller). Used as the reactive-gate signal (the {kind:'POST'} payload
@@ -61,9 +62,14 @@ function NewJobContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:jobNew.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

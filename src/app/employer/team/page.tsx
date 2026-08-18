@@ -23,7 +23,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { formatShortDate } from '@/lib/jobFormat'
 import { inviteErrorKey } from '@/lib/inviteErrors'
 import { invitePath } from '@/lib/inviteToken'
@@ -40,6 +39,8 @@ import {
   UserPlus,
   PauseCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 
 function TeamContent() {
@@ -165,9 +166,14 @@ function TeamContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:team.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10">
         <div className="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8">

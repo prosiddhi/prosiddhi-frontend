@@ -6,11 +6,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
@@ -29,6 +29,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function companyOf(job: Job, fallback: string): string {
   return job.companyName || job.employer?.companyName || job.employer?.fullName || fallback
@@ -52,21 +54,38 @@ function JobDetailsContent() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
+  // This page is the ONLY job-detail view in the product, and the employer's own
+  // "My Jobs > View" link points here (DEF-023). It used to be gated
+  // requiredRole="seeker", so the link 404'd-by-redirect for the only role it was
+  // shown to. Employers are admitted now, but every seeker-only ACTION is hidden
+  // from them: an employer must not apply to, save, or report a job — and the
+  // backend would refuse anyway, so offering the button is a broken promise.
+  const { user } = useAuth()
+  const isSeeker = user?.role === 'JOB_SEEKER'
+
   useEffect(() => {
     if (!jobId) return
     let ignore = false
     const run = async () => {
       setLoading(true)
       setError('')
+      // Reset per-job state up front. Without this the PREVIOUS job's values
+      // survive into this render, and because the writes below are guarded on
+      // 'fulfilled', a rejected check leaves them showing indefinitely — the
+      // stale-"Applied"-badge bug (DEF-028).
+      setRelated([])
+      setIsSaved(false)
+      setHasApplied(false)
       try {
         const j = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
         setJob(j)
-        // Related + saved + applied status are non-critical — don't fail the page on them.
+        // Related is public; saved/applied are seeker-only and 403 for an employer,
+        // so they are simply not requested when the viewer is not a seeker.
         const [rel, saved, applied] = await Promise.allSettled([
           jobSeekerAPI.getRelatedJobs(jobId),
-          jobSeekerAPI.isJobSaved(jobId),
-          jobSeekerAPI.checkIfApplied(jobId),
+          isSeeker ? jobSeekerAPI.isJobSaved(jobId) : Promise.resolve({ isSaved: false }),
+          isSeeker ? jobSeekerAPI.checkIfApplied(jobId) : Promise.resolve({ hasApplied: false, jobId }),
         ])
         if (ignore) return
         if (rel.status === 'fulfilled') setRelated(rel.value.relatedJobs ?? [])
@@ -82,7 +101,7 @@ function JobDetailsContent() {
     return () => {
       ignore = true
     }
-  }, [jobId, t])
+  }, [jobId, t, isSeeker])
 
   const handleSaveJob = async () => {
     if (saveLoading || !job) return
@@ -149,6 +168,11 @@ function JobDetailsContent() {
           <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
@@ -227,23 +251,25 @@ function JobDetailsContent() {
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
-                      <button
-                        onClick={handleSaveJob}
-                        disabled={saveLoading}
-                        className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
-                      >
-                        {isSaved ? <BookmarkCheck className="w-5 h-5 text-primary-50" /> : <Bookmark className="w-5 h-5" />}
-                        <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? t('buttons.saved') : t('buttons.save')}</span>
-                      </button>
-                      <button
-                        onClick={() => setIsApplyModalOpen(true)}
-                        disabled={hasApplied}
-                        className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
-                      </button>
-                    </div>
+                    {isSeeker && (
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+                        <button
+                          onClick={handleSaveJob}
+                          disabled={saveLoading}
+                          className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
+                        >
+                          {isSaved ? <BookmarkCheck className="w-5 h-5 text-primary-50" /> : <Bookmark className="w-5 h-5" />}
+                          <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? t('buttons.saved') : t('buttons.save')}</span>
+                        </button>
+                        <button
+                          onClick={() => setIsApplyModalOpen(true)}
+                          disabled={hasApplied}
+                          className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
+                        </button>
+                      </div>
+                    )}
                     {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
                   </div>
                 </div>
@@ -285,7 +311,9 @@ function JobDetailsContent() {
                 </section>
               )}
 
-              {/* Action Buttons */}
+              {/* Action Buttons — seeker-only. An employer viewing their own post
+                  (DEF-023) gets the detail, not actions the backend would refuse. */}
+              {isSeeker && (
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
                 <button
                   onClick={() => setIsApplyModalOpen(true)}
@@ -294,20 +322,29 @@ function JobDetailsContent() {
                 >
                   {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
                 </button>
-                {/* Contact-recruiter gated reveal (PJP-113) — shown only when the
-                    employer toggled email and/or phone for this job (NC-5/Q51). */}
-                {(job.showEmailToSeekers || job.showPhoneToSeekers) && (
-                  <button
-                    onClick={() => setIsContactModalOpen(true)}
-                    className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                  >
-                    <Phone className="w-5 h-5" />
-                    {t('seeker:jobDetails.contactRecruiter')}
-                  </button>
-                )}
+                {/* Contact recruiter (PJP-113). Always shown: the per-job
+                    showEmail/showPhone toggles this used to gate on were DROPPED by
+                    the backend in fe246f1 (2026-08-06), so both read `undefined` and
+                    the button rendered on NO job at all — the feature was invisible.
+                    Employer contact is now unconditional by product decision (the
+                    seeker side is free), and GET /jobs/:id/recruiter-contact no
+                    longer filters. That endpoint stays a separate authenticated call
+                    — GET /jobs/:id is public, so folding contact into the job payload
+                    would hand every employer's email and phone to anonymous callers. */}
+                <button
+                  onClick={() => setIsContactModalOpen(true)}
+                  className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <Phone className="w-5 h-5" />
+                  {t('seeker:jobDetails.contactRecruiter')}
+                </button>
               </div>
+              )}
 
-              {/* Report this job (PJP-152) — trust affordance for scam/abusive posts. */}
+              {/* Report this job (PJP-152) — trust affordance for scam/abusive posts.
+                  Seeker-only: the report route is authorize(JOB_SEEKER), and an
+                  employer reporting posts is not a flow we have. */}
+              {isSeeker && (
               <button
                 onClick={() => setIsReportModalOpen(true)}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors mb-12 sm:mb-16 lg:mb-20"
@@ -315,6 +352,7 @@ function JobDetailsContent() {
                 <Flag className="w-4 h-4" />
                 {t('seeker:jobDetails.reportJob')}
               </button>
+              )}
 
               {/* Related Jobs */}
               {related.length > 0 && (
@@ -396,9 +434,15 @@ function JobDetailsContent() {
   )
 }
 
+// No `requiredRole` — any authenticated user (DEF-023). The employer's own
+// "My Jobs > View" link lands here, and requiredRole="seeker" bounced them to
+// their dashboard, so the link was broken for the only role it was shown to.
+// Still authenticated-only, and every seeker action is hidden inside, so an
+// employer sees the post as a seeker would without being offered actions the
+// backend would refuse.
 export default function JobDetailsPage() {
   return (
-    <ProtectedRoute requiredRole="seeker">
+    <ProtectedRoute>
       <JobDetailsContent />
     </ProtectedRoute>
   )

@@ -12,9 +12,10 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, Plus } from 'lucide-react'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { PricingPlans } from '@/components/employer/PricingPlans'
 import { TopUpModal } from '@/components/employer/TopUpModal'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function PlansContent() {
   const { t } = useTranslation()
@@ -29,9 +30,14 @@ function PlansContent() {
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:plans.logoAlt')} fill className="object-contain" priority />
             </div>
           </Link>
-          <UserDropdown />
+          <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">

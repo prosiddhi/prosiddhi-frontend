@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
@@ -24,6 +23,8 @@ import {
   ChevronRight,
   CalendarClock,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 const PAGE_SIZE = 10
 
@@ -103,6 +104,11 @@ function MyApplicationsPageContent() {
           <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       {/* Main Content */}
       <main className="flex-1 py-8 sm:py-12 lg:py-16">

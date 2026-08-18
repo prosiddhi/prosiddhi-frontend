@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
 import { CreditWallet } from '@/components/employer/CreditWallet'
 import {
   employerAPI,
@@ -30,6 +29,8 @@ import {
   Unlock,
   ChevronRight,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function StatTile({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
@@ -123,10 +124,15 @@ function EmployerDashboardContent() {
               <Plus className="w-4 h-4" />
               {t('employer:dashboard.postJob')}
             </Link>
-            <UserDropdown />
+            <HeaderActions />
           </div>
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

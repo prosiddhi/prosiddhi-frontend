@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { formatSalary, formatDate, initials } from '@/lib/jobFormat'
@@ -21,6 +20,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 // Pull a wide page so interviews on any application surface in one shot — a
 // seeker realistically has few. Interviews appear once BR-4 lands on the BE
@@ -87,6 +88,11 @@ function MyInterviewsPageContent() {
           <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       {/* Main Content */}
       <main className="flex-1 py-8 sm:py-12 lg:py-16">

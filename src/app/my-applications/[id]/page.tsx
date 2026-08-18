@@ -7,7 +7,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
@@ -25,6 +24,8 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { HeaderActions } from '@/components/navigation/HeaderActions'
 
 function ApplicationDetailsContent() {
   const { t } = useTranslation()
@@ -115,6 +116,11 @@ function ApplicationDetailsContent() {
           <HeaderActions />
         </div>
       </header>
+
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
 
       {/* Main Content */}
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
