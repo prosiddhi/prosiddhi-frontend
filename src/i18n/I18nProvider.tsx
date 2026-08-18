@@ -7,6 +7,7 @@ import i18n, {
   LANGUAGE_STORAGE_KEY,
   SUPPORTED_LANGUAGES,
 } from './config'
+import { ensureLocale } from './loadLocale'
 
 /**
  * I18nProvider — mounts the shared i18next instance for the whole app.
@@ -26,7 +27,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
           ? stored
           : DEFAULT_LANGUAGE
       if (lng !== i18n.language) {
-        void i18n.changeLanguage(lng)
+        // Only English ships in the main bundle; anything else is fetched first.
+        // If the chunk fails the user stays on the fallback rather than seeing
+        // a page of raw translation keys.
+        void ensureLocale(lng).then(() => i18n.changeLanguage(lng))
       }
       document.documentElement.lang = lng
     } catch {

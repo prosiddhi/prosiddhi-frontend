@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { DM_Sans } from 'next/font/google'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { dmSans, fontVariables } from './fonts'
 import '@/styles/globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { I18nProvider } from '@/i18n/I18nProvider'
@@ -11,13 +11,6 @@ import { ToastViewport } from '@/components/feedback/ToastViewport'
 // expose; it carries no secret). The "Continue with Google" button on /login
 // needs this provider in the tree.
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
-
-const dmSans = DM_Sans({ 
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'ProSiddhi - Find Jobs Near You',
@@ -41,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html lang="en" className={fontVariables}>
       <body className={`${dmSans.className} antialiased`}>
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <I18nProvider>

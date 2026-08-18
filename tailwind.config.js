@@ -205,8 +205,27 @@ module.exports = {
       },
       
       // Font Family
+      //
+      // The Noto faces after DM Sans are NOT fallbacks for Latin text — font matching
+      // is per-character, so Latin always resolves to DM Sans and only glyphs it lacks
+      // (Devanagari, Tamil, Telugu, …) fall through to the matching Noto face. Without
+      // them, non-English text depends on whatever the device happens to have installed
+      // and renders as tofu boxes where it doesn't. Declared in src/app/fonts.ts.
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
+        sans: [
+          'var(--font-dm-sans)',
+          'DM Sans',
+          'var(--font-noto-devanagari)',
+          'var(--font-noto-tamil)',
+          'var(--font-noto-kannada)',
+          'var(--font-noto-malayalam)',
+          'var(--font-noto-gujarati)',
+          'var(--font-noto-odia)',
+          'var(--font-noto-telugu)',
+          'var(--font-noto-bengali)',
+          'system-ui',
+          'sans-serif',
+        ],
         display: ['Krona One', 'system-ui', 'sans-serif'],
         inter: ['Inter', 'system-ui', 'sans-serif'],
       },

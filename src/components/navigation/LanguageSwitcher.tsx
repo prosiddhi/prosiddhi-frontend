@@ -8,13 +8,27 @@ import {
   type SupportedLanguage,
 } from '@/hooks/useLanguagePreference'
 import { SUPPORTED_LANGUAGES } from '@/i18n/config'
+import { LANGUAGES } from '@/lib/jobCategories'
 
-// EN + HI only this release (Q6). Labels are intentionally shown in the target
-// script so a low-literacy user recognises their own language.
-export const LANGUAGE_OPTIONS: { value: SupportedLanguage; labelKey: string }[] = [
-  { value: 'en', labelKey: 'language.english' },
-  { value: 'hi', labelKey: 'language.hindi' },
-]
+/**
+ * The languages offered by the in-app switcher, named in their own script so a
+ * low-literacy user recognises their own language.
+ *
+ * **Endonyms are data, not translations.** These labels used to be i18n keys
+ * (`language.english`, `language.hindi`) resolved with `t()`, which is wrong on
+ * its face: "தமிழ்" is "தமிழ்" in every locale. Keeping them in the locale files
+ * meant 10 files each carrying all 10 names — 100 strings that must stay
+ * byte-identical, every one of them foreign script inside its own file. They now
+ * come from the single locked list in lib/jobCategories.ts.
+ *
+ * Filtered by SUPPORTED_LANGUAGES so the picker only ever offers languages the UI
+ * is genuinely translated into — the profile's `preferredLanguage` field is a
+ * separate, wider list.
+ */
+export const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] =
+  LANGUAGES.filter((l) =>
+    (SUPPORTED_LANGUAGES as readonly string[]).includes(l.value)
+  ).map((l) => ({ value: l.value as SupportedLanguage, label: l.label }))
 
 /**
  * LanguageSwitcher — the in-header EN/HI control. The change itself lives in
@@ -28,7 +42,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
 
   const currentLabel =
-    current === 'hi' ? t('language.hindi') : t('language.english')
+    LANGUAGE_OPTIONS.find((o) => o.value === current)?.label ?? current
 
   useEffect(() => {
     if (!open) return
@@ -86,7 +100,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
                     selected ? 'text-primary-50 font-medium' : 'text-gray-900'
                   }`}
                 >
-                  <span>{t(opt.labelKey)}</span>
+                  <span>{opt.label}</span>
                   {selected && <Check className="w-4 h-4" />}
                 </button>
               </li>

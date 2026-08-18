@@ -1,0 +1,200 @@
+{
+  "app": {
+    "name": "ProSiddhi જોબ પોર્ટલ"
+  },
+  "nav": {
+    "home": "હોમ",
+    "findJobs": "નોકરી શોધો",
+    "jobFeed": "જોબ ફીડ",
+    "companies": "કંપનીઓ",
+    "savedJobs": "સાચવેલી નોકરીઓ",
+    "messages": "સંદેશા",
+    "notifications": "સૂચનાઓ",
+    "profile": "પ્રોફાઇલ",
+    "myApplications": "મારી અરજીઓ",
+    "myInterviews": "મારા ઇન્ટરવ્યૂ",
+    "myJobs": "મારી નોકરીઓ",
+    "settings": "સેટિંગ્સ",
+    "logout": "લોગ આઉટ",
+    "register": "રજિસ્ટર કરો",
+    "login": "લોગિન",
+    "accountMenu": "ખાતા મેનુ"
+  },
+  "settings": {
+    "title": "સેટિંગ્સ",
+    "roleSeeker": "નોકરી શોધનાર",
+    "roleEmployerIndividual": "નોકરીદાતા (વ્યક્તિગત)",
+    "roleEmployerBusiness": "નોકરીદાતા (કંપની)",
+    "account": {
+      "title": "ખાતું",
+      "email": "ઈમેલ",
+      "emailNone": "ઉમેર્યું નથી",
+      "phone": "ફોન નંબર",
+      "type": "ખાતાનો પ્રકાર",
+      "editProfile": "પ્રોફાઇલમાં ફેરફાર કરો"
+    },
+    "language": {
+      "title": "ભાષા",
+      "description": "તમે ProSiddhi પર જે ભાષા વાપરવા માગો છો તે પસંદ કરો."
+    },
+    "password": {
+      "title": "પાસવર્ડ બદલો",
+      "description": "એવો પાસવર્ડ રાખો જે તમે બીજે ક્યાંય વાપરતા ન હો.",
+      "current": "હાલનો પાસવર્ડ",
+      "new": "નવો પાસવર્ડ",
+      "confirm": "નવા પાસવર્ડની ખાતરી કરો",
+      "rule": "ઓછામાં ઓછા 8 અક્ષર, જેમાં એક મોટો અક્ષર, એક નાનો અક્ષર અને એક અંક હોય.",
+      "show": "પાસવર્ડ બતાવો",
+      "hide": "પાસવર્ડ છુપાવો",
+      "submit": "પાસવર્ડ અપડેટ કરો",
+      "success": "પાસવર્ડ અપડેટ થઈ ગયો.",
+      "failed": "અમે તમારો પાસવર્ડ અપડેટ કરી શક્યા નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.",
+      "weak": "ઓછામાં ઓછા 8 અક્ષર, જેમાં એક મોટો અક્ષર, એક નાનો અક્ષર અને એક અંક હોય.",
+      "mismatch": "બંને પાસવર્ડ મેળ ખાતા નથી.",
+      "sameAsCurrent": "તમારો નવો પાસવર્ડ હાલના પાસવર્ડ કરતાં અલગ હોવો જોઈએ."
+    },
+    "signOut": {
+      "title": "સાઇન આઉટ",
+      "description": "તમારું ખાતું વાપરવા માટે તમારે ફરી સાઇન ઇન કરવું પડશે."
+    }
+  },
+  "language": {
+    "label": "ભાષા",
+    "select": "ભાષા પસંદ કરો"
+  },
+  "home": {
+    "heroBadge": "બધા માટે કામની તકો",
+    "heroTitle": "તમારી નજીક નોકરી શોધો — સહેલું અને ઝડપી",
+    "heroSubtitle": "તમારી ભાષામાં નોકરી શોધો અને અરજી કરો. ડિગ્રીની જરૂર નથી, બસ તમારી મહેનત જોઈએ.",
+    "languageTitle": "તમારી માતૃભાષા પસંદ કરો",
+    "languageTitleVoice": "તમારી માતૃભાષા પસંદ કરો",
+    "languageDescription": "સારા અનુભવ માટે કૃપા કરીને તમારી માતૃભાષા અથવા સ્થાનિક ભાષાની ખાતરી કરો",
+    "roleTitle": "તમે શું શોધી રહ્યા છો?",
+    "roleTitleVoice": "તમે શું શોધી રહ્યા છો",
+    "roleDescription": "શરૂ કરવા માટે કૃપા કરીને તમારી ભૂમિકા પસંદ કરો",
+    "seekerTitle": "નોકરીની શોધમાં છું",
+    "seekerSubtitle": "હું નોકરી શોધનાર છું (કર્મચારી)",
+    "employerTitle": "કર્મચારી રાખવા છે",
+    "employerSubtitle": "હું નોકરીદાતા છું"
+  },
+  "buttons": {
+    "apply": "અરજી કરો",
+    "applyNow": "હમણાં અરજી કરો",
+    "save": "સાચવો",
+    "saved": "સાચવેલું",
+    "cancel": "રદ કરો",
+    "submit": "સબમિટ કરો",
+    "continue": "ચાલુ રાખો",
+    "back": "પાછા",
+    "next": "આગળ",
+    "search": "શોધો",
+    "edit": "ફેરફાર કરો",
+    "delete": "કાઢી નાખો",
+    "remove": "દૂર કરો",
+    "retry": "ફરીથી પ્રયાસ કરો",
+    "tryAgain": "ફરી પ્રયાસ કરો",
+    "close": "બંધ કરો",
+    "send": "મોકલો",
+    "getStarted": "શરૂ કરો",
+    "signIn": "સાઇન ઇન કરો",
+    "signUp": "સાઇન અપ કરો",
+    "viewAll": "બધું જુઓ",
+    "seeMore": "વધુ જુઓ",
+    "sendOtp": "OTP મોકલો",
+    "resend": "ફરી મોકલો",
+    "verify": "ચકાસો",
+    "goHome": "હોમ પર જાઓ",
+    "saveChanges": "ફેરફાર સાચવો",
+    "confirm": "ખાતરી કરો",
+    "viewDetails": "વિગતો જુઓ"
+  },
+  "status": {
+    "loading": "લોડ થઈ રહ્યું છે…",
+    "loadingMore": "વધુ લોડ થઈ રહ્યું છે…",
+    "noData": "કોઈ માહિતી ઉપલબ્ધ નથી",
+    "optional": "વૈકલ્પિક",
+    "required": "જરૂરી",
+    "yes": "હા",
+    "no": "ના"
+  },
+  "feedback": {
+    "offline": "તમે ઑફલાઇન છો. તમારું ઇન્ટરનેટ કનેક્શન તપાસો.",
+    "unreachable": "અત્યારે સર્વર સાથે જોડાઈ શકાતું નથી.",
+    "errorTitle": "કંઈક ખોટું થયું",
+    "errorBody": "અણધારી સમસ્યા આવી. કૃપા કરીને ફરી પ્રયાસ કરો — તમારી માહિતી સુરક્ષિત છે.",
+    "errorBodyShort": "અણધારી સમસ્યા આવી. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "voiceComingSoon": "🔊 વૉઇસ સહાય જલદી આવી રહી છે."
+  },
+  "voice": {
+    "listen": "સાંભળો",
+    "comingSoon": "વૉઇસ સહાય જલદી આવી રહી છે",
+    "tooltip": "વૉઇસ સહાય — જલદી આવી રહી છે"
+  },
+  "applicationStatus": {
+    "PENDING": "અરજી કરી",
+    "REVIEWED": "સમીક્ષામાં",
+    "SHORTLISTED": "શૉર્ટલિસ્ટ",
+    "ACCEPTED": "સ્વીકારાયેલ",
+    "REJECTED": "નકારાયેલ",
+    "WITHDRAWN": "પાછી ખેંચી",
+    "BOOKMARKED": "બુકમાર્ક કરેલ",
+    "unknown": "અજાણ"
+  },
+  "jobStatus": {
+    "DRAFT": "ડ્રાફ્ટ",
+    "ACTIVE": "સક્રિય",
+    "INACTIVE": "નિષ્ક્રિય",
+    "CLOSED": "બંધ",
+    "FILLED": "ભરાઈ ગઈ",
+    "CANCELLED": "રદ",
+    "unknown": "અજાણ"
+  },
+  "jobType": {
+    "FULL_TIME": "ફુલ-ટાઇમ",
+    "PART_TIME": "પાર્ટ-ટાઇમ",
+    "CONTRACT": "કોન્ટ્રાક્ટ",
+    "TEMPORARY": "હંગામી",
+    "INTERNSHIP": "ઇન્ટર્નશિપ"
+  },
+  "salary": {
+    "range": "{{min}} - {{max}}",
+    "from": "{{amount}} થી",
+    "upTo": "{{amount}} સુધી",
+    "negotiable": "વાતચીતથી નક્કી"
+  },
+  "time": {
+    "justNow": "હમણાં જ",
+    "minutesAgo_one": "{{count}} મિનિટ પહેલાં",
+    "minutesAgo_other": "{{count}} મિનિટ પહેલાં",
+    "hoursAgo_one": "{{count}} કલાક પહેલાં",
+    "hoursAgo_other": "{{count}} કલાક પહેલાં",
+    "daysAgo_one": "{{count}} દિવસ પહેલાં",
+    "daysAgo_other": "{{count}} દિવસ પહેલાં"
+  },
+  "notifications": {
+    "title": "સૂચનાઓ",
+    "aria": "સૂચનાઓ",
+    "ariaWithCount": "સૂચનાઓ, {{count}} વાંચ્યા વગરની",
+    "markAllRead": "બધી વાંચેલી કરો",
+    "empty": "હજી સુધી કોઈ સૂચના નથી.",
+    "loadError": "તમારી સૂચનાઓ લોડ થઈ શકી નથી."
+  },
+  "breadcrumbs": {
+    "label": "તમે અહીં છો",
+    "employer": "નોકરીદાતા",
+    "jobDetails": "નોકરીની વિગતો",
+    "application": "અરજી",
+    "conversation": "વાતચીત",
+    "postJob": "નોકરી પોસ્ટ કરો",
+    "editJob": "નોકરીમાં ફેરફાર કરો",
+    "candidates": "અરજદારો",
+    "candidate": "ઉમેદવાર",
+    "workers": "ઉમેદવાર ડેટાબેસ",
+    "team": "ટીમ",
+    "plans": "પ્લાન",
+    "invoices": "ઇન્વોઇસ",
+    "privacy": "ગોપનીયતા નીતિ",
+    "terms": "નિયમો અને શરતો",
+    "contact": "અમારો સંપર્ક કરો"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "category": "వర్గం",
+  "sector": "రంగం",
+  "jobTitle": "ఉద్యోగ హోదా",
+  "selectCategory": "ఒక వర్గాన్ని ఎంచుకోండి",
+  "selectSector": "ఒక రంగాన్ని ఎంచుకోండి",
+  "selectJobTitle": "ఒక హోదాను ఎంచుకోండి",
+  "selectCategoryFirst": "ముందు ఒక వర్గాన్ని ఎంచుకోండి",
+  "selectSectorFirst": "ముందు ఒక రంగాన్ని ఎంచుకోండి",
+  "allCategories": "అన్ని వర్గాలు",
+  "allSectors": "అన్ని రంగాలు",
+  "allJobTitles": "అన్ని హోదాలు",
+  "loading": "లోడ్ అవుతోంది…",
+  "error": "వర్గాలు లోడ్ కాలేదు.",
+  "retry": "మళ్లీ ప్రయత్నించండి"
+}

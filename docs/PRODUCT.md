@@ -58,7 +58,18 @@ Employer registers → buys credits → posts a job → reviews applicants
 - Employers **cannot** post until an admin approves them (business). An individual employer is ACTIVE at registration and receives the 14-day trial there.
 
 **Languages**
-- **English + Hindi are complete.** Eight more Indian languages are planned (soft-launch, post-MVP).
+- **All 10 ship: English · हिन्दी · தமிழ் · ಕನ್ನಡ · മലയാളം · मराठी · ગુજરાતી · ଓଡ଼ିଆ · తెలుగు · বাংলা**
+  *(translated 2026-08-17; the list is locked — Odia is in, Punjabi is not).*
+  The canonical list with native-script display names is `src/lib/jobCategories.ts`; what the UI is
+  actually translated into is `src/i18n/languages.ts`. Keep the two in step.
+- English and Hindi are **native-reviewed**. The other eight are **machine-translated and
+  structurally validated, not yet read by a native speaker** — `scripts/verify-locales.mjs` proves
+  key parity, placeholder integrity and correct script, which is not the same as proving the words
+  are right. See `docs/i18n/GLOSSARY.md` for the per-language termbases and open review items.
+- ⚠️ **Backend dependency:** `PATCH /api/me/language` still allow-lists only `en|hi`
+  (`prosiddhi-backend/src/validators/me.validator.ts`). Until that enum is widened, a user on any
+  other language keeps an English `preferredLanguage` server-side — so their **notifications stay
+  English** even though the UI is not.
 
 **Moderation & trust**
 - Job posts are moderated **reactively** — seekers report; admins warn, flag violations, deactivate or delete.
@@ -75,7 +86,9 @@ These are **gone** — not deferred, not "v2". Do not reintroduce them:
 
 ## 6. Deferred to v2 / later
 
-TTS voice playback · skill assessment tests · job ratings & reviews · the 8 additional languages · AI auto-moderation on every post · offline mode · multi-region infra.
+TTS voice playback · skill assessment tests · job ratings & reviews · AI auto-moderation on every post · offline mode · multi-region infra.
+
+*(The 8 additional languages left this list on 2026-08-17 — they are built and shipping.)*
 
 ## 7. The team
 

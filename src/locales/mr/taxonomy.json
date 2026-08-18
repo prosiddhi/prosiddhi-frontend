@@ -1,0 +1,16 @@
+{
+  "category": "प्रकार",
+  "sector": "क्षेत्र",
+  "jobTitle": "पद",
+  "selectCategory": "प्रकार निवडा",
+  "selectSector": "क्षेत्र निवडा",
+  "selectJobTitle": "पद निवडा",
+  "selectCategoryFirst": "आधी प्रकार निवडा",
+  "selectSectorFirst": "आधी क्षेत्र निवडा",
+  "allCategories": "सर्व प्रकार",
+  "allSectors": "सर्व क्षेत्रे",
+  "allJobTitles": "सर्व पदे",
+  "loading": "लोड होत आहे…",
+  "error": "प्रकार लोड होऊ शकले नाहीत.",
+  "retry": "पुन्हा प्रयत्न करा"
+}

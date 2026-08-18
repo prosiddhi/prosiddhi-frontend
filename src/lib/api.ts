@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from '@/i18n/languages'
+
 // API Configuration
 //
 // Talks to the ProSiddhi backend (prosiddhi-backend). Every backend endpoint
@@ -289,16 +291,18 @@ export interface Job {
   skillsRequired?: string[]
   requirements?: string | null
   urgencyLevel?: string
-  duration?: string | null
   numberOfPositions?: number | null
-  expiresAt?: string | null
   latitude?: number | null
   longitude?: number | null
   radius?: number | null
   viewCount?: number
-  // Per-job recruiter-contact reveal toggles (NC-5/Q51) — gate the Contact button.
-  showEmailToSeekers?: boolean
-  showPhoneToSeekers?: boolean
+  // `duration`, `expiresAt` and the showEmail/showPhone reveal toggles were DROPPED
+  // from Job by the backend in fe246f1 (2026-08-06) and are deliberately not
+  // declared here. Three of them governed nothing; the toggles did work but employer
+  // contact is now always shown, because the seeker side is free. Leaving them on
+  // this type is what let the Contact button keep gating on fields that no longer
+  // arrive — it rendered on no job at all. A job's life is `liveUntil` (30 days per
+  // POST credit), never a date the employer picked.
   employerId?: string
   employer?: {
     id?: string
@@ -652,10 +656,22 @@ export const authAPI = {
 }
 
 // Current-user (role-agnostic) endpoints — /api/me/*
+// Imported from i18n/languages (plain data, no side effects) rather than i18n/config,
+// which would boot react-i18next just by being imported here.
 export const meAPI = {
   // PATCH /api/me/language — persist the preferred language for ANY role (BR-9).
-  // BE allow-lists 'en' | 'hi'; anything else is a 400.
-  updateLanguage: async (language: 'en' | 'hi') => {
+  //
+  // ⚠️ BACKEND DEPENDENCY: `updateLanguageSchema` in prosiddhi-backend
+  // (src/validators/me.validator.ts) still allow-lists ONLY `['en','hi']` and 400s on
+  // anything else. Its own comment says "Extend this enum when S3 languages ship" —
+  // that enum must be widened to the full 10 before this call succeeds for the other
+  // eight locales.
+  //
+  // Until it is: the UI language still changes and persists in localStorage, but the
+  // server-side `preferredLanguage` (which drives notification language and matching)
+  // silently keeps its old value, because the caller swallows the rejection. Not fatal,
+  // but it means a Tamil user is notified in English.
+  updateLanguage: async (language: SupportedLanguage) => {
     return apiRequest('/me/language', {
       method: 'PATCH',
       body: JSON.stringify({ language }),
@@ -1148,12 +1164,12 @@ export interface PostJobData {
   paymentType?: PaymentTypeValue
   jobType: JobTypeValue
   urgencyLevel?: UrgencyLevelValue
-  duration?: string
   numberOfPositions?: number
-  expiresAt?: string // ISO datetime
-  showEmailToSeekers?: boolean
-  showPhoneToSeekers?: boolean
   companyName?: string
+  // No duration / expiresAt / showEmailToSeekers / showPhoneToSeekers — the BE
+  // dropped those Job columns (fe246f1). createJobSchema is not .strict(), so Zod
+  // silently STRIPPED them rather than erroring, which is exactly why the portal
+  // went on sending them unnoticed.
 }
 
 export interface JobApplication {

@@ -1,0 +1,16 @@
+{
+  "category": "શ્રેણી",
+  "sector": "ક્ષેત્ર",
+  "jobTitle": "પદ",
+  "selectCategory": "શ્રેણી પસંદ કરો",
+  "selectSector": "ક્ષેત્ર પસંદ કરો",
+  "selectJobTitle": "પદ પસંદ કરો",
+  "selectCategoryFirst": "પહેલા શ્રેણી પસંદ કરો",
+  "selectSectorFirst": "પહેલા ક્ષેત્ર પસંદ કરો",
+  "allCategories": "બધી શ્રેણીઓ",
+  "allSectors": "બધાં ક્ષેત્રો",
+  "allJobTitles": "બધાં પદ",
+  "loading": "લોડ થઈ રહ્યું છે…",
+  "error": "શ્રેણીઓ લોડ થઈ શકી નથી.",
+  "retry": "ફરીથી પ્રયાસ કરો"
+}

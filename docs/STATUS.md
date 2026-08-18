@@ -1,9 +1,16 @@
 # ProSiddhi — Status
 
-**The single source of truth for what is done and what is left.** Updated **2026-08-06**.
+**The single source of truth for what is done and what is left.** Updated **2026-08-13**.
 Verified by reading the code in all three repos **and running the flows against a live backend** — **not** from tickets. Where this doc and JIRA disagree, **this doc is right** (see §6).
 
-**Latest (2026-08-06): portal registration + login rebuilt for the new auth contract.** Both `/{jobseekers,employers}/set-password` routes are **deleted on the BE (404)** — they were unauthenticated and let anyone who knew an email claim an unfinished signup (25 such rows existed on dev). Both contacts are now verified **before** the account exists and the password ships **with** it. Portal registration was 100% broken against this backend until this pass — nobody could sign up. Also ships **phone-only seeker registration** (PRODUCT.md §2 — many seekers have no email), **phone + password login**, and seven folded-in QA defects. → §3 item 3a.
+**Latest (2026-08-13): branding shipped on both clients, and a NEW FE↔BE break found.**
+The portal and the mobile app were both branded with the **parent company's Azkashine mark**; both now carry the real ProSiddhi identity (portal `c2ed0a1`, mobile `78b625a`, both pushed). That closes QA defects **DEF-010 + DEF-011** and gives the mobile app a real launcher icon for the first time — it had shipped Flutter's default logo on every Android density and all 15 iOS sizes. Three defects in the designer's own delivery had to be corrected first (§3 item 3c).
+
+⚠️ **Two things got worse, both found on 13-Aug:**
+1. **The backend's `fe246f1` dropped four `Job` columns on 06-Aug and the portal was never reconciled** — the seeker's **Contact Recruiter button is now dead on every job**, and the employer's job form still collects three fields that go nowhere. → §3 item 3d.
+2. **The 04-Aug QA document actually holds 32 issues, not the 13 we triaged.** QA extended the same file after our pass; items **14–32 had never been logged**. Now triaged as DEF-017…DEF-035 — **19 open, three of them S1/P1**, all the same shape: *a feature that is built but has no way to reach it* (employer Messages, employer job detail, employer notifications). → §3 item 3b.
+
+**Previously (2026-08-06): portal registration + login rebuilt for the new auth contract.** Both `/{jobseekers,employers}/set-password` routes are **deleted on the BE (404)** — they were unauthenticated and let anyone who knew an email claim an unfinished signup (25 such rows existed on dev). Both contacts are now verified **before** the account exists and the password ships **with** it. Portal registration was 100% broken against this backend until this pass — nobody could sign up. Also ships **phone-only seeker registration** (PRODUCT.md §2 — many seekers have no email), **phone + password login**, and seven folded-in QA defects. → §3 item 3a.
 
 **Previously (2026-07-27):** admin console gained the **super-admin management, admin-adds-user, and audit-log** screens + SUPER_ADMIN role-gating (only the per-entity "history" tab is left). Backend gained the matching **SUPER_ADMIN role, admin-user CRUD, admin-adds-user, and an append-only audit log**. **Outbound email is now wired** — OTP delivery, team-invite links, and the interview `.ics` all send via MSG91 (committed `e7be075`; needs the server-side email env + MSG91 IP whitelist to go live — see `go-live-config.md`). Docs pruned to the lean source-of-truth set.
 
@@ -15,10 +22,10 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 
 | Surface | Repo | State |
 |---|---|---|
-| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system, the **SUPER_ADMIN role + admin-user CRUD + admin-adds-user + append-only audit log**, and **outbound email delivery** (OTP / invites / interview `.ics`). **Auth rebuilt 2026-08-03** (`2165880`…`09a88fc`, Asrar): password at registration, both contacts verified before the account exists, seeker email optional, `/set-password` deleted. **Current HEAD `09a88fc`.** |
-| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** QA-defect pass done 2026-07-12 (2 criticals + 10 majors, audio removed, i18n cache bug, two open redirects); team invites + the public `/invite/<token>` page rebuilt the same day. **Registration + login rebuilt 2026-08-06** for the new auth contract — see §3 item 3a. **A second QA run (04-Aug) found 13 more defects: 8 fixed, 5 open** (→ [qa/defect-log.csv](qa/defect-log.csv)). **GO for handover** *(one BE bug blocks cold-start invites — §3 item 1a)*. |
-| **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27) with SUPER_ADMIN role-gating — only the per-entity "history" tab remains.** → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** *(The admin invoice-PDF gap is **CLOSED** — the route exists at `admin.routes.ts:489`; the console's download just needs enabling.)* |
-| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **EN/HI** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Missing: checkout** (parked on the store-policy call) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** That is now the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** |
+| **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system, the **SUPER_ADMIN role + admin-user CRUD + admin-adds-user + append-only audit log**, and **outbound email delivery** (OTP / invites / interview `.ics`). **Auth rebuilt 2026-08-03** (`2165880`…`09a88fc`, Asrar): password at registration, both contacts verified before the account exists, seeker email optional, `/set-password` deleted. **10 more commits since (HEAD `63632c2`, Asrar):** a **breaking** `Job` field removal (`fe246f1` — see §3 item 3d), job-expiry corrections, a **Prisma error-leak fix** (`890500a`), a rate-limit on the recruiter-contact reveal, and 404-not-500 on an unknown job id. |
+| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** QA-defect pass done 2026-07-12 (2 criticals + 10 majors, audio removed, i18n cache bug, two open redirects); team invites + the public `/invite/<token>` page rebuilt the same day. **Registration + login rebuilt 2026-08-06** for the new auth contract — see §3 item 3a. **Branding fixed 2026-08-13** (`c2ed0a1`) — DEF-010 + DEF-011 closed. ⚠️ **The 04-Aug QA run turned out to hold 32 issues, not 13** — items 14–32 were never triaged until 2026-08-13 and are now DEF-017…DEF-035. **19 open, incl. three S1/P1** (→ [qa/defect-log.csv](qa/defect-log.csv), §3 item 3b). 🔴 **Plus: the Contact Recruiter button is dead on every job** — it gates on two `Job` fields the BE deleted (§3 item 3d). *(And one BE bug blocking cold-start invites — §3 item 1a.)* |
+| **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27); the per-entity history panel is now built too (`b84f7d8`, `AuditTrail.tsx`) — this row previously said it was outstanding, which was stale.** → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** **HEAD `9bdcc71`; no code changes since 2026-08-06 — admin is the one surface with nothing open.** *(Only loose end: the **invoice-PDF download is still disabled in the console**. The BE route now exists — `admin.routes.ts:489` `/monetization/invoices/:id/pdf` — but `monetization/page.tsx:317` and `api.ts:667` still carry the old "employer-gated, an ADMIN gets 403" comments. **One small enable-and-wire task.**)* |
+| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **EN/HI** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Branding shipped 2026-08-13** (`78b625a`) — it had Flutter's **default launcher icon** until then, plus the wrong app name under it. Six UI/UX fixes since (notification unread count + body truncation, message-tab and text-overflow fixes, redundant filters removed). **Missing: checkout** (parked on the store-policy call — and see [store-policy-assessment.md](store-policy-assessment.md), which says the locked plan is not permissible) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** Still the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** *(that file is dated 2026-07-13 and is now behind)* |
 
 ### Hosted backend — ⚠️ read before redeploying
 **`http://103.225.224.149:5000`** — last matched the repo around 2026-07-12. It is **well behind `main`**: the seat rework + `/entitlements`, admin monetization endpoints, reports queue, content scan, notification channels, audio removal, and **the whole 2026-08-03 auth rework** are all missing from it.
@@ -35,12 +42,13 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 
 **Bottom line:** the web product is built end-to-end — backend, portal **and admin console** — **including employer monetization** (credits, Razorpay, GST invoices, paid candidate database, team seats). Seat bugs fixed, audio removed, auth rebuilt and both web clients reconciled with it.
 
-**What actually remains is four things, and none of them is portal feature work:**
+**What actually remains is five things:**
 
 1. **External config** — real Razorpay keys, Azkashine GSTIN, MSG91 DLT/WhatsApp templates, FCM, and above all **a real HTTPS domain**, which alone blocks Google OAuth, WhatsApp and secure cookies.
-2. **Mobile** — the checkout (pending D2 / the store-policy call), invoices, and **getting it onto a device at all**.
+2. **Mobile** — the checkout (**D2 must be reopened first** — [store-policy-assessment.md](store-policy-assessment.md) shows in-app Razorpay is not permissible), invoices, and **getting it onto a device at all**.
 3. **One open BE bug** — the trial-lot fix that unblocks cold-start team invites, written and verified but **not merged** (§3 item 1a).
-4. **Five portal defects** from the 04-Aug QA run — a small, self-contained pass (§3 item 3b).
+4. 🔴 **Reconcile the portal with the dropped `Job` fields** — the Contact Recruiter button is dead and three employer form controls go nowhere (§3 item 3d). **This is portal feature work, and it is a regression.**
+5. 🔴 **19 open portal defects from the 04-Aug QA run** — **not** the "small pass" this list previously claimed. QA's document grew from 13 issues to **32**; items 14–32 were triaged on 2026-08-13 and **three are S1/P1**: the employer can't reach **Messages**, can't view **their own posted job**, and has **no notification bell** — all three are built features with no entry point (§3 item 3b).
 
 See the **backend** and **admin** session summaries at the end of §3.
 
@@ -122,17 +130,67 @@ The BE deleted both `set-password` routes and made register require **both conta
 
 ⚖️ **Web and mobile registration flows differ, and that is a DECISION, not debt** — mobile (`37dedcb`) shipped a different screen order the same day. Same rules, endpoints and outcomes; only the grouping differs. Locked as **D6** in §6 — read it before re-raising, and do not "fix" it by reworking mobile.
 
-**3b. Portal — 5 defects left from the 04-Aug QA run** *(FE)* — 🟠 **OPEN, small and self-contained.**
-QA executed against the hosted portal on 2026-08-04 and filed 13 items; triage confirmed every one against the code and added a 14th we found ourselves. **Eight are fixed** (folded into 3a), **one was closed as by-design** (the admin console has no self-signup — that is deliberate; QA needs credentials, not a fix). Full register with root causes: [qa/defect-log.csv](qa/defect-log.csv).
+**3b. Portal — the 04-Aug QA run is BIGGER than we thought: 32 issues, not 13** *(FE)* — 🟠 **19 open after triage.**
+
+⚠️ **Corrected 2026-08-13.** We triaged QA's document when it held **13 items**. **QA has since extended the same document to 32** (`ProSidhdhi_TestExec_IssuesIdentified_04-Aug-2026`: the 06-Aug copy has 13 items / 7 screenshots; the current copy has **32 items / 15 screenshots**). Items **14–32 had never been logged, triaged or assigned.** They are now triaged against the code and recorded as **DEF-017 … DEF-035**.
+
+**The register is now 35 rows** → [qa/defect-log.csv](qa/defect-log.csv): **19 open · 11 fixed/awaiting retest · 5 not-a-defect.**
+
+**🔴 Three of the new items are S1/P1 — all the same root shape: a built feature with no way to reach it.**
+
+| Defect | What | Cause (confirmed in code) |
+|---|---|---|
+| **DEF-022** | **Employer cannot reach Messages at all** | `/messages` works, but **no employer screen links to it.** Employer↔seeker chat — a core product loop — is reachable only by typing the URL |
+| **DEF-023** | **Employer cannot view their own posted job** | `employer/jobs/page.tsx:226` links to `/job-details/<id>`, which is wrapped in `ProtectedRoute requiredRole="seeker"`. **The link is broken for the only role it is shown to** |
+| **DEF-021** | **Employer has no notification bell** | `HeaderActions` (which contains `NotificationBell`) is rendered on **six seeker pages only**; every employer page renders a bare `UserDropdown` |
+
+DEF-021 and DEF-022 share one fix site — the employer header. **Fix them together.**
+
+**Also newly confirmed:**
+- **DEF-033 — "Shortlisted" can never work.** `candidates/page.tsx:27` defines a filter tab for status `SHORTLISTED`, but the only status actions that exist are Accept, Reject and Bookmark. **Nothing ever writes that status**, so the tab is permanently empty. Either build the action or drop the tab.
+- **DEF-030 — the name field accepts `1234`.** `register/profile/page.tsx:75` checks only `length < 2`; no character class. Needs a client pattern **and** a BE mirror.
+- **DEF-032 — email/phone are not editable** anywhere in the UI, though the BE has OTP-verified `change-email` / `change-phone` endpoints. Built on the server, unexposed on the client.
+
+**Four probably fixed already** — QA tested on 04-Aug, *before* the 06-Aug auth rework: **DEF-019** (password rules — now enforced at `register/password/page.tsx:15`), **DEF-020** (post-registration redirect), plus **DEF-026** (employer profile business fields, fixed by `f347e99`) and **DEF-003/011** (branding, `c2ed0a1`). **Retest to close rather than re-fix.**
+
+**One to test before touching code — DEF-035 (Near By returns everything).** The wiring is correct (`job-feed/page.tsx:162-174` passes lat/long). But **geolocation is a secure-context API and QA tested on `http://103.225.224.149:3000`**, so the browser blocks it outright. Retest on HTTPS or localhost first; this may be an artefact of the HTTP staging box, not a defect.
+
+**Five are not defects** — DEF-027 (left-hand nav, "like RABHAN"), DEF-028 (page whitespace), DEF-029 (split name into first/last — a schema change across all three clients), DEF-034 (inner scrollbar), and DEF-009 (admin has no self-signup — deliberate). **Route these to Shaik; do not fold them into a defect-fix pass.**
+
+**Still open from the original 13:** DEF-004 + DEF-014 (the **decorative seeker landing search bar** — type a keyword, press Search, get an unfiltered feed), DEF-001 (Hindi on the home hero), DEF-006 (landing viewport fit).
 
 | Defect | What | Sev |
 |---|---|---|
 | **DEF-004 + DEF-014** | **The seeker landing search bar is entirely decorative.** "Select location" is a `<button>` with no `onClick`, and Search Jobs is a plain `<Link href="/job-feed">` that drops the typed keyword. Type a job title, press Search, get an unfiltered feed | S2 / P1 |
 | **DEF-001** | Home hero + badge stay English in Hindi — `HeroSection.tsx` has no `useTranslation` at all | S2 / P2 |
 | **DEF-006** | Seeker landing does not fit the viewport; the search bar sits below the fold (fixed `text-[72px]` + `mb-[111px]`, no responsive variants) | S3 / P3 |
-| **DEF-010 + DEF-011** | **The portal is branded with the parent company's logo.** Header and footer both render the **Azkashine** mark; the product is ProSiddhi. 🚧 **Blocked on the designer** → [brand-asset-brief.md](brand-asset-brief.md) | S3 / P2 |
+| ~~**DEF-010 + DEF-011**~~ | ~~The portal is branded with the parent company's logo~~ — ✅ **FIXED 2026-08-13** (`c2ed0a1`), see item 3c | ~~S3 / P2~~ |
 
-DEF-004 + DEF-014 are the same control and the most user-visible thing left in the portal. The others are one small pass, except the branding, which cannot start until the artwork arrives.
+DEF-004 + DEF-014 are the same control and — alongside the dead Contact Recruiter button (3d) — the most user-visible thing left in the portal. The rest is one small pass.
+
+**3c. Branding — ✅ DONE both clients 2026-08-13** *(FE + Mobile)*
+The designer's artwork arrived and is wired in: portal `c2ed0a1` (39 screens + footer knockout + browser tab/favicon) and mobile `78b625a` (all Android densities, the adaptive icon, the full iOS AppIcon set, splash, and the in-app watermark). `type-check` and `flutter analyze` both clean. Spec: [brand-asset-brief.md](brand-asset-brief.md).
+
+**Three defects in the designer's delivery had to be corrected before use** — tell the designer, and re-check any future drop:
+- **Every raster was one pixel oversized** — app icon 1025², adaptive foreground 433², favicon 33², splash 1152×**1153**. **Play Console rejects an icon that is not exactly 1024×1024.** Re-exported at exact sizes.
+- **The adaptive foreground and the supplied adaptive background are the same blue `#108CF0`** — composited, the mark nearly vanishes and only the orange dot shows. Paired with white instead. This would have shipped as the home-screen icon.
+- `Hortizonal lock up Light Bg Logo.svg` is **byte-identical** to the full-colour file — a duplicate, not a third variant. Lockup ratio is **3.31:1** against the 3.6:1 spec, so it letterboxes slightly in the 142×39 header slot.
+
+**Confirmed brand hex:** blue `#0A7DED` · light blue `#1EAEF7` · orange `#E38239` · tagline `#000000`.
+
+**Still owed by the designer:** the **editable source file** (none supplied) and the **Azkashine marks (A1/A2)** for the "A company of Azkashine" footer attribution — Azkashine is currently removed from the footer entirely rather than demoted. Decide before launch whether that attribution returns.
+
+**3d. 🔴 Portal — reconcile with the dropped `Job` fields** *(FE — NEW, OPEN, a live regression)*
+Backend `fe246f1` (06-Aug, Asrar) removed four `Job` columns: `duration`, `expiresAt`, `showEmailToSeekers`, `showPhoneToSeekers`. **The portal was never updated.** `createJobSchema` is not `.strict()`, so Zod silently **strips** the extra keys — nothing 400s, which is exactly why this went unnoticed.
+
+| Where | Effect |
+|---|---|
+| [job-details/[id]/page.tsx:299](../src/app/job-details/%5Bid%5D/page.tsx#L299) | 🔴 **Contact Recruiter is gated on `job.showEmailToSeekers \|\| job.showPhoneToSeekers`.** Both fields are gone from the response, so both are `undefined` → **the button never renders on any job.** A flagship seeker feature is invisible. |
+| [components/job/JobForm.tsx](../src/components/job/JobForm.tsx) | 🟠 Still collects **duration**, an **"Expires On"** date and the **two contact toggles**. Employers fill them in; the BE discards them. Dead controls that imply control the employer doesn't have. |
+| [employer/jobs/[id]/edit/page.tsx:58-63](../src/app/employer/jobs/%5Bid%5D/edit/page.tsx#L58-L63) | 🟠 Hydrates the same four fields from a response that no longer carries them. |
+| [lib/api.ts](../src/lib/api.ts) | `Job` and `PostJobData` still declare all four. |
+
+**The fix is a deletion, not a feature.** The BE's product decision is that **employer contact is now always shown** (the seeker side is free), so Contact Recruiter should render unconditionally — the reveal endpoint already returns contact without filtering. Remove the toggles, the duration field and the expiry picker from the form and the types. *The expiry picker was always a lie anyway — a job's life is `liveUntil`, 30 days per POST credit, whatever date the employer typed.*
 
 **4. Admin — the Revenue card lies** *(Admin)* — ✅ **FIXED 2026-07-12** (`2dc9cc9`).
 The card now shows real `PaymentHistory` money (exact rupees, en-IN grouped — the BE's own `formattedRevenue` is lossy above ₹1,00,000), renders the 12-month `monthlyRevenue` trend the client used to throw away, and adds a **Pending Verifications** card from the `pendingVerifications` block (also previously discarded).
@@ -160,11 +218,32 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 ### 🟡 P2 — after launch
 
-**11. Mobile — feature completion.** ~60% built (verified 2026-07-12). The **free product is done and fully EN/HI-localised**; the post-credit **gate is in**. Remaining: **subscription screens** (plans + wallet — *buildable now*), **candidate database**, **team seats**, wire the **dead job edit/close/delete** methods, the i18n **model/display layer**, **Google OAuth**, and chat **Call HR**. → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker.
+**11. Mobile — feature completion.** **~85% built** (this section previously said ~60%, which was stale by two sessions). The free product, **candidate database**, **team seats**, chat and **EN/HI** are all done, the post-credit gate is in, registration is reworked and verified, and branding shipped 2026-08-13. **Remaining: the checkout** (blocked — **D2 must be reopened**, see [store-policy-assessment.md](store-policy-assessment.md)), **invoices** (never built), **Google sign-in enablement** (built but switched off; needs Cloud-console OAuth clients), FAQ/Help, and **push** (FCM config). 🔴 **And getting it onto a device at all — it has never run on hardware or an emulator, because no dev machine has an Android SDK.** → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker, **but it is dated 2026-07-13 and behind** — it predates the registration rework, the branding, and six UI fixes.
    - **Only the checkout is parked:** the plans catalog + wallet + "what each plan allows" screens are pure `GET /api/plans` + `/credits` display and can be built now. Only the **"tap Buy → pay"** step waits on the in-app Razorpay + store-policy call. (Interim: the Buy button can stub, or deep-link to the working web checkout.)
    - *(The earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
 **12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
-**13. The other 8 languages** (web EN + HI done; mobile EN + HI done; the other 8 are for later).
+**13. The other 8 languages** — ✅ **BUILT 2026-08-17.** All **10** locales now ship on **both** the
+portal and the mobile app: en · hi · ta · kn · ml · mr · gu · or · te · bn.
+- **Portal:** 90 locale files, **14,763 strings**. **Mobile:** 10 ARBs × 793 keys.
+- Gated by `scripts/verify-locales.mjs` — key parity vs English, placeholder integrity, correct
+  script per language, and wrong-script detection. Run it before any locale change.
+- **Noto Indic fonts added** (`src/app/fonts.ts`). DM Sans is Latin-only; without these, Odia,
+  Malayalam and Telugu render as tofu boxes on devices lacking the system font.
+- **Locales are code-split** (`src/i18n/loadLocale.ts`) — only English is bundled, the rest load on
+  demand. Bundling all ten eagerly cost **+230 kB First Load JS on every page**; that is now
+  149–158 kB instead of 376–387 kB.
+- 🔴 **NOT native-reviewed.** Eight languages are machine-translated. The validator proves they are
+  structurally sound, **not** that the words are right. → `docs/i18n/GLOSSARY.md` §8 lists the open
+  review items per language; the registration and paywall flows are the highest-value first read.
+- 🔴 **Backend blocker:** `PATCH /api/me/language` allow-lists only `en|hi`
+  (`prosiddhi-backend/src/validators/me.validator.ts` — its own comment says "extend this enum when
+  S3 languages ship"). Until Asrar widens it, non-en/hi users keep an English `preferredLanguage`
+  server-side, so **their notifications stay English**. One-line change, needs BE coordination.
+- **Defects found and fixed en route:** Gujarati labelled its gender field `જાતિ` (**caste**);
+  Marathi and Kannada used the "labourer" word for company **employee** headcount; Hindi was
+  internally inconsistent on candidate/interview/owner/brand (124 fixes). **English source defects
+  found but NOT fixed** (product-copy decisions) are catalogued in `docs/i18n/GLOSSARY.md` §8 —
+  including a seeker-facing "small subscription" claim that contradicts *free forever*.
 **14. Security** — move the JWT from `localStorage` to an httpOnly cookie (both web apps).
 **15. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
 **16. Audio** — revisit for v2 (removed from V1). The backend **accept-paths are now removed** (2026-07-12): apply + chat are text-only, but backward-tolerant — a stale client that still sends an `audio` field is accepted and the audio silently discarded, never a 400. The DB `audio*` columns remain (dropping them is a destructive migration with no benefit).
@@ -274,6 +353,10 @@ The feature was **completely dead in three independent ways**, and the first hid
 | 22 | BE 🔒 | **NEW — open, a decision not a defect.** `POST /api/otp/send` refuses an already-registered number with *"This phone number is already registered"* — a **phone-enumeration oracle**. It is also exactly what makes the error actionable (a returning user is told to sign in instead of re-verifying). Keep it or make it generic: **Asrar's call**, BE change either way |
 | 23 | Mobile | ✅ **FIXED 2026-08-06** — three real defects found by *running* `37dedcb`: a register whose response was lost left the user in a **permanent retry loop** (marks burned, every retry 400s — `1adc430`); a `TextEditingController` rebuilt every frame and never disposed (`e2760a8`); a stale server status able to pair with a fresh local error and light the wrong CTA (`e552caf`, found by reviewing the first fix) |
 | 24 | Mobile | ✅ **FIXED 2026-08-06** (`b2b6239`) — `ApiResponse` dropped the BE's `errors[{path,message}]`, so every schema rejection read as a bare *"Validation failed"*. Pinned by a 12-case contract test built from captured payloads |
+| 25 | Portal 🔴 | **NEW — OPEN, a live regression.** **The Contact Recruiter button never renders on any job.** It gates on `job.showEmailToSeekers \|\| job.showPhoneToSeekers`, two columns the BE dropped in `fe246f1` (06-Aug), so both read `undefined`. Not caught because `createJobSchema` isn't `.strict()` — the portal's extra keys are silently stripped and nothing errors → §3 item 3d |
+| 26 | Portal | **NEW — open, medium.** The job form still collects **duration**, an **"Expires On"** date and the **two contact toggles**; all four are discarded by the BE. Dead controls implying control the employer doesn't have. The expiry picker was always a lie — a job lives `liveUntil`, 30 days per POST credit → §3 item 3d |
+| 27 | Portal / Mobile | ✅ **FIXED 2026-08-13** — both clients were branded with the **parent company's Azkashine mark** (DEF-010 + DEF-011); mobile additionally shipped **Flutter's default launcher icon** and `prosiddhi_mobile` as the home-screen name. Portal `c2ed0a1`, mobile `78b625a` → §3 item 3c |
+| 28 | Portal | **NEW — open, low.** `job-details` never resets `hasApplied`/`isSaved`/`related` when `jobId` changes, and the writes are guarded on `Promise.allSettled` → `'fulfilled'`. If the applied-check rejects, the **previous** job's "Applied" badge stays on screen. Fix is a 3-line reset alongside `setLoading(true)` |
 | — | Mobile | ✅ *All 4 earlier mobile bugs FIXED 2026-07-12 (gate, dead route, dead API URL, dropped filters). The "ungated revenue leak" was a mis-diagnosis — the BE always gated posting.* |
 
 ---

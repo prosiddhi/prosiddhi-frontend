@@ -12,66 +12,31 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import enCommon from '@/locales/en/common.json'
-import enAuth from '@/locales/en/auth.json'
-import enEmployerRegister from '@/locales/en/employerRegister.json'
-import enSeeker from '@/locales/en/seeker.json'
-import enEmployer from '@/locales/en/employer.json'
-import enChat from '@/locales/en/chat.json'
-import enProfile from '@/locales/en/profile.json'
-import enTaxonomy from '@/locales/en/taxonomy.json'
-import enLegal from '@/locales/en/legal.json'
+// Only English is bundled. The other nine locales are code-split and fetched on demand
+// by i18n/loadLocale.ts — see the rationale there. Importing all ten here put ~1.26 MB of
+// JSON into a single eager chunk.
+import enResources from '@/locales/en'
 
-import hiCommon from '@/locales/hi/common.json'
-import hiAuth from '@/locales/hi/auth.json'
-import hiEmployerRegister from '@/locales/hi/employerRegister.json'
-import hiSeeker from '@/locales/hi/seeker.json'
-import hiEmployer from '@/locales/hi/employer.json'
-import hiChat from '@/locales/hi/chat.json'
-import hiProfile from '@/locales/hi/profile.json'
-import hiTaxonomy from '@/locales/hi/taxonomy.json'
-import hiLegal from '@/locales/hi/legal.json'
+// The locale constants live in a side-effect-free module so the API client and the global
+// error boundary can import them WITHOUT booting i18next (this file calls i18n.init() below).
+// Re-exported here because most call sites already import them from '@/i18n/config'.
+export {
+  SUPPORTED_LANGUAGES,
+  DEFAULT_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  NAMESPACES,
+  toSupportedLanguage,
+} from './languages'
+export type { SupportedLanguage } from './languages'
 
-// EN + HI are the only v1-complete locales (Q6: hard-gated to 100% by code freeze).
-// The other 8 soft-launch in S3 and are NOT selectable yet.
-export const SUPPORTED_LANGUAGES = ['en', 'hi'] as const
-export const DEFAULT_LANGUAGE = 'en'
-export const LANGUAGE_STORAGE_KEY = 'preferredLanguage'
-export const NAMESPACES = [
-  'common',
-  'auth',
-  'employerRegister',
-  'seeker',
-  'employer',
-  'chat',
-  'profile',
-  'taxonomy',
-  'legal',
-] as const
+import {
+  SUPPORTED_LANGUAGES,
+  DEFAULT_LANGUAGE,
+  NAMESPACES,
+} from './languages'
 
 export const resources = {
-  en: {
-    common: enCommon,
-    auth: enAuth,
-    employerRegister: enEmployerRegister,
-    seeker: enSeeker,
-    employer: enEmployer,
-    chat: enChat,
-    profile: enProfile,
-    taxonomy: enTaxonomy,
-    legal: enLegal,
-  },
-  hi: {
-    common: hiCommon,
-    auth: hiAuth,
-    employerRegister: hiEmployerRegister,
-    seeker: hiSeeker,
-    employer: hiEmployer,
-    chat: hiChat,
-    profile: hiProfile,
-    taxonomy: hiTaxonomy,
-    legal: hiLegal,
-  },
+  en: enResources,
 } as const
 
 // Guard against re-init under Fast Refresh / repeated imports.
@@ -94,6 +59,8 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       resources,
+      // Bundles for the other nine locales are added at runtime by ensureLocale().
+      partialBundledLanguages: true,
       // Force the initial render to the default language on BOTH server and client
       // so SSR markup matches first client paint. The stored choice is applied in a
       // mount effect inside I18nProvider (no hydration mismatch).

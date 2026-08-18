@@ -1,0 +1,16 @@
+{
+  "category": "ক্যাটাগরি",
+  "sector": "সেক্টর",
+  "jobTitle": "পদ",
+  "selectCategory": "একটি ক্যাটাগরি বেছে নিন",
+  "selectSector": "একটি সেক্টর বেছে নিন",
+  "selectJobTitle": "একটি পদ বেছে নিন",
+  "selectCategoryFirst": "আগে একটি ক্যাটাগরি বেছে নিন",
+  "selectSectorFirst": "আগে একটি সেক্টর বেছে নিন",
+  "allCategories": "সব ক্যাটাগরি",
+  "allSectors": "সব সেক্টর",
+  "allJobTitles": "সব পদ",
+  "loading": "লোড হচ্ছে…",
+  "error": "ক্যাটাগরি লোড করা যায়নি।",
+  "retry": "আবার চেষ্টা করুন"
+}

@@ -1,0 +1,16 @@
+{
+  "category": "ବର୍ଗ",
+  "sector": "କ୍ଷେତ୍ର",
+  "jobTitle": "ପଦବୀ",
+  "selectCategory": "ଏକ ବର୍ଗ ବାଛନ୍ତୁ",
+  "selectSector": "ଏକ କ୍ଷେତ୍ର ବାଛନ୍ତୁ",
+  "selectJobTitle": "ଏକ ପଦବୀ ବାଛନ୍ତୁ",
+  "selectCategoryFirst": "ପ୍ରଥମେ ଏକ ବର୍ଗ ବାଛନ୍ତୁ",
+  "selectSectorFirst": "ପ୍ରଥମେ ଏକ କ୍ଷେତ୍ର ବାଛନ୍ତୁ",
+  "allCategories": "ସବୁ ବର୍ଗ",
+  "allSectors": "ସବୁ କ୍ଷେତ୍ର",
+  "allJobTitles": "ସବୁ ପଦବୀ",
+  "loading": "ଲୋଡ୍ ହେଉଛି…",
+  "error": "ବର୍ଗ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।",
+  "retry": "ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"
+}

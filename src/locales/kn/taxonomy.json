@@ -1,0 +1,16 @@
+{
+  "category": "ವರ್ಗ",
+  "sector": "ಕ್ಷೇತ್ರ",
+  "jobTitle": "ಹುದ್ದೆ",
+  "selectCategory": "ಒಂದು ವರ್ಗ ಆಯ್ಕೆ ಮಾಡಿ",
+  "selectSector": "ಒಂದು ಕ್ಷೇತ್ರ ಆಯ್ಕೆ ಮಾಡಿ",
+  "selectJobTitle": "ಒಂದು ಹುದ್ದೆ ಆಯ್ಕೆ ಮಾಡಿ",
+  "selectCategoryFirst": "ಮೊದಲು ಒಂದು ವರ್ಗ ಆಯ್ಕೆ ಮಾಡಿ",
+  "selectSectorFirst": "ಮೊದಲು ಒಂದು ಕ್ಷೇತ್ರ ಆಯ್ಕೆ ಮಾಡಿ",
+  "allCategories": "ಎಲ್ಲಾ ವರ್ಗಗಳು",
+  "allSectors": "ಎಲ್ಲಾ ಕ್ಷೇತ್ರಗಳು",
+  "allJobTitles": "ಎಲ್ಲಾ ಹುದ್ದೆಗಳು",
+  "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+  "error": "ವರ್ಗಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ.",
+  "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ"
+}

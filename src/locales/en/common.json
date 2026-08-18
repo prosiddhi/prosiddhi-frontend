@@ -60,11 +60,12 @@
   },
   "language": {
     "label": "Language",
-    "select": "Select language",
-    "english": "English",
-    "hindi": "हिन्दी (Hindi)"
+    "select": "Select language"
   },
   "home": {
+    "heroBadge": "Work Opportunities for Everyone",
+    "heroTitle": "Find Jobs Near You — Easy and Fast",
+    "heroSubtitle": "Search and apply for jobs in your language. No degree needed, just your effort.",
     "languageTitle": "Select Your Native Language",
     "languageTitleVoice": "Select your native language",
     "languageDescription": "Please confirm your native or local language for a better experience",
@@ -177,5 +178,23 @@
     "markAllRead": "Mark all read",
     "empty": "No notifications yet.",
     "loadError": "Couldn't load your notifications."
+  },
+  "breadcrumbs": {
+    "label": "Breadcrumb",
+    "employer": "Employer",
+    "jobDetails": "Job Details",
+    "application": "Application",
+    "conversation": "Conversation",
+    "postJob": "Post a Job",
+    "editJob": "Edit Job",
+    "candidates": "Applicants",
+    "candidate": "Candidate",
+    "workers": "Candidate Database",
+    "team": "Team",
+    "plans": "Plans",
+    "invoices": "Invoices",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact Us"
   }
 }

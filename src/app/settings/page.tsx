@@ -16,6 +16,7 @@ import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, employerAPI, jobSeekerAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 
 // Mirrors the BE rule (auth.validator changePasswordSchema): 8+ chars with at
 // least one lowercase, one uppercase and one digit. Checked client-side so the
@@ -120,6 +121,11 @@ function SettingsContent() {
         </div>
       </header>
 
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
+        <Breadcrumbs />
+      </div>
+
+
       <main className="flex-1 py-8 sm:py-12">
         <div className="max-w-[720px] mx-auto px-4 sm:px-6">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-8">
@@ -187,7 +193,7 @@ function SettingsContent() {
                         : 'border-gray-300 text-gray-900 hover:bg-gray-50'
                     }`}
                   >
-                    <span>{t(opt.labelKey)}</span>
+                    <span>{opt.label}</span>
                     {selected && <Check className="w-5 h-5" />}
                   </button>
                 )
