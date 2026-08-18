@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { isValidPersonName } from '@/lib/nameValidation'
 
 /**
  * Mirrors the BE `dateOfBirthSchema` refinement (auth.validator.ts): the date
@@ -72,7 +73,8 @@ export default function RegisterProfilePage() {
   }
 
   const validateForm = () => {
-    if (!fullName.trim() || fullName.trim().length < 2) {
+    // Was a length check only, so "1234" registered successfully (DEF-030).
+    if (!isValidPersonName(fullName)) {
       setError(t('auth:profile.errorName'))
       return false
     }

@@ -18,6 +18,7 @@ import {
 import { Camera, Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { isValidPersonName } from '@/lib/nameValidation'
 
 const EMPLOYER_DOC_TYPES = [
   { value: 'GST_CERTIFICATE', label: 'GST Certificate' },
@@ -159,6 +160,12 @@ function EmployerProfileContent() {
       (registrationNumber.trim() && registrationNumber.trim() !== originalReg.current))
 
   const handleSave = async () => {
+    // Same name rule as registration (DEF-030). Individual employers only — a
+    // business's `companyName` is a different field with different rules.
+    if (!isBusiness && fullName.trim() && !isValidPersonName(fullName)) {
+      setSaveError(t('auth:profile.errorName'))
+      return
+    }
     // BE requires GST to be exactly 15 chars; guard before the round-trip.
     if (isBusiness && gstNumber.trim() && gstNumber.trim().length !== 15) {
       setSaveError(t('profile:employer.gstLengthError'))

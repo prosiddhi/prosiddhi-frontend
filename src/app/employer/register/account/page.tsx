@@ -9,6 +9,7 @@ import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
+import { isValidPersonName } from '@/lib/nameValidation'
 
 // Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -58,7 +59,8 @@ export default function AccountSetupPage() {
   }, [hydrated])
 
   const handleNext = async () => {
-    if (isIndividual && fullName.trim().length < 2) {
+    // Length-only until DEF-030: "1234" was an acceptable individual-employer name.
+    if (isIndividual && !isValidPersonName(fullName)) {
       setError(t('employerRegister:account.nameTooShort'))
       return
     }

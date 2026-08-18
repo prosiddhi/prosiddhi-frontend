@@ -31,6 +31,7 @@ import {
   Search,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
+import { isValidPersonName } from '@/lib/nameValidation'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -154,6 +155,12 @@ function SeekerProfileContent() {
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
 
   const handleSave = async () => {
+    // Registration rejects a numeric name (DEF-030); without the same guard here
+    // the rule is one edit away from being undone.
+    if (fullName.trim() && !isValidPersonName(fullName)) {
+      setSaveError(t('auth:profile.errorName'))
+      return
+    }
     setSaving(true)
     setSaveError('')
     setSaved(false)
