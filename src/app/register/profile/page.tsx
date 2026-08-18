@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { isValidPersonName } from '@/lib/nameValidation'
+import { nameProblem } from '@/lib/nameValidation'
 
 /**
  * Mirrors the BE `dateOfBirthSchema` refinement (auth.validator.ts): the date
@@ -74,8 +74,11 @@ export default function RegisterProfilePage() {
 
   const validateForm = () => {
     // Was a length check only, so "1234" registered successfully (DEF-030).
-    if (!isValidPersonName(fullName)) {
-      setError(t('auth:profile.errorName'))
+    // Two messages, because one cannot be true for both cases: a blank field is
+    // not a digits problem, and "12345" is not a length problem.
+    const problem = nameProblem(fullName)
+    if (problem) {
+      setError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
       return false
     }
     // Email is OPTIONAL — the seeker is often an unskilled worker with no email

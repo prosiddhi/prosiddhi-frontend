@@ -31,7 +31,7 @@ import {
   Search,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { isValidPersonName } from '@/lib/nameValidation'
+import { nameProblem } from '@/lib/nameValidation'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -159,6 +159,13 @@ function SeekerProfileContent() {
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
 
   const handleSave = async () => {
+    // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
+    // a few seconds, so a guard that returns early without clearing it leaves the
+    // green tick sitting next to the new red error — the screen says the save both
+    // worked and failed.
+    setSaveError('')
+    setSaved(false)
+
     // Registration rejects a numeric name (DEF-030); without the same guard here
     // the rule is one edit away from being undone.
     //
@@ -167,13 +174,12 @@ function SeekerProfileContent() {
     // backend mirror is still open, so "Test User 1" is creatable via the API
     // today. Such a user could not save ANY profile change, not even their bio,
     // and the error would point at a field they never touched.
-    if (fullName.trim() !== originalFullName.current && !isValidPersonName(fullName)) {
-      setSaveError(t('auth:profile.errorName'))
+    const problem = fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
+    if (problem) {
+      setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
       return
     }
     setSaving(true)
-    setSaveError('')
-    setSaved(false)
     try {
       // Only send rows with BOTH a position and a parseable startDate — the BE
       // requires both. workExperiences (when present) FULL-REPLACES server-side.

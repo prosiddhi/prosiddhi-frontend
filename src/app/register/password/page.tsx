@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { authAPI, classifyRegisterError, jobSeekerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { isValidPersonName } from '@/lib/nameValidation'
+import { nameProblem } from '@/lib/nameValidation'
 
 // Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -48,19 +48,22 @@ export default function RegisterPasswordPage() {
   // The password itself is intentionally NOT part of this check: it is the one
   // thing that is never persisted, so requiring it here would send every
   // refreshing user back to step 2 — which is the bug being fixed.
+  useEffect(() => {
+    if (!hydrated) return
+    if (!data.phoneVerified || !data.preferredJobTitle) router.replace('/register/phone')
+  }, [hydrated, data.phoneVerified, data.preferredJobTitle, router])
+
   // `fullName` is checked here as well as on the profile step, because THIS is the
   // call that creates the account and it reads from sessionStorage. A journey
   // started before the DEF-030 rule shipped still holds whatever name was stored
-  // then, so the profile step's guard never ran for it. Send those back to the
-  // step that owns the field rather than registering an invalid name.
-  useEffect(() => {
-    if (!hydrated) return
-    if (!data.phoneVerified || !data.preferredJobTitle) {
-      router.replace('/register/phone')
-      return
-    }
-    if (!isValidPersonName(data.fullName ?? '')) router.replace('/register/profile')
-  }, [hydrated, data.phoneVerified, data.preferredJobTitle, data.fullName, router])
+  // then, so the profile step's guard never ran for it.
+  //
+  // Deliberately NOT a redirect. Bouncing from the last step back to step 3 with
+  // no message reads as the app breaking, and /register/profile routes FORWARD to
+  // /register/categories — so the user is silently made to re-walk two steps they
+  // already completed. Instead: block the button, say what is wrong, and offer one
+  // link straight to the field. Same shape as the phone re-verify path below.
+  const nameIssue = hydrated ? nameProblem(data.fullName ?? '') : null
 
   const handleCreate = async () => {
     if (!PASSWORD_RULE.test(password)) {
@@ -210,6 +213,24 @@ export default function RegisterPasswordPage() {
                 <p className="text-base lg:text-[24px] text-[#767676]">{t('auth:password.subtitle')}</p>
               </div>
 
+              {/* A name carried over from a journey started before the DEF-030 rule.
+                  Shown here with a link to the field, rather than redirecting — see
+                  the note by `nameIssue`. */}
+              {nameIssue && (
+                <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600">
+                    {t(nameIssue === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/register/profile')}
+                    className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
+                  >
+                    {t('auth:password.fixName')}
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600">{error}</p>
@@ -275,7 +296,9 @@ export default function RegisterPasswordPage() {
               <div className="flex justify-end">
                 <button
                   onClick={handleCreate}
-                  disabled={loading}
+                  // Blocked while the carried-over name is invalid — the message
+                  // above says why and links to the field.
+                  disabled={loading || nameIssue !== null}
                   className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
                   <span className="text-base lg:text-[20px]">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>

@@ -9,7 +9,7 @@ import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
-import { isValidPersonName } from '@/lib/nameValidation'
+import { nameProblem } from '@/lib/nameValidation'
 
 // Mirrors the BE passwordRule (min 8 + upper + lower + digit).
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -60,8 +60,13 @@ export default function AccountSetupPage() {
 
   const handleNext = async () => {
     // Length-only until DEF-030: "1234" was an acceptable individual-employer name.
-    if (isIndividual && !isValidPersonName(fullName)) {
-      setError(t('employerRegister:account.nameTooShort'))
+    const nameIssue = isIndividual ? nameProblem(fullName) : null
+    if (nameIssue) {
+      setError(
+        t(nameIssue === 'tooShort'
+          ? 'employerRegister:account.nameTooShort'
+          : 'employerRegister:account.nameLetters')
+      )
       return
     }
     if (!PASSWORD_RULE.test(password)) {

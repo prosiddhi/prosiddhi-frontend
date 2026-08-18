@@ -61,9 +61,28 @@ export const NAME_MIN_LENGTH = 2
  * with no letter in it at all.
  */
 export function isValidPersonName(value: string): boolean {
+  return nameProblem(value) === null
+}
+
+/**
+ * WHY a name was rejected — so the screen can say something true.
+ *
+ *  - `tooShort`  — empty, or a single character that is otherwise a fine name
+ *                  ("A"). Nothing to do with digits.
+ *  - `notAName`  — has digits, or no letter at all ("----"), or a character we
+ *                  do not accept. Length is irrelevant here: "5" is a digits
+ *                  problem, not a short one.
+ *
+ * One message for both cases is a dead end in either direction: telling a blank
+ * field that its problem is digits is exactly as unhelpful as telling "1234"
+ * that it is too short.
+ */
+export type NameProblem = 'tooShort' | 'notAName' | null
+
+export function nameProblem(value: string): NameProblem {
   const name = value.trim()
-  if (name.length < NAME_MIN_LENGTH) return false
-  if (DIGIT.test(name)) return false
-  if (!LETTER.test(name)) return false
-  return ALLOWED.test(name)
+  if (name.length < NAME_MIN_LENGTH) return 'tooShort'
+  if (DIGIT.test(name)) return 'notAName'
+  if (!LETTER.test(name)) return 'notAName'
+  return ALLOWED.test(name) ? null : 'notAName'
 }

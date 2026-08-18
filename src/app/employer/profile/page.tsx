@@ -18,7 +18,7 @@ import {
 import { Camera, Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
-import { isValidPersonName } from '@/lib/nameValidation'
+import { nameProblem } from '@/lib/nameValidation'
 
 const EMPLOYER_DOC_TYPES = [
   { value: 'GST_CERTIFICATE', label: 'GST Certificate' },
@@ -164,6 +164,14 @@ function EmployerProfileContent() {
       (registrationNumber.trim() && registrationNumber.trim() !== originalReg.current))
 
   const handleSave = async () => {
+    // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
+    // a few seconds, so a guard that returns early without clearing it leaves the
+    // green tick sitting next to the new red error — the screen says the save both
+    // worked and failed. This applies to the GST guard below too, which had the
+    // same shape before this rule was added.
+    setSaveError('')
+    setSaved(false)
+
     // Same name rule as registration (DEF-030). Individual employers only — a
     // business's `companyName` is a different field with different rules.
     //
@@ -173,8 +181,10 @@ function EmployerProfileContent() {
     // ticket, so "Test User 1" is creatable through the API today. That user would
     // be unable to save ANY change, even to an unrelated field, and the error
     // would talk about their name while they were editing something else.
-    if (!isBusiness && fullName.trim() !== originalFullName.current && !isValidPersonName(fullName)) {
-      setSaveError(t('auth:profile.errorName'))
+    const problem =
+      !isBusiness && fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
+    if (problem) {
+      setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
       return
     }
     // BE requires GST to be exactly 15 chars; guard before the round-trip.
