@@ -44,15 +44,26 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27); the per-entity history panel is now built too (`b84f7d8`, `AuditTrail.tsx`) — this row previously said it was outstanding, which was stale.** → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** **HEAD `9bdcc71`; no code changes since 2026-08-06 — admin is the one surface with nothing open.** *(Only loose end: the **invoice-PDF download is still disabled in the console**. The BE route now exists — `admin.routes.ts:489` `/monetization/invoices/:id/pdf` — but `monetization/page.tsx:317` and `api.ts:667` still carry the old "employer-gated, an ADMIN gets 403" comments. **One small enable-and-wire task.**)* |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **all 10 languages** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Branding shipped 2026-08-13** (`78b625a`) — it had Flutter's **default launcher icon** until then, plus the wrong app name under it. Six UI/UX fixes since (notification unread count + body truncation, message-tab and text-overflow fixes, redundant filters removed). **Missing: checkout** (parked on the store-policy call — and see [store-policy-assessment.md](store-policy-assessment.md), which says the locked plan is not permissible) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** Still the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** *(updated 2026-08-18)* |
 
-### Hosted backend — ⚠️ read before redeploying
-**`http://103.225.224.149:5000`** — last matched the repo around 2026-07-12. It is **well behind `main`**: the seat rework + `/entitlements`, admin monetization endpoints, reports queue, content scan, notification channels, audio removal, and **the whole 2026-08-03 auth rework** are all missing from it.
+### Production — ✅ live on HTTPS since 2026-08-18
 
-🔴 **The redeploy is now a coordinated release, not a routine one.** The auth rework is **breaking**: registration payloads changed and `/set-password` is gone. The portal at `:3000` must ship in the **same window** or public sign-up dies. **Mobile is worse** — `app_config.dart` defaults to this server, and there is no shipped build to update, so mobile registration breaks the moment this box moves and stays broken until someone builds the app.
+| | |
+|---|---|
+| Portal | **`https://prosiddhi.com`** (+ `www`) |
+| API | **`https://api.prosiddhi.com`** |
+| Admin console | **`https://admin.prosiddhi.com`** |
 
-**Order:** deploy BE + portal together → verify sign-up on the live site → only then let mobile point at it.
+Verified from outside: all three 200 with a valid Let's Encrypt certificate (issued 17 Aug, auto-renewing), `http://` 301-redirects to `https://`, and **ports 3000 / 5000 / 3001 are closed** — the admin console had been reachable on the open internet over plain HTTP until this.
 
-⚠️ Its **database is empty** (0 jobs — plans + taxonomy seeded only), so create test data before testing flows.
-⚠️ Registration is **impossible in production mode until MSG91 is configured** — the BE stops echoing OTPs and nothing delivers them, so there is no way to obtain a code. This directly blocks the QA plan's "run security/UAT against a production-mode server".
+**The backend was redeployed in the same window.** Confirmed live: `POST /api/jobseekers/set-password` returns **404**, so the 2026-08-03 auth rework is on the server and the four-week gap is closed. DNS moved off Hostinger's CDN; MX and SPF were left untouched, so domain email is unaffected. Runbook: `https-cutover-runbook.md`.
+
+This closes what this file called the biggest cross-cutting blocker — it gated Google OAuth, Meta/WhatsApp, secure cookies, mobile deep links and the mobile web-checkout handoff. All are now **actionable**; none are automatic. → `go-live-config.md` §0.
+
+🔴 **Two things the cutover exposed, both now the top of the go-live list:**
+
+1. **The backend runs in `development` mode on the public internet** — `/health` reports it. That means **OTPs are echoed in API responses** and raw error detail is exposed. It cannot just be flipped: in production the BE stops echoing OTPs, and with **MSG91 unconfigured nothing delivers them**, so registration becomes impossible for everyone. `NODE_ENV=production` and working OTP delivery must land **together**.
+2. **CORS is still wide open** — `app.use(cors())`, no origin restriction. Academic until today, since there were no real origins; now there are. `CORS_ORIGIN` is documented but read by no code, so this needs a small BE change.
+
+⚠️ The database still has **very little test data**, so create some before testing flows.
 
 ### ⛔ Audio is REMOVED from the product (decided 2026-07-12)
 **No audio anywhere** — no application voice message, no chat audio. **Mobile:** audio UI ✅ deleted. **Backend:** accept-paths ✅ removed (backward-tolerant). **Portal:** ✅ **deleted** (2026-07-12) — apply-modal recorder, chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, audio params in `api.ts`, and all audio i18n keys are gone; the mic Permissions-Policy was revoked. Revisit in v2.
@@ -170,7 +181,7 @@ DEF-021 and DEF-022 share one fix site — the employer header. **Fix them toget
 
 **Four probably fixed already** — QA tested on 04-Aug, *before* the 06-Aug auth rework: **DEF-019** (password rules — now enforced at `register/password/page.tsx:15`), **DEF-020** (post-registration redirect), plus **DEF-026** (employer profile business fields, fixed by `f347e99`) and **DEF-003/011** (branding, `c2ed0a1`). **Retest to close rather than re-fix.**
 
-**One to test before touching code — DEF-035 (Near By returns everything).** The wiring is correct (`job-feed/page.tsx:162-174` passes lat/long). But **geolocation is a secure-context API and QA tested on `http://103.225.224.149:3000`**, so the browser blocks it outright. Retest on HTTPS or localhost first; this may be an artefact of the HTTP staging box, not a defect.
+**DEF-035 (Near By returns everything) — root cause traced 2026-08-18, and it is NOT what this line used to say.** The earlier theory was that geolocation is a secure-context API and QA tested over plain HTTP, so the browser blocked it. **Wrong — the app never requests geolocation at all, and no job has coordinates either.** Nothing anywhere populates lat/long. Do not retest on HTTPS expecting it to be fixed. → §3e.
 
 **Five are not defects** — DEF-027 (left-hand nav, "like RABHAN"), DEF-028 (page whitespace), DEF-029 (split name into first/last — a schema change across all three clients), DEF-034 (inner scrollbar), and DEF-009 (admin has no self-signup — deliberate). **Route these to Shaik; do not fold them into a defect-fix pass.**
 

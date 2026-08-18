@@ -82,6 +82,6 @@ Legend: `✅ built · 🟡 partial · ⬜ not built`
 | Mobile | ~86% | 0% (never on device) | payments, invoices, Google, device test |
 
 ## Cross-cutting, all surfaces
-- **Go-live config:** HTTPS/TLS, `NODE_ENV=production`, live Razorpay keys + GSTIN, MSG91 DLT/WhatsApp, FCM
+- **Go-live config:** ~~HTTPS/TLS~~ ✅ **done 2026-08-18** · `NODE_ENV=production` (⚠️ coupled to MSG91 — flipping it alone makes registration impossible, see STATUS.md) · live Razorpay keys + GSTIN · MSG91 DLT/WhatsApp · FCM
 - **Terminology change (decided):** "credits" → user-facing **Plans / Job Posts / Candidate Unlocks** (display layer only; internal model unchanged)
 - **Roadmap (not v1):** AI matching, HRMS/ATS integrations, bulk upload, skill assessments

@@ -26,7 +26,7 @@
 
 | Surface | URL / target | Notes |
 |---|---|---|
-| Portal | `http://103.225.224.149:3000` → `https://prosiddhi.com` | Move to HTTPS before sign-off |
+| Portal | **`https://prosiddhi.com`** | ✅ live on HTTPS since 2026-08-18; the old `:3000` port is closed |
 | Admin | `:3001/admin/login` | Web-only, desktop |
 | API | `…/api` via `:80` proxy → backend `:5000` | — |
 | Mobile | Android emulator `10.0.2.2:5000` · iOS sim `localhost:5000` · device = LAN IP | **Never run on a device yet** |

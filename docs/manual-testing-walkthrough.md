@@ -8,8 +8,11 @@
 ## 0. Before you start
 
 **Environments**
-- **Portal:** http://103.225.224.149:3000 (→ https://prosiddhi.com once prod moves)
-- **Admin:** http://103.225.224.149:3001/admin/login
+- **Portal:** https://prosiddhi.com
+- **Admin:** https://admin.prosiddhi.com
+- **API:** https://api.prosiddhi.com
+
+*(The old `103.225.224.149:3000/:3001/:5000` URLs stopped working on 2026-08-18 — those ports are now closed to the internet.)*
 - **API:** proxied at `…/api` → backend :5000
 
 **⚠️ Critical context (so results make sense)**

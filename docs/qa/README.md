@@ -62,4 +62,5 @@ Each row has: `ID · Module · Title · Type · Priority · Preconditions · Tes
 A few things aren't switched on yet — all flagged in the docs so they don't get filed as bugs:
 - **Google login, real SMS/WhatsApp/push, and live payments** are not configured (Razorpay is in test mode; OTPs show on-screen in dev mode).
 - **The mobile app has never run on a real device** — device testing is the top mobile priority.
-- **The site is HTTP, not HTTPS yet**, and the backend runs in `development` mode — both must change before the security/UAT passes.
+- **The site is on HTTPS** as of 2026-08-18 (`https://prosiddhi.com`, `https://api.prosiddhi.com`, `https://admin.prosiddhi.com`) — the old IP-and-port URLs are closed.
+- ⚠️ **The backend still runs in `development` mode**, which must change before the security/UAT passes. It cannot simply be flipped: in production the BE stops echoing OTPs, and with MSG91 unconfigured nothing delivers them — so registration would be impossible for everyone. `NODE_ENV=production` and working OTP delivery have to land together.

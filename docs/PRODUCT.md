@@ -28,12 +28,14 @@ A **mobile-first, multilingual job portal connecting unskilled / blue-collar wor
 ## 3. The core loop
 
 ```
-Seeker registers → completes profile → browses jobs (recommended / nearby / search / category)
+Seeker registers → completes profile → browses jobs (recommended / nearby* / search / category)
                  → applies → chats → interviews
 Employer registers → buys credits → posts a job → reviews applicants
                    → (or) searches the candidate database and pays to unlock a candidate
                    → accepts / rejects / schedules an interview → chats
 ```
+
+> \* **`nearby` does not work today.** The backend geography is built (Haversine, radius, a location weight in the recommendation score) but **no client captures coordinates** — the job form sends none, and the mobile app has no location package at all. So the Near By tab is empty for every seeker and the location score is 0 on every job. → STATUS.md §3e.
 
 **Revenue is employer-side only. Job seekers are free forever.** See [MONETIZATION.md](MONETIZATION.md).
 

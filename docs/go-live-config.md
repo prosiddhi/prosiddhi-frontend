@@ -8,17 +8,34 @@ Legend: ✅ done · ⏳ in progress / partially done · ❌ not started · 🔒 
 
 ---
 
-## 0. The one cross-cutting blocker — a real HTTPS domain
+## 0. ✅ RESOLVED (2026-08-18) — the HTTPS domain is live
 
-Several things **cannot work over `http://<IP>:port`** and need a proper **HTTPS domain**
-(e.g. `prosiddhi.com` / `api.prosiddhi.com` pointed at the app):
+This section used to open *"the one cross-cutting blocker"*. **It is done.** Verified from outside:
 
-- **Google OAuth** — Google rejects raw IPs and non-HTTPS as Authorized JavaScript origins (only `localhost` is exempt). Google login is blocked until this exists.
-- **Meta / WhatsApp** business verification checks a real HTTPS website.
-- **Mobile web-checkout** — the app only enables it when `WEB_BASE_URL` starts with `https://` (`app_config.dart`).
-- **Secure cookies / general trust** — the JWT-in-localStorage → httpOnly-cookie hardening also needs HTTPS.
+| | |
+|---|---|
+| `https://prosiddhi.com` · `https://www.prosiddhi.com` | 200, valid cert |
+| `https://api.prosiddhi.com` | 200, healthy |
+| `https://admin.prosiddhi.com` | 307 → login (correct) |
+| `http://` → `https://` | 301 redirect |
+| Ports 3000 / 5000 / 3001 | closed to the internet |
 
-**Action:** put the app behind HTTPS on a real domain (reverse proxy + TLS) before Google login, WhatsApp, and mobile checkout can be considered live.
+Certificate: Let's Encrypt, issued 17 Aug, valid to 15 Nov, auto-renewing. DNS moved off Hostinger's CDN (the root was an `ALIAS`, `www` a `CNAME`); **MX and SPF were left untouched, so domain email is unaffected.**
+
+**The backend was redeployed in the same window** — confirmed live: `POST /api/jobseekers/set-password` now returns **404**, so the 2026-08-03 auth rework is on the server.
+
+**What this unblocked** (each now actionable, none of them automatic):
+
+- **Google OAuth** — add `https://prosiddhi.com` + `www` as Authorized JavaScript origins, set the client ID. Config only, no approval needed.
+- **Meta / WhatsApp** business verification — can now be submitted.
+- **Mobile web-checkout** — gated on the literal string test `webBaseUrl.startsWith('https://')` in `app_config.dart`. One `--dart-define` away.
+- **Mobile deep links / App Links** — needed a deployed domain.
+- **JWT → httpOnly cookies** — now technically possible; still a code change across both web apps and the BE.
+
+### 🔴 Two things this exposed
+
+1. **The backend is running in `development` mode on the public internet.** `GET /health` reports `"environment":"development"`, which means **OTPs are echoed in API responses** and raw error detail is exposed. It cannot simply be flipped: in production the BE stops echoing OTPs, and with **MSG91 unconfigured nothing delivers them**, so registration becomes impossible for everyone. `NODE_ENV=production` and working OTP delivery have to land **together**. This is now the top item on this page.
+2. **CORS is still fully open** — `app.use(cors())` with no origin restriction (`src/index.ts`). Until today there were no real origins to allow, so it was academic; now there are. Note `CORS_ORIGIN` is documented but **not read by any code**, so this needs a small BE change.
 
 ---
 
@@ -105,10 +122,10 @@ Today these are empty/test — no real payment can be taken until steps 1–3 ar
 
 | Surface | Blockers to production |
 |---|---|
-| **Web** | HTTPS domain (§0) · backend config §1 (esp. Razorpay, email, DLT-for-OTP, Google) |
+| **Web** | ~~HTTPS domain~~ ✅ done (§0) · backend config §1 (esp. Razorpay, email, DLT-for-OTP, Google) |
 | **Admin** | `NEXT_PUBLIC_API_URL` → prod · seed super-admin · rotate test admin |
 | **Mobile** | prod `API_BASE_URL` + HTTPS `WEB_BASE_URL` · Firebase/FCM · store-policy call · remaining ~40% build · store listings |
-| **Shared** | **HTTPS domain** · **Razorpay live** · **DLT** (SMS-OTP) · Meta (WhatsApp) · FCM · Google OAuth origins |
+| **Shared** | ~~HTTPS domain~~ ✅ done · **Razorpay live** · **DLT** (SMS-OTP) · Meta (WhatsApp) · FCM · Google OAuth origins |
 
 ---
 
