@@ -661,16 +661,14 @@ export const authAPI = {
 export const meAPI = {
   // PATCH /api/me/language — persist the preferred language for ANY role (BR-9).
   //
-  // ⚠️ BACKEND DEPENDENCY: `updateLanguageSchema` in prosiddhi-backend
-  // (src/validators/me.validator.ts) still allow-lists ONLY `['en','hi']` and 400s on
-  // anything else. Its own comment says "Extend this enum when S3 languages ship" —
-  // that enum must be widened to the full 10 before this call succeeds for the other
-  // eight locales.
+  // Keep in step with `updateLanguageSchema` in prosiddhi-backend
+  // (src/validators/me.validator.ts), which allow-lists the same 10 codes. It was
+  // `['en','hi']` until 2026-08-18 — correct while the other eight had no translations,
+  // and a silent bug once they shipped: the caller below treats a failed save as
+  // non-fatal, so the UI switched while the account kept its old `preferredLanguage`
+  // (the field that shows an employer which language a candidate speaks).
   //
-  // Until it is: the UI language still changes and persists in localStorage, but the
-  // server-side `preferredLanguage` (which drives notification language and matching)
-  // silently keeps its old value, because the caller swallows the rejection. Not fatal,
-  // but it means a Tamil user is notified in English.
+  // Adding a language to i18n/languages.ts means adding it there too.
   updateLanguage: async (language: SupportedLanguage) => {
     return apiRequest('/me/language', {
       method: 'PATCH',

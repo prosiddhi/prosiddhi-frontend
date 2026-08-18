@@ -66,10 +66,11 @@ Employer registers → buys credits → posts a job → reviews applicants
   structurally validated, not yet read by a native speaker** — `scripts/verify-locales.mjs` proves
   key parity, placeholder integrity and correct script, which is not the same as proving the words
   are right. See `docs/i18n/GLOSSARY.md` for the per-language termbases and open review items.
-- ⚠️ **Backend dependency:** `PATCH /api/me/language` still allow-lists only `en|hi`
-  (`prosiddhi-backend/src/validators/me.validator.ts`). Until that enum is widened, a user on any
-  other language keeps an English `preferredLanguage` server-side — so their **notifications stay
-  English** even though the UI is not.
+- The backend agrees: `PATCH /api/me/language` validates against `SUPPORTED_LANGUAGES` in
+  `prosiddhi-backend/src/validators/me.validator.ts`, widened to all 10 on 2026-08-18. Adding a
+  language means updating that list, `src/i18n/languages.ts` and `language_constants.dart` together.
+- **Outbound notifications are not localised at all** — nothing reads `preferredLanguage`, and MSG91
+  sends a single env-configured template language. Separate, unbuilt work.
 
 **Moderation & trust**
 - Job posts are moderated **reactively** — seekers report; admins warn, flag violations, deactivate or delete.

@@ -235,10 +235,21 @@ portal and the mobile app: en · hi · ta · kn · ml · mr · gu · or · te ·
 - 🔴 **NOT native-reviewed.** Eight languages are machine-translated. The validator proves they are
   structurally sound, **not** that the words are right. → `docs/i18n/GLOSSARY.md` §8 lists the open
   review items per language; the registration and paywall flows are the highest-value first read.
-- 🔴 **Backend blocker:** `PATCH /api/me/language` allow-lists only `en|hi`
-  (`prosiddhi-backend/src/validators/me.validator.ts` — its own comment says "extend this enum when
-  S3 languages ship"). Until Asrar widens it, non-en/hi users keep an English `preferredLanguage`
-  server-side, so **their notifications stay English**. One-line change, needs BE coordination.
+- ✅ **Backend allow-list widened (2026-08-18).** `PATCH /api/me/language` accepted only `en|hi`, so
+  a signed-in user switching to any other language got a 400 on the save — swallowed by the client,
+  leaving the UI switched but the account's `preferredLanguage` stale (that field is what tells an
+  employer which language a candidate speaks). `me.validator.ts` now exports `SUPPORTED_LANGUAGES`
+  covering all 10 and validates against it; typos like `EN`/`hindi` still 400. **⚠️ Committed on the
+  BE — tell Asrar, per the coordination rule in CLAUDE.md.**
+  - Still **inconsistent and worth a follow-up:** registration and profile-update validate the same
+    `preferredLanguage` column as a free `z.string()` (`auth.validator.ts:66`, `:249`). Three routes,
+    one column, two different rules. Tightening them was left alone deliberately — it would start
+    400ing clients that currently send anything.
+  - ⚠️ *Correction:* an earlier revision of this file said non-en/hi users would be "notified in
+    English" because of this enum. **That was wrong.** Nothing in the notification layer reads
+    `preferredLanguage` — `services/channels/msg91.ts` sends one env-configured template language —
+    so outbound messages are English for everyone regardless. Localising notifications is separate,
+    unbuilt work.
 - **Defects found and fixed en route:** Gujarati labelled its gender field `જાતિ` (**caste**);
   Marathi and Kannada used the "labourer" word for company **employee** headcount; Hindi was
   internally inconsistent on candidate/interview/owner/brand (124 fixes). **English source defects
