@@ -31,10 +31,10 @@ Legend: `✅ built · 🟡 partial · ⬜ not built`
 - ✅ **Monetization** — pricing, Razorpay checkout, wallet + expiry nudge, post-credit gate + upsell, top-up, invoices + PDF
 - ✅ **Candidate DB** — snippet search, unlock confirm, unlocked history
 - ✅ **Team seats** — roster (active/suspended/pending), invite, public `/invite/<token>` landing, remove/revoke
-- ✅ **i18n** — English + Hindi complete
+- ✅ **i18n** — all 10 languages complete (en · hi · ta · kn · ml · mr · gu · or · te · bn)
 - ✅ Privacy / Terms / Contact
 
-**Left:** ⬜ Google OAuth config (client-id not set) · ⬜ 8 more languages · ⬜ JWT→cookie · ⬜ *(roadmap, not v1: bulk upload, AI matching, featured listings)*
+**Left:** ⬜ Google OAuth config (client-id not set) · ⬜ JWT→cookie · ⬜ *(roadmap, not v1: bulk upload, AI matching, featured listings)*
 
 ---
 
@@ -66,9 +66,9 @@ Legend: `✅ built · 🟡 partial · ⬜ not built`
 - ✅ **Team seats 100%** — roster, invite (share-based), public peek, accept (consent-gated), revoke/remove
 - ✅ **Chat 100%** — text + 5s polling + read receipts, Call HR
 - ✅ Notifications (in-app), taxonomy cascade picker
-- ✅ **i18n 100%** — English + Hindi
+- ✅ **i18n 100%** — all 10 languages (en · hi · ta · kn · ml · mr · gu · or · te · bn)
 
-**Left:** ⬜ **in-app payment** (decision: in-app Razorpay + web-handoff fallback) · ⬜ **invoices** · ⬜ **Google sign-in enablement** (Cloud console) · ⬜ **device testing (never run on a device)** · ⬜ FAQ/Help · ⬜ push (FCM config) · ⬜ 8 more languages · 🟡 deep linking (paste-code works)
+**Left:** ⬜ **in-app payment** (decision: in-app Razorpay + web-handoff fallback) · ⬜ **invoices** · ⬜ **Google sign-in enablement** (Cloud console) · ⬜ **device testing (never run on a device)** · ⬜ FAQ/Help · ⬜ push (FCM config) · 🟡 deep linking (paste-code works)
 
 ---
 
@@ -77,11 +77,11 @@ Legend: `✅ built · 🟡 partial · ⬜ not built`
 | Surface | Build | Testing | Key remaining |
 |---|---|---|---|
 | Backend | ~100% | 0% (starting) | config + a few small routes |
-| Web Portal | ~100% | internal pass done | Google config, languages |
+| Web Portal | ~100% | internal pass done | Google config |
 | Admin | ~100% | internal pass done | 1 BE-dependent gap |
 | Mobile | ~86% | 0% (never on device) | payments, invoices, Google, device test |
 
 ## Cross-cutting, all surfaces
 - **Go-live config:** HTTPS/TLS, `NODE_ENV=production`, live Razorpay keys + GSTIN, MSG91 DLT/WhatsApp, FCM
 - **Terminology change (decided):** "credits" → user-facing **Plans / Job Posts / Candidate Unlocks** (display layer only; internal model unchanged)
-- **Roadmap (not v1):** AI matching, HRMS/ATS integrations, bulk upload, skill assessments, 8 additional languages
+- **Roadmap (not v1):** AI matching, HRMS/ATS integrations, bulk upload, skill assessments

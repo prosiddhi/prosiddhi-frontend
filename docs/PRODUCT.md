@@ -9,7 +9,10 @@ For *build status* see [STATUS.md](STATUS.md). For *pricing/billing* see [MONETI
 
 A **mobile-first, multilingual job portal connecting unskilled / blue-collar workers with employers in India.**
 
-**Brand:** ProSiddhi (product) · **AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED** (the legal entity; invoices issue under its GSTIN). ⚠️ `src/lib/legal.ts` still carries the wrong form ("Azkashine Software & Services Pvt. Ltd.") and an **empty GSTIN and registered office** — all three must be corrected before invoices go live.
+**Brand:** ProSiddhi (product) · **AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED** (the legal entity; invoices issue under its GSTIN).
+- ✅ `src/lib/legal.ts` now carries the correct form (fixed 2026-08-18). It names the counterparty in the Terms preamble, both Privacy contact blocks and the footer copyright — not just invoices.
+- ⚠️ **`GSTIN` and `REGISTERED_OFFICE` are still empty** and must be filled before invoices go live. `go-live-config.md` records a GSTIN, but that file is grounded in deployment env vars rather than the incorporation papers, and the constants file's own rule is *"if a value is unknown, leave it empty and let the component skip it"* — a wrong GSTIN on a tax invoice is worse than an absent one. **Confirm both against the source documents.**
+- ⚠️ **The Privacy Policy cites India's DPDP Act but names no Grievance Officer**, whose contact §13 requires be published. Needs a name, designation and email from the business. → `docs/i18n/COPY-DEFECTS.md` §A.
 
 **Three surfaces, one backend:**
 - **Portal** (`prosiddhi-frontend`) — job seekers + employers, web.

@@ -88,6 +88,27 @@ Everything below is live on **both** the backend and the portal.
 
 **Portal screens** — pricing page, Razorpay checkout, credit wallet + expiry nudge, post-credit gate + upsell, top-up modal, invoice history + PDF, candidate search + unlock confirm + unlocked history, team roster/invite/accept/remove.
 
+### 5.0 ⚠️ The money COPY was wrong until 2026-08-18 — check any new string against these rules
+
+The mechanics below were correct all along; the words shown to the employer were not. A copy audit
+(→ `docs/i18n/COPY-DEFECTS.md` §B) found the screens misstating the rules on this page, in ten
+languages. Fixed in portal `a1944ab`. If you write new billing copy, these are the traps:
+
+| Was | Why it was wrong |
+|---|---|
+| Expiry nudge said only that posting would stop | It is the **only** warning before **paid-for credits are forfeited** (§4). It never said so. |
+| "Renew" | §4: there is **no reactivation**. Lapsed subscription credits are gone and the button buys a *fresh* plan — "Renew" promised the old balance back. Now "Buy a plan". |
+| "pay only for what you use" on the pricing page | False for **7 of the 8 SKUs** — subscription credits are time-boxed and forfeit at expiry. Only the ₹499 pack matches that claim. |
+| "Upgrade to a Pro plan" to get more seats | `PRO_6M_1S` is a Pro plan with **one** seat, so it adds none; an owner already on the 3-seat SKU was told to buy what they had. |
+| "Unlock contact (1 credit)" | The **button that spends money** was the only string in the flow not naming *which* credit — an employer with post credits but no unlock credits would click expecting it to work. |
+| Delete-a-job confirm | Silent on the refund conditions (no applications **and** under 24h, §4). |
+| Post gate quoting **₹499** | Base price with no GST note, on a **₹589** charge. |
+
+Two gaps remain unwritten: there is **no non-refundable notice at checkout** (§4 has no refunds and
+no cancel button, and a ₹21,999 plan is sold without saying so on screen), and the **seat-suspended
+block on post/unlock is untranslated** — a suspended member gets the raw backend English via
+`err.message`, an English-only dead end in a ten-language product.
+
 ### 5.1 Error-code contract *(2026-07-12, BE)* — branch on `code`, not on the message
 
 Every error response can carry a stable, machine-readable **`code`** (top-level string, `UPPER_SNAKE_CASE`). **Clients MUST branch on `code`, never on the human `message`** — the message is prose and can be reworded or localised at any time.

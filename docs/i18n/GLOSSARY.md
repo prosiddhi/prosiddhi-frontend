@@ -154,6 +154,15 @@ native speaker. See STATUS.md for the review status of each language.
 
 ## 8. Gaps found during the 2026-08-17 pass
 
+> **Status, 2026-08-18:** the *source-copy* defects listed further down were audited in full the
+> next day and are now tracked — with fix status — in **`docs/i18n/COPY-DEFECTS.md`**, which
+> supersedes the "Source-copy defects" and "Breadcrumb ↔ page-title" tables below. Most are fixed.
+> The **termbase gaps** in the first table are still open and still worth locking.
+>
+> One correction to this section: the Gujarati gender entry was not merely a gap. `જાતિ` means
+> **caste**, and it shipped in two files. Both are fixed and `termbase/gu.md` now carries the
+> reasoning so it cannot be reintroduced.
+
 Concepts the translators hit that §5 does **not** lock. Each language resolved them independently, so
 they are internally consistent per language but were never agreed across the product. Recorded here
 so a reviewer knows where to look and a future pass can lock them.

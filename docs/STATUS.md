@@ -1,9 +1,24 @@
 # ProSiddhi — Status
 
-**The single source of truth for what is done and what is left.** Updated **2026-08-13**.
+**The single source of truth for what is done and what is left.** Updated **2026-08-18**.
 Verified by reading the code in all three repos **and running the flows against a live backend** — **not** from tickets. Where this doc and JIRA disagree, **this doc is right** (see §6).
 
-**Latest (2026-08-13): branding shipped on both clients, and a NEW FE↔BE break found.**
+**Latest (2026-08-18): all 10 languages ship on both clients — and auditing the English to translate it exposed 120 source-copy defects, several of them legal.**
+
+The product is now live in **English · हिन्दी · தமிழ் · ಕನ್ನಡ · മലയാളം · मराठी · ગુજરાતી · ଓଡ଼ିଆ · తెలుగు · বাংলা** on the portal *and* the mobile app — 90 portal locale files and 10 mobile ARBs, **19,152 strings**, gated by `scripts/verify-locales.mjs`. → §3 item 13.
+
+⚠️ **The more important finding is what translating it uncovered.** Every English string in both apps was reviewed for the first time (~2,100 strings, five reviewers, each finding checked against the component or backend service that renders it). **120 defects**, every one already reproduced in ten languages:
+
+- **The Privacy Policy misdescribed our own system.** It claimed we keep "two things" in local storage; we write **six**, one holding the full user object (name, email, phone, role) — and the policy explicitly denied storing personal data locally. It also omitted **MSG91** and **Google** from the data-sharing list, the two processors that touch every user, and described mandatory fields as optional.
+- **The Terms contradicted the Privacy Policy inside the same file** — promising an unlocked candidate is "never taken away" when MONETIZATION §4 says we stop serving their contact after account deletion, with no refund.
+- **Money copy misstated money.** The only warning before paid-for credits are forfeited never mentioned forfeiture; "Renew" implied a reactivation that does not exist; the pricing headline claimed "pay only for what you use", false for 7 of the 8 SKUs.
+- **Two product-rule holes were code, not wording:** `/login` showed a pricing link to **job seekers**, and mobile's Individual employer card invited a *"small business"* to register as an individual — routing them around the admin approval PRODUCT §2 requires, while the Business card beside it demanded GST/CIN.
+
+**~110 fixed and re-translated across all 10 languages** (portal `a1944ab`, mobile `0cab7c7`). What is still open — the DPDP grievance officer, the GSTIN and registered office, and the functional defects found while reading copy — is in **`docs/i18n/COPY-DEFECTS.md`**, which is the register for this workstream.
+
+🔎 **The lesson worth keeping:** the locale validator was **green throughout**. It proved key parity, placeholder integrity and script coverage while the strings said things that were not true. Mechanical checks bound only the failure modes they encode.
+
+**Previously (2026-08-13): branding shipped on both clients, and a NEW FE↔BE break found.**
 The portal and the mobile app were both branded with the **parent company's Azkashine mark**; both now carry the real ProSiddhi identity (portal `c2ed0a1`, mobile `78b625a`, both pushed). That closes QA defects **DEF-010 + DEF-011** and gives the mobile app a real launcher icon for the first time — it had shipped Flutter's default logo on every Android density and all 15 iOS sizes. Three defects in the designer's own delivery had to be corrected first (§3 item 3c).
 
 ⚠️ **Two things got worse, both found on 13-Aug:**
@@ -25,7 +40,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system, the **SUPER_ADMIN role + admin-user CRUD + admin-adds-user + append-only audit log**, and **outbound email delivery** (OTP / invites / interview `.ics`). **Auth rebuilt 2026-08-03** (`2165880`…`09a88fc`, Asrar): password at registration, both contacts verified before the account exists, seeker email optional, `/set-password` deleted. **10 more commits since (HEAD `63632c2`, Asrar):** a **breaking** `Job` field removal (`fe246f1` — see §3 item 3d), job-expiry corrections, a **Prisma error-leak fix** (`890500a`), a rate-limit on the recruiter-contact reveal, and 404-not-500 on an unknown job id. |
 | **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** QA-defect pass done 2026-07-12 (2 criticals + 10 majors, audio removed, i18n cache bug, two open redirects); team invites + the public `/invite/<token>` page rebuilt the same day. **Registration + login rebuilt 2026-08-06** for the new auth contract — see §3 item 3a. **Branding fixed 2026-08-13** (`c2ed0a1`) — DEF-010 + DEF-011 closed. ⚠️ **The 04-Aug QA run turned out to hold 32 issues, not 13** — items 14–32 were never triaged until 2026-08-13 and are now DEF-017…DEF-035. **19 open, incl. three S1/P1** (→ [qa/defect-log.csv](qa/defect-log.csv), §3 item 3b). 🔴 **Plus: the Contact Recruiter button is dead on every job** — it gates on two `Job` fields the BE deleted (§3 item 3d). *(And one BE bug blocking cold-start invites — §3 item 1a.)* |
 | **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27); the per-entity history panel is now built too (`b84f7d8`, `AuditTrail.tsx`) — this row previously said it was outstanding, which was stale.** → `prosiddhi-admin/docs/qa/functional-audit-admin.md`. **GO for handover.** **HEAD `9bdcc71`; no code changes since 2026-08-06 — admin is the one surface with nothing open.** *(Only loose end: the **invoice-PDF download is still disabled in the console**. The BE route now exists — `admin.routes.ts:489` `/monetization/invoices/:id/pdf` — but `monetization/page.tsx:317` and `api.ts:667` still carry the old "employer-gated, an ADMIN gets 403" comments. **One small enable-and-wire task.**)* |
-| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **EN/HI** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Branding shipped 2026-08-13** (`78b625a`) — it had Flutter's **default launcher icon** until then, plus the wrong app name under it. Six UI/UX fixes since (notification unread count + body truncation, message-tab and text-overflow fixes, redundant filters removed). **Missing: checkout** (parked on the store-policy call — and see [store-policy-assessment.md](store-policy-assessment.md), which says the locked plan is not permissible) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** Still the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** *(that file is dated 2026-07-13 and is now behind)* |
+| **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **all 10 languages** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Branding shipped 2026-08-13** (`78b625a`) — it had Flutter's **default launcher icon** until then, plus the wrong app name under it. Six UI/UX fixes since (notification unread count + body truncation, message-tab and text-overflow fixes, redundant filters removed). **Missing: checkout** (parked on the store-policy call — and see [store-policy-assessment.md](store-policy-assessment.md), which says the locked plan is not permissible) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** Still the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** *(updated 2026-08-18)* |
 
 ### Hosted backend — ⚠️ read before redeploying
 **`http://103.225.224.149:5000`** — last matched the repo around 2026-07-12. It is **well behind `main`**: the seat rework + `/entitlements`, admin monetization endpoints, reports queue, content scan, notification channels, audio removal, and **the whole 2026-08-03 auth rework** are all missing from it.
@@ -77,7 +92,7 @@ See the **backend** and **admin** session summaries at the end of §3.
 - **Monetization** — pricing page, Razorpay checkout, credit wallet + expiry nudge, post-credit gate + upsell, top-up modal, **invoice history + PDF**.
 - **Candidate database** — snippet search, explicit "use 1 credit to unlock" confirm, unlocked-candidates history.
 - **Team seats** — roster (members vs pending invites, ACTIVE/**SUSPENDED** seats, owner-vs-member view), invite by email, revoke an invite, remove a member, and the **public `/invite/<token>` landing page** that carries the token through sign-in *or* registration and auto-accepts. *(Cold start — an invitee with no account — additionally needs the BE fix in §3 item 1a.)*
-- **i18n** — English + Hindi, complete.
+- **i18n** — all 10 languages, complete (en · hi · ta · kn · ml · mr · gu · or · te · bn). English and Hindi are native-reviewed; the other eight are machine-translated and structurally validated — see §3 item 13.
 - Offline/error handling.
 
 ### Admin console
@@ -218,7 +233,7 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 ### 🟡 P2 — after launch
 
-**11. Mobile — feature completion.** **~85% built** (this section previously said ~60%, which was stale by two sessions). The free product, **candidate database**, **team seats**, chat and **EN/HI** are all done, the post-credit gate is in, registration is reworked and verified, and branding shipped 2026-08-13. **Remaining: the checkout** (blocked — **D2 must be reopened**, see [store-policy-assessment.md](store-policy-assessment.md)), **invoices** (never built), **Google sign-in enablement** (built but switched off; needs Cloud-console OAuth clients), FAQ/Help, and **push** (FCM config). 🔴 **And getting it onto a device at all — it has never run on hardware or an emulator, because no dev machine has an Android SDK.** → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker, **but it is dated 2026-07-13 and behind** — it predates the registration rework, the branding, and six UI fixes.
+**11. Mobile — feature completion.** **~85% built** (this section previously said ~60%, which was stale by two sessions). The free product, **candidate database**, **team seats**, chat and **all 10 languages** are all done, the post-credit gate is in, registration is reworked and verified, and branding shipped 2026-08-13. **Remaining: the checkout** (blocked — **D2 must be reopened**, see [store-policy-assessment.md](store-policy-assessment.md)), **invoices** (never built), **Google sign-in enablement** (built but switched off; needs Cloud-console OAuth clients), FAQ/Help, and **push** (FCM config). 🔴 **And getting it onto a device at all — it has never run on hardware or an emulator, because no dev machine has an Android SDK.** → **`prosiddhi-mobile-app/docs/STATUS.md`** is the live tracker, **but it is dated 2026-07-13 and behind** — it predates the registration rework, the branding, and six UI fixes.
    - **Only the checkout is parked:** the plans catalog + wallet + "what each plan allows" screens are pure `GET /api/plans` + `/credits` display and can be built now. Only the **"tap Buy → pay"** step waits on the in-app Razorpay + store-policy call. (Interim: the Buy button can stub, or deep-link to the working web checkout.)
    - *(The earlier "mobile revenue leak" framing was wrong — the BE spends the credit before writing the job, so no free post was ever possible; it was a broken funnel, now fixed.)*
 **12. Hardening** — Sentry, Playwright smoke tests, low-end-device performance pass.
@@ -250,11 +265,38 @@ portal and the mobile app: en · hi · ta · kn · ml · mr · gu · or · te ·
     `preferredLanguage` — `services/channels/msg91.ts` sends one env-configured template language —
     so outbound messages are English for everyone regardless. Localising notifications is separate,
     unbuilt work.
-- **Defects found and fixed en route:** Gujarati labelled its gender field `જાતિ` (**caste**);
+- ✅ **`preferredLanguage` normalised on the loose routes (2026-08-18, BE `40585cc`).** Registration,
+  profile-update and admin-add-user each validated the column as a bare `z.string()`, so three
+  routes wrote it under different rules and anything could land in it. They now coerce through
+  `validators/language.ts`: case and region variants normalise (`EN`→`en`, `ta_IN`→`ta`) and
+  anything unrecognised falls back to `en`. **Coerces rather than rejects on purpose** — a hard
+  `z.enum` would start 400ing clients that currently send arbitrary values, including the mobile
+  app, which has never run on a device so nobody knows what it sends. `PATCH /me/language` still
+  rejects, because only our own picker drives it.
+- **Translation defects found and fixed en route:** Gujarati labelled its gender field `જાતિ`
+  (**caste**) — in `auth.json` *and*, found later by a re-translation agent, in `legal.json`;
   Marathi and Kannada used the "labourer" word for company **employee** headcount; Hindi was
-  internally inconsistent on candidate/interview/owner/brand (124 fixes). **English source defects
-  found but NOT fixed** (product-copy decisions) are catalogued in `docs/i18n/GLOSSARY.md` §8 —
-  including a seeker-facing "small subscription" claim that contradicts *free forever*.
+  internally inconsistent on candidate/interview/owner/brand (124 fixes). All nine other languages
+  had the gender word right, which is the only reason the Gujarati outlier was visible.
+- **660 dead strings removed.** 65 unreferenced employer keys — including the entire
+  `landing.pricing` block, which held five red copy defects and would have shipped wrong the moment
+  anyone wired it up — plus retired job-form fields and superseded taxonomy keys.
+
+**13a. English source copy — ✅ audited and largely fixed 2026-08-18.** → **`docs/i18n/COPY-DEFECTS.md`**
+Auditing the English in order to translate it found **120 defects** across both apps. ~110 are fixed
+and re-translated (portal `a1944ab`, mobile `0cab7c7`). Headlines are in the *Latest* note at the
+top of this file. **Still open, and each needs a decision rather than a keystroke:**
+- 🔴 **No DPDP grievance officer.** The Privacy Policy invokes India's DPDP Act and tells users they
+  may complain to the Data Protection Board, but §13 requires a published officer contact. Needs a
+  **name, designation and email** from the business — it cannot be drafted.
+- 🟠 **`legal.ts` `GSTIN` and `REGISTERED_OFFICE` are still empty.** `go-live-config.md` records a
+  GSTIN, but that file is grounded in env vars rather than the incorporation papers, and a wrong
+  GSTIN on a tax invoice is worse than an absent one. Confirm against the source documents.
+- 🟠 **Functional defects found while reading copy** (code, not text): mobile's entire seeker filter
+  panel is inert (`search_tab.dart:471`, pending PJP-155), the employer job card prints the currency
+  twice, and the distance and experience filters both overlap and leave unreachable gaps.
+- ✅ `COMPANY_LEGAL_NAME` corrected to **AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED** — it names
+  the counterparty in the Terms preamble, both Privacy contact blocks and the footer copyright.
 **14. Security** — move the JWT from `localStorage` to an httpOnly cookie (both web apps).
 **15. v1.1 billing** — bulk/download top-up SKUs, promo codes, chargeback credit-revocation, admin manual credit grant/revoke, auto-renewal.
 **16. Audio** — revisit for v2 (removed from V1). The backend **accept-paths are now removed** (2026-07-12): apply + chat are text-only, but backward-tolerant — a stale client that still sends an `audio` field is accepted and the audio silently discarded, never a 400. The DB `audio*` columns remain (dropping them is a destructive migration with no benefit).
@@ -394,7 +436,7 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 | **3** | ~~**Admin: build + fix + docs**~~ ✅ **DONE 2026-07-12** | Taxonomy screen ✅ · monetization views ✅ · Revenue-card lie ✅ · the 5 majors ✅ · reports queue ✅ · content scan ✅. Six commits, each live-verified. The invoice-PDF **BE route has since shipped**; enabling the console's download button is the only follow-up. | `prosiddhi-admin` |
 | **4** | **Mobile P0** | The **post-credit gate** (revenue leak), the broken `/forgot-password` route, the dead default API URL, the dropped search filters, and **delete the inert audio UI**. | `prosiddhi-mobile-app` |
 | **5** | **Mobile — monetization** | Full **in-app Razorpay** (D2): plans screen → checkout → verify → credit wallet → invoices. *Verify store policy first.* | `prosiddhi-mobile-app` |
-| **6+** | **Mobile — completion** | **i18n (EN/HI)** — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
+| **6+** | **Mobile — completion** | ~~i18n~~ ✅ **done 2026-08-17 (all 10 languages)** — then My Interviews, contact-recruiter gate, report-job, profile edit, Google OAuth, forgot/reset. | `prosiddhi-mobile-app` |
 
 **Still unowned / not scheduled:** outbound notifications (MSG91 SMS/WhatsApp/email + FCM push) — the BE adapters exist and no-op until keyed, so this is **external config**, not code. *(OpenAI content scan and the reports queue were on this list; both are now built AND consumed by the admin console.)*
 
@@ -407,7 +449,7 @@ Work is split into focused sessions, one repo each. **Read this file + `PRODUCT.
 | **D1** | Portal audio — hide or delete? | 🔒 **DELETE. Remove the audio feature entirely** — portal, mobile, and the backend accept-paths. Not hidden, not flagged, **removed**. *(DB columns may remain — dropping them is a destructive migration with no benefit.)* |
 | **D2** | Mobile payments — in-app Razorpay or buy-on-web? | 🔒 **In-app Razorpay.** Mobile gets the full checkout (plans → `/api/billing/checkout` → `razorpay_flutter` → `/api/billing/verify-payment` → wallet). ⚠️ **Risk to verify:** Google Play / Apple may treat job-posting credits as *digital goods* and require their own in-app billing (15–30%). B2B services are often exempt — **confirm against store policy before building the checkout.** |
 | **D3** | **Who owns the backend?** | 🔒 **We do.** We hold the BE code and will make the backend changes ourselves — this **reverses the old "never edit the backend" rule.** ⚠️ **Coordinate with Asrar** so we don't both commit to `prosiddhi-backend` at once. |
-| **D4** | Is English-only acceptable for a mobile launch? | ⏸️ **Open.** Recommendation: **no** — the core users are low-literacy **Hindi** speakers and mobile is English-only while the web has full EN/HI. Treat mobile i18n as a **launch blocker**, not polish. |
+| **D4** | Is English-only acceptable for a mobile launch? | ✅ **CLOSED 2026-08-17 — the question no longer arises.** Mobile ships all **10** languages, the same set as the portal (`ed63eb6`). The recommendation had been "no, treat mobile i18n as a launch blocker"; it was built instead of deferred. Eight of the ten are not yet native-reviewed — that caveat is now the live one, not English-only. |
 | **D5** | Mobile stack: the locked scope says **React Native**; the app is **Flutter** (~19k lines of Dart, not portable). | ⏸️ Formally record **Flutter** as the stack so it stops resurfacing. |
 | **D6** *(2026-08-06)* | Web and mobile registration use **different screen orders**. Align them, or accept it? | 🔒 **Accept it.** Both clients were reworked for the same 2026-08-03 backend change on the same day and grouped the screens differently. **Same rules, same endpoints, same order of operations, same outcomes** — only the screen split differs: mobile gives the seeker's email its own skippable screen and takes 4 screens to verify an employer's 2 contacts, where the portal uses one optional field and 2 screens. The portal's is the better UX, but aligning mobile is roughly the size of its whole rework, the QA pack already has separate web and mobile suites, and a user is on one surface or the other. Decisive factor: **the app cannot currently be launched at all** (no Android SDK, no emulator) — reworking four registration screens you cannot run is risk with no user-visible payoff. **If revisited:** toolchain first, then device-test, then change screens. Detail + the comparison table: `prosiddhi-mobile-app/docs/STATUS.md` §"Registration, as built". |
 

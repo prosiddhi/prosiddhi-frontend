@@ -25,7 +25,7 @@ Confirm, in **business terms**, that a real employer can hire and a real seeker 
 - Observe **usability** (can a first-time, low-literacy user actually do this?), not just correctness.
 
 ## 4. Scope
-The real revenue + core-loop journeys: seeker registration→job→apply→interview; employer registration→approval→buy→post→search→unlock→hire; team seats; admin verify/moderate; billing/GST; EN/HI. **Out:** unbuilt features (mobile checkout, invoices, Google sign-in) and non-functional aspects (covered by Perf/Security plans).
+The real revenue + core-loop journeys: seeker registration→job→apply→interview; employer registration→approval→buy→post→search→unlock→hire; team seats; admin verify/moderate; billing/GST; all 10 languages. **Out:** unbuilt features (mobile checkout, invoices, Google sign-in) and non-functional aspects (covered by Perf/Security plans).
 
 ## 5. Acceptance criteria
 - All **P1 business scenarios Accepted**.

@@ -48,7 +48,8 @@ Test these explicitly — they're the point of this pass:
 - [ ] **T-S8 Messages/chat** — `/messages` → conversation. *Expected:* text send/receive (polling), read state.
 - [ ] **T-S9 My interviews** — `/my-interviews`. *Expected:* scheduled interviews listed.
 - [ ] **T-S10 Profile** — `/profile` edit. *Expected:* saves persist.
-- [ ] **T-S11 Language** — `/settings` → switch **EN ⇄ HI**. *Expected:* UI switches and **stays switched on navigation** (this was a fixed bug — verify it holds).
+- [ ] **T-S11 Language** — `/settings` → switch between **any of the 10 languages**. *Expected:* UI switches and **stays switched on navigation** (this was a fixed bug — verify it holds). Check the same list appears in all four pickers: the header switcher, Settings, the home page section and registration step one — they were four separate hardcoded lists until 2026-08-18 and three were stuck on EN+HI.
+- [ ] **T-S12 Scripts render (no tofu)** — switch to **ଓଡ଼ିଆ**, then **മലയാളം**, then **తెలుగు**. *Expected:* real letters, **not** empty boxes (□□□). DM Sans carries Latin only, so these depend on the Noto faces added in `src/app/fonts.ts`; a font regression shows up here and nowhere else. Worth doing on a **low-end Android phone**, not just a desktop browser — the desktop has fonts the target device may not.
 
 ---
 
