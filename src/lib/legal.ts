@@ -11,8 +11,16 @@
 // Nothing here may be a placeholder that renders. If a value is unknown, leave it
 // empty and let the component skip it.
 
-/** Registered legal entity (PRODUCT.md §1). The product brand is ProSiddhi. */
-export const COMPANY_LEGAL_NAME = 'Azkashine Software & Services Pvt. Ltd.'
+/**
+ * Registered legal entity (PRODUCT.md §1). The product brand is ProSiddhi.
+ *
+ * The exact form matters: this string is the counterparty named in the Terms
+ * preamble, both Privacy contact blocks and the footer copyright. It was
+ * `'Azkashine Software & Services Pvt. Ltd.'` until 2026-08-18 — an abbreviated
+ * form that does not match the incorporation record. Confirmed against the source
+ * legal documents; do not "tidy" the capitals or expand/contract the words.
+ */
+export const COMPANY_LEGAL_NAME = 'AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED'
 export const PRODUCT_NAME = 'ProSiddhi'
 
 /** Public support / grievance contact. */

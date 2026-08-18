@@ -123,8 +123,11 @@ function EmployerLandingPageContent() {
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-8">
             <Link href="/contact" className="hidden sm:flex items-center gap-1 text-sm lg:text-base text-black hover:text-primary-50 transition-colors">
               <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">{t('employer:landing.help')}</span>
-              <span className="lg:hidden">{t('employer:landing.helpShort')}</span>
+              {/* One label at both breakpoints. The long/short pair existed only
+                  because the desktop string was "Help/Support"; that slash was
+                  ambiguous to translate, and now that both read "Help" a responsive
+                  split buys nothing. `landing.helpShort` is retired. */}
+              <span>{t('employer:landing.help')}</span>
             </Link>
 
             <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-white rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">

@@ -790,11 +790,17 @@ function LoginContent() {
                 {t('auth:login.signUpHere')}
               </Link>
             </p>
-            <p className="mt-3">
-              <Link href="/employer/welcome#pricing" className="text-sm text-primary-50 hover:underline">
-                {t('auth:login.viewPricing')}
-              </Link>
-            </p>
+            {/* Employers only. This link was rendered for every role, so a job seeker
+                signing in was shown "View pricing & plans" — contradicting the locked
+                rule that seekers are free forever (PRODUCT.md §3). The sign-up link
+                above was already role-gated; this one was missed. */}
+            {role === 'employer' && (
+              <p className="mt-3">
+                <Link href="/employer/welcome#pricing" className="text-sm text-primary-50 hover:underline">
+                  {t('auth:login.viewPricing')}
+                </Link>
+              </p>
+            )}
           </div>
           )}
         </div>

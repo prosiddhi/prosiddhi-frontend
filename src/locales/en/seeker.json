@@ -12,13 +12,13 @@
   "jobCard": {
     "company": "Company",
     "perMonth": "{{salary}} / Month",
-    "saveJob": "Save the Job",
+    "saveJob": "Save Job",
     "saved": "Saved",
-    "viewJob": "View the Job"
+    "viewJob": "View Job"
   },
   "jobFeed": {
     "heroTitle": "Find Jobs Near You",
-    "heroSubtitle": "Look for a job? Browse our latest job openings, view and apply to a suitable job today.",
+    "heroSubtitle": "Looking for a job? Browse the latest openings and apply today.",
     "searchPlaceholder": "Job title or keyword",
     "anyLocation": "Any location",
     "city": {
@@ -55,7 +55,7 @@
     "tabs": {
       "all": "All Jobs",
       "recommended": "Recommended",
-      "nearby": "Near By"
+      "nearby": "Nearby"
     },
     "section": {
       "allTitle": "All Jobs",
@@ -92,7 +92,7 @@
     "relatedJobs": "Related Jobs"
   },
   "savedJobs": {
-    "title": "Saved Jobs by you",
+    "title": "Your Saved Jobs",
     "count_one": "{{count}} Job saved",
     "count_other": "{{count}} Jobs saved",
     "loading": "Loading saved jobs...",
@@ -123,8 +123,7 @@
     "emptyTitle": "No Applications Yet",
     "emptyBody": "Start applying to jobs and track your applications here.",
     "browseJobs": "Browse Jobs",
-    "job": "Job",
-    "company": "Company"
+    "job": "Job"
   },
   "applicationDetail": {
     "back": "Back",
@@ -167,9 +166,9 @@
     "selectLocation": "Select location",
     "searchJobs": "Search Jobs",
     "voiceSearchLabel": "Search jobs by voice",
-    "categoryTitle": "Category",
+    "categoryTitle": "Categories",
     "categorySubtitle": "Find the type of work you know best — start earning today",
-    "viewMoreCategory": "View More Category",
+    "viewMoreCategory": "View More Categories",
     "categories": {
       "construction": "Construction",
       "automobile": "Automobile",
@@ -216,7 +215,7 @@
     "textLabel": "Message (Optional)",
     "textPlaceholder": "Write here...",
     "close": "Close",
-    "submit": "Apply the Job",
+    "submit": "Apply for this Job",
     "submitting": "Submitting...",
     "submitError": "Failed to submit application. Please try again."
   },

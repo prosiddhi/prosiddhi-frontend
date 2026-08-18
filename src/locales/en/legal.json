@@ -1,7 +1,7 @@
 {
   "lastUpdated": "Last updated {{date}}",
   "footer": {
-    "candidates": "For Candidates",
+    "candidates": "For Job Seekers",
     "employers": "For Employers",
     "companyLegal": "Company & Legal",
     "browseJobs": "Browse Jobs",
@@ -29,8 +29,8 @@
       "seekerIntro": "If you are a job seeker, we collect:",
       "seeker": [
         "Your phone number — this is how you register, and we verify it with a one-time password (OTP).",
-        "Your name, email address, and a password (which we store only in an encrypted, unreadable form).",
-        "Your date of birth and gender, if you provide them.",
+        "Your name, a password (which we store only in an encrypted, unreadable form), and your email address if you choose to give one.",
+        "Your date of birth and gender. We ask for these when you register — we need your date of birth to check you are 18 or older.",
         "Your location. This is the town or area you type in, and — only if you allow it in your browser — your GPS coordinates, which we use to show you jobs near you.",
         "Your profile photo, short bio, work experience, skills, and the kind of work you are looking for.",
         "Any documents you choose to upload, such as an identity proof, address proof, or a skill or education certificate.",
@@ -69,6 +69,8 @@
         "Employers who unlock your profile. Employers can search our candidate database. They see only a limited preview — your contact details stay hidden until an employer pays a credit to unlock them. Once unlocked, that employer can see your phone number and email.",
         "Our staff. A small number of our administrators can see your account in order to verify documents, approve businesses, and act on reports.",
         "Our payment provider, Razorpay, which processes employer payments.",
+        "Our messaging provider, MSG91, which sends the one-time passwords, emails and messages we send to you.",
+        "Google, if you choose to sign in with your Google account.",
         "Authorities, where the law requires it."
       ]
     },
@@ -78,7 +80,7 @@
     },
     "storage": {
       "title": "Cookies and browser storage",
-      "body": "We keep two things in your browser's local storage: a sign-in token, so you stay logged in, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out."
+      "body": "We keep a few things in your browser's storage: a sign-in token so you stay logged in, a copy of your basic account details (your name, phone number, email and account type) so pages load quickly, your email address if you asked us to remember it on the sign-in screen, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out."
     },
     "rights": {
       "title": "Your rights",
@@ -146,7 +148,7 @@
       "intro": "Employers buy credits to use the platform.",
       "items": [
         "A post credit is spent when you publish a job. That job stays live for 30 days.",
-        "A download credit is spent the first time you unlock a candidate's full profile and contact details. Opening or contacting that same candidate again later is free, forever.",
+        "A download credit is spent the first time you unlock a candidate's full profile and contact details. Opening or contacting that same candidate again later is free — unless that person deletes their ProSiddhi account, in which case we stop showing their contact details and the credit is not refunded.",
         "You cannot post a job until your account is activated: an individual must verify their email; a business must be approved by our team.",
         "Every new employer gets a free trial of 1 post credit and 3 unlock credits, valid for 14 days, once."
       ]
@@ -160,7 +162,7 @@
         "Credits are always spent soonest-to-expire first.",
         "Purchases are not refundable. There is no cancellation — a plan simply runs to its end date and lapses. To continue, buy again.",
         "If you delete a job within 24 hours of publishing it and it has received no applications, we return the post credit. Otherwise the credit is spent.",
-        "When your plan expires you get a 3-day grace period: jobs already live stay live and candidates you already unlocked stay visible, but you cannot post or unlock. Candidates you have unlocked are never taken away from you."
+        "When your plan expires you get a 3-day grace period: jobs already live stay live and candidates you already unlocked stay visible, but you cannot post or unlock. Candidates you have unlocked stay available to you, unless that person deletes their ProSiddhi account."
       ]
     },
     "conduct": {

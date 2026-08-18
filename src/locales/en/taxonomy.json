@@ -11,6 +11,6 @@
   "allSectors": "All sectors",
   "allJobTitles": "All job titles",
   "loading": "Loading…",
-  "error": "Couldn't load categories.",
+  "error": "Couldn't load the list.",
   "retry": "Retry"
 }

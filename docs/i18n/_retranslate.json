@@ -1,0 +1,314 @@
+{
+  "portal": {
+    "auth.json": {
+      "experience.title": {
+        "en": "Your work experience",
+        "why": "changed"
+      },
+      "experience.workHeading": {
+        "en": "Work experience (optional)",
+        "why": "changed"
+      },
+      "experience.addExperiences": {
+        "en": "Add another",
+        "why": "changed"
+      },
+      "success.startExplore": {
+        "en": "Start looking for jobs",
+        "why": "changed"
+      },
+      "login.subtitle": {
+        "en": "Welcome back. Sign in to continue.",
+        "why": "changed"
+      }
+    },
+    "employer.json": {
+      "team.inviteFull": {
+        "en": "All your seats are in use. Buy a plan with more seats, or remove a teammate to free one.",
+        "why": "changed"
+      },
+      "team.inviteCreated": {
+        "en": "We've emailed an invite to {{email}}. You can also share this link:",
+        "why": "changed"
+      },
+      "team.statusSuspendedHint": {
+        "en": "This seat is paused because the plan has fewer seats than the team. The account owner can free a seat or buy a plan with more seats.",
+        "why": "changed"
+      },
+      "invite.successBody": {
+        "en": "Your account is now part of {{company}}. You share the same jobs, credits and unlocked candidates.",
+        "why": "changed"
+      },
+      "candidate.unlockCta": {
+        "en": "Unlock contact (1 unlock credit)",
+        "why": "changed"
+      },
+      "wallet.planExpiringSoon": {
+        "en": "Your plan expires in {{count}} days. Any unused credits from this plan will be lost. Buy a plan before then to keep posting and unlocking.",
+        "why": "changed"
+      },
+      "wallet.planExpired": {
+        "en": "Your plan has expired and its unused credits are gone. Jobs already live stay live for 3 more days. Buy a plan to post and unlock again.",
+        "why": "changed"
+      },
+      "wallet.renew": {
+        "en": "Buy a plan",
+        "why": "changed"
+      },
+      "invoices.inclGst": {
+        "en": "including GST",
+        "why": "changed"
+      },
+      "plans.subheading": {
+        "en": "Buy credits to post jobs and unlock candidates. Choose a plan that fits how much you hire.",
+        "why": "changed"
+      },
+      "plans.tabBasic": {
+        "en": "Packs & Starter",
+        "why": "changed"
+      },
+      "plans.tabEnterprise": {
+        "en": "Pro Plans",
+        "why": "changed"
+      },
+      "plans.gstApplicable": {
+        "en": "* + 18% GST",
+        "why": "changed"
+      },
+      "landing.help": {
+        "en": "Help",
+        "why": "changed"
+      },
+      "landing.forgotPassword": {
+        "en": "Forgot Password?",
+        "why": "changed"
+      },
+      "jobs.confirmDelete": {
+        "en": "Delete this job? This cannot be undone. Your post credit comes back only if the job has no applications and was posted less than 24 hours ago.",
+        "why": "changed"
+      },
+      "postGate.body": {
+        "en": "Publishing a job uses 1 post credit. Buy a plan, or the single-post pack, to keep hiring.",
+        "why": "changed"
+      },
+      "candidateDetail.tbc": {
+        "en": "Not decided yet",
+        "why": "changed"
+      }
+    },
+    "employerRegister.json": {
+      "account.password": {
+        "en": "Password",
+        "why": "changed"
+      },
+      "companyDetails.selectOption": {
+        "en": "Select an option",
+        "why": "changed"
+      },
+      "companyDetails.cinPlaceholder": {
+        "en": "Enter your CIN",
+        "why": "changed"
+      }
+    },
+    "legal.json": {
+      "footer.candidates": {
+        "en": "For Job Seekers",
+        "why": "changed"
+      },
+      "privacy.whatWeCollect.seeker.1": {
+        "en": "Your name, a password (which we store only in an encrypted, unreadable form), and your email address if you choose to give one.",
+        "why": "changed"
+      },
+      "privacy.whatWeCollect.seeker.2": {
+        "en": "Your date of birth and gender. We ask for these when you register — we need your date of birth to check you are 18 or older.",
+        "why": "changed"
+      },
+      "privacy.whoWeShare.items.4": {
+        "en": "Our messaging provider, MSG91, which sends the one-time passwords, emails and messages we send to you.",
+        "why": "changed"
+      },
+      "privacy.whoWeShare.items.5": {
+        "en": "Google, if you choose to sign in with your Google account.",
+        "why": "added"
+      },
+      "privacy.whoWeShare.items.6": {
+        "en": "Authorities, where the law requires it.",
+        "why": "added"
+      },
+      "privacy.storage.body": {
+        "en": "We keep a few things in your browser's storage: a sign-in token so you stay logged in, a copy of your basic account details (your name, phone number, email and account type) so pages load quickly, your email address if you asked us to remember it on the sign-in screen, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out.",
+        "why": "changed"
+      },
+      "terms.employers.items.1": {
+        "en": "A download credit is spent the first time you unlock a candidate's full profile and contact details. Opening or contacting that same candidate again later is free — unless that person deletes their ProSiddhi account, in which case we stop showing their contact details and the credit is not refunded.",
+        "why": "changed"
+      },
+      "terms.credits.items.6": {
+        "en": "When your plan expires you get a 3-day grace period: jobs already live stay live and candidates you already unlocked stay visible, but you cannot post or unlock. Candidates you have unlocked stay available to you, unless that person deletes their ProSiddhi account.",
+        "why": "changed"
+      }
+    },
+    "profile.json": {
+      "seeker.aboutYouPlaceholder": {
+        "en": "A short introduction (up to 500 letters)",
+        "why": "changed"
+      },
+      "seeker.experienceHint": {
+        "en": "We only save an entry if it has a position and a start date.",
+        "why": "changed"
+      },
+      "employer.foundedDate": {
+        "en": "Date Founded",
+        "why": "changed"
+      }
+    },
+    "seeker.json": {
+      "jobCard.saveJob": {
+        "en": "Save Job",
+        "why": "changed"
+      },
+      "jobCard.viewJob": {
+        "en": "View Job",
+        "why": "changed"
+      },
+      "jobFeed.heroSubtitle": {
+        "en": "Looking for a job? Browse the latest openings and apply today.",
+        "why": "changed"
+      },
+      "jobFeed.tabs.nearby": {
+        "en": "Nearby",
+        "why": "changed"
+      },
+      "savedJobs.title": {
+        "en": "Your Saved Jobs",
+        "why": "changed"
+      },
+      "landing.categoryTitle": {
+        "en": "Categories",
+        "why": "changed"
+      },
+      "landing.viewMoreCategory": {
+        "en": "View More Categories",
+        "why": "changed"
+      },
+      "applyModal.submit": {
+        "en": "Apply for this Job",
+        "why": "changed"
+      }
+    },
+    "taxonomy.json": {
+      "error": {
+        "en": "Couldn't load the list.",
+        "why": "changed"
+      }
+    }
+  },
+  "mobile": {
+    "app_en.arb": {
+      "applyCta": {
+        "en": "Apply for this job",
+        "why": "changed"
+      },
+      "authEmployerTypeIndividualSubtitle": {
+        "en": "Hire for yourself or your household — no company documents needed",
+        "why": "changed"
+      },
+      "authLanguageSelectLabel": {
+        "en": "Language",
+        "why": "changed"
+      },
+      "chatCallHr": {
+        "en": "Call",
+        "why": "changed"
+      },
+      "empCandBackToJobs": {
+        "en": "Back to my jobs",
+        "why": "changed"
+      },
+      "empDashJobAccepted": {
+        "en": "Accepted",
+        "why": "changed"
+      },
+      "empDashJobApplicants": {
+        "en": "Applicants",
+        "why": "changed"
+      },
+      "empDashJobRejected": {
+        "en": "Rejected",
+        "why": "changed"
+      },
+      "empJobsCta": {
+        "en": "View job post",
+        "why": "changed"
+      },
+      "empPostLocationHint": {
+        "en": "Where is the work? e.g. Bangalore",
+        "why": "changed"
+      },
+      "empPostSelectOption": {
+        "en": "Select an option",
+        "why": "changed"
+      },
+      "empPreviewPostCta": {
+        "en": "Post job",
+        "why": "changed"
+      },
+      "empwNoCreditsBodyAfterSubmit": {
+        "en": "Your job was not posted. You have not been charged. Every job post uses 1 credit — buy a plan to post this job.",
+        "why": "changed"
+      },
+      "empwSalaryValue": {
+        "en": "{range}/{period}",
+        "why": "changed"
+      },
+      "jobDetailApplyCta": {
+        "en": "Apply for this job",
+        "why": "changed"
+      },
+      "notifTitle": {
+        "en": "Notifications",
+        "why": "changed"
+      },
+      "seekerApplyFilter": {
+        "en": "Apply filters",
+        "why": "changed"
+      },
+      "seekerMessageTitle": {
+        "en": "Messages",
+        "why": "changed"
+      },
+      "seekerMyApplicationTitle": {
+        "en": "My Applications",
+        "why": "changed"
+      },
+      "seekerNearbyJobsTitle": {
+        "en": "Nearby Jobs",
+        "why": "changed"
+      },
+      "seekerSavedParseFailed": {
+        "en": "Could not open your saved jobs. Please try again.",
+        "why": "changed"
+      },
+      "skFullNameValidation": {
+        "en": "Enter your full name",
+        "why": "changed"
+      },
+      "skSortTitleAz": {
+        "en": "Sort by name",
+        "why": "changed"
+      },
+      "empTeamNoSeatsFree": {
+        "en": "No seats free. The account owner can free a seat or buy a plan with more seats.",
+        "why": "changed"
+      },
+      "empTeamInviteReadyBody": {
+        "en": "We have emailed this invite to {email} with a link to accept. You can also share the code below if the email does not arrive. Copy it now — for your safety the code is shown only once and cannot be recovered.",
+        "why": "changed"
+      },
+      "empTeamInviteShareText": {
+        "en": "You have been invited to join a company team on ProSiddhi. Check your email for the invite link, or open the ProSiddhi app, tap \"I have an invite\" on the sign-in screen, and paste this code:\n\n{token}",
+        "why": "changed"
+      }
+    }
+  }
+}
