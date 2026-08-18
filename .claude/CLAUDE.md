@@ -1,24 +1,28 @@
 # ProSiddhi Portal — Claude Operating Instructions
 
 **This repo (`prosiddhi-frontend`) is the PORTAL** — the seeker + employer web app.
-Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API — Express 5 + Prisma) and **`prosiddhi-admin`** (the admin console). Mobile (`prosiddhi-mobile-app`) is **not started**.
+Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API — Express 5 + Prisma), **`prosiddhi-admin`** (the admin console), and **`prosiddhi-mobile-app`** (Flutter, ~85% built).
 
 ## Read these first
 
-Four docs, that's it:
-
-1. **`docs/STATUS.md`** — ⭐ **what is done and what is left.** The single source of truth. **JIRA is stale — trust this instead.**
+1. **`docs/STATUS.md`** — ⭐ **what is done and what is left.** The single source of truth. **JIRA is stale — trust this instead.** *(This file you are reading now is a summary and goes stale faster than STATUS.md. Where the two disagree, STATUS.md wins.)*
 2. **`docs/PRODUCT.md`** — what we're building, who for, and the locked rules (incl. what's permanently out of scope).
 3. **`docs/MONETIZATION.md`** — the employer billing system: pricing rules, what's built, what's broken.
 4. **`docs/DEPLOY.md`** — deploy + go-live.
 
-Current defect lists: `docs/qa/functional-audit-portal.md` (this repo) and `prosiddhi-admin/docs/qa/functional-audit-admin.md`.
+**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` was resolved and deleted; don't look for it.)* Admin's own list: `prosiddhi-admin/docs/qa/functional-audit-admin.md`.
 
-## Where the product stands
+## Where the product stands *(2026-08-18)*
 
-The **web product is feature-complete** — seeker + employer flows, chat, EN/HI i18n, and the full **employer monetization** system (credits, Razorpay, GST invoices, a paid candidate database, team seats). The backend is feature-complete. The admin console is wired but is **missing two screens** (taxonomy management, monetization views). **Mobile is 0%.**
+**Live in production on HTTPS:** portal `https://prosiddhi.com` · API `https://api.prosiddhi.com` · admin `https://admin.prosiddhi.com`. Ports 3000/5000/3001 on the old IP are closed.
 
-What's left is in `STATUS.md` §3 — headline: **two seat bugs**, **outbound notifications**, **two admin screens**, a **QA-defect pass**, and **go-live config**.
+- **Backend** — feature-complete, incl. billing, SUPER_ADMIN + audit log, outbound email.
+- **Portal** — feature-complete. All seeker + employer flows, chat, monetization, candidate database, team seats.
+- **Admin console** — feature-complete. Nothing open but wiring up the invoice-PDF download.
+- **Mobile (Flutter)** — **~85%**. Missing: checkout (blocked on decision **D2**), invoices, and **it has never run on a real device**.
+- **10 languages ship on both clients** — en · hi · ta · kn · ml · mr · gu · or · te · bn.
+
+What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the register), **outbound notification config**, **mobile completion**, and **go-live config**.
 
 ## Hard rules
 
@@ -32,14 +36,17 @@ What's left is in `STATUS.md` §3 — headline: **two seat bugs**, **outbound no
 
 ## Gates before committing
 
-- `npm run type-check` (exit 0)
-- `/code-review` — must be green; it checks the FE↔BE contract against the real backend routes
-- `/security-review` — for anything touching auth, tokens, roles, or **payments**
+- `npm run type-check` (exit 0) — a pre-commit hook enforces it
+- `npm run lint` and `node scripts/verify-locales.mjs` when the change touches copy or locales
+- `/security-review` — Claude CAN run this
+- `/code-review` — ⚠️ **Claude CANNOT run this.** It is blocked from model invocation and reserved for Nazir to type. **Ask him for it; never imply it ran.**
 
 ## Team
 
-Shaik (owner/product) · **Nazir** (frontend + acting PM) · Asrar (backend) · Najeeb + Farhana (QA) · Nayan (infra) · **mobile: unowned**.
+Shaik (owner/product) · **Nazir** (frontend + acting PM) · Asrar (backend) · Najeeb + Farhana (QA) · Nayan (infra) · Sailaja (mobile).
 
 ## Working style
 
 Plan first on multi-file work and wait for a go-ahead. Propose then pause when scope is unclear; execute when it's clear. If you find yourself reasoning toward a decision the docs already locked, defer to the docs — or push back explicitly before changing anything.
+
+**Write in simple English.** Short sentences, plain words, and a concrete example every time. Answer first, detail after. Skip big tables unless asked. Simple words — not simple thinking: still name the file, the line and the commit.
