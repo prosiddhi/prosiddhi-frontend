@@ -58,6 +58,24 @@ Each row has: `ID · Module · Title · Type · Priority · Preconditions · Tes
 3. Execute the case suites in order (Web → Admin → API → E2E → Mobile → System Design).
 4. Log anything that fails into `defect-log.csv` using the template.
 
+## Test accounts
+
+Seeded on the production box (`103.225.224.149`, now served as `prosiddhi.com`) and verified 2026-08-11. **On `/login` the role toggle must match the account** — a mismatch gives a confusing "wrong login" error, not a wrong-password one.
+
+| Role | Email | Password |
+|---|---|---|
+| **Employer** — Apollo Care Services | `qa.employer@prosiddhi.test` | `Employer@12345` |
+| **Job Seeker** — QA Seeker | `qa.seeker@prosiddhi.test` | `Seeker@12345` |
+| Job Seeker #2 — Priya Reddy | `qa.seeker2@prosiddhi.test` | `Seeker@12345` |
+
+Open the employer in a normal window and the seeker in **Incognito**, so both stay signed in for cross-user tests (apply → accept → schedule interview → see it appear on the seeker side).
+
+🔴 **No admin login exists that we hold.** The bootstrap route `POST /api/admin/create` was removed on 2026-07-14 as a security hole; the first SUPER_ADMIN now only comes from a seed migration whose email and password hash are filled in at deploy time. **Only Asrar / Nayan have them** — ask before any admin test session.
+
+**What this seeded data does *not* cover** (don't file these as bugs — they are unprovisioned, not broken): the employer is on the free trial, so there is **no purchased plan, no wallet, no GST invoice**; `seatCap` is 1, so there is **no team roster**; only 3 trial unlocks exist, so the candidate database can't be exercised at scale. The employer also has **0 job-post credits left** — posting another job correctly hits the paywall gate.
+
+*(Moved here 2026-08-18 from `docs/DEMO-STAGING.md`, which was written for one demo against the old IP-and-port URLs and was deleted.)*
+
 ## Heads-up on the current environment
 A few things aren't switched on yet — all flagged in the docs so they don't get filed as bugs:
 - **Google login, real SMS/WhatsApp/push, and live payments** are not configured (Razorpay is in test mode; OTPs show on-screen in dev mode).

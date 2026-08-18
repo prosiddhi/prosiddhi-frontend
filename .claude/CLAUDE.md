@@ -10,7 +10,7 @@ Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API �
 3. **`docs/MONETIZATION.md`** — the employer billing system: pricing rules, what's built, what's broken.
 4. **`docs/DEPLOY.md`** — deploy + go-live.
 
-**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` was resolved and deleted; don't look for it.)* Admin's own list: `prosiddhi-admin/docs/qa/functional-audit-admin.md`.
+**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` and the admin's `functional-audit-admin.md` were both resolved and deleted; don't look for them.)* **Admin has no open defects** — its one remaining task is wiring the invoice-PDF download, recorded in `docs/STATUS.md` §0.
 
 ## Where the product stands *(2026-08-18)*
 

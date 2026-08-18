@@ -12,6 +12,22 @@ Consolidated from the former pricing docs (since removed). Verified against the 
 - **Post credit** — spent when an employer **publishes a job** (1 per job). The job is live **30 days** (independent of plan length).
 - **Download credit** (candidate unlock) — spent the **first time** an employer opens a candidate's **full profile/contact**. Re-viewing or contacting that same candidate again is **free, forever**.
 
+### Naming — what the user sees *(decision, 2026-07-28)*
+
+The word **"credits" is internal only.** In the UI the two types are named for what they buy:
+
+| Internal model | What the employer reads |
+|---|---|
+| post credit | **Job Posts** |
+| download credit | **Candidate Unlocks** |
+| the bundles | **Plans** |
+
+**Display layer only — the data model, the API fields and the ledger keep the word `credit`.** Don't rename a column to chase this.
+
+⚠️ **This rename is not a store-policy defence.** It was raised as one; [store-policy-assessment.md](store-policy-assessment.md) §3 shows it makes no difference — a reviewer assesses what the purchase unlocks, not the noun on the button, and "Candidate Unlocks" describes a digital unlock *more* plainly than "credits" did. Worth doing for clarity, worth nothing for Google Play.
+
+*(Recorded here 2026-08-18, moved out of `feature-status-breakdown.md` before that file was deleted.)*
+
 ## 2. The 8 plans
 
 Prices are **base — GST (18%) is added on top at checkout**.

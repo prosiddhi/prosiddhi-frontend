@@ -115,7 +115,7 @@ That is a genuine product cost — an employer who runs out on mobile has no in-
 
 - **STATUS.md D2** currently reads 🔒 *"In-app Razorpay. Mobile gets the full checkout"* — this assessment **contradicts the locked decision**. D2 must be reopened and re-locked to whichever option Shaik picks.
 - **STATUS.md §3 item 11** and the mobile STATUS should record that the plans/wallet screens are **display-only** under Option A.
-- **`feature-status-breakdown.md:86`** should stop implying the rename is store-motivated.
+- ✅ **Done 2026-08-18.** The rename is now recorded in `MONETIZATION.md` §1 ("Naming — what the user sees"), which states plainly that it is a display-layer clarity change and **not** a store-policy defence. *(It previously lived in `feature-status-breakdown.md:86`, which implied it was store-motivated; that file was deleted.)*
 
 ---
 

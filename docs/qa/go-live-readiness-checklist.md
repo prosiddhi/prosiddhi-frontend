@@ -6,10 +6,10 @@ Legend: ☐ open · ✅ done · ⚠️ accepted risk (needs Product sign-off)
 ---
 
 ## 1. Environment & Infrastructure
-- ☐ **HTTPS/TLS** on `prosiddhi.com` (cert, HTTP→HTTPS redirect) — *currently HTTP only*
-- ☐ Frontends repointed to `https://prosiddhi.com/api` (no mixed content) — *currently the HTTP IP*
-- ☐ Backend **`NODE_ENV=production`** — *currently `development` (leaks dev error detail + OTPs)*
-- ☐ Backend CORS/allowed-origins set to the production domain
+- ✅ **HTTPS/TLS** on `prosiddhi.com` — **done 2026-08-18.** Let's Encrypt (issued 17 Aug, valid to 15 Nov, auto-renewing), `http://` 301-redirects to `https://`, and ports 3000 / 5000 / 3001 are closed to the internet.
+- ✅ Frontends repointed to `https://api.prosiddhi.com` (no mixed content) — **done 2026-08-18**, same window as the cert. Admin is on `https://admin.prosiddhi.com`.
+- ☐ Backend **`NODE_ENV=production`** — *still `development` (leaks dev error detail + OTPs).* ⚠️ **Cannot be flipped on its own:** in production the BE stops echoing OTPs, and with MSG91 unconfigured nothing delivers them, so registration becomes impossible for everyone. This and OTP delivery must land **together**.
+- ☐ Backend CORS/allowed-origins set to the production domain — *`app.use(cors())` is still fully open. Note `CORS_ORIGIN` is documented but read by no code, so this needs a small BE change.*
 - ☐ Reverse proxy hardened; `/health` reachable; rate-limits active
 - ☐ Backups + monitoring (Sentry/uptime) in place
 
