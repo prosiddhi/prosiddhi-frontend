@@ -81,8 +81,16 @@ export type NameProblem = 'tooShort' | 'notAName' | null
 
 export function nameProblem(value: string): NameProblem {
   const name = value.trim()
-  if (name.length < NAME_MIN_LENGTH) return 'tooShort'
+  // An EMPTY field is a length problem and nothing else — there is no content in
+  // it to be wrong about.
+  if (name.length === 0) return 'tooShort'
+  // The content rules run BEFORE the minimum length, or a one-character entry is
+  // always blamed on length. Typing "7" would be answered with "at least 2
+  // characters", so the user types "77" and is only then told digits are not
+  // allowed — two rounds for one mistake, which is the exact confusion this
+  // function exists to remove.
   if (DIGIT.test(name)) return 'notAName'
   if (!LETTER.test(name)) return 'notAName'
-  return ALLOWED.test(name) ? null : 'notAName'
+  if (!ALLOWED.test(name)) return 'notAName'
+  return name.length < NAME_MIN_LENGTH ? 'tooShort' : null
 }

@@ -197,8 +197,6 @@ function EmployerProfileContent() {
       if (!ok) return
     }
     setSaving(true)
-    setSaveError('')
-    setSaved(false)
     try {
       const body: EmployerProfileUpdate = isBusiness
         ? {

@@ -41,6 +41,17 @@ export default function RegisterPasswordPage() {
   // Drives the "re-verify your phone" action. Retrying the register call would
   // fail identically every time — the verification mark is already spent.
   const [needsPhoneReverify, setNeedsPhoneReverify] = useState(false)
+  // Latched the moment register + login succeed, BEFORE `reset()` runs.
+  //
+  // `reset()` wipes the shared registration state back to its empty default, and
+  // this page is still mounted while the router moves to /register/success (both
+  // live under the same /register layout, so the provider and this component stay
+  // alive through the transition). Every guard below then reads the empty state
+  // and concludes the user never completed the flow: the phone guard fires
+  // router.replace('/register/phone') against the push to the success screen, and
+  // the name banner flashes red over a registration that actually worked. Neither
+  // check has any job left to do once the account exists — so stop running them.
+  const [accountCreated, setAccountCreated] = useState(false)
 
   // Guard: must have reached here through the full flow. Email is NOT a
   // prerequisite (it is optional) — the taxonomy choice is.
@@ -49,9 +60,9 @@ export default function RegisterPasswordPage() {
   // thing that is never persisted, so requiring it here would send every
   // refreshing user back to step 2 — which is the bug being fixed.
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || accountCreated) return
     if (!data.phoneVerified || !data.preferredJobTitle) router.replace('/register/phone')
-  }, [hydrated, data.phoneVerified, data.preferredJobTitle, router])
+  }, [hydrated, accountCreated, data.phoneVerified, data.preferredJobTitle, router])
 
   // `fullName` is checked here as well as on the profile step, because THIS is the
   // call that creates the account and it reads from sessionStorage. A journey
@@ -63,9 +74,13 @@ export default function RegisterPasswordPage() {
   // /register/categories — so the user is silently made to re-walk two steps they
   // already completed. Instead: block the button, say what is wrong, and offer one
   // link straight to the field. Same shape as the phone re-verify path below.
-  const nameIssue = hydrated ? nameProblem(data.fullName ?? '') : null
+  const nameIssue = hydrated && !accountCreated ? nameProblem(data.fullName ?? '') : null
 
   const handleCreate = async () => {
+    // The disabled button is presentation; THIS is the rule. Leaving the DEF-030
+    // check to a `disabled` attribute alone puts it one markup edit away from
+    // being gone, and this is the call that creates the account.
+    if (nameIssue) return
     if (!PASSWORD_RULE.test(password)) {
       setError(t('auth:password.errorRule'))
       return
@@ -111,7 +126,9 @@ export default function RegisterPasswordPage() {
       })
 
       // Hand the session to AuthContext, then clear the registration state,
-      // which is what drops the plaintext password out of memory.
+      // which is what drops the plaintext password out of memory. Latch first —
+      // `reset()` empties the very fields the guards on this page read.
+      setAccountCreated(true)
       login(result.token, result.user)
       reset()
 
