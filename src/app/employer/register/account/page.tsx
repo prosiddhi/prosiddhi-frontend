@@ -40,14 +40,20 @@ export default function AccountSetupPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
   const [needsReverify, setNeedsReverify] = useState(false)
+  // Stops the guard below judging a flow that has already succeeded — see the
+  // seeker password step (4d65c71) for the full story. Kept per-page, not on the
+  // context: the provider outlives this page, and a flow-wide flag would also
+  // disable the guards on the steps a user can navigate BACK into, stranding
+  // them on a blank form.
+  const [accountCreated, setAccountCreated] = useState(false)
 
   // Guard: both contacts must already be verified — register consumes both marks.
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || accountCreated) return
     if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
     }
-  }, [hydrated, data.phoneVerified, data.emailVerified, router])
+  }, [hydrated, accountCreated, data.phoneVerified, data.emailVerified, router])
 
   // Seed from restored progress once, without clobbering typing.
   useEffect(() => {
@@ -108,6 +114,11 @@ export default function AccountSetupPage() {
         password,
       })
       login(result.token, result.user)
+      // Set alongside reset() — reset() is what empties the state the guard
+      // reads. React 18 batches both into one commit, so the order is not
+      // load-bearing today; keep them adjacent so it stays that way if an await
+      // is ever introduced between them.
+      setAccountCreated(true)
       reset()
 
       // They may have started at a team invite (/invite/<token>) with no

@@ -36,16 +36,31 @@ export default function CompanyDetailsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Stops the guard below judging a flow that has already succeeded.
+  //
+  // reset() empties the shared state while this page is still mounted, so the
+  // guard re-read a blank `data`, saw companyType !== 'corporate' and replaced
+  // the pending push with a bounce to /employer/register. For a corporate
+  // employer that is the worst landing available: the account is
+  // PENDING_DOCUMENTS, and the push they lost was the one carrying them to the
+  // upload screen they must complete to be approved — which is also what starts
+  // their 14-day trial clock.
+  //
+  // Per-page, not on the context: the provider outlives this page, and a
+  // flow-wide flag would also disable the guards on steps a user can navigate
+  // BACK into. Same fix as the seeker password step (4d65c71).
+  const [accountCreated, setAccountCreated] = useState(false)
+
   // Guard: corporate only, both contacts verified, and a password chosen on the
   // previous step. The password is in memory only, so a hard refresh legitimately
   // sends them back to re-enter it.
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || accountCreated) return
     if (data.companyType !== 'corporate') router.replace('/employer/register')
     else if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
     } else if (!data.password) router.replace('/employer/register/account')
-  }, [hydrated, data.companyType, data.phoneVerified, data.emailVerified, data.password, router])
+  }, [hydrated, accountCreated, data.companyType, data.phoneVerified, data.emailVerified, data.password, router])
 
   // Seed the company form from restored progress once, without clobbering typing.
   useEffect(() => {
@@ -128,6 +143,8 @@ export default function CompanyDetailsPage() {
         password: data.password,
       })
       login(result.token, result.user)
+      // Set alongside reset() — see the note on `accountCreated` above.
+      setAccountCreated(true)
       reset()
 
       // Preserve the team-invite carry-through: they may have started at
