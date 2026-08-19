@@ -32,17 +32,43 @@ import {
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
 
-function StatTile({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+// One tile: icon, big number, label. `href` turns it into a link and `action`
+// adds a trailing affordance — the unlocked-candidates shortcut is the same
+// tile with both, so it does not need its own copy of this markup.
+function StatTile({
+  label,
+  value,
+  icon,
+  href,
+  action,
+}: {
+  label: string
+  value: number
+  icon: React.ReactNode
+  href?: string
+  action?: React.ReactNode
+}) {
+  const shell =
+    'bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center justify-between gap-4'
+  const body = (
+    <>
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold text-black leading-tight">{value}</p>
+          <p className="text-xs sm:text-sm text-[#717182] truncate">{label}</p>
+        </div>
+      </div>
+      {action}
+    </>
+  )
+  if (!href) return <div className={shell}>{body}</div>
   return (
-    <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
-      <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-2xl font-bold text-black leading-tight">{value}</p>
-        <p className="text-xs sm:text-sm text-[#717182] truncate">{label}</p>
-      </div>
-    </div>
+    <Link href={href} className={`${shell} hover:shadow-lg transition-shadow`}>
+      {body}
+    </Link>
   )
 }
 
@@ -139,32 +165,6 @@ function EmployerDashboardContent() {
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">
             {t('employer:dashboard.title')}
           </h1>
-
-          {/* Credit wallet (PJP-178) — self-fetching; shown regardless of the
-              dashboard panels' load state. */}
-          <CreditWallet className="mb-6 sm:mb-8" />
-
-          {/* Unlocked-candidates shortcut — the paid candidate history. Shown
-              once the count loads; hidden on fetch failure (supplementary). */}
-          {unlockedCount !== null && (
-            <Link
-              href="/employer/workers?tab=unlocked"
-              className="mb-8 sm:mb-10 flex items-center justify-between gap-4 bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
-                  <Unlock className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-bold text-black leading-tight">{unlockedCount}</p>
-                  <p className="text-xs sm:text-sm text-[#717182] truncate">{t('employer:dashboard.unlockedCandidates')}</p>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm text-primary-50 font-medium whitespace-nowrap">
-                {t('employer:dashboard.viewAll')} <ChevronRight className="w-4 h-4" />
-              </span>
-            </Link>
-          )}
 
           {/* Loading */}
           {loading && (
@@ -284,6 +284,38 @@ function EmployerDashboardContent() {
                 </section>
               </div>
             </>
+          )}
+
+          {/* Billing sits below the hiring panels (TD-18): the dashboard used
+              to open with the wallet and a Buy button, so an employer's first
+              screen was their bill rather than their jobs.
+
+              Gated on `!error`, not on `!loading`. `error` is only set when all
+              three panels failed, and the wallet would then fail too — showing
+              it there stacks a second "couldn't load" row with its own Retry
+              directly under the page's. A single panel failing leaves `error`
+              empty, so the wallet still renders, and mounting it while the
+              panels are still in flight keeps its fetch parallel to theirs and
+              keeps it visible even if a dashboard call never settles. */}
+          {!error && (
+            <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-8">
+              <CreditWallet />
+              {/* The paid candidate history. Supplementary: hidden, not errored,
+                  when its count fails to load. */}
+              {unlockedCount !== null && (
+                <StatTile
+                  href="/employer/workers?tab=unlocked"
+                  label={t('employer:dashboard.unlockedCandidates')}
+                  value={unlockedCount}
+                  icon={<Unlock className="w-5 h-5" />}
+                  action={
+                    <span className="inline-flex items-center gap-1 text-sm text-primary-50 font-medium whitespace-nowrap">
+                      {t('employer:dashboard.viewAll')} <ChevronRight className="w-4 h-4" />
+                    </span>
+                  }
+                />
+              )}
+            </div>
           )}
         </div>
       </main>
