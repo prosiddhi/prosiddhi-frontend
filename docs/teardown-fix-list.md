@@ -93,8 +93,36 @@ list.** Roughly a third of what looked broken on production was already fixed.
 deliver in production today, so making it primary would lock everyone out.
 TD-33 (mobile checkout) on decision D2.
 
-**Still open in the QA register:** DEF-006, DEF-018, DEF-024, DEF-031, DEF-032.
-The 19 "awaiting retest" rows cannot be judged until the deploy lands.
+### The QA register — where all 35 rows stand
+
+`docs/qa/defect-log.csv`, re-counted 2026-08-19: **3 closed · 6 not-a-defect ·
+19 awaiting retest · 7 genuinely open.**
+
+**The 19 "awaiting retest" cannot be judged until the deploy lands.** I retested
+13 of them against production and got 5 PASS, 3 FAIL and 2 inconclusive — but
+the 3 failures (DEF-021 notifications, DEF-022 employer Messages, DEF-023
+employer's own job) are **almost certainly deploy gaps, not regressions**:
+`HeaderActions` is imported by all 12 employer pages in the code, and a local
+build renders the mail and bell that production does not. **Re-run the whole
+table after TD-00.**
+
+The 7 genuinely open, and who owns each:
+
+| Defect | Sev | Status now | Owned by |
+|---|---|---|---|
+| **DEF-017** wrong error on a role mismatch | S3 | **Live-verified 2026-08-19** — reproduced on web AND mobile, traced to the backend string (`employer.controller.ts:106`, `jobseeker.controller.ts:111`), which both clients print raw | **TD-08** — verification done, fix pending |
+| **DEF-035** jobs not filtered by location | S2 | Root cause confirmed. ⚠️ **The behaviour has CHANGED since it was written** — the row says Near By "returns the same as All Jobs"; it now returns **0 results**. Backend needs nothing; nothing ever writes a coordinate | **The location workstream** (TD-02/03/04/05/06) |
+| **DEF-006** seeker landing does not fit the window | S3 | Same disease as the job feed (fixed in `f9b5f3b`, 999px → 465px) but on `/employee`, which was not touched | **TD-15 follow-up** — apply the same treatment |
+| **DEF-018** duplicate GST / registration number accepted | S2 | Needs BE verification. Untouched | Asrar |
+| **DEF-024** no required-field markers on the job form | S3 | Needs live verification. Untouched | small `WEB` |
+| **DEF-031** Work Experience step only partly visible | S3 | Needs live verification. Untouched | small `WEB` |
+| **DEF-032** cannot edit email / phone / account type | S3 | Partly valid; product decision | Shaik |
+
+**Nothing shipped today closes a register row outright.** Today's commits were
+teardown items (TD-07/10/13/15/21) plus four defects found while working that
+were never in the register at all — the register race, the storage bug, the
+double-submit, and mobile's missing document upload. DEF-017's *verification* is
+done; its fix is not.
 
 ---
 
