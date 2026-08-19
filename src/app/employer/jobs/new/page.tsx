@@ -28,7 +28,7 @@ function NewJobContent() {
   // (covers the race where the balance hit 0 after this page loaded).
   const [blockedNoCredits, setBlockedNoCredits] = useState(false)
 
-  const { wallet, loading: walletLoading } = useCredits()
+  const { wallet, loading: walletLoading, reload: reloadWallet } = useCredits()
 
   // Proactive gate: block the form when the wallet loaded and POST balance is 0.
   // Fail-open if the wallet couldn't load (wallet === null) — the BE 402 is the
@@ -46,6 +46,12 @@ function NewJobContent() {
       const message = err instanceof Error ? err.message : t('employer:jobNew.publishFailed')
       if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {
         setBlockedNoCredits(true) // swap the form for the upsell
+        // The wallet in hand is the pre-publish snapshot, so it still shows the
+        // credits the server has just refused. The upsell reads it to decide
+        // between "your free trial has ended" and the generic wording — without
+        // this refetch it always picks the generic one, in exactly the case the
+        // trial copy exists for.
+        void reloadWallet()
       } else {
         setError(message)
       }
@@ -91,11 +97,16 @@ function NewJobContent() {
                   trial, say so here — otherwise the employer only discovers the
                   trial existed once it is gone.
 
-                  Keyed on the trial POST balance specifically: a wallet-wide flag
-                  would also fire when only trial *unlock* credits remain, and the
-                  publish would then quietly spend a paid pack credit under a
-                  banner promising it was free. */}
-              {(wallet?.trial?.postRemaining ?? 0) > 0 && (
+                  The condition is "EVERY post credit I hold is a trial credit",
+                  not merely "I hold one". The server spends the soonest-expiring
+                  lot first, so an employer holding a subscription that lapses
+                  before their 14-day trial would spend the PAID credit under a
+                  banner promising it was free. Comparing the totals is the only
+                  claim we can prove from the wallet alone; it under-claims (stays
+                  silent for mixed wallets) rather than lying. */}
+              {wallet != null &&
+                wallet.post.balance > 0 &&
+                wallet.post.balance === (wallet.trial?.postRemaining ?? 0) && (
                 <p className="mb-5 px-3 py-2 rounded-lg bg-[#e3f5ff] text-[#236987] text-sm">
                   {t('employer:jobNew.trialNote')}
                 </p>
