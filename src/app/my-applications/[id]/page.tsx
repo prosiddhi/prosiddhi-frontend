@@ -9,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
-import { humanizeJobType, formatSalary, relativeTime, initials, formatDate } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, formatDate } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
   Home,
@@ -181,7 +181,7 @@ function ApplicationDetailsContent() {
                       <div className="flex items-center gap-1 mb-4 sm:mb-5">
                         <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="text-base sm:text-lg lg:text-[18px] font-medium">
-                          {t('seeker:jobCard.perMonth', { salary: formatSalary(job?.salaryMin, job?.salaryMax) })}
+                          {formatSalaryLine(job?.salaryMin, job?.salaryMax)}
                         </span>
                       </div>
 

@@ -160,7 +160,7 @@
     "range": "{{min}} - {{max}}",
     "from": "From {{amount}}",
     "upTo": "Up to {{amount}}",
-    "negotiable": "Negotiable"
+    "notDisclosed": "Not disclosed"
   },
   "time": {
     "justNow": "Just now",

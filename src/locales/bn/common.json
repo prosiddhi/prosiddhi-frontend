@@ -160,7 +160,7 @@
     "range": "{{min}} - {{max}}",
     "from": "{{amount}} থেকে",
     "upTo": "{{amount}} পর্যন্ত",
-    "negotiable": "আলোচনা করে ঠিক হবে"
+    "notDisclosed": "জানানো হয়নি"
   },
   "time": {
     "justNow": "এইমাত্র",

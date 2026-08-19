@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { InlineError } from '@/components/feedback/InlineError'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,
@@ -202,7 +202,7 @@ function SavedJobsPageContent() {
                         <div className="flex items-center gap-1 mb-3 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
                           <span className="text-xs sm:text-sm lg:text-[14px]">
-                            {t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}
+                            {formatSalaryLine(job.salaryMin, job.salaryMax)}
                           </span>
                         </div>
 

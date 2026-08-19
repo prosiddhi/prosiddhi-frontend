@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
   Home,
@@ -187,7 +187,7 @@ function MyApplicationsPageContent() {
                           <div className="flex items-center gap-1 mb-3 sm:mb-4">
                             <IndianRupee className="w-4 h-4" />
                             <span className="text-xs sm:text-sm lg:text-[14px]">
-                              {t('seeker:jobCard.perMonth', { salary: formatSalary(job?.salaryMin, job?.salaryMax) })}
+                              {formatSalaryLine(job?.salaryMin, job?.salaryMax)}
                             </span>
                           </div>
 

@@ -13,7 +13,7 @@ import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,
@@ -215,7 +215,7 @@ function JobDetailsContent() {
 
                       <div className="flex items-center gap-1 mb-4 sm:mb-5">
                         <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="text-base sm:text-lg lg:text-[18px] font-medium">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
+                        <span className="text-base sm:text-lg lg:text-[18px] font-medium">{formatSalaryLine(job.salaryMin, job.salaryMax)}</span>
                       </div>
 
                       <div className="flex flex-wrap gap-2 sm:gap-3">

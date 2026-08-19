@@ -160,7 +160,7 @@
     "range": "{{min}} - {{max}}",
     "from": "{{amount}} മുതൽ",
     "upTo": "{{amount}} വരെ",
-    "negotiable": "സംസാരിച്ച് തീരുമാനിക്കാം"
+    "notDisclosed": "വെളിപ്പെടുത്തിയിട്ടില്ല"
   },
   "time": {
     "justNow": "ഇപ്പോൾ",

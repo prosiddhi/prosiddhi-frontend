@@ -160,7 +160,7 @@
     "range": "{{min}} - {{max}}",
     "from": "{{amount}} முதல்",
     "upTo": "{{amount}} வரை",
-    "negotiable": "பேசி முடிவு செய்யலாம்"
+    "notDisclosed": "தெரிவிக்கப்படவில்லை"
   },
   "time": {
     "justNow": "இப்போதுதான்",

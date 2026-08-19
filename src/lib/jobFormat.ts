@@ -36,7 +36,26 @@ export function formatSalary(min?: number | null, max?: number | null): string {
   }
   if (min != null) return i18n.t('salary.from', { amount: fmt(min) })
   if (max != null) return i18n.t('salary.upTo', { amount: fmt(max) })
-  return i18n.t('salary.negotiable')
+  // "Not disclosed", NOT "Negotiable". There is no negotiable flag anywhere in
+  // the product — salary is simply optional on the job form — so an absent
+  // figure means we do not know, and saying it is negotiable invents a promise
+  // on the employer's behalf. The mobile app already said "Salary not
+  // disclosed"; the two now agree.
+  return i18n.t('salary.notDisclosed')
+}
+
+/**
+ * The whole salary line as a card renders it: an amount with its "/ Month"
+ * suffix, or the bare "not disclosed" phrase.
+ *
+ * Six screens used to build this as `t('jobCard.perMonth', { salary })`, which
+ * appends the suffix unconditionally — so an unknown salary read "₹ Negotiable
+ * / Month", a per-month rate for a figure that does not exist. The suffix
+ * belongs to the amount, so the rule lives here rather than in each caller.
+ */
+export function formatSalaryLine(min?: number | null, max?: number | null): string {
+  if (min == null && max == null) return i18n.t('salary.notDisclosed')
+  return i18n.t('seeker:jobCard.perMonth', { salary: formatSalary(min, max) })
 }
 
 export function relativeTime(iso?: string): string {

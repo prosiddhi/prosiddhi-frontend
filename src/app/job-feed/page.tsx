@@ -11,7 +11,7 @@ import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
-import { humanizeJobType, formatSalary, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Search,
   MapPin,
@@ -539,7 +539,7 @@ function JobFeedPageContent() {
 
                         <div className="flex items-center gap-1 mb-2 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
-                          <span className="text-xs sm:text-sm lg:text-[14px]">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
+                          <span className="text-xs sm:text-sm lg:text-[14px]">{formatSalaryLine(job.salaryMin, job.salaryMax)}</span>
                         </div>
 
                         <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
