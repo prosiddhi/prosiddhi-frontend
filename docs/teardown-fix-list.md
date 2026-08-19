@@ -1,0 +1,371 @@
+# The one list — teardown findings + QA register, merged
+
+**Created:** 2026-08-19 · **Supersedes** the first draft of this file and sits
+alongside [competitor-teardown.md](competitor-teardown.md) (the analysis) and
+[qa/defect-log.csv](qa/defect-log.csv) (the formal register).
+
+Everything here was **seen in a real browser** — live production, a local
+full-stack run, or the Flutter app compiled to web — on a 390×840 phone. Nothing
+is theoretical. Where a claim comes from code, the file and line are named.
+
+**Surfaces:** `WEB` `prosiddhi-frontend` · `MOB` `prosiddhi-mobile-app` ·
+`BE` `prosiddhi-backend` (⚠️ coordinate with Asrar) · `DATA` · `OPS`
+**Effort:** S under an hour · M half a day · L a day or more
+
+---
+
+## 0. Blocker — production is running a stale build
+
+**Found 2026-08-19, confirmed by Nazir: `prosiddhi.com` has not been deployed.**
+
+Proof: `HeaderActions` — the Mail link to `/messages` plus `NotificationBell` — is
+imported by **all 12 employer pages** including
+[app/employer/page.tsx](../src/app/employer/page.tsx). A local build of the same
+code shows the envelope and bell in the employer header. **Production shows
+neither.**
+
+**Consequences, and they are large:**
+
+1. The register's **19 "fixed — awaiting retest"** rows **cannot be validly
+   retested against production.** Retesting there tests old code.
+2. Three S1/S2 defects I confirmed "still broken" on production are **probably
+   already fixed in code** — see the retest table below.
+3. Some findings in the teardown may also already be fixed.
+
+### TD-00 · Deploy `main` to production, then re-run the retest `OPS` · ⭐ do first
+
+Nothing else on this list should be judged until this happens. Owner: Nayan /
+Asrar.
+
+---
+
+## 1. Retest results, 2026-08-19
+
+Run against **production (stale)**, logged in as `qa.employer` and `qa.seeker`.
+
+| Defect | Sev | Verdict on stale prod | Read as |
+|---|---|---|---|
+| DEF-005 / DEF-013 | S2 | **PASS** — register asks "I want a job / I want to hire" first | Close |
+| DEF-011 | S3 | **PASS** — ProSiddhi logo present | Close |
+| DEF-012 | S3 | **PASS** — footer employer links open Login on the Employer tab | Close |
+| DEF-025 | S2 | **PASS** — switching users lands on the right dashboard | Close |
+| DEF-026 | S3 | **PASS** — profile shows full details, "Verification: Approved" | Close |
+| DEF-010 | S3 | **N/A** — no Azkashine mark on the home page at all | Close as N/A |
+| DEF-022 | **S1** | **FAIL on prod** — no Messages entry point anywhere, phone or desktop, including the account menu. But `/messages` **works when typed directly** | **Almost certainly a deploy gap** — retest after TD-00 |
+| DEF-021 | S2 | **FAIL on prod** — no notification bell anywhere | **Same — retest after TD-00** |
+| DEF-023 | **S1** | **FAIL on prod** — employer opens their own job → bounced to `/employer`. Verified twice | **Retest after TD-00** |
+| DEF-014 | S2 | **FAIL, low confidence** — typed "driver" on `/employee`, Enter and search click, stayed put | Retest after TD-00 |
+| DEF-004 | S2 | **INCONCLUSIVE** — "Select location" is a button, not a dropdown; my probe caught footer links | Needs a human look |
+| DEF-033 | S2 | **INCONCLUSIVE** — Shortlisted control exists; proving it filters needs a shortlisted candidate | Needs test data |
+| DEF-007, 008, 015, 019, 020, 030 | mixed | **NOT RUN** — each needs a registration, i.e. a write | Run against local BE |
+
+*Correction for the record: my first automated pass scored DEF-023 a PASS. It only
+checked for a bounce to `/job-feed`; this bounces to `/employer`. The verdict above
+is the corrected one.*
+
+### TD-01 · Re-run this whole table after the deploy `WEB` · S
+
+Then update [qa/defect-log.csv](qa/defect-log.csv) with real retest results.
+
+---
+
+## 2. The location workstream — `MOB` + `WEB` + `BE`
+
+*Nazir asked specifically that this ship across all three surfaces. Here is what is
+actually required, verified against the backend source rather than the API doc.*
+
+### What already exists — more than expected
+
+- `JobSeeker.latitude` / `.longitude` — `prisma/schema.prisma:284-285`
+- `Job.latitude` / `.longitude` / `.radius` (default 5 km) — `schema.prisma:513-515`,
+  with `@@index([latitude, longitude])`
+- `GET /api/jobs/nearby` — *"Reads seeker's lat/lng. Returns empty + noLocation flag
+  if not set"* (`job.controller.ts:287-290`). **So the FE sending only `radius` is
+  correct, not a bug.**
+- Every write endpoint **already accepts coordinates**: job create
+  (`job.validator.ts:30`), job update (`:77`), job query (`:133`), seeker
+  registration and profile (`auth.validator.ts:74`, `:250`).
+
+### The actual defect
+
+**Nothing ever writes a coordinate.** The feature is built end to end on the
+backend and starved of input by both clients. That single gap causes all of:
+
+- "Near By" returning **0 results** (web tab, and the mobile home section)
+- the recommendation score's **20-point location component being 0** for every user
+  on every job — which is part of why "Recommended" returns 1 job in 10
+- DEF-035 in the register
+
+### TD-02 · Capture the seeker's coordinates `WEB` `MOB` · M
+
+On the seeker profile and in registration: ask for browser/device location with a
+clear reason, and **always** offer a manual fallback (choose your area) — permission
+will often be refused, and this audience may not understand the prompt. Send
+`latitude` + `longitude` on the existing profile update. **No BE change.**
+
+### TD-03 · Capture the job's coordinates `WEB` `MOB` · M
+
+On the post-a-job form, geocode the typed location, or let the employer drop a pin.
+Send `latitude` + `longitude` on job create/update. Set `radius` sensibly (the BE
+default is 5 km). **No BE change.**
+
+### TD-04 · Surface `noLocation` properly `WEB` `MOB` · S
+
+The web already handles it well — "No jobs near your saved location yet" with an
+**"Add your location"** button. **Mobile shows a struck-through pin and nothing
+else, on the home screen.** Give mobile the same recovery action, or hide the
+section until a coordinate exists.
+
+### TD-05 · Then re-check the recommendation score `BE` · M
+
+Once coordinates flow, confirm the 20-point location component actually scores.
+⚠️ BE reading/possible tuning — Asrar.
+
+### TD-06 · Widen the city list `WEB` · S–M
+
+[cities.ts:18-23](../src/lib/cities.ts#L18-L23) hardcodes four cities — Bangalore,
+Delhi, Mumbai, Pune — against jobhai's 500+. A person in Nagpur or Patna cannot
+pick their city. Related: DEF-004.
+
+---
+
+## 3. Truth and copy — cheapest work, biggest change in feel
+
+### TD-07 · Tell employers about the free trial `WEB` `MOB` · S · ⭐
+
+Every new employer gets **1 job post + 3 candidate unlocks free for 14 days**, and
+we never say so. **Verified on a local backend**: a fresh employer's dashboard reads
+*"Credit wallet · 1 Job-post credits · Expires 02 Sept 2026"* next to a **Buy
+credits** button. The words "free" and "trial" appear **nowhere** — checked in the
+DOM, both `false`. It reads like a bill.
+
+Grant: [credit.service.ts:445](../../prosiddhi-backend/src/services/credit.service.ts#L445).
+Copy exists only on the pricing page ([employer.json:177](../src/locales/en/employer.json#L177))
+and in the terms ([legal.json:153](../src/locales/en/legal.json#L153)).
+
+Four changes: employer landing + registration · the wallet card
+([CreditWallet.tsx](../src/components/employer/CreditWallet.tsx)) · the post-job
+form · the paywall title ([employer.json:304](../src/locales/en/employer.json#L304)).
+Mirror all four on mobile.
+
+### TD-08 · Fix the wrong-role login error `BE` `WEB` `MOB` · S
+
+Correct email + correct password + wrong role toggle → **"Please use the correct
+login URL for your account type"**, on a phone app with no URL. From
+[employer.controller.ts:106](../../prosiddhi-backend/src/controllers/employer.controller.ts#L106)
+and [jobseeker.controller.ts:111](../../prosiddhi-backend/src/controllers/jobseeker.controller.ts#L111);
+both clients print it raw. Say *"This is an employer account. Tap Employer above."*
+and switch the toggle. Register cross-ref: **DEF-017**. ⚠️ BE string — Asrar.
+
+### TD-09 · Web paywall quotes ₹499 on a ₹589 charge `WEB` · S
+
+**Mobile already shows "₹589 incl. GST · ₹499 + 18% GST".** Copy mobile.
+Already recorded at [MONETIZATION.md:121](MONETIZATION.md#L121).
+
+### TD-10 · Wallet speaks accounting, not English `WEB` `MOB` · S
+
+"Credit wallet / Job-post credits / Candidate unlocks" → "**Job posts left: 1**",
+"**Worker contacts left: 3**". [MONETIZATION.md §1](MONETIZATION.md) approves a
+display-layer rename — **do not rename columns or API fields.**
+
+### TD-11 · Footer names the company wrongly `WEB` · S
+
+*"© 2026 Azkashine Software & Services Pvt. Ltd.."* — double full stop and the
+wrong legal name, on a product issuing GST invoices. Correct:
+**AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMITED**. Fill the empty GSTIN and
+registered office in `legal.ts` while there.
+
+### TD-12 · Add trust signals `WEB` `MOB` · S
+
+jobhai leads with *"100% FREE & Verified Jobs"* and *"2 Crore+ Indians trust Job Hai
+App"*; taphubs with rating + SSL badges. We promise nothing, in a market full of job
+scams. One line above the fold plus a verified-employer badge.
+
+### TD-13 · Copy and format inconsistencies `WEB` `MOB` · S
+
+"1 results" (MOB) · "Welcome Back" vs "Welcome back" · "₹ Negotiable / Month" vs
+"Salary not disclosed" · "11/08/2026" vs "5 hours ago" · "0 seat(s) available" ·
+"Only rows with a position and start date are saved." · "10 Results" vs "Showing 9
+results" for the same account.
+
+### TD-14 · Decide on the "app is on the way" footer `WEB` · S
+
+Every page tells visitors the product is a preview.
+
+---
+
+## 4. Layout and density
+
+### TD-15 · Fix the web job feed's first screen `WEB` · S · ⭐
+
+First job card at **991 px** — 1.17 screens of scroll, **zero** jobs visible. apna:
+234 px, three jobs. **Our own mobile app: ~155 px, 2.5 jobs.** Copy the mobile
+layout — title, search box, result count, jobs. Delete the hero heading and subtitle
+from [job-feed/page.tsx](../src/app/job-feed/page.tsx). **Target: first card above
+300 px.** Related: DEF-006.
+
+### TD-16 · Rebuild the web login as one choice `WEB` · M · ⭐
+
+2 roles × 4 methods = **8 combinations**; 11 buttons and 3 inputs. WorkIndia's is one
+box and a "Skip" link. Default to **phone + OTP**, "Use email instead" as a text
+link, **remove the role toggle** —
+[login/page.tsx:19](../src/app/login/page.tsx#L19). Keep all methods working
+underneath. If this lands, **TD-08 becomes unreachable**.
+
+### TD-17 · Mirror the login simplification on mobile `MOB` · M
+
+9 buttons, 8 under 44 px.
+
+### TD-18 · Reorder the employer dashboard `WEB` · S
+
+It opens with the credit wallet and six zeros. **Mobile opens with *Job Posted 1 · 2
+applicants*** — their hiring, not their bill. Copy mobile's order.
+
+### TD-19 · One Apply button on the job detail `WEB` · S
+
+Two identical blue Apply buttons on one screen.
+
+### TD-20 · Raise small tap targets `WEB` · M
+
+My Applications 14 of 15 under 44 px; Saved Jobs 13/15; Messages 11/12; login 15/17.
+*(We are still far better than apna's 251 of 283 — polish, not crisis.)*
+
+---
+
+## 5. Broken or misleading
+
+### TD-21 · Remove the "coming soon" voice icons `WEB` · S · ⭐
+
+[VoiceButton.tsx](../src/components/feedback/VoiceButton.tsx) is used in **10 files**
+and only ever says voice is coming soon. **Two sit on the login screen.** Render
+`null` or remove the call sites. Voice stays deferred (locked scope Q2) — we stop
+advertising the gap.
+
+### TD-22 · Untangle the filter cascade `WEB` · M
+
+Category → Sector → Job title, two dropdowns dead until the parent is chosen. Repeats
+in the seeker profile and the post-job form. Let job title be searched directly.
+
+### TD-23 · Show candidates before the employer types `WEB` `MOB` · M
+
+"Find workers" is an empty box until you type. The free tier already permits snippet
+search — show recent or matching candidates by default.
+
+### TD-24 · Job-details stale "Applied" badge `WEB` · S
+
+The effect never resets `hasApplied` / `isSaved` on `jobId` change, so a failed check
+leaves the previous job's badge. Fix written previously, never applied.
+
+### TD-25 · "Recommended" returns 1 job in 10 `WEB` `MOB` · M
+
+Partly TD-05 (dead location component). Audit the remaining weights.
+
+---
+
+## 6. Brand and role identity
+
+### TD-26 · Mobile uses two brand blues `MOB` · S · ⭐
+
+[app_theme.dart:4](../../prosiddhi-mobile-app/lib/core/constants/app_theme.dart#L4)
+`primary = 0xFF2563EB` (generic royal) vs
+[:24](../../prosiddhi-mobile-app/lib/core/constants/app_theme.dart#L24)
+`textAction = 0xFF5CC2ED` (the real brand sky). Welcome and login are royal, home is
+sky, the website is sky. **Three appear at once on the employer dashboard** — plus
+dark teal `#164E65`.
+
+### TD-27 · Mobile welcome screen has no logo `MOB` · S
+
+A generic briefcase in a royal square — the Flutter starter look — with our real mark
+as a pale watermark behind it.
+
+### TD-28 · Employer and seeker look identical `WEB` · M
+
+Same primary `rgb(92,194,237)`, same logo, bar, avatar and cards. The only header
+difference is one button. Give the employer area its own accent and header.
+
+### TD-29 · Copy the mobile welcome screen onto the web `WEB` · M
+
+Mobile's "I'm a Job Seeker / I'm an Employer" cards beat anything on our website;
+taphubs does the same with two buttons.
+
+---
+
+## 7. Backend and operations
+
+### TD-30 · Confirm `NODE_ENV=production` on the live API `BE` `OPS` · S
+
+OTPs are returned in the response body when `NODE_ENV !== 'production'`
+([otp.service.ts:87](../../prosiddhi-backend/src/services/otp.service.ts#L87),
+[email-otp.service.ts:95](../../prosiddhi-backend/src/services/email-otp.service.ts#L95)).
+**The gate is correct — verify the deployed environment sets it.** Not a code defect.
+
+### TD-31 · Review `Access-Control-Allow-Origin: *` `BE` · S
+
+`api.prosiddhi.com` answers with a wildcard origin, so any site can call it from a
+browser; bearer tokens are then the only protection. May be deliberate for mobile.
+Worth a conscious decision plus `/security-review`.
+
+### TD-32 · Mobile has never run on a real device `MOB` · M
+
+It demonstrably **runs**: clean `flutter analyze`, builds, boots, logs into
+production, zero console errors, both roles walked. But that was the **web target**.
+Still needs a real device or emulator before release.
+
+### TD-33 · Mobile checkout `MOB` · L · ⛔ blocked on D2
+
+---
+
+## 8. Still open in the register (not from the teardown)
+
+| Defect | Sev | Status | Note |
+|---|---|---|---|
+| DEF-006 | S3 | Open — deferred | Landing page does not fit the window. Same disease as TD-15 |
+| DEF-018 | S2 | Open — needs BE verification | Duplicate GST / registration number accepted at employer registration |
+| DEF-024 | S3 | Open — needs live verification | No required-field indicators on the job posting form |
+| DEF-031 | S3 | Open — needs live verification | Work Experience step only partially visible during registration |
+| DEF-032 | S3 | Open — product decision | Cannot edit email, phone or account type in Settings |
+| DEF-035 | S2 | Open — root cause traced | Location filtering. **Superseded by §2 above** — note the behaviour changed: the register says Near By returns *the same as All Jobs*; it now returns **0** |
+
+---
+
+## 9. Decisions — Shaik's, not ours ⚠️
+
+- **The 14-day trial expiry.** A free post that quietly dies is worse than none.
+  `validityDays = 14`, [credit.service.ts:455](../../prosiddhi-backend/src/services/credit.service.ts#L455).
+  **Making the trial visible (TD-07) needs no decision — do it regardless.**
+- **A business employer's trial starts only at admin approval.** A four-day approval
+  silently spends a quarter of it.
+- **Should a seeker see a phone number?** WorkIndia puts Call and WhatsApp on every
+  job card. Our paywall sits between the two people who want to talk. ⚠️ Contradicts
+  the contact-unlock model.
+- **Are we building for the right buyer?** Team seats, credit ledger, GST invoices, 8
+  plans, seat suspension — enterprise machinery. WorkIndia says 90% of its customers
+  are SMEs.
+
+---
+
+## 10. Data, not code
+
+- **TD-34 · Untidy job data.** Cities stored as *"bangalore"*, *"Mysore"* and
+  *"Bengaluru, Karnataka"*; titles like *"furniture designer"*. **Inconsistent city
+  text makes any city filter unreliable** — independent of the missing coordinates.
+  Normalise on write, clean what exists.
+- **TD-35 · Ten jobs in production.** No design change fixes an empty marketplace.
+
+---
+
+## 11. How we work — the gates on every item
+
+- `npm run type-check` exits 0 — a pre-commit hook enforces it
+- `npm run lint` **and** `node scripts/verify-locales.mjs` whenever copy or locales
+  change — §3 touches ten locale files per item
+- `/security-review` — Claude can run this
+- **`/code-review` — Claude cannot.** Nazir types it. Ask; never imply it ran
+- **One ticket, one commit.** Conventional message referencing the PJP ticket.
+  **No `Co-Authored-By` trailer**
+- ⚠️ `BE` items: coordinate with Asrar before committing
+- ⚠️ `MOB` items: `flutter analyze` clean; coordinate with Sailaja
+- Locked scope stays locked: no Aadhaar, no escrow/platform payments, no WebSockets
+  for chat, no voice transcription, no audio. `.ics` is permitted for the interview
+  email only
+- Plan first on multi-file work and wait for a go-ahead

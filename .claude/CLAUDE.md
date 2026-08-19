@@ -39,7 +39,23 @@ What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the reg
 - `npm run type-check` (exit 0) — a pre-commit hook enforces it
 - `npm run lint` and `node scripts/verify-locales.mjs` when the change touches copy or locales
 - `/security-review` — Claude CAN run this
-- `/code-review` — ⚠️ **Claude CANNOT run this.** It is blocked from model invocation and reserved for Nazir to type. **Ask him for it; never imply it ran.**
+- `/code-review` — Claude CAN run this *(permission given by Nazir 2026-08-19; the
+  old "reserved for Nazir" rule is retired)*. Use **`high`** on logic or backend
+  changes; `medium` is enough for copy-only. `medium` deliberately reports only
+  high-confidence findings, so it will pass over clumsy-but-correct code.
+  ⚠️ **`/code-review ultra`** is still user-triggered and billed — Claude cannot launch it.
+- **`/simplify`** — run it on every non-trivial diff. `type-check`, `lint`,
+  `/security-review` and `/code-review medium` all passed a block that walked one
+  array five times to produce three values (fixed in `a2f1bc1`). None of those
+  gates look for clarity; this one does.
+
+### Code standards Claude must self-check before showing a diff
+
+- **One pass over a collection** unless there is a reason for more. No
+  `.filter().reduce()` next to `.map().filter().map()` over the same array.
+- **No type predicate that exists only to satisfy the compiler** (`(d): d is Date`).
+  If the types need a hint, the shape is usually wrong.
+- **No `Math.min(...spread)`** or similar cleverness — write the loop.
 
 ## Team
 
