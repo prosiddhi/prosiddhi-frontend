@@ -13,7 +13,7 @@ import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,
@@ -241,7 +241,10 @@ function JobDetailsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
+                  {/* 160px, not 300px: that reservation was sized for the
+                      Save + Apply pair that used to live here, and the title
+                      column is flex-1, so it paid for the unused width. */}
+                  <div className="flex flex-col items-end gap-4 lg:min-w-[160px]">
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
                       {viewCount != null && (
@@ -251,29 +254,54 @@ function JobDetailsContent() {
                       )}
                     </div>
 
+                    {/* Save. Apply is in the action row below (TD-19). */}
                     {isSeeker && (
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+                      <>
                         <button
                           onClick={handleSaveJob}
                           disabled={saveLoading}
-                          className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
+                          className="px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors min-h-[48px] min-w-[120px] bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-60"
                         >
                           {isSaved ? <BookmarkCheck className="w-5 h-5 text-primary-50" /> : <Bookmark className="w-5 h-5" />}
                           <span className="text-sm sm:text-base">{saveLoading ? '...' : isSaved ? t('buttons.saved') : t('buttons.save')}</span>
                         </button>
-                        <button
-                          onClick={() => setIsApplyModalOpen(true)}
-                          disabled={hasApplied}
-                          className="inline-flex items-center justify-center min-h-[48px] px-4 sm:px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
-                        </button>
-                      </div>
+                        {saveError && <p role="alert" className="text-xs text-red-500 text-right">{saveError}</p>}
+                      </>
                     )}
-                    {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
                   </div>
                 </div>
               </div>
+
+              {/* Action Buttons — seeker-only. An employer viewing their own post
+                  (DEF-023) gets the detail, not actions the backend would refuse.
+                  Sits above the description, matching the mobile job detail (TD-19). */}
+              {isSeeker && (
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-10 lg:mb-12">
+                  <button
+                    onClick={() => setIsApplyModalOpen(true)}
+                    disabled={hasApplied}
+                    className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
+                  </button>
+                  {/* Contact recruiter (PJP-113). Always shown: the per-job
+                      showEmail/showPhone toggles this used to gate on were DROPPED by
+                      the backend in fe246f1 (2026-08-06), so both read `undefined` and
+                      the button rendered on NO job at all — the feature was invisible.
+                      Employer contact is now unconditional by product decision (the
+                      seeker side is free), and GET /jobs/:id/recruiter-contact no
+                      longer filters. That endpoint stays a separate authenticated call
+                      — GET /jobs/:id is public, so folding contact into the job payload
+                      would hand every employer's email and phone to anonymous callers. */}
+                  <button
+                    onClick={() => setIsContactModalOpen(true)}
+                    className="min-h-[48px] px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    <Phone className="w-5 h-5" />
+                    {t('seeker:jobDetails.contactRecruiter')}
+                  </button>
+                </div>
+              )}
 
               {/* Job Description */}
               {descriptionLines.length > 0 && (
@@ -309,36 +337,6 @@ function JobDetailsContent() {
                     </div>
                   )}
                 </section>
-              )}
-
-              {/* Action Buttons — seeker-only. An employer viewing their own post
-                  (DEF-023) gets the detail, not actions the backend would refuse. */}
-              {isSeeker && (
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-                <button
-                  onClick={() => setIsApplyModalOpen(true)}
-                  disabled={hasApplied}
-                  className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
-                </button>
-                {/* Contact recruiter (PJP-113). Always shown: the per-job
-                    showEmail/showPhone toggles this used to gate on were DROPPED by
-                    the backend in fe246f1 (2026-08-06), so both read `undefined` and
-                    the button rendered on NO job at all — the feature was invisible.
-                    Employer contact is now unconditional by product decision (the
-                    seeker side is free), and GET /jobs/:id/recruiter-contact no
-                    longer filters. That endpoint stays a separate authenticated call
-                    — GET /jobs/:id is public, so folding contact into the job payload
-                    would hand every employer's email and phone to anonymous callers. */}
-                <button
-                  onClick={() => setIsContactModalOpen(true)}
-                  className="px-6 sm:px-8 py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                >
-                  <Phone className="w-5 h-5" />
-                  {t('seeker:jobDetails.contactRecruiter')}
-                </button>
-              </div>
               )}
 
               {/* Report this job (PJP-152) — trust affordance for scam/abusive posts.
