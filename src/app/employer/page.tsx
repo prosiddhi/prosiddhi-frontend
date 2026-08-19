@@ -290,33 +290,29 @@ function EmployerDashboardContent() {
               to open with the wallet and a Buy button, so an employer's first
               screen was their bill rather than their jobs.
 
-              Gated on `!error`, not on `!loading`. `error` is only set when all
-              three panels failed, and the wallet would then fail too — showing
-              it there stacks a second "couldn't load" row with its own Retry
-              directly under the page's. A single panel failing leaves `error`
-              empty, so the wallet still renders, and mounting it while the
-              panels are still in flight keeps its fetch parallel to theirs and
-              keeps it visible even if a dashboard call never settles. */}
-          {!error && (
-            <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-8">
-              <CreditWallet />
-              {/* The paid candidate history. Supplementary: hidden, not errored,
-                  when its count fails to load. */}
-              {unlockedCount !== null && (
-                <StatTile
-                  href="/employer/workers?tab=unlocked"
-                  label={t('employer:dashboard.unlockedCandidates')}
-                  value={unlockedCount}
-                  icon={<Unlock className="w-5 h-5" />}
-                  action={
-                    <span className="inline-flex items-center gap-1 text-sm text-primary-50 font-medium whitespace-nowrap">
-                      {t('employer:dashboard.viewAll')} <ChevronRight className="w-4 h-4" />
-                    </span>
-                  }
-                />
-              )}
-            </div>
-          )}
+              Unconditional, exactly as it was when it rendered above the
+              panels. The wallet fetches its own data (PJP-178) and this page
+              renders no footer, so `/employer/invoices` and the plans CTA are
+              reachable from nowhere else — gating it on the panels' load state
+              would strand both whenever a dashboard call failed or hung. */}
+          <div className="mt-8 sm:mt-10 space-y-6 sm:space-y-8">
+            <CreditWallet />
+            {/* The paid candidate history. Supplementary: hidden, not errored,
+                when its count fails to load. */}
+            {unlockedCount !== null && (
+              <StatTile
+                href="/employer/workers?tab=unlocked"
+                label={t('employer:dashboard.unlockedCandidates')}
+                value={unlockedCount}
+                icon={<Unlock className="w-5 h-5" />}
+                action={
+                  <span className="inline-flex items-center gap-1 text-sm text-primary-50 font-medium whitespace-nowrap">
+                    {t('employer:dashboard.viewAll')} <ChevronRight className="w-4 h-4" />
+                  </span>
+                }
+              />
+            )}
+          </div>
         </div>
       </main>
     </div>
