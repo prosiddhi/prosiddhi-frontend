@@ -1579,6 +1579,17 @@ export interface Wallet {
   post: { balance: number; expiresAt: string | null }
   download: { balance: number; expiresAt: string | null }
   packNeverExpires: boolean
+  /**
+   * Live free-trial credits, per kind, with the TRIAL expiry — null when none
+   * remain. Optional because the portal may deploy ahead of the backend that
+   * serves these fields; every consumer must treat `undefined` as "no trial"
+   * rather than render a half-true banner.
+   */
+  trial?: { postRemaining: number; downloadRemaining: number; expiresAt: string | null } | null
+  /** A trial was granted at some point — spent or lapsed. True forever after. */
+  trialGranted?: boolean
+  /** The employer has ever bought a pack or subscription. */
+  hasPurchased?: boolean
 }
 
 // POST /api/billing/checkout response — a created Razorpay order plus the GST

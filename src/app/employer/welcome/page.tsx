@@ -152,9 +152,23 @@ function EmployerLandingPageContent() {
                 {t('employer:landing.heroTitle')}
               </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl text-[#717182] leading-relaxed lg:leading-8 max-w-[745px] mb-6 sm:mb-8">
+              <p className="text-base sm:text-lg lg:text-xl text-[#717182] leading-relaxed lg:leading-8 max-w-[745px] mb-4 sm:mb-5">
                 {t('employer:landing.heroSubtitle')}
               </p>
+
+              {/* Every new employer already gets 1 post + 3 unlocks free for 14 days.
+                  It was stated only on the pricing page and in the terms, so most
+                  never learn about it — and the wallet then reads as a bill.
+
+                  Anonymous visitors only. This page is public and also serves
+                  signed-in employers; promising "your first job free" to one who
+                  has already spent their trial sends them straight into the
+                  paywall having just been told the opposite. */}
+              {!isEmployer && (
+                <p className="inline-block px-3 py-2 rounded-lg bg-[#e3f5ff] text-[#236987] text-sm sm:text-base font-medium mb-6 sm:mb-8">
+                  {t('employer:landing.trialPitch')}
+                </p>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-5">
                 {/* The biggest button on the page was a dead <button>. A signed-in

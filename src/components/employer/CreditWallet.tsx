@@ -112,6 +112,30 @@ export function CreditWallet({ className }: { className?: string }) {
             <p className="text-xs text-[#717182] mt-4">{t('employer:wallet.packNeverExpires')}</p>
           )}
 
+          {/* The trial is worth ~₹589 and we used to show it as a bare number beside
+              a Buy button, which reads as a bill rather than a gift. Say it plainly.
+              Rendered above the expiry nudge so "this is free" is read before
+              "this runs out".
+
+              The date MUST come from `trial.expiresAt`, not `post.expiresAt` —
+              the latter is the max across all sources, so an employer holding a
+              plan as well would be shown the plan's date and miss the 14-day
+              window. When the trial carries no expiry there is no deadline to
+              announce, so the dateless variant is used instead of printing an
+              empty one. */}
+          {(() => {
+            const trial = wallet.trial
+            if (!trial || (trial.postRemaining === 0 && trial.downloadRemaining === 0)) return null
+            const by = formatShortDate(trial.expiresAt)
+            return (
+              <p className="mt-4 px-3 py-2 rounded-lg bg-[#e3f5ff] text-[#236987] text-sm">
+                {by
+                  ? t('employer:wallet.trialBanner', { date: by })
+                  : t('employer:wallet.trialBannerNoDate')}
+              </p>
+            )
+          })()}
+
           {(() => {
             const notice = planExpiryNotice(wallet.post.expiresAt, wallet.download.expiresAt)
             if (!notice) return null

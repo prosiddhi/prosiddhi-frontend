@@ -84,9 +84,24 @@ function NewJobContent() {
               <span className="text-sm">{t('employer:jobNew.checkingCredits')}</span>
             </div>
           ) : outOfCredits ? (
-            <OutOfCreditsUpsell />
+            <OutOfCreditsUpsell wallet={wallet} />
           ) : (
-            <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+            <>
+              {/* Publishing silently spends a credit. When that credit is the free
+                  trial, say so here — otherwise the employer only discovers the
+                  trial existed once it is gone.
+
+                  Keyed on the trial POST balance specifically: a wallet-wide flag
+                  would also fire when only trial *unlock* credits remain, and the
+                  publish would then quietly spend a paid pack credit under a
+                  banner promising it was free. */}
+              {(wallet?.trial?.postRemaining ?? 0) > 0 && (
+                <p className="mb-5 px-3 py-2 rounded-lg bg-[#e3f5ff] text-[#236987] text-sm">
+                  {t('employer:jobNew.trialNote')}
+                </p>
+              )}
+              <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+            </>
           )}
         </div>
       </main>

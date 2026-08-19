@@ -150,6 +150,8 @@
     "downloadCredits": "Candidate unlocks",
     "expires": "Expires {{date}}",
     "packNeverExpires": "Pack credits never expire.",
+    "trialBanner": "Free trial — these are on us. Use them by {{date}}.",
+    "trialBannerNoDate": "Free trial — these are on us.",
     "planExpiringSoon": "Your plan expires in {{count}} days. Any unused credits from this plan will be lost. Buy a plan before then to keep posting and unlocking.",
     "planExpired": "Your plan has expired and its unused credits are gone. Jobs already live stay live for 3 more days. Buy a plan to post and unlock again.",
     "renew": "Buy a plan",
@@ -203,6 +205,7 @@
     "signUp": "Sign Up",
     "heroTitle": "Find Workers for Your Business Fast & Simple",
     "heroSubtitle": "Connect with top professionals and build your dream team. Post jobs, review applications, and hire faster with our advanced recruitment platform.",
+    "trialPitch": "Post your first job free — 1 job post and 3 candidate unlocks, on us.",
     "postAJob": "Post a Job",
     "contactUs": "Contact Us",
     "emailLabel": "Email Address",
@@ -295,6 +298,7 @@
   "jobNew": {
     "logoAlt": "ProSiddhi",
     "backToMyJobs": "Back to My Jobs",
+    "trialNote": "This uses your free trial job post.",
     "title": "Post a Job",
     "submitLabel": "Publish Job",
     "publishFailed": "Failed to publish the job. Please try again.",
@@ -303,6 +307,8 @@
   "postGate": {
     "title": "You're out of job-post credits",
     "body": "Publishing a job uses 1 post credit. Buy a plan, or the single-post pack, to keep hiring.",
+    "trialEndedTitle": "Your free trial has ended",
+    "trialEndedBody": "You used your free job post. Buy a plan, or the single-post pack, to keep hiring.",
     "topUpNow": "Top up now",
     "viewPlans": "View plans"
   },
