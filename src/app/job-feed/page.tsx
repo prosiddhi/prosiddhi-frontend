@@ -308,23 +308,33 @@ function JobFeedPageContent() {
       </div>
 
 
-      {/* Hero Section */}
-      <section className="relative bg-[#f5fcff] py-12 sm:py-16 lg:py-20 overflow-hidden">
-        <div className="relative z-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl xl:text-[72px] font-bold text-[#164e65] leading-tight mb-3 sm:mb-4">
-              {t('seeker:jobFeed.heroTitle')}
-            </h1>
-            <p className="text-sm sm:text-base lg:text-[16px] text-[#818181] max-w-2xl mx-auto">
-              {t('seeker:jobFeed.heroSubtitle')}
-            </p>
-          </div>
+      {/* Search Section (TD-15)
+          The 72px "Find Jobs Near You" hero that used to open this page is gone.
+          It cost ~400px above the fold on a phone, it repeated the landing page
+          word for word, and it announced "this is where you find jobs" to
+          someone who had signed in and tapped into the job feed. The section
+          header below already names the tab and the result count.
 
-          {/* Search Bar — only on the All tab (Recommended/Near By are profile-driven) */}
-          {tab === 'all' && (
-            <div className="bg-white rounded-lg shadow-[0px_5px_15px_0px_rgba(184,184,184,0.1)] p-3 sm:p-4 lg:p-[12px] max-w-[1408px] mx-auto">
-              <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-5">
-                <div className="flex-1 relative">
+          Measured on a 390x844 phone: the first job card began at 999px — 1.2
+          screens of scrolling, ZERO complete jobs visible. apna shows three; our
+          own Flutter app shows two and a half. */}
+      {/* Search — only on the All tab (Recommended/Near By are profile-driven).
+          The whole section is gated, not just its contents: with the hero gone
+          the search card is its only child, so leaving the section mounted
+          painted a bare blue band across the other two tabs. */}
+      {tab === 'all' && (
+      <section className="relative bg-[#f5fcff] py-4 sm:py-6 lg:py-8 overflow-hidden">
+        <div className="relative z-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
+          <div className="bg-white rounded-lg shadow-[0px_5px_15px_0px_rgba(184,184,184,0.1)] p-3 sm:p-4 lg:p-[12px] max-w-[1408px] mx-auto">
+              {/* `flex-wrap` with a min-width per control, NOT a 2-column grid.
+                  A hard grid caps each column at ~161px on a 390px phone, and
+                  "Search Jobs" needs ~164px in English and ~205px in Telugu —
+                  the label rendered outside its own button. Wrapping lets the
+                  row hold two controls where they fit and fall to the next line
+                  where they do not, which is what the ten shipped languages
+                  actually require. */}
+              <div className="flex flex-wrap gap-3 sm:gap-4 lg:flex-nowrap lg:gap-5">
+                <div className="w-full lg:w-auto lg:flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
@@ -336,7 +346,7 @@ function JobFeedPageContent() {
                   />
                 </div>
 
-                <div className="flex-1 lg:max-w-[416px] relative">
+                <div className="flex-1 min-w-[150px] lg:max-w-[416px] relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <select
                     value={cityDraft}
@@ -355,7 +365,7 @@ function JobFeedPageContent() {
 
                 <button
                   onClick={handleSearch}
-                  className="h-12 px-6 sm:px-8 lg:px-[43px] bg-primary-50 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors whitespace-nowrap"
+                  className="h-12 flex-1 min-w-[150px] px-4 sm:px-6 lg:px-[43px] lg:flex-none bg-primary-50 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors"
                 >
                   <Search className="w-5 h-5" />
                   <span className="text-base">{t('seeker:jobFeed.searchJobs')}</span>
@@ -363,7 +373,8 @@ function JobFeedPageContent() {
 
                 <button
                   onClick={() => setShowFilters((s) => !s)}
-                  className="h-12 px-4 bg-[#dddddd] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors lg:w-auto"
+                  className="h-12 flex-1 min-w-[110px] px-4 lg:flex-none bg-[#dddddd] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors lg:w-auto"
+                  aria-expanded={showFilters}
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   <span className="text-base">{t('seeker:jobFeed.filter')}</span>
@@ -420,16 +431,18 @@ function JobFeedPageContent() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
+          </div>
         </div>
       </section>
+      )}
 
-      {/* Job Listings Section */}
-      <section className="py-8 sm:py-12 lg:py-16">
+      {/* Job Listings Section — top padding kept tight (TD-15). The gap between
+          the search card and the first job is dead space on a phone; the bottom
+          keeps its room so the last card does not sit on the footer. */}
+      <section className="pt-4 pb-8 sm:pt-6 sm:pb-12 lg:pt-8 lg:pb-16">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           {/* Tabs */}
-          <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200">
+          <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 border-b border-gray-200">
             {([
               { key: 'all', label: t('seeker:jobFeed.tabs.all') },
               { key: 'recommended', label: t('seeker:jobFeed.tabs.recommended') },
@@ -447,14 +460,21 @@ function JobFeedPageContent() {
             ))}
           </div>
 
-          {/* Section Header */}
-          <div className="mb-6 sm:mb-8 lg:mb-10">
-            <h2 className="text-xl sm:text-2xl lg:text-[24px] font-semibold mb-2">
-              {sectionTitle} - <span className="font-normal">{sectionSub}</span>
-            </h2>
-            {!loading && !error && (
-              <p className="text-sm sm:text-base text-[#717182]">{t('seeker:jobFeed.resultCount', { count: pagination?.total ?? 0 })}</p>
-            )}
+          {/* Section Header (TD-15)
+              Three lines became one on a phone: the descriptive half of the
+              title and the result count both move inline, and the subtitle is
+              held back for screens with room for it. The tab above already
+              says which list this is. */}
+          <div className="mb-4 sm:mb-6 lg:mb-8">
+            <h1 className="text-lg sm:text-2xl lg:text-[24px] font-semibold">
+              {sectionTitle}
+              <span className="hidden sm:inline font-normal"> - {sectionSub}</span>
+              {!loading && !error && (
+                <span className="ml-2 text-sm sm:text-base font-normal text-[#717182]">
+                  {t('seeker:jobFeed.resultCount', { count: pagination?.total ?? 0 })}
+                </span>
+              )}
+            </h1>
           </div>
 
           {/* Loading */}
@@ -514,10 +534,10 @@ function JobFeedPageContent() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">{job.title}</h3>
-                        <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">{job.companyName || t('seeker:jobCard.company')}</p>
+                        <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-0.5 sm:mb-2">{job.title}</h3>
+                        <p className="text-sm sm:text-base text-black mb-2 sm:mb-4">{job.companyName || t('seeker:jobCard.company')}</p>
 
-                        <div className="flex items-center gap-1 mb-3 sm:mb-4">
+                        <div className="flex items-center gap-1 mb-2 sm:mb-4">
                           <IndianRupee className="w-4 h-4" />
                           <span className="text-xs sm:text-sm lg:text-[14px]">{t('seeker:jobCard.perMonth', { salary: formatSalary(job.salaryMin, job.salaryMax) })}</span>
                         </div>
@@ -545,14 +565,23 @@ function JobFeedPageContent() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
+                    {/* TD-15: on a phone this block used to add a date line and TWO
+                        full-width stacked buttons — about 130px per card, which is
+                        why only one job fitted on a screen.
+                        `flex-wrap` with a min-width, NOT a forced single row: at
+                        ~107px each the Tamil, Telugu, Malayalam and Odia labels
+                        wrapped to two or three lines and made the card TALLER than
+                        the stacked version. They now sit side by side where the
+                        language allows and fall back to stacking where it does
+                        not, so no locale is worse off than before. */}
+                    <div className="flex flex-col items-end gap-2 sm:gap-4 lg:min-w-[300px]">
                       <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
+                      <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto lg:flex-nowrap">
                         {/* Save toggle (PJP-140) — persists via /saved-jobs. */}
                         <button
                           onClick={() => toggleSave(job.id)}
                           disabled={savingIds.has(job.id)}
-                          className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           {savingIds.has(job.id) ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -565,7 +594,7 @@ function JobFeedPageContent() {
                             {savedIds.has(job.id) ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
                           </span>
                         </button>
-                        <Link href={`/job-details/${job.id}`} className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center">
+                        <Link href={`/job-details/${job.id}`} className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base text-center">
                           {t('seeker:jobCard.viewJob')}
                         </Link>
                       </div>
