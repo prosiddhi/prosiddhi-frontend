@@ -129,7 +129,7 @@ export default function CompanyDetailsPage() {
     try {
       setLoading(true)
       setError('')
-      await employerAPI.registerBusiness({
+      const created = await employerAPI.registerBusiness({
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
@@ -143,13 +143,23 @@ export default function CompanyDetailsPage() {
       })
 
       // Creates the account PENDING_DOCUMENTS — no trial credits until an admin
-      // approves the documents they upload next. Log in regardless: they need a
-      // session to reach the upload screen at all.
-      const result = await authAPI.login('employer', {
-        identifier: data.email,
-        password: data.password,
-      })
-      login(result.token, result.user)
+      // approves the documents they upload next. The session comes back with the
+      // account, which matters most here: without one they cannot reach the
+      // upload screen that gets them approved at all. A failed follow-up login
+      // used to strand them with an account they could not sign in to from the
+      // error state.
+      //
+      // The fallback covers only the portal deploying ahead of the backend that
+      // serves the session; delete it once that is out everywhere.
+      if (created.token && created.user) {
+        login(created.token, created.user)
+      } else {
+        const result = await authAPI.login('employer', {
+          identifier: data.email,
+          password: data.password,
+        })
+        login(result.token, result.user)
+      }
       // Set alongside reset() — see the note on `accountCreated` above.
       setAccountCreated(true)
       reset()

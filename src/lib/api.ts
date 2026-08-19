@@ -872,6 +872,13 @@ export interface SeekerRegisterResult {
   phoneVerified: boolean
   filesUploaded?: { profilePic: boolean; document: boolean }
   workExperiencesAdded?: number
+  /**
+   * The session, issued with the account — see `EmployerRegisterResult.token`
+   * for why. Optional so the portal can deploy ahead of the backend; callers
+   * fall back to the explicit login when it is absent.
+   */
+  token?: string
+  user?: AuthUser
 }
 
 export const jobSeekerAPI = {
@@ -1364,6 +1371,19 @@ export interface EmployerRegisterResult {
   accountStatus: string
   emailVerified: boolean
   phoneVerified: boolean
+  /**
+   * The session, issued with the account.
+   *
+   * Registration used to end here and the client called login as a second step.
+   * If that call failed — a network blip, a 500, or the login route's own rate
+   * limiter — the account existed but the user was told registration had failed,
+   * and the retry reported their own email as already taken.
+   *
+   * Optional so the portal can deploy ahead of the backend that serves it;
+   * callers fall back to the explicit login when it is absent.
+   */
+  token?: string
+  user?: AuthUser
 }
 
 export const employerAPI = {

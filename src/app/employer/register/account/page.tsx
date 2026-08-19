@@ -108,7 +108,7 @@ export default function AccountSetupPage() {
 
       // Creates the account ACTIVE, with trial credits granted (1 post,
       // 3 downloads, 14 days). No verification step follows.
-      await employerAPI.registerIndividual({
+      const created = await employerAPI.registerIndividual({
         email: data.email,
         password,
         fullName: fullName.trim(),
@@ -116,11 +116,20 @@ export default function AccountSetupPage() {
         designation: designation.trim() || undefined,
       })
 
-      const result = await authAPI.login('employer', {
-        identifier: data.email,
-        password,
-      })
-      login(result.token, result.user)
+      // Register issues the session itself. There used to be an unconditional
+      // login call here, and if it threw — a blip, a 500, the login route's own
+      // rate limiter — the account existed while the user was told registration
+      // had failed, then got "an account already uses that email" about the
+      // account they had just made.
+      //
+      // The fallback covers only the portal deploying ahead of the backend that
+      // serves the session; delete it once that is out everywhere.
+      if (created.token && created.user) {
+        login(created.token, created.user)
+      } else {
+        const result = await authAPI.login('employer', { identifier: data.email, password })
+        login(result.token, result.user)
+      }
       // Set alongside reset() — reset() is what empties the state the guard
       // reads. React 18 batches both into one commit, so the order is not
       // load-bearing today; keep them adjacent so it stays that way if an await

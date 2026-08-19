@@ -106,7 +106,7 @@ export default function RegisterPasswordPage() {
       // Create the seeker. Both contacts are already verified at this point and
       // the password ships WITH the account — there is no set-password step and
       // nothing left to verify afterwards.
-      await jobSeekerAPI.register({
+      const created = await jobSeekerAPI.register({
         fullName: data.fullName,
         email: data.email,
         password,
@@ -127,16 +127,26 @@ export default function RegisterPasswordPage() {
 
       // Log straight in. A phone-only seeker has no email to log in with, so the
       // identifier is the phone — the backend accepts phone + password now.
-      const result = await authAPI.login('seeker', {
-        identifier: data.email || data.phoneNumber,
-        password,
-      })
+      // Register issues the session itself. There used to be an unconditional
+      // login call here, and if it threw — a blip, a 500, the login route's own
+      // rate limiter — the account existed while the user was told registration
+      // had failed, then got "already registered" about their own new account.
+      //
+      // The fallback covers only the portal deploying ahead of the backend that
+      // serves the session; delete it once that is out everywhere.
+      const session =
+        created.token && created.user
+          ? { token: created.token, user: created.user }
+          : await authAPI.login('seeker', {
+              identifier: data.email || data.phoneNumber,
+              password,
+            })
 
       // Hand the session to AuthContext, then clear the registration state,
       // which is what drops the plaintext password out of memory. Latch first —
       // `reset()` empties the very fields the guards on this page read.
       setAccountCreated(true)
-      login(result.token, result.user)
+      login(session.token, session.user)
       reset()
 
       router.push('/register/success')
