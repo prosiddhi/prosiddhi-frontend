@@ -1,47 +1,33 @@
 'use client'
 
-import { Volume2 } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
-import { showToast } from '@/lib/toast'
-
 /**
  * VoiceButton — the single, consistent 🔊 "read this aloud" affordance.
  *
- * Voice/TTS playback is deferred to v2 (locked scope Q2), so this is NOT wired to
- * any audio engine. But it must not be a dead no-op: it is a real, labelled
- * button with a "Coming soon" tooltip that, on tap, shows a toast — so a
- * low-literacy user who taps it gets clear feedback instead of silence.
+ * ⚠️ RENDERS NOTHING TODAY (TD-21, 2026-08-19). Voice/TTS is deferred to v2
+ * (locked scope Q2), and until it ships this button's only job was to announce
+ * that a feature is missing.
  *
- * Replaces the ad-hoc `<button><Volume2/></button>` blocks scattered across the
- * UI. Pass `iconClassName` to preserve each call site's icon size/colour and
- * `className` for the button padding/hit-area, so adoption is visually lossless.
+ * That is a product decision, not a code one. It appeared at **17 call sites**,
+ * including TWO on the login screen — beside Email and beside Password, the
+ * first form a new user ever fills in. A competitor teardown found no rival
+ * shipping an icon whose sole purpose is to admit an absence; it was the single
+ * loudest "unfinished" signal in the product.
+ *
+ * The component is deliberately kept (rather than deleting 17 call sites) so
+ * that shipping voice is one edit here, with every label, icon size and
+ * hit-area already positioned. The previous implementation — a labelled button
+ * that toasted "coming soon" — is in git at 699d0c0; the `voice.comingSoon` and
+ * `feedback.voiceComingSoon` strings are retained for it.
+ *
+ * Props stay in the signature for that restore; they are unused while this
+ * returns null.
  */
-export function VoiceButton({
-  iconClassName = 'w-5 h-5 text-gray-600',
-  className,
-  label,
-}: {
+export function VoiceButton(_props: {
   iconClassName?: string
   className?: string
   label?: string
 }) {
-  const { t } = useTranslation()
-  const fieldLabel = label ?? t('voice.listen')
-  return (
-    <button
-      type="button"
-      onClick={() => showToast(t('feedback.voiceComingSoon'), 'info')}
-      aria-label={`${fieldLabel} — ${t('voice.comingSoon')}`}
-      title={t('voice.tooltip')}
-      className={cn(
-        'inline-flex items-center justify-center rounded-lg transition-colors hover:bg-grey-100 active:bg-grey-200 flex-shrink-0',
-        className
-      )}
-    >
-      <Volume2 className={iconClassName} aria-hidden="true" />
-    </button>
-  )
+  return null
 }
 
 export default VoiceButton

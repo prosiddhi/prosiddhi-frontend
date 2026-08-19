@@ -20,7 +20,6 @@ import {
   Briefcase,
   Bookmark,
   BookmarkCheck,
-  VolumeX,
   Clock,
   ChevronRight,
   ChevronLeft,
@@ -370,9 +369,10 @@ function JobFeedPageContent() {
                   <span className="text-base">{t('seeker:jobFeed.filter')}</span>
                 </button>
 
-                <button className="h-12 w-12 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors" title={t('seeker:jobFeed.voiceSearchTooltip')} aria-label={t('seeker:jobFeed.voiceSearchLabel')}>
-                  <VolumeX className="w-6 h-6 text-[#4d4d4d]" />
-                </button>
+                {/* TD-21: a muted-speaker button sat here with NO onClick — not a
+                    "coming soon" affordance, a control that did nothing at all when
+                    tapped. Voice search is deferred to v2 (locked scope Q2); the
+                    `jobFeed.voiceSearch*` strings are kept for when it ships. */}
               </div>
 
               {/* Filter panel */}
