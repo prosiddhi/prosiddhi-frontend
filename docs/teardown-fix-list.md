@@ -14,6 +14,90 @@ is theoretical. Where a claim comes from code, the file and line are named.
 
 ---
 
+## SESSION STATE — 2026-08-19, end of the first fix session
+
+**Read this first.** Everything below §0 is the original plan; this section is
+what actually happened and what is left.
+
+### Shipped (14 commits, all gates green)
+
+| Repo | Commits |
+|---|---|
+| `prosiddhi-backend` | `6a1f622` trial fields on the wallet · `a2f1bc1` one-pass refactor · `fa78c9e` **register issues the session** |
+| `prosiddhi-frontend` | `e098ae9` + `d1d6f38` trial visibility · `5755d6e` voice icons removed · `91555d4` register redirect race · `bd32744` registration storage + double-submit · `4f360f7` gates + teardown docs · `049f77f` use the register session · `f9b5f3b` **job feed density** · `4de0b23` salary/seats/sign-up copy · `eacd112` **"credits" renamed everywhere** |
+| `prosiddhi-mobile-app` | `7c3b303` sign in at registration · `6205e2d` **business document upload** · `8244eda` result-count plurals |
+
+⚠️ **Unpushed at session end:** `prosiddhi-frontend` `4de0b23`, `eacd112` ·
+`prosiddhi-mobile-app` `8244eda`. Backend is fully pushed. **Push backend before
+frontend** whenever both are pending — the trial banners need the API fields.
+
+### Five items needed NO work — production is just stale
+
+Audited against the code before building anything. All ship with the deploy:
+the footer legal name, the ₹499-without-GST paywall copy, the stale "Applied"
+badge (DEF-028), the seeker profile's developer-speak, and DEF-021/022/023
+(`HeaderActions` is imported by all 12 employer pages).
+
+**Lesson for the next session: check the code before fixing anything on this
+list.** Roughly a third of what looked broken on production was already fixed.
+
+### Found while working — not in the original plan
+
+- **Register redirect race** (fixed) — a successful employer registration was
+  bounced backwards; on the corporate path it stranded a PENDING_DOCUMENTS
+  employer with no route to approval.
+- **`reset()` never cleared storage** (fixed) — the persist effect wrote the
+  blank default straight back, so every registration left its key behind.
+- **Double-submit on all three register pages** (fixed) — the button re-enabled
+  during the async route transition.
+- **Business employers could not finish on mobile** (fixed) — no document-upload
+  screen existed at all, so no approval, and no trial (it is granted AT
+  approval).
+- **`legal.json` still says "credits"** (OPEN) — 11 strings across Terms and
+  Privacy, all ten languages, including English. Contract text; needs a
+  conscious call, see §9.
+- **20 orphan locale strings** (OPEN, harmless) — `jobFeed.heroTitle` /
+  `heroSubtitle` are dead in all ten files. `verify-locales` only checks parity,
+  so no gate catches them.
+- **Register session omits `phoneNumber`** (OPEN, harmless today) — the login
+  response includes it. Only `userDisplay.ts` consumes it and never reaches that
+  fallback.
+- **Tamil and Odia wording need a native eye** — Tamil needed two different words
+  to keep "jobs" and "Job Posts" distinct in one sentence; Odia `ପୋଷ୍ଟ` can read
+  as "a position", so "3 Job Posts" may parse as "3 job openings".
+
+### Still to do, in the order I would take them
+
+1. **TD-18** employer dashboard order — hiring first, billing below (mobile
+   already does this) · `WEB` · S
+2. **TD-19** one Apply button on the job detail · `WEB` · S
+3. **TD-26 + TD-27** mobile's two brand blues and the missing welcome logo ·
+   `MOB` · S
+4. **TD-08** the wrong-role login error · `BE` `WEB` `MOB` · S
+5. **TD-12** trust signals on the front page · `WEB` `MOB` · S
+6. **TD-14** decide on the "our app is on the way" footer · `WEB` · S
+7. **TD-28 / TD-29** employer vs seeker identity; mobile's welcome screen onto
+   the web · `WEB` · M
+8. **TD-22** the Category→Sector→Job title cascade · `WEB` · M
+9. **TD-23** show candidates before the employer types · `WEB` `MOB` · M
+10. **TD-25** "Recommended" returns 1 job in 10 · M
+11. **TD-20** tap targets under 44px · `WEB` · M
+12. **The location workstream** — TD-02/03/04/05/06. The biggest piece, and the
+    backend needs nothing: it already stores and accepts coordinates, nothing
+    ever writes one.
+13. **TD-30 / TD-31** verify `NODE_ENV=production`; review the wildcard CORS ·
+    `OPS`
+14. **TD-32** run mobile on a real device
+
+**Blocked:** TD-16/17 (the login rebuild) until DLT clears — phone OTP does not
+deliver in production today, so making it primary would lock everyone out.
+TD-33 (mobile checkout) on decision D2.
+
+**Still open in the QA register:** DEF-006, DEF-018, DEF-024, DEF-031, DEF-032.
+The 19 "awaiting retest" rows cannot be judged until the deploy lands.
+
+---
+
 ## 0. Blocker — production is running a stale build
 
 **Found 2026-08-19, confirmed by Nazir: `prosiddhi.com` has not been deployed.**
@@ -341,6 +425,12 @@ Still needs a real device or emulator before release.
 - **Are we building for the right buyer?** Team seats, credit ledger, GST invoices, 8
   plans, seat suspension — enterprise machinery. WorkIndia says 90% of its customers
   are SMEs.
+- **Does the "credits" rename extend to Terms and Privacy?** ⚠️ *added 2026-08-19.*
+  `legal.json` carries 11 user-facing strings with the word, in all ten languages
+  including English — e.g. *"A post credit is spent when you publish a job."* The
+  2026-07-28 decision says the word is never user-facing, and the Terms page is
+  user-facing. But it is contract text, so renaming it is a call for Shaik with a
+  legal eye, not a side effect of a UI ticket.
 
 ---
 
