@@ -57,9 +57,9 @@ Plural of नोकरी is **नोकऱ्या** (not नोकरीज /
 | Apply / Application | **अर्ज करा** / **अर्ज** | अर्ज is the universal Marathi word; आवेदन is Hindi and reads as officialese in Marathi |
 | Applicant | **अर्जदार** | Follows from अर्ज. Not Hindi आवेदक |
 | Post a job | **नोकरी पोस्ट करा** | पोस्ट kept — that is the said word |
-| Credit | **क्रेडिट** | Loanword per GLOSSARY §5 |
-| Post credit | **नोकरी-पोस्ट क्रेडिट** | |
-| Download credit / Unlock credit | **उमेदवार-अनलॉक क्रेडिट** | |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **नोकरी पोस्ट** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **उमेदवार अनलॉक** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **अनलॉक करा** | |
 | Plan | **प्लान** | |
 | Subscription | **सबस्क्रिप्शन** | सदस्यत्व is correct Marathi but bookish; people say सबस्क्रिप्शन for anything they pay monthly for |

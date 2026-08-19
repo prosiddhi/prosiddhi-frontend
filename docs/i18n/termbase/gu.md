@@ -54,9 +54,9 @@ email-verification and password-reset flows say "code", not "OTP".
 | Candidate | ઉમેદવાર | **Employer screens only.** Never `કેન્ડિડેટ` — `ઉમેદવાર` is fully naturalised (elections, exams) |
 | Apply / Application | અરજી કરો / અરજી | |
 | Post a job | નોકરી પોસ્ટ કરો | `પોસ્ટ` loanword — what people say; `પ્રકાશિત કરો` is print-publishing |
-| Credit | ક્રેડિટ | Per GLOSSARY §5 — loanword mandated |
-| Post credit | જોબ-પોસ્ટ ક્રેડિટ | |
-| Download credit / Unlock credit | ઉમેદવાર-અનલૉક ક્રેડિટ | Named for what it buys, not for "download" |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | જોબ પોસ્ટ | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | ઉમેદવાર અનલૉક | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | અનલૉક કરો | |
 | Plan / Subscription | પ્લાન / સબસ્ક્રિપ્શન | Not `સભ્યપદ` — that reads as "membership status" |
 | Wallet | વૉલેટ | |

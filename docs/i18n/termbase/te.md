@@ -66,9 +66,9 @@ coverage.
 | Apply (verb) | **దరఖాస్తు చేయండి** | |
 | Applicant | **దరఖాస్తుదారు** | |
 | Post a job / Publish job | **ఉద్యోగం పోస్ట్ చేయండి** | One rendering for both EN phrasings — a second verb for the same act confuses. Rejected `ప్రచురించండి` (literary) |
-| Credit | **క్రెడిట్** (pl. క్రెడిట్లు) | Loanword mandated by GLOSSARY — native coinages read as "praise"/"belief" |
-| Post credit | **ఉద్యోగ పోస్ట్ క్రెడిట్** (short: పోస్ట్ క్రెడిట్) | |
-| Download credit / Unlock credit | **అభ్యర్థి అన్‌లాక్ క్రెడిట్** | The EN key says "download" but the user-facing act is unlocking a contact. Never `డౌన్‌లోడ్ క్రెడిట్` |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **ఉద్యోగ పోస్ట్** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **అభ్యర్థి అన్‌లాక్** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **అన్‌లాక్ చేయండి** | Rejected `తెరవండి` — means opening a door/page, loses the paid-reveal sense |
 | Plan | **ప్లాన్** | |
 | Subscription | **సబ్‌స్క్రిప్షన్** | Rejected `చందా` (= a periodical subscription; wrong register for SaaS billing) |

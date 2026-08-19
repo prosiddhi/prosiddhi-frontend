@@ -78,9 +78,9 @@ One concept → one word, across both repos. Reason column filled only where the
 | Candidate (employer screens) | **প্রার্থী** | Two syllables, universally known. Do **not** mix in ক্যান্ডিডেট — Hindi drifts between उम्मीदवार and कैंडिडेट, we do not copy that |
 | Apply / Application | **আবেদন করুন / আবেদন** | |
 | Post a job | **চাকরি পোস্ট করুন** | পোস্ট is the live loanword (social media). The listing itself is just **চাকরি** — no separate noun |
-| Credit | **ক্রেডিট** | Loanword per GLOSSARY. Native ঋণ = "debt", কৃতিত্ব = "praise" — both actively wrong |
-| Post credit | **চাকরি-পোস্ট ক্রেডিট** (short: পোস্ট ক্রেডিট) | |
-| Download credit / Unlock | **প্রার্থী-আনলক ক্রেডিট** | Never "ডাউনলোড ক্রেডিট" — the user-facing act is unlocking a contact, matching Hindi's normalisation |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **চাকরি পোস্ট** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **প্রার্থী আনলক** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **আনলক করুন** | Phone-unlock loanword, universal. Native খুলুন = "open", too vague |
 | Plan / Subscription | **প্ল্যান** / **সাবস্ক্রিপশন** | প্ল্যান carries the mobile-recharge mental model exactly. Native পরিকল্পনা means "a scheme/intention" and would confuse |
 | Wallet | **ওয়ালেট** | Paytm/PhonePe wallet. Native মানিব্যাগ = a physical leather wallet — wrong model for a balance |

@@ -65,9 +65,9 @@ you write `OTP`.
 | Application (noun) | **അപേക്ഷ** | |
 | Post a job (verb) | **ജോലി പോസ്റ്റ് ചെയ്യുക** | "പോസ്റ്റ് ചെയ്യുക" is what people say online. പ്രസിദ്ധീകരിക്കുക reads as newspaper publishing |
 | Job post (noun) | **ജോലി പോസ്റ്റ്** | |
-| Credit | **ക്രെഡിറ്റ്** | Loanword per GLOSSARY §5 |
-| Post credit | **ജോലി പോസ്റ്റ് ക്രെഡിറ്റ്** | |
-| Download credit / Unlock credit | **ഉദ്യോഗാർത്ഥി അൺലോക്ക് ക്രെഡിറ്റ്** (short: **അൺലോക്ക് ക്രെഡിറ്റ്** where context is clear) | Never "ഡൗൺലോഡ് ക്രെഡിറ്റ്" — nothing is downloaded |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **ജോലി പോസ്റ്റ്** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **ഉദ്യോഗാർത്ഥി അൺലോക്ക്** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **അൺലോക്ക് ചെയ്യുക** | Phone-lock familiarity. തുറക്കുക ("open") is too vague |
 | Plan | **പ്ലാൻ** | പദ്ധതി reads as a government scheme |
 | Subscription | **സബ്സ്ക്രിപ്ഷൻ** | |

@@ -61,9 +61,9 @@ the two shipped languages consistent. The surrounding sentence is fully Odia:
 | Apply / Application | **ଆବେଦନ** · apply = **ଆବେଦନ କରନ୍ତୁ** | |
 | Applicant | **ଆବେଦନକାରୀ** | |
 | Post a job | **ଚାକିରି ପୋଷ୍ଟ କରନ୍ତୁ** | ପୋଷ୍ଟ as the loan **verb** only. It can also mean "a position" in Odia — that sense is ପଦବୀ here, never ପୋଷ୍ଟ |
-| Credit | **କ୍ରେଡିଟ୍** | Loanword, mandated by GLOSSARY §5 |
-| Post credit | **ଚାକିରି-ପୋଷ୍ଟ କ୍ରେଡିଟ୍** | |
-| Download credit / Unlock credit | **ପ୍ରାର୍ଥୀ-ଅନଲକ୍ କ୍ରେଡିଟ୍** | Named for what it buys, as Hindi does |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **ଚାକିରି ପୋଷ୍ଟ** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **ପ୍ରାର୍ଥୀ ଅନଲକ୍** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **ଅନଲକ୍ କରନ୍ତୁ** | Native ଖୋଲନ୍ତୁ ("open") is too vague for a paid reveal |
 | Plan | **ପ୍ଲାନ୍** | |
 | Subscription | **ସବସ୍କ୍ରିପସନ୍** | ସଦସ୍ୟତା means *membership*, which is a different promise |

@@ -72,9 +72,9 @@ Where English says "code" (not "OTP"), use `ಕೋಡ್`. Do not upgrade it to 
 | Application (noun) | `ಅರ್ಜಿ` | |
 | Applicant | `ಅರ್ಜಿದಾರ` | |
 | Post a job | `ಕೆಲಸ ಪೋಸ್ಟ್ ಮಾಡಿ` | Loanword; people know "post" from social apps. Where English says **Publish**, use `ಪ್ರಕಟಿಸಿ` |
-| Credit | `ಕ್ರೆಡಿಟ್` | Loanword per GLOSSARY.md §5 |
-| Post credit | `ಪೋಸ್ಟ್ ಕ್ರೆಡಿಟ್` | Full form where space allows: `ಕೆಲಸ-ಪೋಸ್ಟ್ ಕ್ರೆಡಿಟ್` |
-| Download credit / Unlock credit | `ಅನ್‌ಲಾಕ್ ಕ್ರೆಡಿಟ್` | Full form: `ಅಭ್ಯರ್ಥಿ ಅನ್‌ಲಾಕ್ ಕ್ರೆಡಿಟ್`. Never translate as "download" — it reveals contact details |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | `ಕೆಲಸ ಪೋಸ್ಟ್` | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | `ಅಭ್ಯರ್ಥಿ ಅನ್‌ಲಾಕ್` | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | `ಅನ್‌ಲಾಕ್ ಮಾಡಿ` | |
 | Plan | `ಪ್ಲಾನ್` | Loanword — everyone says "plan" for a mobile recharge |
 | Subscription | `ಚಂದಾ` | Real Kannada, known from newspapers. Not `ಸಬ್‌ಸ್ಕ್ರಿಪ್ಷನ್` (long and awkward) |

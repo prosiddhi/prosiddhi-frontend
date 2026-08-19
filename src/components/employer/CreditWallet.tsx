@@ -95,15 +95,18 @@ export function CreditWallet({ className }: { className?: string }) {
       {!loading && !error && wallet && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* `count` is required, not decorative: the tile renders
+                "{balance} {label}", so a static plural noun printed
+                "1 Job Posts". i18next picks _one/_other from this. */}
             <Tile
               icon={<FileText className="w-5 h-5" />}
-              label={t('employer:wallet.postCredits')}
+              label={t('employer:wallet.postCredits', { count: wallet.post.balance })}
               balance={wallet.post.balance}
               expiry={formatShortDate(wallet.post.expiresAt)}
             />
             <Tile
               icon={<Unlock className="w-5 h-5" />}
-              label={t('employer:wallet.downloadCredits')}
+              label={t('employer:wallet.downloadCredits', { count: wallet.download.balance })}
               balance={wallet.download.balance}
               expiry={formatShortDate(wallet.download.expiresAt)}
             />

@@ -63,9 +63,9 @@ Surrounding words are Tamil: `OTP அனுப்புங்கள்` · `OTP-
 | Application (noun) | **விண்ணப்பம்** | Everyone has filled a விண்ணப்பம் |
 | Applicant | **விண்ணப்பதாரர்** | Same word as Candidate — intentional; they are the same human |
 | Post a job (verb) | **வேலை விளம்பரம் இடுங்கள்** | `பதிவிடுங்கள்` (modern "post") was the alternative; `விளம்பரம் இடு` is more transparent to a low-literacy reader |
-| Credit | **கிரெடிட்** | Loanword, per GLOSSARY §5. Native `வரவு` means an accounting credit and would confuse |
-| Post credit | **வேலை விளம்பர கிரெடிட்** | |
-| Download credit / Unlock credit | **விண்ணப்பதாரர் அன்லாக் கிரெடிட்** | |
+| ~~Credit~~ | — | ⛔ **Never user-facing** (MONETIZATION.md §1, 2026-07-28). Do NOT use the loanword in any UI string. The two rows below are what the employer reads |
+| Job Post | **வேலை விளம்பரம்** | The unit spent to publish a job. Countable: "you have 3 left" |
+| Candidate Unlock | **விண்ணப்பதாரர் அன்லாக்** | The unit spent to reveal a candidate's contact. Never "download" — nothing is downloaded |
 | Unlock (verb) | **அன்லாக் செய்யுங்கள்** | Judgement call. Anyone with an Android phone unlocks it daily and says "அன்லாக்". Native `திற` (open) is also clear but weaker as a metaphor for revealing paid content |
 | Unlocked | **அன்லாக் செய்யப்பட்டது** | |
 | Plan | **திட்டம்** | Native, universal — govt schemes and mobile plans are both திட்டம் |

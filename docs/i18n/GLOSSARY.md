@@ -98,12 +98,12 @@ the approved reference rendering. Each language locks its own choice **once** in
 | Candidate | उम्मीदवार | Only on **employer-facing** screens (the same human as "job seeker") |
 | Apply / Application | आवेदन | |
 | Post a job | नौकरी पोस्ट करें | The employer publishing a listing |
-| Credit | क्रेडिट | The paid unit. Keep the loanword — a native coinage reads as "praise"/"belief" in several languages |
-| Post credit | — | A credit spent to publish a job |
-| Download credit / Unlock | — | A credit spent to reveal a candidate's contact |
+| ~~Credit~~ | — | ⛔ **Never user-facing.** Internal model word only (MONETIZATION.md §1, 2026-07-28). It must not appear in any UI string, in English or in translation — including as the loanword क्रेडिट / கிரெடிட் / ಕ್ರೆಡಿಟ್ etc. The rows below are what the employer actually reads |
+| Job Post | जॉब पोस्ट | The unit spent to publish a job (internally a "post credit"). Countable: "you have 3 left" |
+| Candidate Unlock | उम्मीदवार अनलॉक | The unit spent to reveal a candidate's contact (internally a "download credit") |
 | Unlock (verb) | अनलॉक करें | Revealing contact details |
 | Plan / Subscription | प्लान / सदस्यता | |
-| Wallet | वॉलेट | The credit balance |
+| Balance | — | What the employer has left. Replaced "Wallet" on screen 2026-08-19; the heading now reads "What you have left" |
 | Invoice | इनवॉइस | The GST document |
 | Interview | इंटरव्यू | |
 | Chat / Message | चैट / संदेश | |
