@@ -77,6 +77,13 @@ export default function RegisterPasswordPage() {
   const nameIssue = hydrated && !accountCreated ? nameProblem(data.fullName ?? '') : null
 
   const handleCreate = async () => {
+    // The account already exists. This guard must come FIRST: `nameIssue` is
+    // forced to null once accountCreated latches, which disarms both the check
+    // below and the button's `disabled` attribute — so a second click during the
+    // async route transition would post `register` with a blank fullName and
+    // phoneNumber.
+    if (accountCreated) return
+
     // The disabled button is presentation; THIS is the rule. Leaving the DEF-030
     // check to a `disabled` attribute alone puts it one markup edit away from
     // being gone, and this is the call that creates the account.
@@ -135,7 +142,9 @@ export default function RegisterPasswordPage() {
       router.push('/register/success')
     } catch (err) {
       handleRegisterFailure(err)
-    } finally {
+      // Only re-enable on failure. This used to be a `finally`, which also ran
+      // on success — leaving a live "Create account" button on a flow that had
+      // already registered, for the whole of the async route transition.
       setLoading(false)
     }
   }

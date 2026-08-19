@@ -88,6 +88,13 @@ export default function CompanyDetailsPage() {
   }
 
   const handleNext = async () => {
+    // The account already exists. reset() has blanked `data`, but the LOCAL
+    // `form` state still validates, so a second click would re-fire
+    // registerBusiness with an empty email, password and phone — painting a 400
+    // over a registration that worked. The window is real: this page stays
+    // mounted and interactive for the whole async route transition.
+    if (accountCreated) return
+
     if (!form.companyName.trim() || form.companyName.trim().length < 2) {
       setError(t('employerRegister:companyDetails.nameTooShort'))
       return
@@ -177,7 +184,9 @@ export default function CompanyDetailsPage() {
         default:
           setError(failure.message || t('employerRegister:companyDetails.registerFailed'))
       }
-    } finally {
+      // Only re-enable on failure. This used to be a `finally`, which also ran
+      // on success — leaving a live "Register" button on a flow that had already
+      // created the account, for the whole of the async route transition.
       setLoading(false)
     }
   }

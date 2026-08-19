@@ -65,6 +65,13 @@ export default function AccountSetupPage() {
   }, [hydrated])
 
   const handleNext = async () => {
+    // The account already exists — reset() has blanked `data`, so a second click
+    // would read `companyType` as '' , take the corporate branch and push a
+    // freshly created INDIVIDUAL employer into the company-details step. The
+    // window is real: the route transition is async and this page stays mounted
+    // and interactive throughout it.
+    if (accountCreated) return
+
     // Length-only until DEF-030: "1234" was an acceptable individual-employer name.
     const nameIssue = isIndividual ? nameProblem(fullName) : null
     if (nameIssue) {
@@ -157,7 +164,9 @@ export default function AccountSetupPage() {
         default:
           setError(failure.message || t('employerRegister:account.createFailed'))
       }
-    } finally {
+      // Only re-enable on failure. This used to be a `finally`, which also ran
+      // on success — handing the user a live "Create account" button on a flow
+      // that had already finished, for the whole of the async route transition.
       setLoading(false)
     }
   }

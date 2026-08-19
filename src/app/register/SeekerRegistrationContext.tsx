@@ -123,6 +123,13 @@ function toPersisted(data: SeekerRegistrationState): PersistedState {
   }, {} as PersistedState)
 }
 
+/**
+ * What a reset flow serialises to. Compared against on every persist so an
+ * emptied flow drops its storage key instead of leaving a blank object behind.
+ * Computed once — `toPersisted` walks a fixed key list, so this never changes.
+ */
+const EMPTY_PERSISTED = JSON.stringify(toPersisted(defaultState))
+
 interface SeekerRegistrationContextValue {
   data: SeekerRegistrationState
   update: (patch: Partial<SeekerRegistrationState>) => void
@@ -169,7 +176,13 @@ export function SeekerRegistrationProvider({
   useEffect(() => {
     if (!hydrated) return
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(data)))
+      const serialised = JSON.stringify(toPersisted(data))
+      // Clearing has to happen HERE, not in reset(). reset() called
+      // removeItem, but changing `data` re-runs this effect on the very next
+      // render, which wrote the blank default straight back under the same key
+      // — so the key survived every "reset" with an empty object in it.
+      if (serialised === EMPTY_PERSISTED) window.sessionStorage.removeItem(STORAGE_KEY)
+      else window.sessionStorage.setItem(STORAGE_KEY, serialised)
     } catch {
       // Private mode / quota. The flow still works in-memory for this tab.
     }
@@ -178,12 +191,19 @@ export function SeekerRegistrationProvider({
   const update = (patch: Partial<SeekerRegistrationState>) =>
     setData((prev) => ({ ...prev, ...patch }))
 
+  // Both clears are deliberate. The persist effect above is what makes the
+  // removal stick (it used to write the blank default straight back), but it
+  // runs on the NEXT render — and the provider can unmount in the same
+  // navigation that follows a reset. If the effect never runs, a key holding
+  // phoneVerified: true survives, and the next registration in that tab would
+  // skip OTP send on an already-consumed mark. The synchronous call costs
+  // nothing and closes that window.
   const reset = () => {
     setData(defaultState)
     try {
       window.sessionStorage.removeItem(STORAGE_KEY)
     } catch {
-      // Nothing to do — the in-memory reset above is what matters.
+      // Private mode — the in-memory reset above is what matters.
     }
   }
 
