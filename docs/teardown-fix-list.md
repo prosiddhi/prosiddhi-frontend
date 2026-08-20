@@ -22,7 +22,7 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**43 items: 17 done · 18 open · 4 WEB-done/MOBILE-pending · 3 superseded · 1 that
+**44 items: 17 done · 18 open · 5 WEB-done/MOBILE-pending · 3 superseded · 1 that
 cannot be done from this machine (TD-32).**
 
 ⚠️ **A ✅ here meant "done on the web".** Checked 2026-08-20: TD-07, TD-08,
@@ -76,12 +76,13 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-34 | Untidy job data | 🔴 open — data, **now also a search fix** | |
 | TD-35 | Ten jobs in production | 🔴 open — data | |
 | TD-36 | Remove purchasing from mobile | 🔴 open — **unblocked, D2 resolved 2026-08-20** | |
-| TD-37 | One login: phone + password + Google | 🔴 open — approach agreed 2026-08-20 | |
+| TD-37 | One login: phone or email + password, Google | ✅ **WEB done** — mobile pending | `a2dbbf8` |
 | TD-38 | Location on mobile | 🔴 open | |
 | TD-39 | `aria-required` with no field name | 🔴 open | |
 | TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
 | TD-41 | Job form gives no location feedback | 🔴 open | |
 | TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
+| TD-43 | Role-agnostic `POST /auth/login` | 🔴 open — ⚠️ Asrar, removes a client-side guess | |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
@@ -871,7 +872,35 @@ the employer side: edit a job's location from "Bangalore" to "Nagpur" and it
 Not fixable in the frontend. Needs `.nullable()` plus a service that writes
 `null` through, then one line in `coordsToWrite`.
 
-### TD-39 · `aria-required` announces a field with no name `WEB` · S
+### TD-43 · A role-agnostic login endpoint `BE` · S ⚠️ Asrar
+
+TD-37 removed the seeker/employer toggle by having the client try one gate and,
+on `ROLE_MISMATCH`, retry the other. It works, and it is safe — the retry only
+ever fires on credentials that have already verified. But it puts two pieces of
+backend knowledge into the client, and **in two languages** once mobile mirrors
+it:
+
+1. **The role enum.** `EMPLOYER_INDIVIDUAL` / `EMPLOYER_BUSINESS` are hardcoded
+   in `loginAnyRole`. A new role added backend-side silently breaks login for it.
+2. **The ORDER of two server-side checks.** The retry only works because the
+   password is verified *before* the role gate runs. Failing the role gate first
+   is arguably the more defensible order — and that change would break every
+   employer login with no frontend change and nothing obvious to point at.
+
+It also costs a **second token against `authRateLimit`** (10 per 15 min, no
+`skipSuccessfulRequests`), so an employer who mistypes a few times and then types
+correctly can be locked out **at the moment they succeed**.
+
+**The ask is small.** `authService.login` already calls `detectIdentifierType`,
+finds the user and verifies the password role-blind — the role gate is the last
+step, and it lives in the controllers. A `POST /api/auth/login` that skips that
+gate and returns the user with their real role deletes the guess, the enum copy,
+the ordering dependency and the double rate-limit spend, on both clients at once.
+
+⏱️ **Worth raising BEFORE the mobile session ports `loginAnyRole` into Dart**, or
+we own the same backend detail twice, in two languages.
+
+### TD-39 ·  announces a field with no name  · S
 
 Found by review on **already-shipped `b46301a`** (DEF-024), so it is not a
 regression from that fix — the fix simply made an existing gap audible.
