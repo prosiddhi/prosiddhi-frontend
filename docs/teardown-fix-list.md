@@ -74,7 +74,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-20 | Tap targets under 44 px | ✅ done | `8630d7d` |
 | TD-21 | Remove voice icons | ✅ done | `5755d6e` |
 | TD-22 | Untangle the filter cascade | ✅ done — 32/32, `smoke-td22.js` | |
-| TD-23 | Show candidates before typing | 🔴 open | |
+| TD-23 | Show candidates before typing | ✅ **WEB done** — 14/14, mobile pending | |
 | TD-24 | Stale "Applied" badge | ✅ done in code — ships with deploy | |
 | TD-25 | "Recommended" returns 1 in 10 | 🔴 open — partly TD-05 | |
 | TD-26 | Mobile's two brand blues | ✅ done — ⚠️ visual check owed | `55dc23e` |

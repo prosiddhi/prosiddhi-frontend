@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   candidateAPI,
+  employerAPI,
   type WorkerSnippet,
   type WorkerSearchPage,
   type UnlockedCandidate,
@@ -306,12 +307,18 @@ function WorkersSearchContent() {
     }
   }
 
+  // Set the instant the employer asks for something themselves. A ref, not
+  // state: the seed's async chain captured `applied` before its own await, so a
+  // search submitted while the seed was in flight was invisible to it.
+  const userSearchedRef = useRef(false)
+
   const submit = () => {
     const search = queryDraft.trim()
     if (search.length < MIN_QUERY) {
       setError(t('employer:workers.minQuery', { count: MIN_QUERY }))
       return
     }
+    userSearchedRef.current = true
     const params = { search, location: locationDraft.trim() }
     setApplied(params)
     setPage(1)
@@ -323,6 +330,106 @@ function WorkersSearchContent() {
     setPage(p)
     void runSearch(applied, p)
   }
+
+  // TD-23 — show somebody before the employer types.
+  //
+  // "Find workers" opened as an empty box with an instruction in it. The free
+  // tier already permits snippet search, so there was nothing to protect: the
+  // screen simply asked a question and showed nothing until it was answered.
+  //
+  // ⚠️ It cannot be fixed by fetching a default list. `search` is REQUIRED,
+  // min 2 characters, on GET /employers/search/workers
+  // (jobseeker-search.validator.ts) — there is no browse mode to call. So the
+  // first search is seeded from the employer's own most recent job title, which
+  // is a better guess than "recent candidates" anyway: someone who just posted
+  // for a Delivery Boy wants delivery people, not whoever signed up last.
+  //
+  // The seed goes into the visible box, so it reads as a search that has been
+  // run and can be edited, not as a mystery list. An employer with no jobs falls
+  // through to the original empty state, which is the honest answer for them.
+  const seededRef = useRef(false)
+  const [seedJob, setSeedJob] = useState('')
+  useEffect(() => {
+    // Only ever the FIRST paint of the search tab, and never over a real search.
+    if (tab !== 'search' || seededRef.current || applied) return
+    seededRef.current = true
+    ;(async () => {
+      try {
+        // Five, not one: `getMyJobs` has no status filter, so the newest row can
+        // be CANCELLED or FILLED while the copy says "your most recent job".
+        // Prefer a live one, fall back to the newest of any status rather than
+        // showing nothing.
+        const mine = await employerAPI.getMyJobs(1, 5)
+        const rows = mine.jobs ?? []
+        const latest = rows.find((j) => (j.status ?? '').toUpperCase() === 'ACTIVE') ?? rows[0]
+
+        // Re-checked AFTER the await, and this is the reason the ref exists: the
+        // guard at the top of the effect ran before this request went out, so an
+        // employer who typed and pressed Search while it was in flight was
+        // invisible to it.
+        //
+        // ⚠️ This line is NOT redundant with the identical check after the
+        // search below, and the difference is a hang. Getting past here reaches
+        // `++reqIdRef.current` — which INVALIDATES the employer's own in-flight
+        // request. `runSearch`'s `finally` only clears the spinner when its id
+        // is still current, so their results are dropped and the page spins for
+        // ever. Verified by deleting this line: smoke-td23.js's
+        // "not left on a spinner" check fails, and only that one.
+        if (userSearchedRef.current) return
+
+        // `jobTitle` is the taxonomy value and the better needle; `title` is the
+        // employer's own headline ("Cook needed for family kitchen, Bandra") and
+        // matches far less well, but it beats an empty screen.
+        const seed = (latest?.jobTitle || latest?.title || '').trim()
+        if (seed.length < MIN_QUERY) return
+
+        // Searched DIRECTLY rather than through `runSearch`, for two reasons
+        // that both bite the same person — someone who typed nothing:
+        //   · runSearch writes its own failures into `setError`, so a 500 here
+        //     would put "Search failed. Please try again." on screen for a
+        //     search they never ran.
+        //   · the result has to be inspected before it is shown at all.
+        const myReq = ++reqIdRef.current
+        const res = await candidateAPI.searchWorkers({ search: seed, page: 1, limit: PAGE_SIZE })
+        if (myReq !== reqIdRef.current || userSearchedRef.current) return
+
+        // ⚠️ A seed that finds NOBODY is discarded, not displayed. `jobTitle` is
+        // nullable, so a pre-taxonomy job seeds from its free-text headline —
+        // "Urgent requirement for house help in Whitefield" — which matches
+        // nothing, and the screen would then read "No candidates found. Try a
+        // different keyword" about a search the employer never made. That says
+        // "the database is empty", which is the exact impression TD-23 exists to
+        // remove. Falling through leaves the original invitation to search.
+        if (!res.jobSeekers?.length) return
+
+        setSeedJob(seed)
+        setQueryDraft(seed)
+        setApplied({ search: seed, location: '' })
+        setData(res)
+      } catch {
+        // Non-fatal by design: a failed seed leaves the original empty state,
+        // which is exactly where this screen was before. It must never surface
+        // as a search error — the employer did not search for anything.
+      }
+    })()
+    // ⚠️ NO `ignore` cleanup flag here, deliberately — and it is not an
+    // oversight, it is the second version of this effect.
+    //
+    // `reactStrictMode` is on (next.config.js), so in development React mounts,
+    // cleans up, and mounts again. The first pass sets `seededRef`, its cleanup
+    // set `ignore = true`, and the second pass returned early on the ref — so
+    // the ONE in-flight request resolved into a closure that had been told to
+    // discard its result. The network tab showed the fetch and the screen stayed
+    // empty, which reads exactly like a backend problem.
+    //
+    // The ref is already the dedupe: at most one chain ever runs, so there is no
+    // stale response to guard against. Setting state after a real unmount is a
+    // no-op in React 18.
+    //
+    // Mount-and-tab only. `applied` is deliberately not a dependency: it changes
+    // the moment the seed lands, and re-running on it would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   const jobs = data?.jobSeekers ?? []
   const pagination = data?.pagination
@@ -442,6 +549,16 @@ function WorkersSearchContent() {
           {/* Result grid */}
           {!loading && !error && jobs.length > 0 && (
             <>
+              {/* Say WHY these people are on screen when nobody asked for them
+                  (TD-23). A list that appears unbidden and unexplained reads as
+                  "everyone we have", and the employer then reasonably concludes
+                  the database is tiny. Shown only until they change the search:
+                  once the box is theirs, the box is the explanation. */}
+              {seedJob && applied?.search === seedJob && (
+                <p className="text-sm text-[#717182] mb-2">
+                  {t('employer:workers.seededFrom', { job: seedJob })}
+                </p>
+              )}
               <p className="text-sm text-[#717182] mb-4">
                 {t('employer:workers.resultCount', { count: pagination?.total ?? jobs.length })}
               </p>

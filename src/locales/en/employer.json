@@ -96,6 +96,7 @@
     "searchFailed": "Search failed. Please try again.",
     "minQuery": "Enter at least {{count}} characters to search.",
     "emptyInitial": "Search the candidate database by skill, job title, or keyword to find workers.",
+    "seededFrom": "These workers match your most recent job, \"{{job}}\". Search above to look for something else.",
     "noResultsTitle": "No candidates found",
     "noResultsBody": "Try a different keyword or remove the location filter.",
     "resultCount": "{{count}} candidates",
