@@ -79,7 +79,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-25 | "Recommended" returns 1 in 10 | 🔴 open — partly TD-05 | |
 | TD-26 | Mobile's two brand blues | ✅ done — ⚠️ visual check owed | `55dc23e` |
 | TD-27 | Mobile welcome logo | ✅ done — ⚠️ visual check owed | `cd8ee11` |
-| TD-28 | Employer vs seeker identity | 🔴 open | |
+| TD-28 | Employer vs seeker identity | ✅ done — one header, 5/5 `smoke-td28.js` | |
 | TD-29 | Welcome screen onto the web | 🔴 open | |
 | TD-30 | `NODE_ENV` danger flags | ✅ code done — env is deliberate, see §9 | BE `79ebc15` |
 | TD-31 | CORS allowlist | ✅ done | BE `624fd30` |
@@ -99,6 +99,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-45 | Job-form validation error is silent to a screen reader | 🔴 open | |
 | TD-46 | `language-fallback.png` 404 on the home page | 🔴 open — XS | |
 | TD-47 | Taxonomy renders in English in all ten locales | 🔴 open — ⚠️ Asrar, needs a display-name layer | |
+| TD-48 | Primary action button is 2.02:1 — fails WCAG AA | 🔴 open — ⚠️ designer, same call as TD-26 | |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
@@ -1027,6 +1028,35 @@ a guard against the symptom, not a fix.
 
 ⚠️ **Do not "fix" this by translating the names in the locale files.** They are
 join keys; a translated `categoryName` stops matching its sector.
+
+### TD-48 · The primary action button fails contrast, everywhere `WEB` `MOB` · M ⚠️ designer
+
+**Measured, not estimated:** white text on `primary-50` (#5cc2ed) is **2.02:1**.
+WCAG AA wants 4.5:1 for text. Verified in a real browser off the rendered pixels
+by [`scripts/smoke/smoke-td28.js`](../scripts/smoke/smoke-td28.js), which prints
+the ratio on every run.
+
+That combination — `bg-primary-50 text-white` — is the product's primary action.
+It is on Post a Job, Apply, Save Changes, Search Jobs, every retry button, on
+seeker screens as much as employer ones. So this is not a bug in any one screen.
+
+**TD-28 deliberately did not fix it.** It fixed the *outline* links in the
+employer header, which were `text-primary-50` on white — 1.9:1, sky as TEXT — by
+moving them to `primary-90` at 9.08:1. Repainting the solid button is a different
+thing: it changes the brand's action colour across the whole product, and picking
+what replaces it is a designer's call across the scale.
+
+⚠️ **This is the same open question as TD-26 on mobile**, which ended with:
+"mobile's action colour is now brand primary/80, not the sky primary/50 the
+website uses, because all 58 call sites are text or fills behind white text and
+sky is 2.0:1 on white. Making sky the mobile action colour needs a designer to
+reassign those call sites across the scale." Web has now measured the same wall
+from the other side. **Decide it once, for both surfaces.**
+
+Cheapest honest options, for whoever decides: darken the fill to `primary-60`
+(#46a4cb, ~2.9:1 — still fails) or `primary-80` (#236987, ~6.4:1 — passes), or
+keep sky and put dark text on it (#0c3343 on #5cc2ed is ~7.4:1). The last keeps
+the brand colour and is the smallest visual change.
 
 ### TD-44 · The seeker profile tells the same lie TD-41 just fixed `WEB` · S
 

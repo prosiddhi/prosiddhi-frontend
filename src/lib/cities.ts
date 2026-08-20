@@ -101,15 +101,28 @@ export const CITY_KEYS = Object.keys(CITY_COORDS)
  * place — used only by `coordsToWrite` when deciding whether words typed after a
  * fix should override it.
  *
- * Deliberately much larger than any city radius (the largest is Delhi at 50) and
- * far smaller than the gap between any two cities on the list. The nearest pair
- * we ship is Ahmedabad–Surat at ~230 km, so 100 cannot make one look like the
- * other, while an outlying industrial belt — Devanahalli is 33 km out, Sriperumbudur
- * ~40 — still reads as its own metro rather than as somewhere else entirely.
+ * **Bounded from both sides, by measured distances on the shipped list:**
+ *
+ * - It must exceed the largest city radius, **50** (Delhi/NCR). A fix at the
+ *   edge of NCR, with "Delhi" typed, has to keep the fix.
+ * - It must also clear the outlying industrial belts that are genuinely part of
+ *   a metro: Devanahalli sits **33 km** from the Bangalore centroid.
+ * - It must stay below **93.7** — the distance from Panvel to the Pune
+ *   centroid. Panvel is 27 km from Mumbai, well inside it, and a recruiter
+ *   there typing "Pune" must have the text win.
+ *
+ * That leaves (50, 93.7). **60** takes the low end with room, because the cost
+ * is asymmetric: too high pins a job in the wrong city silently, too low only
+ * replaces a precise fix with the centroid of the city the person just named.
+ *
+ * ⚠️ An earlier draft used 100 and justified it with "the nearest pair is
+ * Ahmedabad–Surat at ~230 km". That is false — **Mumbai–Pune is 120.2 km**, the
+ * closest pair on the list, and 100 broke the Panvel case above. If the city
+ * list changes, recompute; do not reason about it from memory.
  *
  * It is NOT a commute radius and must never be used as one.
  */
-const SAME_PLACE_KM = 100
+const SAME_PLACE_KM = 60
 
 /** One spelling convention for every lookup in this file. */
 const normalizeCity = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ')

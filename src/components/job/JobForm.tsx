@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   type PostJobData,
@@ -220,10 +220,32 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
     textIsNewer,
     translate: translateCity,
   })
+  // Debounced, and only for the LINE — `decision` above is undebounced because
+  // it feeds the payload, which must reflect the box exactly at submit time.
+  //
+  // Without this the amber "will not appear in Nearby" fires on the "B" of
+  // "Bangalore" and again on every letter until the word resolves, and because
+  // the line is a `role="status"` live region a screen reader reads each one
+  // out. Warning someone mid-word about a word they have not finished typing is
+  // noise at best.
+  const [settledLocation, setSettledLocation] = useState(f.location)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledLocation(f.location), 600)
+    return () => window.clearTimeout(timer)
+  }, [f.location])
+
   const hint = locationHint({
-    decision,
+    // Recomputed against the settled text so the words and the verdict agree;
+    // the fix/none branches do not depend on the text and are unaffected.
+    decision: coordsToWrite({
+      gpsFix,
+      saved: savedPin,
+      text: settledLocation,
+      textIsNewer,
+      translate: translateCity,
+    }),
     saved: savedPin,
-    text: f.location,
+    text: settledLocation,
     translate: translateCity,
   })
 

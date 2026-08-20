@@ -80,6 +80,12 @@ function reportErrors(errors) {
   console.log(`  ⚠️  page errors: ${errors.join(' | ')}`)
 }
 
+// The hint is debounced by 600ms so it does not warn mid-word and, being a
+// role="status" live region, re-announce on every keystroke. Any check that
+// reads it sooner reads the PREVIOUS state — which is how this suite briefly
+// reported the old sentence as a failure of the new one.
+const settle = (page) => page.waitForTimeout(900)
+
 const hintText = async (page) =>
   (await page.locator(HINT).count()) ? (await page.locator(HINT).first().innerText()).trim() : ''
 
@@ -99,14 +105,14 @@ const hintText = async (page) =>
       check('an empty box says nothing', initial === '', JSON.stringify(initial))
 
       await box.fill('Bengaluru, Karnataka')
-      await page.waitForTimeout(400)
+      await settle(page)
       const city = await hintText(page)
       // "Bengaluru" is an alias for the Bangalore key, so this also proves the
       // hint runs the app's real matcher rather than an exact-name compare.
       check('a recognised city is named back', /Bangalore/i.test(city), JSON.stringify(city))
 
       await box.fill('Nagpur')
-      await page.waitForTimeout(400)
+      await settle(page)
       const unknown = await hintText(page)
       check(
         'an unplaceable town warns that Nearby will miss it',
@@ -152,7 +158,7 @@ const hintText = async (page) =>
       await page.getByRole('button', { name: 'Use my current location' }).click()
       await page.waitForTimeout(1500)
       await page.locator('#job-location').fill('Bangalore')
-      await page.waitForTimeout(500)
+      await settle(page)
       const after = await hintText(page)
       check(
         'a city typed AFTER a fix is what the hint reports',
@@ -192,7 +198,7 @@ const hintText = async (page) =>
         const { ctx, page, errors } = await open(browser, employer, `/employer/jobs/${createdJobId}/edit`)
         const box = page.locator('#job-location')
         await box.fill('Nagpur')
-        await page.waitForTimeout(400)
+        await settle(page)
         const pinned = await hintText(page)
         // The whole point: it must name the city the job is STUCK in, not the
         // one just typed. Silence here is the bug TD-41 exists to end.
@@ -228,7 +234,7 @@ const hintText = async (page) =>
 
       const { ctx, page, errors } = await open(browser, employer, `/employer/jobs/${createdJobId}/edit`)
       await page.locator('#job-location').fill('Nagpur')
-      await page.waitForTimeout(400)
+      await settle(page)
       const unnamed = await hintText(page)
       check('an off-grid pin still warns', unnamed !== '', JSON.stringify(unnamed))
       // The distinguishing test: the NAMED wording would say "Bangalore" here.

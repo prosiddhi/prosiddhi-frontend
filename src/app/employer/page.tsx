@@ -3,7 +3,6 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { CreditWallet } from '@/components/employer/CreditWallet'
 import {
@@ -30,7 +29,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { EmployerHeader, employerHeaderLinkCls, employerHeaderCtaCls } from '@/components/employer/EmployerHeader'
 
 // One tile: icon, big number, label. `href` turns it into a link and `action`
 // adds a trailing affordance — the unlocked-candidates shortcut is the same
@@ -121,39 +120,23 @@ function EmployerDashboardContent() {
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/employer" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:dashboard.logoAlt')} fill className="object-contain" priority />
-            </div>
-          </Link>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link
-              href="/employer/workers"
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm sm:text-base"
-            >
-              <Search className="w-4 h-4" />
-              {t('employer:dashboard.findWorkers')}
-            </Link>
-            <Link
-              href="/employer/team"
-              className="hidden md:inline-flex items-center gap-2 px-4 py-2 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm sm:text-base"
-            >
-              <Users className="w-4 h-4" />
-              {t('employer:dashboard.team')}
-            </Link>
-            <Link
-              href="/employer/jobs/new"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4" />
-              {t('employer:dashboard.postJob')}
-            </Link>
-            <HeaderActions />
-          </div>
-        </div>
-      </header>
+      <EmployerHeader>
+        {/* `hidden sm:`/`hidden md:` kept from the original: three actions plus
+            the account controls do not fit a phone, and the same destinations
+            are in the dashboard body below. */}
+        <Link href="/employer/workers" className={`hidden sm:inline-flex ${employerHeaderLinkCls}`}>
+          <Search className="w-4 h-4" />
+          {t('employer:dashboard.findWorkers')}
+        </Link>
+        <Link href="/employer/team" className={`hidden md:inline-flex ${employerHeaderLinkCls}`}>
+          <Users className="w-4 h-4" />
+          {t('employer:dashboard.team')}
+        </Link>
+        <Link href="/employer/jobs/new" className={employerHeaderCtaCls}>
+          <Plus className="w-4 h-4" />
+          {t('employer:dashboard.postJob')}
+        </Link>
+      </EmployerHeader>
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />

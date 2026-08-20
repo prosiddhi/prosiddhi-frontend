@@ -3,7 +3,6 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Suspense, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { employerAPI, type EmployerApplicationItem } from '@/lib/api'
@@ -18,7 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 type Tab = { key: string; label: string; status?: string }
 
@@ -80,16 +79,7 @@ function CandidatesContent() {
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/employer" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('employer:candidates.logoAlt')} fill className="object-contain" priority />
-            </div>
-          </Link>
-          <HeaderActions />
-        </div>
-      </header>
+      <EmployerHeader />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />

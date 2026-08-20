@@ -313,8 +313,10 @@ export function TaxonomyPicker({
               // none of that is implemented here. A screen reader would announce
               // "combo box, expanded" and then Up/Down would do nothing, which
               // is a worse experience than the plain search field this actually
-              // is. The results below are ordinary buttons: Tab reaches them and
-              // Enter picks one, which is checked in scripts/smoke/smoke-td22.js.
+              // is. The results below are ordinary buttons, so Tab reaches them
+              // and Enter picks one — TWO tabs, because the Clear button sits
+              // inside the field ahead of the list. Both are asserted in
+              // scripts/smoke/smoke-td22.js.
               aria-describedby={`${id}-search-hint`}
             />
             {query && (

@@ -174,12 +174,33 @@ async function searchAndPick(page, query, index = 0) {
       await page.waitForTimeout(400)
       check('clicking away closes it', (await list.count()) === 0)
 
-      await box.click()
+      // Clear the triple first. Without this the "Enter picked something" check
+      // reads whatever the seeker already had saved and passes without the
+      // keyboard doing anything — which it did, because `tagName === 'BUTTON'`
+      // also matches the Clear (X) button that sits between the input and the
+      // list in DOM order.
+      await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('')
       await page.waitForTimeout(400)
+      const cleared = await triple(page)
+      check('cleared the picker before the keyboard test', !cleared.jobTitle, JSON.stringify(cleared))
+
+      await box.click()
+      await page.fill('input[id$="-search"]', unique.jobTitle.slice(0, 4))
+      await page.waitForTimeout(500)
       await box.focus()
+      // Tab lands on Clear FIRST — it is inside the input's own box, before the
+      // list. Two presses to reach a suggestion. Asserted explicitly so the
+      // docstring's keyboard contract is the one actually being checked.
       await page.keyboard.press('Tab')
-      const onButton = await page.evaluate(() => document.activeElement?.tagName)
-      check('Tab moves focus into the results', onButton === 'BUTTON', String(onButton))
+      const first = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? '')
+      check('Tab first reaches the Clear button', /clear/i.test(first), JSON.stringify(first))
+
+      await page.keyboard.press('Tab')
+      const inList = await page.evaluate(
+        () => !!document.activeElement?.closest('ul[id$="-results"]'),
+      )
+      check('a second Tab reaches a result', inList, inList ? 'inside the results list' : 'not in the list')
+
       await page.keyboard.press('Enter')
       await page.waitForTimeout(600)
       const picked = await triple(page)
