@@ -11,6 +11,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { toIdentifier, toE164 } from '@/lib/identifier'
 
 // `phoneOtp` and `phonePassword` are BOTH phone-identified; they differ only in
 // the credential. Arm 3 (phone + password) exists because a seeker who
@@ -88,14 +89,6 @@ function initialRoleFor(returnUrl: string | null): LoginRole {
   return 'seeker'
 }
 
-// Normalize a raw phone input to E.164 with a +91 default.
-function toE164(raw: string): string {
-  const trimmed = raw.trim()
-  if (trimmed.startsWith('+')) return trimmed.replace(/[^\d+]/g, '')
-  const digits = trimmed.replace(/\D/g, '')
-  // 10-digit Indian mobile → prefix +91.
-  return `+91${digits}`
-}
 
 function LoginContent() {
   const router = useRouter()
@@ -112,7 +105,11 @@ function LoginContent() {
   // initializer captures null and the Employer tab never preselects. Verified —
   // the SSR markup came back with Job Seeker active for an /employer returnUrl.
   const [roleTouched, setRoleTouched] = useState(false)
-  const [tab, setTab] = useState<Tab>('email')
+  // TD-37: phone + password is THE login. Email and phone-OTP still work and are
+  // reachable by a text link; they are no longer choices you must make before
+  // you can start typing. `role` survives only for the Google arm — see the
+  // note on the role block in the render.
+  const [tab, setTab] = useState<Tab>('phonePassword')
 
   useEffect(() => {
     if (roleTouched) return
@@ -230,10 +227,15 @@ function LoginContent() {
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email)
       }
-      const result = await authAPI.login(role, {
-        identifier: email.trim().toLowerCase(),
-        password,
-      })
+      // Also role-blind (TD-37). It is a password, so the retry is safe — and
+      // it MUST be, because the role toggle no longer renders on this arm.
+      // Leaving `authAPI.login(role, …)` here would have pinned every email
+      // login to whichever role happened to be inferred, with nothing on screen
+      // to correct it.
+      const result = await authAPI.loginAnyRole(
+        { identifier: email.trim().toLowerCase(), password },
+        role
+      )
       onLoginSuccess(result)
     } catch (err) {
       handleLoginError(err)
@@ -251,12 +253,26 @@ function LoginContent() {
     try {
       setLoading(true)
       setError('')
-      const result = await authAPI.login(role, {
-        identifier: toE164(phone),
-        password,
-      })
+      // No `role` — the whole point of TD-37. loginAnyRole tries one gate and,
+      // if the backend answers ROLE_MISMATCH with the account's real role, uses
+      // that. Right credentials can no longer fail because you were looking at
+      // the wrong tab, which was the most common way to fail to log in.
+      // null = phone-shaped but not a plausible number. Sending it anyway would
+      // come back "invalid credentials", blaming the password for a typo in the
+      // number — and  used to do exactly that, silently.
+      const identifier = toIdentifier(phone)
+      if (!identifier) {
+        // NOT auth:phone.errorInvalid — this field takes either, so phone-only
+        // instructions are wrong half the time.
+        setError(t('auth:login.errorIdentifierInvalid'))
+        return
+      }
+      const result = await authAPI.loginAnyRole({ identifier, password }, role)
       onLoginSuccess(result)
     } catch (err) {
+      // Still routed through handleLoginError: loginAnyRole deliberately does
+      // NOT swallow an ADMIN ROLE_MISMATCH (an admin fails both gates), and this
+      // is what says so rather than printing a raw backend string.
       handleLoginError(err)
     } finally {
       setLoading(false)
@@ -267,6 +283,10 @@ function LoginContent() {
   // seeker — the exact user arm 3 exists for. Offer the phone-OTP route as the
   // way back in instead.
   const switchToPhoneOtp = () => {
+    // The two screens share `phone`, and the primary field now accepts an email.
+    // Carrying "boss@acme.com" into a box labelled Phone Number prefills a
+    // dead end: Send OTP cannot do anything with it.
+    if (phone.includes('@')) setPhone('')
     setTab('phoneOtp')
     setError('')
     setOtpSent(false)
@@ -279,7 +299,12 @@ function LoginContent() {
     try {
       setLoading(true)
       setError('')
-      await authAPI.loginPhoneSend(toE164(phone))
+      const e164 = toE164(phone)
+      if (!e164) {
+        setError(t('auth:phone.errorInvalid'))
+        return
+      }
+      await authAPI.loginPhoneSend(e164)
       setOtpSent(true)
       setOtp(['', '', '', '', '', ''])
       // focus first OTP box on next paint
@@ -318,8 +343,13 @@ function LoginContent() {
     try {
       setLoading(true)
       setError('')
+      const e164 = toE164(phone)
+      if (!e164) {
+        setError(t('auth:phone.errorInvalid'))
+        return
+      }
       const result = await authAPI.login(role, {
-        identifier: toE164(phone),
+        identifier: e164,
         otp: code,
       })
       onLoginSuccess(result)
@@ -391,7 +421,12 @@ function LoginContent() {
     try {
       setLoading(true)
       setError('')
-      await otpAPI.send(toE164(phone))
+      const e164 = toE164(phone)
+      if (!e164) {
+        setError(t('auth:phone.errorInvalid'))
+        return
+      }
+      await otpAPI.send(e164)
       setOtpSent(true)
       setOtp(['', '', '', '', '', ''])
       setTimeout(() => otpRefs.current[0]?.focus(), 0)
@@ -413,7 +448,12 @@ function LoginContent() {
     try {
       setLoading(true)
       setError('')
-      await authAPI.changePhone(toE164(phone), code)
+      const e164 = toE164(phone)
+      if (!e164) {
+        setError(t('auth:phone.errorInvalid'))
+        return
+      }
+      await authAPI.changePhone(e164, code)
       router.push(bindUser ? homeForUser(bindUser) : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
@@ -423,12 +463,6 @@ function LoginContent() {
       setLoading(false)
     }
   }
-
-  const tabBtn = (id: Tab) =>
-    // min-h-[44px]: these were 150x36 (TD-20).
-    `min-h-[44px] py-2.5 px-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
-      tab === id ? 'bg-primary-50 text-white' : 'bg-[#f3f3f3] text-[#777776] hover:bg-gray-200'
-    }`
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
@@ -466,8 +500,22 @@ function LoginContent() {
             </p>
           </div>
 
-          {/* Role toggle (hidden during the post-Google phone-bind step) */}
-          {mode === 'login' && (
+          {/* Role choice — only the two arms that genuinely cannot do without it
+              (TD-37). It used to sit above EVERY method, so getting it wrong made
+              right credentials fail on the most-used screen in the product.
+              Both password arms are now role-blind: `loginAnyRole` asks the
+              backend which role the account is and uses the answer.
+              The two exceptions are real, not laziness:
+                • GOOGLE — for a new user this is a sign-UP, so the role decides
+                  what account gets CREATED. A cross-role attempt also answers
+                  409, not the ROLE_MISMATCH the retry keys on.
+                • PHONE + OTP — `authService` verifies AND CONSUMES the code
+                  before the role gate runs, so by the time ROLE_MISMATCH comes
+                  back the code is spent and a retry would fail on a correct one.
+              Asked at the point of use, not as a toll gate on the way in. */}
+          {mode === 'login' && (tab === 'google' || tab === 'phoneOtp') && (
+          <>
+          <p className="text-sm text-[#777776] mb-2">{t('auth:login.roleQuestion')}</p>
           <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg mb-5">
             {/* aria-pressed: a wrong-role login now moves this toggle on the
                 user's behalf (TD-08). The error box below is role="alert", so
@@ -495,24 +543,21 @@ function LoginContent() {
               {t('auth:login.roleEmployer')}
             </button>
           </div>
+          </>
           )}
 
-          {/* Method tabs (hidden during the post-Google phone-bind step) */}
-          {mode === 'login' && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-            <button type="button" onClick={() => switchTab('email')} className={tabBtn('email')}>
-              {t('auth:login.tabEmail')}
+          {/* No method tabs. Eight combinations behind eleven buttons was the
+              screen's real defect: you had to make two decisions before you
+              could type anything. The other methods are still here, one text
+              link below the form away — see the alternatives block. */}
+          {mode === 'login' && tab !== 'phonePassword' && (
+            <button
+              type="button"
+              onClick={() => switchTab('phonePassword')}
+              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors mb-2"
+            >
+              ← {t('auth:login.backToMain')}
             </button>
-            <button type="button" onClick={() => switchTab('phoneOtp')} className={tabBtn('phoneOtp')}>
-              {t('auth:login.tabPhoneOtp')}
-            </button>
-            <button type="button" onClick={() => switchTab('phonePassword')} className={tabBtn('phonePassword')}>
-              {t('auth:login.tabPhonePassword')}
-            </button>
-            <button type="button" onClick={() => switchTab('google')} className={tabBtn('google')}>
-              {t('auth:login.tabGoogle')}
-            </button>
-          </div>
           )}
 
           {/* Inline error */}
@@ -679,14 +724,27 @@ function LoginContent() {
             <form onSubmit={handlePhonePasswordSubmit} className="space-y-6">
               <div>
                 <label htmlFor="pp-phone" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.phoneLabel')}
+                  {t('auth:login.identifierLabel')}
                 </label>
+                {/* type="text", not "tel" — this field now takes an email too,
+                    and a tel keypad cannot produce an "@".
+                    No inputMode either: "email" opens QWERTY, and most people
+                    here type a 10-digit number, so it would put the majority one
+                    layer away from their own keys. The default keyboard shows
+                    both, and the placeholder says both are accepted.
+                    autoCapitalize/spellCheck off because Android otherwise
+                    renders an email as "You@example.com" while it is being
+                    typed — toLowerCase fixes it on submit, but the user sees a
+                    field that looks wrong and retypes it. */}
                 <input
                   id="pp-phone"
-                  type="tel"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t('auth:login.phonePlaceholder')}
+                  placeholder={t('auth:login.identifierPlaceholder')}
                   className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                   required
                 />
@@ -700,6 +758,7 @@ function LoginContent() {
                   <input
                     id="pp-password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t('auth:login.passwordPlaceholder')}
@@ -726,18 +785,47 @@ function LoginContent() {
               </button>
 
               {/* Phone-first recovery. "Forgot password?" resets via EMAIL, so it
-                  is a dead end for exactly the user this tab serves. */}
+                  is a dead end for exactly the user this form serves. */}
               <div className="text-center">
                 <p className="text-sm text-[#777776] mb-1">{t('auth:login.forgotPasswordPhone')}</p>
                 <button
                   type="button"
                   onClick={switchToPhoneOtp}
-                  className="text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                 >
                   {t('auth:login.useOtpInstead')}
                 </button>
               </div>
             </form>
+          )}
+
+          {/* The other ways in (TD-37). Below the form, not in front of it: a
+              text link is an offer, a tab row is a question you must answer
+              before you can start. Every method still works. */}
+          {mode === 'login' && tab === 'phonePassword' && (
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="h-px flex-1 bg-[#e5e5e5]" />
+                <span className="text-xs text-[#777776]">{t('auth:login.or')}</span>
+                <span className="h-px flex-1 bg-[#e5e5e5]" />
+              </div>
+              <button
+                type="button"
+                onClick={() => switchTab('google')}
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 border border-[#b5b5b5] rounded-lg py-3 text-base font-medium text-black hover:bg-gray-50 transition-colors"
+              >
+                {t('auth:login.continueWithGoogle')}
+              </button>
+              <div className="flex items-center justify-center gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => switchTab('email')}
+                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                >
+                  {t('auth:login.useEmailInstead')}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* --- Google tab (PJP-72) --- */}
@@ -869,13 +957,30 @@ function LoginContent() {
           <div className="text-center mt-6">
             <p className="text-sm sm:text-base">
               <span className="text-black">{t('auth:login.noAccount')}</span>
+            </p>
+            {/* BOTH destinations, not one guessed from `role` (TD-37).
+                `role` is inferred from the returnUrl and is now invisible on this
+                screen, so an employer who simply types the site address was sent
+                to the SEEKER sign-up with no control to correct it — the old
+                wrong-tab failure, moved from login to registration.
+                Registration already asks "I want a job / I want to hire" as its
+                first question, so naming both here costs nothing and guesses
+                nothing. */}
+            <div className="flex items-center justify-center gap-3 mt-1">
               <Link
-                href={role === 'employer' ? '/employer/register' : '/register'}
+                href="/register"
                 className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
-                {t('auth:login.signUpHere')}
+                {t('auth:login.roleSeeker')}
               </Link>
-            </p>
+              <span className="text-[#b5b5b5]" aria-hidden="true">·</span>
+              <Link
+                href="/employer/register"
+                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+              >
+                {t('auth:login.roleEmployer')}
+              </Link>
+            </div>
             {/* Employers only. This link was rendered for every role, so a job seeker
                 signing in was shown "View pricing & plans" — contradicting the locked
                 rule that seekers are free forever (PRODUCT.md §3). The sign-up link

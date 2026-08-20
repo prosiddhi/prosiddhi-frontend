@@ -603,6 +603,69 @@ export const authAPI = {
     })
   },
 
+  /**
+   * Log in WITHOUT the caller knowing which role the account is (TD-37).
+   *
+   * The backend splits login by role on purpose — there is no role-agnostic
+   * endpoint, and `/auth/login-phone-verify` was deprecated in favour of the
+   * split. But the seeker and employer gates now answer a right-credentials
+   * wrong-endpoint attempt with `ROLE_MISMATCH` plus the account's real role
+   * (BE `d3bda2b`), which is enough to finish the job server-side-blind: try
+   * one, and if it tells us we guessed wrong, use what it told us.
+   *
+   * That is what lets the login screen drop its seeker/employer toggle — the
+   * thing that made right-credentials-wrong-tab the most common way to fail to
+   * log in.
+   *
+   * ⚠️ **Password only.** Do NOT route the OTP arm through this. `authService`
+   * verifies AND CONSUMES the code before the role gate runs
+   * (`auth.service.ts:544-546`, a hard delete), so by the time `ROLE_MISMATCH`
+   * comes back the code is already spent and the retry would fail on a correct
+   * code. A password survives being offered twice; a one-time code does not.
+   *
+   * The second request only ever happens on CORRECT credentials — a wrong
+   * password returns 401 `Invalid credentials`, never `ROLE_MISMATCH` — so this
+   * tells an attacker nothing a single request did not already.
+   */
+  loginAnyRole: async (
+    credentials: { identifier: string; password: string },
+    /**
+     * Which gate to try FIRST. Purely a latency hint — a wrong guess still
+     * succeeds, it just costs a second round trip.
+     *
+     * Worth passing because the wasted request is not a cheap 403: the gate can
+     * only know the role is wrong AFTER verifying the password, so a miss costs
+     * an RTT plus a discarded bcrypt. The login page already computes a good
+     * guess from the returnUrl — an employer bounced off `/employer/*` by
+     * ProtectedRoute is the commonest employer arrival by far.
+     *
+     * Default 'seeker' because seekers vastly outnumber employers, so a blind
+     * call should put the cost on the smaller, better-connected population.
+     * Deliberately NOT a remembered "last role" in storage: handsets get shared
+     * in this audience, and a stale hint would move the penalty onto exactly the
+     * users the default protects.
+     */
+    preferred: LoginRole = 'seeker'
+  ) => {
+    const fallback: LoginRole = preferred === 'seeker' ? 'employer' : 'seeker'
+    try {
+      return await authAPI.login(preferred, credentials)
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.code !== 'ROLE_MISMATCH') throw err
+      // Only retry for a role we recognise, and only for the one we did NOT just
+      // try. An ADMIN fails BOTH gates — the console is a separate app — so
+      // retrying would 403 twice and report the second failure, hiding what the
+      // account actually is. Let the caller's error handling say so instead.
+      const actual = err.details?.actualRole
+      const actualRole: LoginRole | null =
+        actual === 'JOB_SEEKER' ? 'seeker'
+        : actual === 'EMPLOYER_INDIVIDUAL' || actual === 'EMPLOYER_BUSINESS' ? 'employer'
+        : null
+      if (actualRole !== fallback) throw err
+      return await authAPI.login(fallback, credentials)
+    }
+  },
+
   // Phone-OTP login step 1: request the login OTP. Step 2 is authAPI.login
   // with { identifier: <phone>, otp }.
   //
