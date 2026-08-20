@@ -117,9 +117,10 @@ export default function EmployeeLandingPage() {
       {/* Hero Section */}
       <section className="pt-[194px] pb-20 text-center">
         <div className="max-w-[1920px] mx-auto px-8">
-          {/* Badge */}
+          {/* Trust badge (TD-12) — same claim and same contrast reasoning as
+              the home hero; see components/home/HeroSection.tsx. */}
           <div className="inline-flex items-center justify-center px-5 py-2 bg-white border border-gray-200 rounded-full mb-10">
-            <span className="text-sm text-primary-50">{t('seeker:landing.badge')}</span>
+            <span className="text-sm font-medium text-primary-80">{t('seeker:landing.badge')}</span>
           </div>
 
           {/* Title */}

@@ -11,12 +11,25 @@ export function HeroSection() {
   const { t } = useTranslation('common')
 
   return (
-    <section className="pt-16 sm:pt-20 lg:pt-24 pb-4 sm:pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8">
+    // pt-[91px], not pt-16: Header.tsx is `fixed` and `h-[75px]` at every
+    // breakpoint, so 64px of padding put the badge underneath it — the trust
+    // claim was half-hidden behind the logo bar on a phone. 75 + 16 of
+    // breathing room.
+    <section className="pt-[91px] sm:pt-24 pb-4 sm:pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto">
-        {/* Badge */}
+        {/* Trust badge (TD-12). This said "Work Opportunities for Everyone",
+            which promises nothing, in a market where charging a jobseeker a
+            fee to "get" them a job is the standard scam. It now carries the
+            one thing we can state as fact and that answers that fear.
+            Deliberately the same sentence as employer plans.seekersFree, so
+            the promise on the front page and the promise on the pricing page
+            are word for word the same in all ten languages.
+
+            primary-80, not primary-50: the brand sky is 2.0:1 on white and
+            this is the line that has to be read. primary-80 is 6.1:1. */}
         <div className="flex justify-center mb-3 sm:mb-4">
           <div className="bg-white border border-[#f2f2f2] rounded-[20px] px-3 sm:px-4 py-1 sm:py-1.5 inline-flex items-center">
-            <span className="text-xs text-primary-50 text-center">
+            <span className="text-xs font-medium text-primary-80 text-center">
               {t('home.heroBadge')}
             </span>
           </div>
