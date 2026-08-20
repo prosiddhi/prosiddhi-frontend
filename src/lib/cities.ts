@@ -36,6 +36,13 @@ export interface City extends Coords {
  *
  * Radii are the built-up spread, not the district boundary: Delhi carries NCR,
  * the four other big metros ~30 km, and the smaller cities 20–25 km.
+ *
+ * ⚠️ **A radius does two jobs.** It is the job feed's `maxDistance`, and it is
+ * also the threshold at which a typed city may overwrite a stored coordinate
+ * (`app/profile/page.tsx`). They fail in opposite directions: too small on the
+ * feed shows too few jobs, which a user sees and retries; too small on the
+ * overwrite guard silently replaces someone's precise GPS fix with a centroid.
+ * Tune one for the feed and you have retuned the other.
  */
 export const CITY_COORDS: Record<string, City> = {
   ahmedabad: { lat: 23.0225, lon: 72.5714, radius: 20 },
@@ -87,6 +94,16 @@ const CITY_ALIASES = new Map<string, string>([
   ['amdavad', 'ahmedabad'],
   ['secunderabad', 'hyderabad'],
 ])
+
+/**
+ * Every English spelling we accept → its city key: the keys themselves plus the
+ * variants above. Built once, so matching is one O(1) lookup instead of a
+ * re-normalise plus a linear scan of CITY_KEYS per candidate.
+ *
+ * A Map for the same reason as everything else in this file — see toCityKey.
+ */
+const CITY_NAMES = new Map<string, string>(CITY_ALIASES)
+for (const key of CITY_KEYS) CITY_NAMES.set(key, key)
 
 /**
  * Narrow an untrusted string (a URL parameter, typically) to a known city key.
@@ -148,13 +165,13 @@ export function cityCoordsFromText(
     ? new Map(CITY_KEYS.map((key) => [normalizeCity(translate(key)), key]))
     : null
 
+  const match = (name: string) => CITY_NAMES.get(name) ?? labels?.get(name)
+
   for (let i = words.length - 1; i >= 0; i--) {
     // The PAIR ending at i before the single word at i, so "New Delhi" and
     // "Navi Mumbai" are never read as bare "Delhi" or "Mumbai".
-    for (const name of i > 0 ? [`${words[i - 1]} ${words[i]}`, words[i]] : [words[i]]) {
-      const key = toCityKey(name) || CITY_ALIASES.get(name) || labels?.get(name)
-      if (key) return CITY_COORDS[key]
-    }
+    const key = (i > 0 && match(`${words[i - 1]} ${words[i]}`)) || match(words[i])
+    if (key) return CITY_COORDS[key]
   }
   return undefined
 }

@@ -1209,6 +1209,18 @@ export interface PostJobData {
   location: string
   latitude?: number
   longitude?: number
+  /**
+   * ⚠️ TD-03: the EMPLOYER's hiring reach — how far they will take commuters.
+   * **NOT** the city's extent. Do not pass `City.radius` from `@/lib/cities`:
+   * it is the same name and the same shape measuring a different thing, so
+   * `radius: city.radius` reads as obviously correct and would make every Delhi
+   * job claim a 50 km hiring radius.
+   *
+   * The mistake would be silent. The backend stores this and nothing reads it —
+   * `getNearbyForSeeker` filters on the SEEKER's radius — so a wrong value shows
+   * up only on the day someone wires it up, by which time it is wrong across the
+   * whole job table. Send nothing; the BE default is 5.
+   */
   radius?: number
   salaryMin?: number
   salaryMax?: number

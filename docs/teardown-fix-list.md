@@ -724,6 +724,12 @@ Fix is mechanical — `id` on the control, `htmlFor` on the label — but it
 touches the shared `Field` wrapper used across the whole form, so it is its own
 ticket rather than a rider on someone else's.
 
+Same family, found 2026-08-20 by the TD-06 review: the city `<select>` on
+[job-feed/page.tsx:355](../src/app/job-feed/page.tsx#L355) has **no**
+`aria-label`, while the identical control on
+[employee/page.tsx:158](../src/app/employee/page.tsx#L158) has one. Fold into
+this ticket.
+
 ### How job filtering actually works — answer to Nazir's question
 
 **Yes, there is real keyword search, and it is better than expected.** Two

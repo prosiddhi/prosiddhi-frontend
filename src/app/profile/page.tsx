@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -175,22 +175,27 @@ function SeekerProfileContent() {
   //
   // Precision ranking: a fix taken just now beats a coordinate already stored,
   // which beats a city centroid. A centroid may only REPLACE a stored
-  // coordinate when the seeker has plainly moved — and that is judged by
-  // distance, not by comparing the location text, because the text is often
-  // blank, or an area name, or written in another script. Comparing text meant
-  // that simply filling in a blank city box flattened a precise fix to the city
-  // centre, which is the opposite of what this guard is for.
+  // coordinate when the seeker has plainly moved, judged by DISTANCE rather than
+  // by comparing the location text — the text is often blank, or an area name,
+  // or in another script, and comparing it meant that simply filling in a blank
+  // city box flattened a precise fix to the city centre.
+  //
+  // The threshold is the typed city's OWN radius (TD-06). One flat number cannot
+  // serve both Delhi, which reaches 50 km, and Surat, which reaches 20.
   //
   // ⚠️ TD-03 needs this same rule for the employer job form (components/job/
-  // JobForm.tsx, which has the identical free-text location + hydrate shape).
-  // MOVE it into @/lib/cities then — do not copy it, or an employer editing a
-  // job title will quietly move its pin to the city centre.
-  // "Moved" is measured against the typed city's OWN radius (TD-06), not a flat
-  // number. A fixed threshold cannot be right for both Delhi, which reaches
-  // 50 km, and Surat, which reaches 20: set it wide and a real move across a
-  // small city goes unnoticed; set it narrow and a Delhi seeker's own suburb
-  // reads as a different city.
-  const typedCity = cityCoordsFromText(location, (key) => t(`seeker:jobFeed.city.${key}`))
+  // JobForm.tsx, same free-text location + hydrate shape). MOVE it into
+  // @/lib/cities as TD-03's FIRST commit — do not copy it, or an employer
+  // editing a job title will quietly move its pin to the city centre.
+  //
+  // Memoised because this sits in the body of a large form: without it, every
+  // keystroke in the bio, the name or any experience row rebuilds the ten
+  // translated city labels — ~10 t() calls and a Map — to recompute a value
+  // that cannot have changed.
+  const typedCity = useMemo(
+    () => cityCoordsFromText(location, (key) => t(`seeker:jobFeed.city.${key}`)),
+    [location, t]
+  )
   const movedCity =
     !!typedCity && (!savedCoords || distanceKm(savedCoords, typedCity) > typedCity.radius)
   const pendingFix = gpsFix ?? (movedCity ? typedCity : undefined)
