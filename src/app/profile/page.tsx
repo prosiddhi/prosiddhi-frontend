@@ -229,7 +229,7 @@ function SeekerProfileContent() {
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/job-feed" className="flex items-center">
+          <Link href="/job-feed" className="flex items-center min-h-[44px]">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
               <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
             </div>
@@ -281,7 +281,7 @@ function SeekerProfileContent() {
                       type="button"
                       onClick={() => photoRef.current?.click()}
                       disabled={photoUploading}
-                      className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
+                      className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
                     >
                       {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                       {photoUploading ? t('profile:seeker.uploading') : t('profile:seeker.changePhoto')}
@@ -327,7 +327,7 @@ function SeekerProfileContent() {
                     {t('profile:seeker.workExperience')}
                     <VoiceButton label={t('profile:seeker.workExperienceVoiceLabel')} iconClassName="w-4 h-4 text-gray-500" className="p-1" />
                   </h2>
-                  <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:text-primary-60">
+                  <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-50 hover:text-primary-60">
                     <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
                   </button>
                 </div>
@@ -545,7 +545,7 @@ function SkillsSection() {
       )}
 
       {!showPicker ? (
-        <button type="button" onClick={() => setShowPicker(true)} className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:text-primary-60">
+        <button type="button" onClick={() => setShowPicker(true)} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-50 hover:text-primary-60">
           <Plus className="w-4 h-4" /> {t('profile:seeker.addSkill')}
         </button>
       ) : (

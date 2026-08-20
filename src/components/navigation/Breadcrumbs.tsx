@@ -150,7 +150,7 @@ export function Breadcrumbs({ className = '' }: { className?: string }) {
               ) : (
                 <Link
                   href={crumb.href}
-                  className="text-gray-500 hover:text-primary-50 hover:underline"
+                  className="inline-flex items-center min-h-[44px] text-gray-500 hover:text-primary-50 hover:underline"
                 >
                   {t(crumb.labelKey)}
                 </Link>

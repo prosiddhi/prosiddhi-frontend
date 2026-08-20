@@ -91,7 +91,7 @@ function EmployerLandingPageContent() {
         <div className="max-w-[1920px] mx-auto h-full px-4 sm:px-6 lg:px-12 xl:px-[120px] flex items-center justify-between">
           {/* Logo and Navigation */}
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-11">
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center min-h-[44px]">
               <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
                 <Image
                   src="/assets/prosiddhi-logo-horizontal.png"

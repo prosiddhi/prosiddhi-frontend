@@ -12,7 +12,7 @@ export function Header() {
     <header className="bg-white shadow-[10px_10px_50px_0px_rgba(0,0,0,0.05)] h-[75px] fixed top-0 left-0 right-0 z-40">
       <div className="container mx-auto h-full px-8 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center min-h-[44px]">
           <div className="relative w-[142px] h-[39px]">
             <Image
               src="/assets/prosiddhi-logo-horizontal.png"

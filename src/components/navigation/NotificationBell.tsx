@@ -174,7 +174,8 @@ export function NotificationBell() {
             ? t('notifications.ariaWithCount', { count: unread })
             : t('notifications.aria')
         }
-        className="relative block hover:text-primary-50 transition-colors"
+        // 44px target around a 20-24px bell (TD-20).
+        className="relative inline-flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 hover:text-primary-50 transition-colors"
       >
         <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
         {unread > 0 && (

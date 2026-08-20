@@ -24,7 +24,9 @@ import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
 export function Footer() {
   const { t } = useTranslation('legal')
 
-  const linkClass = 'hover:text-white transition-colors'
+  // inline-flex + min-h-[44px]: these were 18px-tall lines of text, the worst
+  // tap targets in the app (TD-20). The footer gets taller; that is the trade.
+  const linkClass = 'inline-flex items-center min-h-[44px] hover:text-white transition-colors'
 
   return (
     <footer className="bg-[#232323] text-white py-[47px]">

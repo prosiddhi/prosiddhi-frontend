@@ -84,7 +84,8 @@ export function UserDropdown() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={t('nav.accountMenu')}
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        // 44px target around a 32-38px avatar (TD-20).
+        className="flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] hover:opacity-80 transition-opacity"
       >
         <div className="w-8 h-8 sm:w-[38px] sm:h-[38px] rounded-full bg-primary-50 overflow-hidden flex items-center justify-center">
           {photo ? (

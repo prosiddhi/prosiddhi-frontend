@@ -425,7 +425,8 @@ function LoginContent() {
   }
 
   const tabBtn = (id: Tab) =>
-    `py-2.5 px-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+    // min-h-[44px]: these were 150x36 (TD-20).
+    `min-h-[44px] py-2.5 px-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
       tab === id ? 'bg-primary-50 text-white' : 'bg-[#f3f3f3] text-[#777776] hover:bg-gray-200'
     }`
 
@@ -434,7 +435,7 @@ function LoginContent() {
       <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl">
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
+          className="absolute top-4 right-4 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
           aria-label={t('auth:register.close')}
         >
           <X className="w-6 h-6 text-gray-600" />
@@ -477,7 +478,7 @@ function LoginContent() {
               type="button"
               aria-pressed={role === 'seeker'}
               onClick={() => switchRole('seeker')}
-              className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+              className={`flex-1 min-h-[44px] py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                 role === 'seeker' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
               }`}
             >
@@ -487,7 +488,7 @@ function LoginContent() {
               type="button"
               aria-pressed={role === 'employer'}
               onClick={() => switchRole('employer')}
-              className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+              className={`flex-1 min-h-[44px] py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                 role === 'employer' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
               }`}
             >
@@ -563,7 +564,7 @@ function LoginContent() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
                       aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
                     >
                       {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
@@ -574,7 +575,10 @@ function LoginContent() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
+                {/* min-h-[44px] on the LABEL, not the box (TD-20). The checkbox
+                    stays 16px, as checkboxes are, but the whole row is now the
+                    tap target. */}
+                <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -583,7 +587,7 @@ function LoginContent() {
                   />
                   <span className="text-sm text-black">{t('auth:login.rememberMe')}</span>
                 </label>
-                <Link href="/forgot-password" className="text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
+                <Link href="/forgot-password" className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
                   {t('auth:login.forgotPassword')}
                 </Link>
               </div>
@@ -591,7 +595,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
               >
                 {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
@@ -621,7 +625,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading || !phone}
-                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
@@ -651,7 +655,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
                   </button>
@@ -705,7 +709,7 @@ function LoginContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
                     aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
@@ -716,7 +720,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
               >
                 {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
@@ -747,7 +751,7 @@ function LoginContent() {
                     <button
                       type="button"
                       onClick={() => setEmployerSubtype('individual')}
-                      className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+                      className={`flex-1 min-h-[44px] py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                         employerSubtype === 'individual'
                           ? 'bg-white text-primary-50 shadow'
                           : 'text-[#777776]'
@@ -758,7 +762,7 @@ function LoginContent() {
                     <button
                       type="button"
                       onClick={() => setEmployerSubtype('business')}
-                      className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
+                      className={`flex-1 min-h-[44px] py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                         employerSubtype === 'business'
                           ? 'bg-white text-primary-50 shadow'
                           : 'text-[#777776]'
@@ -809,7 +813,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
@@ -841,7 +845,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>
@@ -867,7 +871,7 @@ function LoginContent() {
               <span className="text-black">{t('auth:login.noAccount')}</span>
               <Link
                 href={role === 'employer' ? '/employer/register' : '/register'}
-                className="font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpHere')}
               </Link>
