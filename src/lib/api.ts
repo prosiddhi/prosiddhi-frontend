@@ -78,18 +78,38 @@ export class ApiError extends Error {
    * must be branched on status + message instead.
    */
   readonly errors?: ApiFieldError[]
+  /**
+   * The BE's stable machine-readable discriminator, from the top-level `code`.
+   *
+   * Like `errors` and UNLIKE `reason`, this survives production: `sendError()`
+   * assigns `code` unconditionally. Prefer it over matching on `status` alone
+   * when a status can mean more than one thing — `ROLE_MISMATCH` is the first
+   * user, because a bare 403 on the login routes cannot tell a wrong-tab login
+   * apart from an nginx refusal.
+   */
+  readonly code?: string
+  /**
+   * The BE's `error` object when it is plain data rather than a thrown Error —
+   * `sendError()` serialises that shape in production too. Carries whatever
+   * metadata goes with `code` (e.g. `actualRole` for `ROLE_MISMATCH`).
+   */
+  readonly details?: Record<string, unknown>
 
   constructor(
     message: string,
     status: number,
     reason?: string,
-    errors?: ApiFieldError[]
+    errors?: ApiFieldError[],
+    code?: string,
+    details?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.reason = reason
     this.errors = errors
+    this.code = code
+    this.details = details
   }
 }
 
@@ -201,11 +221,21 @@ async function apiRequest<T>(
             typeof (e as ApiFieldError).message === 'string'
         )
       : undefined
+    // `code` is top-level and never dev-gated; `error` is forwarded whole when
+    // it is plain data (not a serialised Error), which is what carries the
+    // metadata belonging to `code`.
+    const code = typeof body?.code === 'string' ? body.code : undefined
+    const details =
+      body?.error && typeof body.error === 'object' && !Array.isArray(body.error)
+        ? (body.error as Record<string, unknown>)
+        : undefined
     throw new ApiError(
       body?.message || `HTTP error! status: ${response.status}`,
       response.status,
       reason,
-      errors?.length ? errors : undefined
+      errors?.length ? errors : undefined,
+      code,
+      details
     )
   }
 

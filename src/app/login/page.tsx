@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
-import { authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
+import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
 
 // `phoneOtp` and `phonePassword` are BOTH phone-identified; they differ only in
@@ -159,6 +159,55 @@ function LoginContent() {
     setError('')
   }
 
+  /**
+   * Login failures, with the wrong-role case pulled out (TD-08 / DEF-017).
+   *
+   * Right credentials on the wrong tab used to print the backend's raw
+   * "Please use the correct login URL for your account type" — a sentence
+   * about URLs, shown to someone who is looking at a tab, and meaningless in
+   * the phone app that prints the same string.
+   *
+   * Keyed on `code`, NOT on the bare 403. Two reasons, both of which bite:
+   *
+   *  - An ADMIN fails the seeker gate AND the employer gate, so "403 means the
+   *    other role" is false for them. Flipping the tab would 403 again and flip
+   *    it back, forever. `actualRole` lets us say what the account actually is
+   *    and stop.
+   *  - Production runs behind nginx. An nginx or WAF 403 has no JSON body, so a
+   *    status-only test would move the user's tab and assert an account type on
+   *    no evidence.
+   *
+   * `code` and `error` both survive production — `sendError` dev-gates only a
+   * serialised Error (prosiddhi-backend/src/utils/response.ts).
+   *
+   * `onWrongRole` lets the caller undo arm-specific state. The phone-OTP arm
+   * needs it: authService.login verifies AND consumes the OTP before the role
+   * gate runs (auth.service.ts:544-546, a hard delete in otp.service.ts:338),
+   * so by the time this 403 arrives the code the user is holding is already
+   * dead and "try again" would be a lie.
+   */
+  const handleLoginError = (err: unknown, onWrongRole?: () => void) => {
+    if (err instanceof ApiError && err.code === 'ROLE_MISMATCH') {
+      const actual = err.details?.actualRole
+      // Admin has no tab here — the console is a separate app. Say so; do not
+      // touch the toggle.
+      if (actual === 'ADMIN' || actual === 'SUPER_ADMIN') {
+        setError(t('auth:login.errorAdminAccount'))
+        return
+      }
+      const other: LoginRole = actual === 'JOB_SEEKER' ? 'seeker' : 'employer'
+      switchRole(other)
+      onWrongRole?.()
+      setError(
+        other === 'employer'
+          ? t('auth:login.errorWrongRoleEmployer')
+          : t('auth:login.errorWrongRoleSeeker'),
+      )
+      return
+    }
+    setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+  }
+
   // --- Email/password ---
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,7 +224,7 @@ function LoginContent() {
       })
       onLoginSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+      handleLoginError(err)
     } finally {
       setLoading(false)
     }
@@ -196,7 +245,7 @@ function LoginContent() {
       })
       onLoginSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+      handleLoginError(err)
     } finally {
       setLoading(false)
     }
@@ -263,7 +312,11 @@ function LoginContent() {
       })
       onLoginSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:login.errorOtpInvalid'))
+      // On a role mismatch the OTP has already been verified AND consumed
+      // server-side, so this code is spent whatever happens next. Drop back to
+      // the "send OTP" step — otherwise the six boxes clear, `otpSent` stays
+      // true, and there is no Send button on screen to get a fresh code with.
+      handleLoginError(err, () => setOtpSent(false))
       setOtp(['', '', '', '', '', ''])
       otpRefs.current[0]?.focus()
     } finally {
@@ -301,6 +354,12 @@ function LoginContent() {
         router.push(destinationAfterLogin(result.user, returnUrl))
       }
     } catch (err) {
+      // Deliberately NOT routed through handleLoginError. This is a different
+      // endpoint with a different 403: auth.controller.ts:229-242 returns 403
+      // for suspended, rejected AND admin accounts, and answers a cross-role
+      // attempt with 409, not 403. Sending it through the wrong-role path would
+      // tell a suspended user their account is the other type and move the tab
+      // under them.
       setError(
         err instanceof Error ? err.message : t('auth:google.failed')
       )
@@ -393,8 +452,14 @@ function LoginContent() {
           {/* Role toggle (hidden during the post-Google phone-bind step) */}
           {mode === 'login' && (
           <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg mb-5">
+            {/* aria-pressed: a wrong-role login now moves this toggle on the
+                user's behalf (TD-08). The error box below is role="alert", so
+                the message itself is announced either way — this is what makes
+                the resulting toggle STATE inspectable rather than leaving it
+                encoded in a background colour. */}
             <button
               type="button"
+              aria-pressed={role === 'seeker'}
               onClick={() => switchRole('seeker')}
               className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                 role === 'seeker' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
@@ -404,6 +469,7 @@ function LoginContent() {
             </button>
             <button
               type="button"
+              aria-pressed={role === 'employer'}
               onClick={() => switchRole('employer')}
               className={`flex-1 py-2.5 text-sm sm:text-base font-medium rounded-md transition-colors ${
                 role === 'employer' ? 'bg-white text-primary-50 shadow' : 'text-[#777776]'
