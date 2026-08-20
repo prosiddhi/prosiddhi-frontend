@@ -153,6 +153,43 @@ proves nothing about production — but the specific cause TD-25 names, a dead
 20-point location component, is gone. **Re-measure after TD-00 before spending
 any time on it.**
 
+### ⭐ The register was RETESTED locally — 13 rows closed, and it took an hour
+
+`scripts/smoke/retest-register.js`, added this session. It drives the local stack
+and judges the rows the register calls "fixed, awaiting retest".
+
+**Those rows were never unjudgeable — only unjudgeable against PRODUCTION.** Local
+runs the fixed code. Nobody had tried.
+
+**11 pass, 0 fail, 3 need a human.** All three S1s pass: DEF-022 Messages
+reachable, DEF-023 employer opens their own job with no bounce, and DEF-021 the
+bell. Plus DEF-001/002 (489 Devanagari characters on the home page), 003, 004,
+005/013, 011, 012, 014, 025.
+
+**The register now reads 22 closed · 7 open · 6 awaiting retest**, and those 13
+closures are marked **local-verified, awaiting prod retest**. After TD-00 the
+prod walk is a confirmation, not a discovery — a much shorter job for QA.
+
+**The 6 still awaiting retest are ALL in the seeker registration flow** —
+DEF-007, 008, 015, 019, 020, 030. That is not six tasks. One walk through
+registration settles all six, and it needs a fresh phone number each run because
+register consumes the verification mark.
+
+**The 3 that need a person, and why a script must not decide them:**
+
+| | |
+|---|---|
+| **DEF-010** | There is no Azkashine mark on the page **at all**. Close as N/A, or product decides to add one |
+| **DEF-026** | `SMOKE_EMPLOYER` is an INDIVIDUAL, so the company block correctly does not render. Needs a BUSINESS employer |
+| **DEF-033** | The Shortlisted tab runs without error but there are **0 shortlisted candidates**, so nothing proves it FILTERS. Needs test data |
+
+⚠️ **Two of my own retest checks lied before they were right**, both the same
+shape as the eighteen before them. DEF-014 first reported FAIL on
+`/login?returnUrl=%2Fjob-feed%3Fsearch%3Dwelder` — the keyword was in the
+returnUrl and the test was signed out. DEF-023 first reported PASS after clicking
+**"Post a Job"**, because the selector matched `/employer/jobs/new` as well as a
+job row: a false pass on an S1.
+
 ### Two decisions taken, both delegated, both need mobile
 
 1. **TD-48 — the primary button.** White on `primary-50` measured 2.02:1. Fixed
