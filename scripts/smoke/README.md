@@ -59,11 +59,19 @@ build into `missing required error components`.
 `tsx`/`next` as a child. Kill by PID from `netstat -ano`, with `//T`, or the
 old process keeps holding the port and answering with old code.
 
+**A long-lived dev server can wedge on one route.** Same family as the first
+trap, but it happens with only ONE server running. On 2026-08-20, after a long
+session of hot reloads, `/employer/jobs/new` sat at `○ Compiling …` past 90
+seconds while every other route compiled in about one. Nothing was wrong with
+the code — killing the server by PID and restarting compiled the same route in
+5.7 s. **If one route hangs and the rest are fine, restart before you debug.**
+
 ## What each one checks
 
 | Script | Checks |
 |---|---|
 | `smoke-td02.js` | The seeker profile actually **writes** a coordinate — typed city → centroid, the GPS button → a precise fix, a bio-only save leaves that fix alone, a city typed in Kannada still matches, and Near By loses `noLocation`. Every check reads the record back over the API, because the form saves happily either way |
+| `smoke-td03.js` | The payoff check for the whole location workstream: a job posted through the real form carries the city centroid, **a seeker in that city then finds it in Near By**, a title edit does not move the pin, and the location button overrides the centroid. ⚠️ **Posts a real job and spends a real post credit** — it deletes the job at the end, so let it finish |
 | `smoke-td06.js` | All ten cities are offered and translated, and each sends **its own** `maxDistance` (Delhi 50, Surat 20 …). Reads the outgoing request, not the screen — a missing radius silently becomes the backend's 5 km default |
 | `smoke-td08.js` | Wrong-role login names the account and moves the tab; a wrong password does **not**; an ADMIN does not start a tab ping-pong |
 | `smoke-td12.js` | The trust claim is above the fold on `/` and `/employee`, in four languages, at ≥4.5:1 contrast |

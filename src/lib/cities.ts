@@ -214,6 +214,12 @@ function cityCoordsFromText(
  * when the person has plainly moved — judged by distance against the typed
  * city's own radius, never by comparing the location text. See `distanceKm`.
  *
+ * **One exception, and it is the whole reason this is not a two-line function:**
+ * typed words beat a fix when they name a different city from the one the device
+ * is in. A fix says where somebody is standing; the text says where they mean.
+ * For a seeker those are usually the same place. For an employer they often are
+ * not — a recruiter posts a Bangalore job from a desk in Pune.
+ *
  * Returning undefined means **send nothing** — not "send null". The backend
  * fields are `.optional()`, not `.nullable()`, so an explicit null is a 400 and
  * a stored coordinate cannot be cleared through them at all. That is the only
@@ -238,11 +244,30 @@ export function coordsToWrite({
   saved?: Coords | null
   /** The free-text location, as typed. */
   text?: string | null
-  /** Resolves a city key to its label in the CURRENT language — see `cityLabelKey`. */
-  translate?: (key: string) => string
+  /**
+   * Resolves a city key to its label in the CURRENT language —
+   * `(key) => t(cityLabelKey(key))`.
+   *
+   * **Required, deliberately.** As an optional parameter a caller could simply
+   * forget it, compile clean, and silently lose the centroid for anyone who
+   * typed their city in their own script — 8 of our 10 languages, and no test
+   * would catch it.
+   */
+  translate: (key: string) => string
 }): Coords | undefined {
-  if (gpsFix) return gpsFix
   const city = cityCoordsFromText(text, translate)
+  if (gpsFix) {
+    // A fix normally wins — except when the text names a DIFFERENT city from the
+    // one the device is standing in. Then believe the words: they are an
+    // explicit statement, where the fix is only an inference about the person
+    // holding the phone.
+    //
+    // This is what stops a recruiter sitting in Pune, who taps the button and
+    // then types "Bangalore", pinning the job in Pune — silently, because a
+    // coordinate has no visible representation anywhere in either form.
+    if (!city || distanceKm(gpsFix, city) <= city.radius) return gpsFix
+    return { lat: city.lat, lon: city.lon }
+  }
   if (!city) return undefined
   // Still inside the city we already have a coordinate for: that coordinate is
   // at least as good as the centroid, so leave it alone.

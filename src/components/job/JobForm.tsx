@@ -9,6 +9,8 @@ import {
   type UrgencyLevelValue,
   type TaxonomyTriple,
 } from '@/lib/api'
+import { CITY_KEYS, cityLabelKey, coordsToWrite, type Coords } from '@/lib/cities'
+import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { humanizeJobType, formatSalary, initials } from '@/lib/jobFormat'
 import { Clock, Briefcase, MapPin, IndianRupee, Loader2, AlertCircle } from 'lucide-react'
@@ -90,10 +92,22 @@ function Req() {
   )
 }
 
+/**
+ * A fix → the two payload fields, or nothing at all.
+ *
+ * Named rather than spread inline because the property names differ (`lat`/`lon`
+ * vs `latitude`/`longitude`), so `...fix` would look right and send neither.
+ */
+function coordinateFields(fix: Coords | undefined) {
+  return fix ? { latitude: fix.lat, longitude: fix.lon } : {}
+}
+
 export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: JobFormProps) {
   const { t } = useTranslation()
   const [f, setF] = useState<FormState>(() => buildInitialState(initial))
   const [validationError, setValidationError] = useState('')
+  // TD-03.
+  const [gpsFix, setGpsFix] = useState<Coords | null>(null)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }))
@@ -148,6 +162,30 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       ...(skillsArray.length ? { skillsRequired: skillsArray } : {}),
       ...(f.salaryMin ? { salaryMin: Number(f.salaryMin) } : {}),
       ...(f.salaryMax ? { salaryMax: Number(f.salaryMax) } : {}),
+      // TD-03 — the job's coordinates. Without these `getNearbyForSeeker` drops
+      // the job on a null check before any distance maths runs, and the 20-point
+      // location score cannot fire: it needs the JOB's pair as well as the
+      // seeker's.
+      //
+      // Computed HERE rather than in the render body. Nothing on this screen
+      // displays it, so a memo would only exist to stay off a hot path it need
+      // not be on at all — and would bring the hazard that depending on `f`
+      // (which `set()` clones every keystroke) silently makes it a no-op.
+      //
+      // `saved` comes from `initial`, not FormState: it is not editable, only
+      // the location button replaces it. On the post-a-job form there is no
+      // `initial`, so any recognised city wins.
+      ...coordinateFields(
+        coordsToWrite({
+          gpsFix,
+          saved:
+            initial?.latitude != null && initial?.longitude != null
+              ? { lat: initial.latitude, lon: initial.longitude }
+              : null,
+          text: f.location,
+          translate: (key) => t(cityLabelKey(key)),
+        })
+      ),
     }
     onSubmit(data)
   }
@@ -191,8 +229,39 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           </div>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.locationLabel')}<Req /></label>
-            <input aria-required className={inputCls} value={f.location} onChange={(e) => set('location', e.target.value)} placeholder={t('employer:jobForm.locationPlaceholder')} />
+            <label className={labelCls} htmlFor="job-location">{t('employer:jobForm.locationLabel')}<Req /></label>
+            {/* Free text with a datalist, NOT a select. A seeker outside our ten
+                cities loses Near By; an employer outside them could not post the
+                job at all, and that is a product call rather than a form
+                decision. The list still nudges everyone towards a canonical
+                spelling, which is what the cold-start recommendation's substring
+                match needs (TD-34). Swapping to a <select> is one edit if the
+                product ever restricts it. */}
+            <input
+              id="job-location"
+              aria-required
+              list="job-location-cities"
+              className={inputCls}
+              value={f.location}
+              onChange={(e) => set('location', e.target.value)}
+              placeholder={t('employer:jobForm.locationPlaceholder')}
+            />
+            {/* `value` is the ENGLISH name, `label` the reader's own. Picking an
+                option inserts the value, so a Tamil-speaking employer sees
+                "பெங்களூரு" but the job stores "Bangalore".
+                That matters because `location` is not only display text: the
+                cold-start recommendation does a case-insensitive substring
+                match of a seeker's location against it. Store the translated
+                label and the text is canonical only WITHIN one language, so a
+                Tamil employer's job stops matching a Hindi seeker in the same
+                city — the opposite of what a fixed city list is for (TD-06 §4,
+                TD-34). English is always loaded, so `lng: 'en'` never misses. */}
+            <datalist id="job-location-cities">
+              {CITY_KEYS.map((key) => (
+                <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
+              ))}
+            </datalist>
+            <UseMyLocation onLocated={setGpsFix} className="mt-2" />
           </div>
 
           <div>
