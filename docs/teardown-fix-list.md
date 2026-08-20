@@ -14,10 +14,128 @@ is theoretical. Where a claim comes from code, the file and line are named.
 
 ---
 
+## 🔴 SESSION STATE — 2026-08-20, end of the SECOND fix session
+
+**Read this first.** The 2026-08-19 section below it is the first session; §0
+onwards is the original plan.
+
+### ⚠️ Do these two before anything else — the live API is misconfigured
+
+**`NODE_ENV` is not `production` on `api.prosiddhi.com`.** Proven from outside,
+without shell access: `utils/response.ts:84` serialises a raw `Error` into the
+JSON body only when `NODE_ENV === 'development'` **exactly**, and a
+bad-credentials POST to the live login returns
+`{"success":false,"message":"Invalid credentials","error":{}}` — that `error`
+key is the development-only branch, byte-identical to a local dev server.
+
+Two live consequences:
+
+1. **OTPs are returned in API response bodies.** Both OTP services gated on
+   `NODE_ENV !== 'production'`. Anyone who can call a send-OTP endpoint for an
+   address gets that account's OTP back over HTTP — account takeover with no
+   inbox or handset. SMS not being live via DLT does not mitigate it; it is
+   what makes it quiet.
+2. **The Razorpay weak-webhook-secret boot guard never runs.** It fired only
+   `if (NODE_ENV === 'production')`, so the one check between production and
+   the placeholder committed in `.env.example` was disabled by the very
+   misconfiguration it existed to catch.
+
+**Owner: Nayan / Asrar.** Set `NODE_ENV=production`, and **rotate
+`RAZORPAY_WEBHOOK_SECRET`** — treat it as exposed. `79ebc15` makes both
+behaviours opt-in so a repeat misconfiguration is no longer silently fatal,
+but it does not fix the deployed environment.
+
+**TD-00 still stands too** — production has not been deployed, so the 19
+"awaiting retest" register rows still cannot be judged.
+
+### Shipped this session (14 commits, all gates green)
+
+| Repo | Commits |
+|---|---|
+| `prosiddhi-backend` | `79ebc15` **TD-30 danger flags** · `d3bda2b` TD-08 `ROLE_MISMATCH` contract · `624fd30` **TD-31 CORS allowlist** |
+| `prosiddhi-frontend` | `de79a36` TD-18 · `f8caf5b` TD-18 gate correction · `e67564a` TD-19 · `cf1927e` TD-08 · `4457fd1` TD-14 · `7f8b2b4` TD-12 · `67b0787` review fixes · `bf32f3d` dead buttons · `8630d7d` **TD-20 tap targets** |
+| `prosiddhi-mobile-app` | `55dc23e` TD-26 one brand blue · `cd8ee11` TD-27 welcome logo |
+
+⚠️ **All 14 are unpushed**, on top of the first session's unpushed work.
+**Push backend before frontend** — the portal's TD-08 fix reads the
+`ROLE_MISMATCH` code the backend only started sending in `d3bda2b`.
+
+### Closed: TD-08, TD-12, TD-14, TD-18, TD-19, TD-20, TD-26, TD-27, TD-30, TD-31
+
+### Found while working — not in the original plan
+
+- **Six dead buttons on the seeker landing** (fixed, `bf32f3d`) — Register,
+  Login, Companies, View more categories, Sign up today and Contact us were
+  all plain `<button>`s with no handler. `/employee` hand-rolls its own header
+  instead of using `components/home/Header.tsx`; the original was moved to
+  `<Link>` and this copy was not. **The duplication itself is still there and
+  is why one copy rotted — worth its own ticket.**
+- **Fake App Store / Google Play tiles** (fixed, part of TD-14) — plain divs,
+  not links, for listings that do not exist.
+- **The home header has no mobile treatment at all** (OPEN) — at 390px "Find
+  Jobs" wraps to two lines, "Companies" runs off the right edge, and Register
+  and Login are pushed out of view. Needs a mobile nav design, not a padding
+  tweak. Related to DEF-006.
+- **`app_icon.png` has no alpha channel** — `pubspec.yaml:79` sets
+  `remove_alpha_ios: true`, so it is flattened onto opaque white. Nearly
+  shipped as a white square on the mobile welcome screen. Use
+  `watermark_logo.png` for in-app art.
+- **`primaryDark` was dead in the mobile theme** — zero references; deleted.
+
+### Two process traps that cost real time — avoid them next session
+
+1. **Never run two `next dev` servers on this project at once.** They share
+   `.next` and clobber each other's builds. A stale server on `:3000`
+   silently rebuilt my bundle pointing at **production**, so a smoke run was
+   testing prod while claiming to test local. Later the same collision
+   corrupted the build into "missing required error components". One server,
+   one port.
+2. **`TaskStop` kills the npm wrapper, not the `tsx`/`node` child.** A backend
+   process from a previous start kept holding `:5000` and answering with old
+   code for several minutes. Kill by PID from `netstat`, with `//T`.
+
+### Still to do, in the order I would take them
+
+1. **TD-02/03/04/05/06 — the location workstream.** The biggest piece and the
+   root cause of Near By returning 0 and of 20 dead points in the
+   recommendation score. `SeekerProfileUpdate` in `api.ts` **already has
+   `latitude`/`longitude`**; `profile/page.tsx` simply never sends them.
+   ⚠️ TD-06 (widen the city list) means ~30 cities × 10 locales ≈ 300 new
+   translated labels — budget for a translator, not a code session.
+2. **TD-23** show candidates before the employer types · `WEB` `MOB` · M
+3. **TD-22** the Category→Sector→Job title cascade · `WEB` · M
+4. **TD-25** "Recommended" returns 1 job in 10 — partly TD-05 · M
+5. **TD-28 / TD-29** employer vs seeker identity; mobile's welcome onto web · M
+6. **TD-32** run mobile on a real device — **cannot be done from here**: this
+   machine has no emulator, and the repo has only `android` and `ios`
+   configured, so there is no web or desktop target to fall back on.
+7. **DEF-018** duplicate GST at registration · needs BE verification
+8. **DEF-024 / DEF-031** small `WEB` items, need live verification
+9. **TD-34 / TD-35** data, not code
+
+**Blocked, unchanged:** TD-16/17 on DLT, TD-33 on decision D2.
+
+### Owed
+
+- **Mobile has NOT been visually verified.** TD-26 and TD-27 are
+  `flutter analyze` clean and reasoned from the code, but nothing rendered
+  them. Sailaja should eyeball both.
+- **Nine non-English strings for the admin-login message were written by me**,
+  not by the i18n-translator agent (it died on an auth error). They use the
+  "admin" / "admin console" loanword. Worth a native check, like the existing
+  Tamil and Odia notes.
+- **TD-26 left a design decision open:** mobile's action colour is now brand
+  primary/80, not the sky primary/50 the website uses, because all 58 call
+  sites are text or fills behind white text and sky is 2.0:1 on white.
+  Making sky the mobile action colour needs a designer to reassign those call
+  sites across the scale.
+
+---
+
 ## SESSION STATE — 2026-08-19, end of the first fix session
 
-**Read this first.** Everything below §0 is the original plan; this section is
-what actually happened and what is left.
+Everything below §0 is the original plan; this section is what happened in the
+first session.
 
 ### Shipped (14 commits, all gates green)
 
