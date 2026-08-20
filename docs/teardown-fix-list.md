@@ -112,6 +112,91 @@ workstream closes outright.
 
 ---
 
+## 🟢 SESSION STATE — 2026-08-21, end of the FOURTH fix session
+
+**Read this first.** The status index at the top is the live truth; this is what
+it cannot say.
+
+### Shipped — six tickets, all gates green, every one smoke-proven
+
+| Ticket | Commit | What, and the checks |
+|---|---|---|
+| **TD-04** | `0d6b4d8` | Near By offers "Add your location" only when there IS none. The debt owed to the mobile session — kept. 8/8 |
+| **TD-39** | `a2cade5` | Every form control has a name a screen reader can read. 27/27 across four screens |
+| **TD-41** | `80b8002` | The job form says what it did with the location — five states. 14/14 |
+| **TD-22** | `e0a1909` | A job title can be searched instead of guessed. 34/34 |
+| **TD-28** | `1c017b7` | Twelve hand-rolled employer headers → one, in the employer's own colour. 5/5 |
+| **TD-29** | `ddec661` | The role choice is on the home page, not behind a language gate. 12/12 |
+
+**Nothing is pushed.** Seven commits sit on local `main`, including `208ae2c`
+from the previous session. `origin/main` is still at `777acb3`.
+
+### ⚠️ Four things that are now other people's
+
+1. **TD-47 — the taxonomy is English in all ten languages.** ⚠️ Asrar. The names
+   are `@unique` primary keys used as the FOREIGN KEYS between the three levels,
+   rendered raw. **It cannot be fixed in the locale files** — a translated
+   `categoryName` stops matching its sector. Needs a display-name layer.
+2. **TD-48 — the primary action button is 2.02:1.** ⚠️ designer. White on
+   `primary-50`, measured off rendered pixels. That pairing is the product's
+   action colour on every screen, seeker included. **This is the same open
+   question as TD-26 on mobile — decide it once, for both surfaces.**
+3. **TD-44** the seeker profile still tells the lie TD-41 fixed on the employer
+   side, and **TD-45** the job form's validation error is silent to a screen
+   reader. Both small, both web.
+4. **TD-40's SQL still has not run on production**, and **TD-00 still blocks 19
+   register rows.** Unchanged from the third session.
+
+### What the smoke suites now cover
+
+`scripts/smoke/` gained four: `smoke-td04`, `td22`, `td28`, `td29`, and
+`lib-smoke.js` gained `authed`, `nearby` and a `geo` option on `session()` that
+three suites had each hand-rolled. **100 checks across nine suites**, all green
+at close.
+
+Two of them measure rather than assert, and that is the point:
+`smoke-td28.js` computes WCAG contrast from the painted colours, and
+`smoke-td22.js` measures the placeholder against the real font in all ten
+languages. Both caught things reading the code did not.
+
+### Five things learned, and one repeated
+
+1. **My own checks lied twelve times.** Wrong endpoint, wrong tab label
+   ("Nearby", one word — every doc here writes "Near By"), an href that matched
+   the header's account link, `/save/i` passing on the very sentence it forbade,
+   `tagName === 'BUTTON'` passing on the Clear button, expectations invented
+   rather than read from the locale file. **When a check goes red, suspect the
+   check** — it was the check every time but two.
+2. **A comment written from memory is a comment that is wrong.** `SAME_PLACE_KM`
+   was justified with "the nearest pair is Ahmedabad–Surat at ~230 km". It is
+   Mumbai–Pune at 120.2. I also wrote "passes contrast" about a button that
+   measures 2.02:1. **Compute it, paste the number.**
+3. **Chromium-only smoke cannot see a Safari bug.** The taxonomy search was
+   completely dead on iOS — Safari does not focus a `<button>` on click, so the
+   blur-close unmounted the result before its click fired. Every check passed.
+4. **A live region mounted with its first content announces nothing.** Learned
+   on TD-41, then immediately re-committed on TD-22's results list. Render the
+   region always, empty when silent.
+5. **The parallel mobile session refactored a file mid-read.** `canAddLocation`
+   existed when I read `home_tab.dart` and was gone an hour later
+   (`724b120`). **Re-read a cross-repo file before quoting it.**
+
+### Owed
+
+- **Nothing in this session was seen by a human eye.** Every claim is a
+  measurement or a browser assertion. The employer header's new dark teal, the
+  home page's role cards and the job-title search should all get a look.
+- **`/register/categories` was never rendered.** It is the fourth host of the
+  taxonomy picker and sits behind a phone-verification guard that redirects, so
+  the browser could not reach it. Same non-grid layout as the job form, which
+  was checked at 390 and 1280.
+- **Nine strings and one Tamil rewrite came from the i18n-translator**, against
+  each language's termbase. It flagged three itself worth a native eye: Marathi
+  `स्वरूप` for "type", Telugu `ప్రాంతం` reading broader than "a dropped pin", and
+  the Tamil placeholder now being a bare noun phrase.
+
+---
+
 ## 🟢 SESSION STATE — 2026-08-20, end of the THIRD fix session
 
 **Read this first.** The status index at the top of this file is the live truth;
