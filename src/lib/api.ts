@@ -628,31 +628,33 @@ export const authAPI = {
   },
 
   /**
-   * Log in WITHOUT the caller knowing which role the account is (TD-37).
+   * Log in WITHOUT the caller knowing which role the account is (TD-37/TD-43).
    *
-   * The backend splits login by role on purpose — there is no role-agnostic
-   * endpoint, and `/auth/login-phone-verify` was deprecated in favour of the
-   * split. But the seeker and employer gates now answer a right-credentials
-   * wrong-endpoint attempt with `ROLE_MISMATCH` plus the account's real role
-   * (BE `d3bda2b`), which is enough to finish the job server-side-blind: try
-   * one, and if it tells us we guessed wrong, use what it told us.
+   * `POST /api/auth/login` decides the role server-side: `authService.login`
+   * detects the identifier type, finds the user and verifies the credential
+   * role-blind, and the controller refuses only ADMIN. That is what lets the
+   * login screen drop its seeker/employer toggle — the thing that made
+   * right-credentials-wrong-tab the commonest way to fail to log in.
    *
-   * That is what lets the login screen drop its seeker/employer toggle — the
-   * thing that made right-credentials-wrong-tab the most common way to fail to
-   * log in.
+   * Takes EITHER credential. `loginSchema` is a three-arm union
+   * (email+password, phone+otp, phone+password) and this endpoint accepts all
+   * three, so the OTP arm belongs here too.
    *
-   * ⚠️ **Password only.** Do NOT route the OTP arm through this. `authService`
-   * verifies AND CONSUMES the code before the role gate runs
-   * (`auth.service.ts:544-546`, a hard delete), so by the time `ROLE_MISMATCH`
-   * comes back the code is already spent and the retry would fail on a correct
-   * code. A password survives being offered twice; a one-time code does not.
+   * ⚠️ The OTP arm must never reach `loginByGuessingRole` below. `authService`
+   * verifies AND CONSUMES the code before the old role gate runs
+   * (`auth.service.ts:544-546`, a hard delete), so a retry would fail on a
+   * correct code. A password survives being offered twice; a one-time code does
+   * not. That is why the 404 fallback splits on which credential it was given
+   * rather than retrying blindly — and it is a fallback for one deploy window,
+   * not a path anything should rely on.
    *
-   * The second request only ever happens on CORRECT credentials — a wrong
-   * password returns 401 `Invalid credentials`, never `ROLE_MISMATCH` — so this
-   * tells an attacker nothing a single request did not already.
+   * An earlier version of this docblock said "the backend splits login by role
+   * on purpose — there is no role-agnostic endpoint". That was true when
+   * written and false by the time TD-43 landed underneath it; the mobile
+   * session caught it.
    */
   loginAnyRole: async (
-    credentials: { identifier: string; password: string },
+    credentials: { identifier: string; password: string } | { identifier: string; otp: string },
     /**
      * Which gate to try FIRST. Purely a latency hint — a wrong guess still
      * succeeds, it just costs a second round trip.
@@ -690,6 +692,10 @@ export const authAPI = {
       // lines of belt and braces.
       if (!(err instanceof ApiError) || err.status !== 404) throw err
     }
+    // A one-time code cannot be offered to a second gate — see the warning
+    // above — so on the 404 window an OTP gets ONE attempt at the likelier role
+    // rather than the guess-and-retry a password can afford.
+    if ('otp' in credentials) return authAPI.login(preferred, credentials)
     return authAPI.loginByGuessingRole(credentials, preferred)
   },
 

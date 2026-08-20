@@ -81,12 +81,20 @@ export function toE164(raw: string): string | null {
   else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1)
 
   if (digits.length === 10) return `+91${digits}`
-  // An international number, but ONLY if it looks like one. The old fallback was
-  // `digits.length > 10 && <= 15 → +${digits}`, which happily produced
-  // `+00919876543210` and turned an 11-digit typo into `+98765432100`. Both come
-  // back as "Invalid credentials", which is the exact failure returning null is
-  // supposed to prevent — it blames the password for a mistyped number.
-  // A country code never starts with 0, and E.164 allows 15 digits total.
+  // An international number, but only if it can be one. A country code never
+  // starts with 0, and E.164 allows 15 digits total, so `+0…` and anything over
+  // 15 are typos rather than numbers and get null.
+  //
+  // ⚠️ This does NOT catch an 11-digit Indian typo. "98765432100" comes back as
+  // "+98765432100", because +98 is Iran and nothing here can tell a fat-fingered
+  // Indian mobile from a real Iranian one. An earlier version of this comment
+  // claimed that case was rejected; it never was. The mobile session caught it
+  // while porting, and pinned the real behaviour in its own tests rather than
+  // matching the port to the prose — which was the right way round.
+  //
+  // Left as it is deliberately: refusing 11-digit numbers would break every
+  // genuine international user to catch one class of Indian typo, and the
+  // backend's own phoneRegex is the last word either way.
   if (digits.length >= 11 && digits.length <= 15 && !digits.startsWith('0')) return `+${digits}`
   return null
 }

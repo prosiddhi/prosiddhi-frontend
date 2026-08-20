@@ -355,10 +355,10 @@ function LoginContent() {
         setError(t('auth:phone.errorInvalid'))
         return
       }
-      const result = await authAPI.login(role, {
-        identifier: e164,
-        otp: code,
-      })
+      // Role-agnostic, like both password arms. `loginSchema` arm 2 accepts
+      // `{identifier, otp}` on /auth/login, so nothing here needs to know or
+      // guess which kind of account this is.
+      const result = await authAPI.loginAnyRole({ identifier: e164, otp: code }, role)
       onLoginSuccess(result)
     } catch (err) {
       // On a role mismatch the OTP has already been verified AND consumed
@@ -507,20 +507,24 @@ function LoginContent() {
             </p>
           </div>
 
-          {/* Role choice — only the two arms that genuinely cannot do without it
-              (TD-37). It used to sit above EVERY method, so getting it wrong made
-              right credentials fail on the most-used screen in the product.
-              Both password arms are now role-blind: `loginAnyRole` asks the
-              backend which role the account is and uses the answer.
-              The two exceptions are real, not laziness:
-                • GOOGLE — for a new user this is a sign-UP, so the role decides
-                  what account gets CREATED. A cross-role attempt also answers
-                  409, not the ROLE_MISMATCH the retry keys on.
-                • PHONE + OTP — `authService` verifies AND CONSUMES the code
-                  before the role gate runs, so by the time ROLE_MISMATCH comes
-                  back the code is spent and a retry would fail on a correct one.
-              Asked at the point of use, not as a toll gate on the way in. */}
-          {mode === 'login' && (tab === 'google' || tab === 'phoneOtp') && (
+          {/* Role choice — now ONE arm, and it is the only one that genuinely
+              cannot do without it (TD-37). It used to sit above every method, so
+              getting it wrong made right credentials fail on the most-used
+              screen in the product.
+
+              GOOGLE keeps it because for a new user this is a sign-UP: the role
+              decides what account gets CREATED, which no server can infer. A
+              cross-role attempt also answers 409, not the ROLE_MISMATCH a retry
+              would key on.
+
+              PHONE + OTP lost it. The old reason was sound for the two-gate
+              retry — `authService` verifies and CONSUMES the code before the
+              role gate, so a second attempt fails on a correct code — but it
+              stopped applying when TD-43 landed a single role-agnostic endpoint,
+              because there is no second attempt to make. `loginSchema` arm 2 is
+              exactly `{identifier, otp}`, so it goes to /auth/login like the
+              rest. Caught by the mobile session, which had already moved. */}
+          {mode === 'login' && tab === 'google' && (
           <>
           <p className="text-sm text-[#777776] mb-2">{t('auth:login.roleQuestion')}</p>
           <div className="flex gap-2 p-1 bg-[#f3f3f3] rounded-lg mb-5">
