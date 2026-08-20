@@ -109,7 +109,13 @@ function coordinateFields(fix: Coords | undefined) {
   return fix ? { latitude: fix.lat, longitude: fix.lon } : {}
 }
 
-type LocationHint = { key: string; city?: string; tone: 'good' | 'warn' } | null
+type LocationHint = {
+  key: string
+  city?: string
+  tone: 'good' | 'warn'
+  /** Offer "remove the saved location" — only where a stored pin is the problem. */
+  clearable?: boolean
+} | null
 
 /**
  * What this form will do with the location, said out loud (TD-41).
@@ -128,13 +134,15 @@ type LocationHint = { key: string; city?: string; tone: 'good' | 'warn' } | null
  * will see jobs near you", which is backwards on a screen where the reader is
  * the one being found.
  *
- * `pinned` is the sharp one, and it exists because of TD-42: latitude and
- * longitude are `.optional()` and not `.nullable()` on the backend schema, so no
- * client can clear a stored coordinate. Edit a job's location from "Bangalore"
- * to somewhere we cannot place, and it KEEPS the Bangalore pin — it goes on
- * showing to Bangalore seekers at 0 km and never reaches the new town. That is
- * invisible today. Until Asrar makes the fields nullable, the honest thing is to
- * say so rather than let the employer believe the job moved.
+ * `pinned` is the sharp one. Edit a job's location from "Bangalore" to somewhere
+ * we cannot place and the stored pin STAYS — the job goes on showing to
+ * Bangalore seekers at 0 km and never reaches the new town.
+ *
+ * It used to be unfixable: the backend fields were `.optional()` and not
+ * nullable, so no client could clear a coordinate and this warning was the only
+ * honest thing available. `9dbb470` made the two update schemas nullish, so the
+ * warning now carries a way out — `clearable` — and the employer can remove the
+ * pin instead of only being told about it.
  */
 function locationHint(args: {
   decision: CoordDecision
@@ -177,8 +185,8 @@ function locationHint(args: {
     // exists to expose. Hence a second wording with no city in it.
     const stuckIn = cityContaining(saved)
     return stuckIn
-      ? { key: 'employer:jobForm.locationPinned', city: translate(stuckIn), tone: 'warn' }
-      : { key: 'employer:jobForm.locationPinnedUnnamed', tone: 'warn' }
+      ? { key: 'employer:jobForm.locationPinned', city: translate(stuckIn), tone: 'warn', clearable: true }
+      : { key: 'employer:jobForm.locationPinnedUnnamed', tone: 'warn', clearable: true }
   }
   return { key: 'employer:jobForm.locationUnknown', tone: 'warn' }
 }
@@ -189,6 +197,14 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
   const [validationError, setValidationError] = useState('')
   // TD-03.
   const [gpsFix, setGpsFix] = useState<Coords | null>(null)
+  // TD-42 — the employer asked for the stored pin to be removed.
+  //
+  // ⚠️ Explicit, never inferred. Clearing whenever the typed text matches no
+  // city would look tidier and would be wrong: "Whitefield" matches nothing, so
+  // an employer NARROWING "Bangalore" to the area they are actually hiring in
+  // would silently lose a perfectly good coordinate. Only a press means "remove
+  // it".
+  const [clearPin, setClearPin] = useState(false)
   // Which came last, the typed text or the fix. See coordsToWrite.
   const [textIsNewer, setTextIsNewer] = useState(false)
 
@@ -314,7 +330,10 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       // It moved into the render body FOR that reason. An older note here argued
       // the opposite — compute it in the submit handler, because nothing on the
       // screen displayed it. Something does now.
-      ...coordinateFields(decision.coords),
+      // An explicit removal wins over everything the rule computed. It is only
+      // ever reachable from the `pinned` states, where the stored pin is the
+      // problem — see `clearPin`.
+      ...(clearPin ? { latitude: null, longitude: null } : coordinateFields(decision.coords)),
     }
     onSubmit(data)
   }
@@ -397,6 +416,10 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               onLocated={(c) => {
                 setGpsFix(c)
                 setTextIsNewer(false)
+                // A fresh fix REPLACES the pin, so a pending removal is moot —
+                // and leaving it set would send null alongside the new
+                // coordinate.
+                setClearPin(false)
               }}
               className="mt-2"
             />
@@ -418,6 +441,27 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
             >
               {hint ? t(hint.key, { city: hint.city }) : ''}
             </p>
+            {/* TD-42. Offered ONLY where a stored pin is the problem, and only
+                as a press — inferring a removal from unmatched text would wipe
+                the coordinate of an employer narrowing "Bangalore" to
+                "Whitefield", which matches no city and is not a move.
+
+                Outside the live region above, so pressing it does not re-read
+                the warning; the confirmation is the warning disappearing. */}
+            {hint?.clearable && !clearPin && (
+              <button
+                type="button"
+                onClick={() => setClearPin(true)}
+                className="text-xs mt-1 underline text-amber-800 hover:no-underline min-h-[44px]"
+              >
+                {t('employer:jobForm.locationClear')}
+              </button>
+            )}
+            {clearPin && (
+              <p className="text-xs mt-1.5 text-[#717182]">
+                {t('employer:jobForm.locationCleared')}
+              </p>
+            )}
           </div>
 
           <div>

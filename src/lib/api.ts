@@ -1328,8 +1328,17 @@ export interface PostJobData {
   requirements?: string
   skillsRequired?: string[]
   location: string
-  latitude?: number
-  longitude?: number
+  /**
+   * `null` CLEARS a stored coordinate; omitting the field leaves it alone.
+   *
+   * The distinction only became expressible with TD-42 — these were
+   * `.optional()` and not `.nullable()` on the backend, so a pin could be set
+   * and never removed, and a job edited away from its city kept showing to the
+   * old city's seekers. Only the UPDATE schemas accept null; on create there is
+   * nothing to clear.
+   */
+  latitude?: number | null
+  longitude?: number | null
   // NO `radius` field, deliberately (TD-03). The backend accepts one, stores it,
   // and never reads it — `getNearbyForSeeker` filters on the SEEKER's radius —
   // so a wrong value here is invisible until someone wires it up, by which time

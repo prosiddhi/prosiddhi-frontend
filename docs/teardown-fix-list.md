@@ -37,9 +37,16 @@ done
 grep -c '^| TD-' docs/teardown-fix-list.md   # total
 ```
 
-⚠️ **A ✅ here meant "done on the web".** Checked 2026-08-20: TD-07, TD-08,
-TD-10 and TD-12 are all marked `WEB` `MOB` and only ever shipped on the web.
-The mobile halves were never started. Surface matters — read the badges.
+⚠️ **A ✅ here used to mean "done on the web".** Checked 2026-08-20: TD-07,
+TD-08, TD-10 and TD-12 were marked `WEB` `MOB` but had only ever shipped on the
+web. **Closed 2026-08-21** — the mobile halves are now shipped too, along with
+TD-13, TD-36, TD-37 and TD-38. Rows say **done both** where that is true.
+
+⚠️ **The remaining badge to distrust is the reverse one: ✅ does NOT mean
+"seen working".** Nothing in the mobile app has *ever* run on a device or an
+emulator (TD-32, still open). The mobile ticks mean: verified against the live
+API, `flutter analyze` clean, tests passing, and reviewed. They do **not** mean
+anyone has looked at the screen.
 
 *Counted from the table below, not by hand — the hand-written total was wrong
 twice. To recount:*
@@ -56,15 +63,15 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-02 | Seeker coordinates | ✅ done | `aa1abb3` |
 | TD-03 | **Job coordinates** | ✅ **done — DEF-035 closed end to end** | `6fd606c` `da49122` |
 | TD-04 | Surface `noLocation` | ✅ **done both surfaces** — web `0d6b4d8`, mobile `724b120` | |
-| TD-05 | Re-check the 20-point score | 🔴 open — Asrar, needs TD-03 first | |
+| TD-05 | Re-check the 20-point score | ✅ done — fires; unplaced jobs no longer buried | BE `b5f6a0d` |
 | TD-06 | Widen the city list to ten | ✅ done | `f7e631e` `d42204d` |
-| TD-07 | Tell employers about the trial | 🟠 **WEB done, MOBILE not started** — 0 mentions of "trial" in app_en.arb | `e098ae9` `d1d6f38` |
-| TD-08 | Wrong-role login error | 🟠 **WEB done, MOBILE not started** — no `ROLE_MISMATCH` handling in lib/ | `cf1927e` + BE `d3bda2b` |
+| TD-07 | Tell employers about the trial | ✅ **done both** — WEB `e098ae9` `d1d6f38`; MOB `767c163` | `767c163` |
+| TD-08 | Wrong-role login error | ⛔ **SUPERSEDED by TD-37** — mobile shipped it (`e47692f`) and TD-37 then removed the two-gate login it depended on, so `ROLE_MISMATCH` is unreachable from mobile | `e47692f` |
 | TD-09 | Paywall quotes ₹499 on ₹589 | ✅ done in code — ships with deploy | |
-| TD-10 | Wallet speaks accounting | 🟠 **WEB done, MOBILE not started** — 33 "credit" strings still in app_en.arb | `eacd112` |
+| TD-10 | Wallet speaks accounting | ✅ **done both** — MOB is display-layer only; API fields and columns untouched. ⚠️ 135 machine-substituted values across 10 locales are **unread by a speaker** | `c507b81` |
 | TD-11 | Footer legal name | ✅ done in code — ships with deploy | |
-| TD-12 | Trust signals | 🟠 **WEB done, MOBILE not started** | `7f8b2b4` |
-| TD-13 | Copy / format inconsistencies | ✅ done | `4de0b23` |
+| TD-12 | Trust signals | ✅ **done both** | `767c163` |
+| TD-13 | Copy / format inconsistencies | ✅ **done both** — MOB: the job preview now says what the seeker will read | `4de0b23` · MOB `3f5dc34` |
 | TD-14 | "App is on the way" footer | ✅ done | `4457fd1` |
 | TD-15 | Job feed first screen | ✅ done | `f9b5f3b` |
 | TD-16 | Rebuild the web login | ⛔ **SUPERSEDED by TD-37** | |
@@ -87,13 +94,13 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-33 | Mobile checkout | ⛔ **SUPERSEDED by TD-36** | |
 | TD-34 | Untidy job data | 🔴 open — data, **now also a search fix** | |
 | TD-35 | Ten jobs in production | 🔴 open — data | |
-| TD-36 | Remove purchasing from mobile | 🔴 open — **unblocked, D2 resolved 2026-08-20** | |
-| TD-37 | One login: phone or email + password, Google | ✅ **WEB done** — mobile pending | `a2dbbf8` |
-| TD-38 | Location on mobile | 🔴 open | |
+| TD-36 | Remove purchasing from mobile | ✅ **done** — catalog + buy CTAs deleted; wallet and post-job gate KEPT; no external-payment steer (§99–100) | `705e358` |
+| TD-37 | One login: phone or email + password, Google | ✅ **done both** — MOB: one endpoint, role toggle gone, `ROLE_MISMATCH`→`ADMIN_ACCOUNT`. ⚠️ **never run on a device** | `a2dbbf8` · MOB `41643d3` |
+| TD-38 | Location on mobile | ✅ **done** — `cities.ts` **ported**, not re-derived; GPS rounded to 3 dp, manual fallback always offered. ⚠️ a runtime permission that has **never run on a device** | `4f37352` `b0ea4ab` `724b120` |
 | TD-39 | `aria-required` with no field name | ✅ done — 27/27, `smoke-td39.js` | |
 | TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
 | TD-41 | Job form gives no location feedback | ✅ done — 14/14, `smoke-td41.js` | `80b8002` |
-| TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
+| TD-42 | A coordinate cannot be cleared | ✅ done — BE nullish + a clear control | BE `9dbb470` |
 | TD-43 | Role-agnostic `POST /auth/login` | ✅ **done** — BE + FE, ⚠️ tell Asrar | BE `61258ef` |
 | TD-44 | Seeker profile repeats TD-41's lie | 🔴 open — needs 2–3 keys × 10 locales | |
 | TD-45 | Job-form validation error is silent to a screen reader | 🔴 open | |
@@ -228,11 +235,27 @@ this section is what a new session needs that the index cannot say.
    be judged until production is deployed. Nothing built today is visible to
    anyone yet.
 
-### A parallel mobile session is running
+### The parallel mobile session — ✅ FINISHED 2026-08-21
 
-In `prosiddhi-mobile-app`, closing the location gap. It has landed TD-38 1/3 and
-2/3 (Dart port of `cities.ts` with 40 tests; geolocator + write path) and is on
-3/3. Then TD-08 → TD-10 → TD-07+TD-12 → TD-36 → TD-37.
+`prosiddhi-mobile-app` closed its whole queue: **TD-38 (+TD-04) → TD-08 → TD-10
+→ TD-07+TD-12 → TD-13 → TD-36 → TD-37**, plus a backend fix (`a0116f4`).
+Everything is committed on `main`. Mobile is no longer the surface that is
+behind.
+
+**What it did NOT do, and both belong on someone's list:**
+1. **Nothing ran on a device** (TD-32). TD-37 rewrote login and TD-38 added the
+   app's first runtime permission, so the two riskiest screens are the two most
+   recently changed. `flutter analyze`, 158 tests and the live API all pass —
+   none of them can see a layout.
+2. **No translation was read by a speaker.** Ten locales, filled by reuse from
+   the web wherever possible and by machine substitution otherwise. The largest
+   item is **TD-10's 135 substituted values**. Detail:
+   `prosiddhi-mobile-app/docs/STATUS.md` §13.
+
+**Also owed by the web side:** the mobile port of `identifier.ts` is faithful,
+but **that file's comment overstates what its 11-digit handling does** — the
+code's actual behaviour on an 11-digit input is not what the comment claims.
+Mobile pinned the real behaviour in a test rather than "fixing" the port.
 
 **Sailaja also commits there.** Coordinate.
 
@@ -702,7 +725,14 @@ and switch the toggle. Register cross-ref: **DEF-017**. ⚠️ BE string — Asr
 **Mobile already shows "₹589 incl. GST · ₹499 + 18% GST".** Copy mobile.
 Already recorded at [MONETIZATION.md:121](MONETIZATION.md#L121).
 
-### TD-10 · Wallet speaks accounting, not English `WEB` `MOB` · S
+### TD-10 · Wallet speaks accounting, not English `WEB` `MOB` · S · ✅ DONE BOTH
+
+> ✅ **MOBILE SHIPPED 2026-08-21 (`c507b81`).** **Display layer only** — no API
+> field, no column, no wire value was renamed. ⚠️ It substituted **135 values
+> across ten locales** by script. Blind substitution first produced *"You're out
+> of unlock Candidate Unlocks"*, caught by reading the English output and fixed
+> by collapsing the qualifier before swapping; **the other nine languages'
+> output has not been read by a speaker.**
 
 "Credit wallet / Job-post credits / Candidate unlocks" → "**Job posts left: 1**",
 "**Worker contacts left: 3**". [MONETIZATION.md §1](MONETIZATION.md) approves a
@@ -908,7 +938,22 @@ Still needs a real device or emulator before release.
 
 Three new items. All checked against the code before writing; none is started.
 
-### TD-36 · Remove purchasing from mobile — web-only `MOB` · M · ✅ UNBLOCKED
+### TD-36 · Remove purchasing from mobile — web-only `MOB` · M · ✅ DONE
+
+> ✅ **SHIPPED 2026-08-21 (`705e358`).** `plans_screen.dart`, `plan_card.dart`,
+> `plans_service.dart` and `core/models/plan.dart` are deleted. The wallet
+> balance and `post_job_gate.dart` are **kept**, as specified.
+>
+> **The "buy it on the web" copy was deliberately NOT written.** The warning
+> above says to check policy first; `store-policy-assessment.md` line 99 already
+> forbids any external-payment steer and line 100 accepts the consequence —
+> *"the gate becomes a dead end, not a funnel."* Writing that copy would have
+> been the drift, so the question was left closed rather than reopened.
+>
+> ⚠️ **Still owed (product, not engineering):** three strings —
+> `empwNoCreditsBody`, `empwNoCreditsBodyAfterSubmit`, `empwTrialEndedBody` —
+> still say *"Buy a plan, or the single-post pack, to keep hiring"*, instructing
+> an action the app can no longer perform.
 
 **Decision (Nazir, 2026-08-20): all purchases happen on the web.** Reason: Play
 takes 30% and, per
@@ -943,7 +988,23 @@ web-only. Nothing about this is blocked; build it. The decision is recorded in
 `docs/STATUS.md` §Decisions and in the mobile repo's own STATUS and session-start
 docs, so `scope-drift-checker` will not fight it. **Closes TD-33** as won't-do.
 
-### TD-37 · One login: phone + password, plus Google `WEB` `MOB` · M · ⛔ see the warning
+### TD-37 · One login: phone + password, plus Google `WEB` `MOB` · M · ✅ DONE BOTH
+
+> ✅ **MOBILE SHIPPED 2026-08-21 (`41643d3`).** The warning below was respected:
+> **the OTP was not hidden and nobody is let in without a credential.** Every arm
+> still sends a password or a server-issued, single-use OTP. A security review
+> read the backend and confirmed **no bypass and no downgrade**.
+>
+> What mobile built: one `POST /api/auth/login`, one identifier field taking a
+> phone *or* an email, and **no role sent by the client**. The seeker/employer
+> toggle is deleted — it was never an authorization check, only a choice of
+> which endpoint to POST to. `ROLE_MISMATCH` is therefore **unreachable from
+> mobile**; the one refusal that carries a role is **`403 ADMIN_ACCOUNT`**
+> (ADMIN *and* SUPER_ADMIN). Phone-OTP survives **unadvertised**, behind a link
+> that goes **both ways**. `identifier.ts` was **ported**, not re-derived.
+>
+> ⚠️ **Never run on a device.** Login is the one screen where an unnoticed
+> failure means nobody gets in at all.
 
 **Decision (Nazir, 2026-08-20): keep mobile-number login only; Google stays
 alongside it.** That part is good and unblocks TD-16/TD-17, which were parked on
@@ -973,7 +1034,20 @@ it verifies by **email**, which does deliver.
 
 Keep phone-OTP in the code, unadvertised, and promote it when DLT clears.
 
-### TD-38 · Location on mobile — nothing is captured `MOB` · M
+### TD-38 · Location on mobile — nothing is captured `MOB` · M · ✅ DONE
+
+> ✅ **SHIPPED 2026-08-21** (`4f37352` · `b0ea4ab` · `724b120`), TD-04 with it.
+> `core/location/cities.dart` is a **port** of `src/lib/cities.ts`, not a
+> rewrite from the description: per-city radii, **right-to-left** matching,
+> translated labels matched, canonical English stored while the reader's script
+> displays, and the **two alias tables kept apart**. GPS is rounded to 3 dp at
+> source and never logged; a manual fallback is always offered.
+>
+> ⚠️ **This added the app's first runtime permission and it has never run on a
+> device.** Separately, the nine `ios/Runner/<lang>.lproj/InfoPlist.strings`
+> files are **not in the Xcode target**, so iOS shows the English prompt in
+> every language — and on iOS that prompt is the consent artifact a reviewer
+> reads. A 5-minute click-through, not code.
 
 **Answer to "have we done location filtering in mobile?": no.** Mobile is
 exactly where the web was before TD-02.

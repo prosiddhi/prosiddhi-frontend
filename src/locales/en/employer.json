@@ -356,6 +356,8 @@
     "locationUnknown": "We could not match this to a city, so this job will not appear in \"Nearby\" searches. Pick a city from the list to fix that.",
     "locationPinned": "We could not match this to a city, so this job stays pinned to {{city}} and will keep showing to job seekers there. Pick a city from the list to move it.",
     "locationPinnedUnnamed": "We could not match this to a city, so this job keeps the location it already has and will keep showing to job seekers there. Pick a city from the list to move it.",
+    "locationClear": "Remove the saved location",
+    "locationCleared": "The saved location will be removed when you save. This job will not appear in \"Nearby\" searches.",
     "optional": "optional",
     "minSalaryLabel": "Min Salary (₹)",
     "maxSalaryLabel": "Max Salary (₹)",

@@ -247,6 +247,44 @@ const hintText = async (page) =>
       reportErrors(errors)
       await ctx.close()
     }
+    // ---- TD-42: the warning now has a way out, and it must REACH the DB -----
+    // Until 9dbb470 the coordinate fields were `.optional()` and not nullable,
+    // so this button could not have existed. Asserted against the stored record
+    // rather than the screen: the form will happily look like it worked.
+    if (createdJobId) {
+      // Put the Bangalore pin back — the previous block moved it out to sea.
+      await authed(`/jobs/${createdJobId}`, employer.token, {
+        method: 'PUT',
+        body: JSON.stringify({ latitude: 12.9716, longitude: 77.5946 }),
+      })
+      const { ctx, page, errors } = await open(browser, employer, `/employer/jobs/${createdJobId}/edit`)
+      await page.locator('#job-location').fill('Nagpur')
+      await settle(page)
+
+      const clear = page.getByRole('button', { name: 'Remove the saved location' })
+      check('the pinned warning offers a way out', (await clear.count()) === 1, `${await clear.count()} button(s)`)
+      await clear.click()
+      await page.waitForTimeout(400)
+      const after = await page.evaluate(() => document.body.innerText)
+      check('…and says the removal happens on save', /when you save/i.test(after), (after.match(/[^\n]*when you save[^\n]*/) ?? ['(not found)'])[0])
+
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find(
+          (x) => x.className.includes('bg-primary-50') && !x.disabled && x.offsetParent !== null,
+        )
+        if (b) b.click()
+      })
+      await page.waitForTimeout(4000)
+      const saved = await authed(`/jobs/${createdJobId}`, employer.token)
+      const row = saved?.data?.job ?? saved?.data
+      check(
+        'the coordinate is actually NULL in the database',
+        row?.latitude == null && row?.longitude == null,
+        `lat=${row?.latitude} lon=${row?.longitude}`,
+      )
+      reportErrors(errors)
+      await ctx.close()
+    }
   } catch (err) {
     check('suite ran to completion', false, err.message)
   } finally {
