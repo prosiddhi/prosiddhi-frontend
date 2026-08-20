@@ -457,9 +457,19 @@ function JobFeedPageContent() {
               {showFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Category → Sector → JobTitle filter (PJP-138). Full-width row. */}
+                  {/* The ONE screen that does not get TD-22's job search, and
+                      deliberately. A free-text box sits four inches above this
+                      panel and already reaches a job by its title — through the
+                      backend's weighted full-text search, which is a better
+                      answer here than an exact taxonomy match. A second input
+                      labelled "Search for a job" beside it would be two search
+                      boxes with near-identical labels doing different things.
+                      The cascade below stays, because here it is what it says it
+                      is: a filter, not the only way in. */}
                   <TaxonomyPicker
                     value={taxonomyDraft}
                     onChange={setTaxonomyDraft}
+                    searchable={false}
                     variant="filter"
                     className="sm:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-4"
                     selectClassName="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm"

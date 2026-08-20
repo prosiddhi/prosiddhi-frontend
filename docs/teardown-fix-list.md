@@ -73,7 +73,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-19 | One Apply button | ✅ done | `e67564a` |
 | TD-20 | Tap targets under 44 px | ✅ done | `8630d7d` |
 | TD-21 | Remove voice icons | ✅ done | `5755d6e` |
-| TD-22 | Untangle the filter cascade | 🔴 open | |
+| TD-22 | Untangle the filter cascade | ✅ done — 32/32, `smoke-td22.js` | |
 | TD-23 | Show candidates before typing | 🔴 open | |
 | TD-24 | Stale "Applied" badge | ✅ done in code — ships with deploy | |
 | TD-25 | "Recommended" returns 1 in 10 | 🔴 open — partly TD-05 | |
@@ -98,6 +98,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-44 | Seeker profile repeats TD-41's lie | 🔴 open — needs 2–3 keys × 10 locales | |
 | TD-45 | Job-form validation error is silent to a screen reader | 🔴 open | |
 | TD-46 | `language-fallback.png` 404 on the home page | 🔴 open — XS | |
+| TD-47 | Taxonomy renders in English in all ten locales | 🔴 open — ⚠️ Asrar, needs a display-name layer | |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
@@ -999,6 +1000,33 @@ the ordering dependency and the double rate-limit spend, on both clients at once
 
 ⏱️ **Worth raising BEFORE the mobile session ports `loginAnyRole` into Dart**, or
 we own the same backend detail twice, in two languages.
+
+### TD-47 · The whole taxonomy is English in all ten languages `BE` `DATA` · M ⚠️ Asrar
+
+**Found by the i18n-translator during TD-22, and it is bigger than TD-22.**
+
+Category, Sector and Job title are `name String @unique` on the backend
+(`schema.prisma:1046,1061`) and are used as the FOREIGN KEYS between the three
+levels (`categoryName references name`). The frontend renders `c.name` raw —
+there is no translation layer anywhere in `src/`. So a Tamil seeker picking
+their trade reads **"Agri & Food-Based Industries"**, **"Machine Operator"**,
+in English, on a screen where every other word is Tamil. All ten locales, all
+four screens that show the picker.
+
+This is not a locale-file gap — nothing is missing from the JSON. The names are
+identifiers, so they cannot simply be translated in place: it needs a display-name
+table keyed by (name, language) on the backend, or a translated label map shipped
+with the client, and a decision about which.
+
+**It bites hardest on the thing TD-22 just built.** The dropdowns at least let a
+reader pick from a list and recognise the shape of a word. A search box invites
+them to TYPE, and typing their own language matches nothing. TD-22 works around
+it by drawing its placeholder example from the live tree rather than from the
+translation, so the example is always a string the search can find — but that is
+a guard against the symptom, not a fix.
+
+⚠️ **Do not "fix" this by translating the names in the locale files.** They are
+join keys; a translated `categoryName` stops matching its sector.
 
 ### TD-44 · The seeker profile tells the same lie TD-41 just fixed `WEB` · S
 
