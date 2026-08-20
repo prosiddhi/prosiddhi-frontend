@@ -400,7 +400,10 @@ function EmployerLandingPageContent() {
                   {t('employer:landing.cta.title')}
                 </h2>
 
-                <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 lg:mb-[46px]">
+                {/* Last child since the app-download block was removed
+                    (TD-14), so no bottom margin — the parent centres this
+                    column, and a phantom margin shifted the whole thing up. */}
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-start gap-2 sm:gap-3">
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-primary-50 flex-shrink-0 mt-1" />
                     <p className="text-base sm:text-lg lg:text-xl text-black">{t('employer:landing.cta.point1')}</p>

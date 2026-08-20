@@ -365,8 +365,13 @@ export default function EmployeeLandingPage() {
         <div className="max-w-[1632px] mx-auto px-8">
           <div className="bg-[#f8f8f8] border-2 border-white rounded-[40px] px-[47px] py-[93px] flex items-center justify-between">
             <div>
-              <h2 className="text-[48px] font-medium mb-[77px]">{t('seeker:landing.ctaTitle')}</h2>
-              <div className="flex items-center gap-4 mb-[80px]">
+              <h2 className="text-[48px] font-medium mb-10">{t('seeker:landing.ctaTitle')}</h2>
+              {/* No bottom margin: the button row is the last child now that the
+                  app-download block is gone (TD-14). The old mb-[80px] was
+                  spacing toward it and left 80px of dead space under the
+                  buttons, pushing the column out of line with the illustration
+                  beside it. The heading's 77px was the same story. */}
+              <div className="flex items-center gap-4">
                 <button className="px-3 py-2 bg-primary-50 text-white rounded-lg text-base flex items-center gap-2">
                   <LogIn className="w-5 h-5" />
                   {t('seeker:landing.signUpToday')}

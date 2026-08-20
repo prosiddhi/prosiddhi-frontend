@@ -186,16 +186,27 @@ function LoginContent() {
    * so by the time this 403 arrives the code the user is holding is already
    * dead and "try again" would be a lie.
    */
-  const handleLoginError = (err: unknown, onWrongRole?: () => void) => {
+  const handleLoginError = (err: unknown, onWrongRole?: () => void): boolean => {
     if (err instanceof ApiError && err.code === 'ROLE_MISMATCH') {
       const actual = err.details?.actualRole
       // Admin has no tab here — the console is a separate app. Say so; do not
       // touch the toggle.
       if (actual === 'ADMIN' || actual === 'SUPER_ADMIN') {
         setError(t('auth:login.errorAdminAccount'))
-        return
+        return false
       }
-      const other: LoginRole = actual === 'JOB_SEEKER' ? 'seeker' : 'employer'
+      // Only move the toggle for a role we actually recognise. Falling back to
+      // "employer" for an unknown or missing actualRole would name an account
+      // type on no evidence and reopen the flip-flop this whole branch exists
+      // to prevent — a new role added backend-side would land here first.
+      const other: LoginRole | null =
+        actual === 'JOB_SEEKER' ? 'seeker'
+        : actual === 'EMPLOYER_INDIVIDUAL' || actual === 'EMPLOYER_BUSINESS' ? 'employer'
+        : null
+      if (!other) {
+        setError(err.message || t('auth:login.errorLogin'))
+        return false
+      }
       switchRole(other)
       onWrongRole?.()
       setError(
@@ -203,9 +214,10 @@ function LoginContent() {
           ? t('auth:login.errorWrongRoleEmployer')
           : t('auth:login.errorWrongRoleSeeker'),
       )
-      return
+      return true
     }
     setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+    return false
   }
 
   // --- Email/password ---
@@ -316,9 +328,13 @@ function LoginContent() {
       // server-side, so this code is spent whatever happens next. Drop back to
       // the "send OTP" step — otherwise the six boxes clear, `otpSent` stays
       // true, and there is no Send button on screen to get a fresh code with.
-      handleLoginError(err, () => setOtpSent(false))
+      const wrongRole = handleLoginError(err, () => setOtpSent(false))
       setOtp(['', '', '', '', '', ''])
-      otpRefs.current[0]?.focus()
+      // Don't chase focus into boxes that are about to unmount: on the
+      // wrong-role path `otpSent` just went false, so focus would land on a
+      // destroyed input and fall back to <body> — on a phone that opens the
+      // keyboard and immediately closes it.
+      if (!wrongRole) otpRefs.current[0]?.focus()
     } finally {
       setLoading(false)
     }
