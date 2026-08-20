@@ -22,7 +22,16 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**Totals: 23 done · 15 open · 3 superseded · 1 can't-do-here · 1 blocked.**
+**43 items: 21 done · 18 open · 3 superseded · 1 that cannot be done from this
+machine (TD-32).**
+
+*Counted from the table below, not by hand — the hand-written total was wrong
+twice. To recount:*
+
+```bash
+grep -c '^| TD-.* ✅' docs/teardown-fix-list.md   # done
+grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
+```
 
 | # | Item | Status | Where |
 |---|---|---|---|

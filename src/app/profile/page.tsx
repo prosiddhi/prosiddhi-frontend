@@ -18,7 +18,7 @@ import {
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
-import { coordsToWrite, cityLabelKey, type Coords } from '@/lib/cities'
+import { coordsToWrite, cityLabelKey, CITY_KEYS, type Coords } from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -79,6 +79,8 @@ function SeekerProfileContent() {
   // taken during THIS edit and not yet saved.
   const [savedCoords, setSavedCoords] = useState<Coords | null>(null)
   const [gpsFix, setGpsFix] = useState<Coords | null>(null)
+  // Which came last, the typed text or the fix. See coordsToWrite.
+  const [textIsNewer, setTextIsNewer] = useState(false)
   const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
@@ -102,6 +104,7 @@ function SeekerProfileContent() {
     // A fix belongs to the edit session that took it, not to the record we just
     // loaded, so a re-fetch after saving clears it.
     setGpsFix(null)
+    setTextIsNewer(false)
     setTriple({
       category: js?.preferredCategory || undefined,
       sector: js?.preferredSector || undefined,
@@ -185,9 +188,10 @@ function SeekerProfileContent() {
         gpsFix,
         saved: savedCoords,
         text: location,
+        textIsNewer,
         translate: (key) => t(cityLabelKey(key)),
       }),
-    [gpsFix, savedCoords, location, t]
+    [gpsFix, savedCoords, location, textIsNewer, t]
   )
 
   const handleSave = async () => {
@@ -339,13 +343,37 @@ function SeekerProfileContent() {
                         button and then naming your area is the ordinary way to
                         use this, and clearing here threw the good coordinate
                         away and saved nothing. */}
+                    {/* Same datalist as the job form, and it is not cosmetic.
+                        The backend's cold-start recommendation runs
+                        `job.location CONTAINS seeker.location` — the SEEKER's
+                        text is the needle. Jobs now store canonical English, so
+                        a Kannada seeker who types "ಬೆಂಗಳೂರು" matches nothing and
+                        gets an EMPTY recommendation list, not a shorter one.
+                        `value` is English, `label` their own script: they read
+                        ಬೆಂಗಳೂರು, we store "Bangalore", both sides of the match
+                        line up. Free text still works for anywhere else. */}
                     <input
                       value={location}
-                      onChange={(e) => setLocation(e.target.value)}
+                      onChange={(e) => {
+                        setLocation(e.target.value)
+                        setTextIsNewer(true)
+                      }}
                       placeholder={t('profile:seeker.locationPlaceholder')}
+                      list="seeker-location-cities"
                       className={inputCls}
                     />
-                    <UseMyLocation onLocated={setGpsFix} className="mt-2" />
+                    <datalist id="seeker-location-cities">
+                      {CITY_KEYS.map((key) => (
+                        <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
+                      ))}
+                    </datalist>
+                    <UseMyLocation
+                      onLocated={(c) => {
+                        setGpsFix(c)
+                        setTextIsNewer(false)
+                      }}
+                      className="mt-2"
+                    />
                     {/* Three states, and the difference matters: the coordinate
                         is invisible, so this line is the only feedback there is.
                         It must never call an unsaved change saved. */}

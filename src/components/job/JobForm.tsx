@@ -108,6 +108,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
   const [validationError, setValidationError] = useState('')
   // TD-03.
   const [gpsFix, setGpsFix] = useState<Coords | null>(null)
+  // Which came last, the typed text or the fix. See coordsToWrite.
+  const [textIsNewer, setTextIsNewer] = useState(false)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }))
@@ -183,6 +185,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               ? { lat: initial.latitude, lon: initial.longitude }
               : null,
           text: f.location,
+          textIsNewer,
           translate: (key) => t(cityLabelKey(key)),
         })
       ),
@@ -243,7 +246,10 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               list="job-location-cities"
               className={inputCls}
               value={f.location}
-              onChange={(e) => set('location', e.target.value)}
+              onChange={(e) => {
+                set('location', e.target.value)
+                setTextIsNewer(true)
+              }}
               placeholder={t('employer:jobForm.locationPlaceholder')}
             />
             {/* `value` is the ENGLISH name, `label` the reader's own. Picking an
@@ -261,7 +267,13 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
                 <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
               ))}
             </datalist>
-            <UseMyLocation onLocated={setGpsFix} className="mt-2" />
+            <UseMyLocation
+              onLocated={(c) => {
+                setGpsFix(c)
+                setTextIsNewer(false)
+              }}
+              className="mt-2"
+            />
           </div>
 
           <div>

@@ -35,7 +35,8 @@ async function profile(token) {
   return { lat: js.latitude, lon: js.longitude }
 }
 
-async function open(browser, seeker, path) {
+// `lang` switches the UI language — I18nProvider reads this key on mount.
+async function open(browser, seeker, path, lang) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 840 } })
   const page = await ctx.newPage()
   const errors = []
@@ -43,11 +44,12 @@ async function open(browser, seeker, path) {
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
   await page.goto(FE + '/', { waitUntil: 'domcontentloaded' })
   await page.evaluate(
-    ([t, u]) => {
+    ([t, u, l]) => {
       localStorage.setItem('auth_token', t)
       localStorage.setItem('auth_user', JSON.stringify(u))
+      if (l) localStorage.setItem('preferredLanguage', l)
     },
-    [seeker.token, seeker.user],
+    [seeker.token, seeker.user, lang],
   )
   await page.goto(FE + path, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1500)
@@ -117,6 +119,29 @@ async function open(browser, seeker, path) {
     await page.waitForTimeout(2500)
     const p = await profile(seeker.token)
     ok = check('Chennai centroid stored', near(p.lat, CHENNAI.lat) && near(p.lon, CHENNAI.lon), `lat=${p.lat} lon=${p.lon}`) && ok
+    console.log(`  errors: ${errors.length ? errors.join(' | ') : 'none'}`)
+    await ctx.close()
+  }
+
+  // --- 3b. A job's city is DISPLAYED in the reader's script ------------------
+  // Storage is canonical English so the cold-start recommendation has one
+  // spelling to match. Display must not be — this product ships ten languages
+  // for people who may not read Latin at all, and job.location is printed
+  // straight onto every card.
+  console.log('\n=== 3b. job cards show the city in the reader\'s script ===')
+  {
+    const { ctx, page, errors } = await open(browser, seeker, '/job-feed', 'kn')
+    await page.waitForTimeout(2500)
+    const body = await page.evaluate(() => document.body.innerText)
+    // Guard on what is ON THE PAGE, not on a database query. Querying 50 jobs
+    // while the feed renders 10 can assert against a page that legitimately has
+    // no Hyderabad job on it, and report a failure that is really a paging
+    // accident.
+    if (!body.includes('Hyderabad') && !body.includes('ಹೈದರಾಬಾದ್')) {
+      console.log('  ⚠️  SKIPPED — no Hyderabad job on this page of the feed to translate')
+    } else {
+      ok = check('Kannada label shown, not the stored English', body.includes('ಹೈದರಾಬಾದ್'), body.includes('Hyderabad') ? 'still showing "Hyderabad"' : 'ಹೈದರಾಬಾದ್ found') && ok
+    }
     console.log(`  errors: ${errors.length ? errors.join(' | ') : 'none'}`)
     await ctx.close()
   }

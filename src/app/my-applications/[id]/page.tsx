@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
@@ -202,7 +203,7 @@ function ApplicationDetailsContent() {
                         {job?.location && (
                           <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
                             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
-                            <span className="text-xs sm:text-sm text-black">{job.location}</span>
+                            <span className="text-xs sm:text-sm text-black">{localizeLocation(job.location)}</span>
                           </div>
                         )}
                       </div>

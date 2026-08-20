@@ -20,6 +20,8 @@
  * so all ten languages render the city name in their own script.
  */
 
+import i18n from '@/i18n/config'
+
 /** A point on the map. Lives here, with the coordinates, not in a UI component. */
 export interface Coords {
   lat: number
@@ -52,6 +54,7 @@ export interface City extends Coords {
  * files for no user-visible gain, so not during a defect pass.
  */
 export const cityLabelKey = (key: string) => `seeker:jobFeed.city.${key}`
+
 
 /**
  * The ten cities, alphabetical — a stable, predictable dropdown order.
@@ -149,6 +152,38 @@ export function toCityKey(value: string | null | undefined): string {
 }
 
 /**
+ * A stored location string, as the READER should see it.
+ *
+ * We store ONE canonical spelling — "Bangalore", whoever posted the job and in
+ * whatever language — so the backend's cold-start recommendation, which
+ * substring-matches on this column, has a single string to compare. But
+ * `job.location` is printed straight onto every job card, and this product
+ * ships ten languages for people who may not read Latin script at all. Storing
+ * canonically AND displaying canonically would make a Tamil seeker read
+ * "Bangalore". So: store one spelling, show the reader theirs.
+ *
+ * Matches the WHOLE string only. "Whitefield, Bangalore" is returned untouched —
+ * translating it would silently delete the area name. This swaps a label; it
+ * never rewrites an address. Anything unrecognised (a Nagpur job, or the untidy
+ * legacy text TD-34 exists to clean) comes back exactly as stored.
+ *
+ * Reads the shared i18next instance rather than taking `t`, which is the house
+ * convention for display formatters — see the note atop `lib/jobFormat.ts`.
+ * Every screen rendering this already calls `useTranslation()`, so it re-renders
+ * on `languageChanged` and re-invokes this.
+ */
+export function localizeLocation(text: string | null | undefined): string {
+  if (!text) return ''
+  // toCityKey, NOT CITY_NAMES. That map carries satellite aliases — noida and
+  // gurgaon resolve to `delhi`, thane to `mumbai` — which is right when the
+  // answer wanted is a COORDINATE, and badly wrong here: it would print "Delhi"
+  // on a job in Noida, renaming the place instead of translating it. Only an
+  // exact canonical key is safe to swap for a label.
+  const key = toCityKey(text)
+  return key ? i18n.t(cityLabelKey(key)) : text
+}
+
+/**
  * Centroid for a TYPED location, or undefined when it names no city we know.
  *
  * This is the coarse tier of TD-02. It costs no permission prompt and no
@@ -236,6 +271,7 @@ export function coordsToWrite({
   gpsFix,
   saved,
   text,
+  textIsNewer,
   translate,
 }: {
   /** A precise fix taken during THIS edit, not yet saved. */
@@ -244,6 +280,16 @@ export function coordsToWrite({
   saved?: Coords | null
   /** The free-text location, as typed. */
   text?: string | null
+  /**
+   * Did the person edit the text AFTER taking the fix?
+   *
+   * This is what makes "which do we believe" answerable: the last thing they
+   * did. Without it the rule has to guess, and it guessed wrong in one
+   * direction or the other for every caller — a seeker who moved to Pune and
+   * tapped the button had their fresh fix thrown away because the box still
+   * said "Bangalore", while being told "Location captured".
+   */
+  textIsNewer?: boolean
   /**
    * Resolves a city key to its label in the CURRENT language —
    * `(key) => t(cityLabelKey(key))`.
@@ -257,15 +303,18 @@ export function coordsToWrite({
 }): Coords | undefined {
   const city = cityCoordsFromText(text, translate)
   if (gpsFix) {
-    // A fix normally wins — except when the text names a DIFFERENT city from the
-    // one the device is standing in. Then believe the words: they are an
-    // explicit statement, where the fix is only an inference about the person
-    // holding the phone.
+    // The last deliberate action wins. Typed words override a fix only when they
+    // came AFTER it and name a DIFFERENT city from the one the device is in:
     //
-    // This is what stops a recruiter sitting in Pune, who taps the button and
-    // then types "Bangalore", pinning the job in Pune — silently, because a
-    // coordinate has no visible representation anywhere in either form.
-    if (!city || distanceKm(gpsFix, city) <= city.radius) return gpsFix
+    //   tap, then type an area name  → fix wins (no city named, nothing to argue)
+    //   tap, then type another city  → text wins (a recruiter in Pune posting a
+    //                                  Bangalore job)
+    //   type a city, then tap        → fix wins (a seeker who moved and is
+    //                                  telling us where they are now)
+    //
+    // Without the `textIsNewer` half, that third case silently threw away the
+    // fresh fix while the screen said "Location captured".
+    if (!city || !textIsNewer || distanceKm(gpsFix, city) <= city.radius) return gpsFix
     return { lat: city.lat, lon: city.lon }
   }
   if (!city) return undefined

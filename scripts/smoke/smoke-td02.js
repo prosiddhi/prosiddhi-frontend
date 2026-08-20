@@ -188,6 +188,17 @@ async function save(page) {
     // Kannada strings, straight from src/locales/kn — if the UI did not switch
     // language these selectors miss and the step fails loudly, which is right:
     // a silent fall back to English would test nothing.
+    // The datalist is what keeps the backend's cold-start match alive: it runs
+    // `job.location CONTAINS seeker.location`, jobs store canonical English, so
+    // a seeker who saves their city in their own script matches NOTHING and gets
+    // an empty recommendation list. Reader sees Kannada, field stores English.
+    const opts = await page.$$eval('#seeker-location-cities option', (os) =>
+      os.map((o) => ({ value: o.value, label: o.label })),
+    )
+    const blr = opts.find((o) => o.value === 'Bangalore')
+    ok = check('city list offers English values', opts.length === 10, `${opts.length} option(s)`) && ok
+    ok = check('…under the reader\'s own label', blr?.label === 'ಬೆಂಗಳೂರು', JSON.stringify(blr)) && ok
+
     await page.getByPlaceholder('ಊರು / ಪ್ರದೇಶ').fill('ಬೆಂಗಳೂರು')
     await page.getByRole('button', { name: 'ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ' }).click()
     await page.waitForTimeout(2500)

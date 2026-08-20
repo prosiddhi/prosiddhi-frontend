@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { employerAPI, type Job } from '@/lib/api'
@@ -218,7 +219,7 @@ function MyJobsContent() {
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
                           <span className="flex items-center gap-1"><IndianRupee className="w-4 h-4" />{formatSalary(job.salaryMin, job.salaryMax)}</span>
                           {job.jobType && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{humanizeJobType(job.jobType)}</span>}
-                          {job.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>}
+                          {job.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{localizeLocation(job.location)}</span>}
                           {typeof job.viewCount === 'number' && <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{t('employer:jobs.views', { count: job.viewCount })}</span>}
                         </div>
                         <p className="text-xs text-[#9a9aa5] mt-2">{t('employer:jobs.posted', { time: relativeTime(job.createdAt) })}</p>

@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
@@ -223,7 +224,7 @@ function SavedJobsPageContent() {
                           {job.location && (
                             <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{job.location}</span>
+                              <span className="text-xs text-black">{localizeLocation(job.location)}</span>
                             </div>
                           )}
                         </div>
