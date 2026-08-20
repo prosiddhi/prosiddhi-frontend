@@ -118,8 +118,20 @@ async function nearby(token) {
 
 // A page with the session already in localStorage, plus error collection.
 // Keys match src/lib/api.ts (AUTH_TOKEN_KEY / AUTH_USER_KEY).
-async function session(browser, { token, user }, viewport) {
-  const ctx = await browser.newContext({ viewport })
+//
+// `geo` grants the location permission and pins the device to a fixed fake
+// position — omit it to test someone who never grants permission. It lives here
+// because three suites needed it (td02, td03, td41) and each had hand-rolled its
+// own context, which meant each also had to remember the console / pageerror /
+// HTTP>=400 collection below. td41's copy had already forgotten it, so it would
+// have read the screen happily while a 500 fired behind it.
+async function session(browser, { token, user }, viewport, geo) {
+  const ctx = await browser.newContext({
+    viewport,
+    ...(geo
+      ? { permissions: ['geolocation'], geolocation: { latitude: geo.lat, longitude: geo.lon } }
+      : {}),
+  })
   const page = await ctx.newPage()
   const errors = []
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))

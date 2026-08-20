@@ -9,7 +9,14 @@ import {
   type UrgencyLevelValue,
   type TaxonomyTriple,
 } from '@/lib/api'
-import { CITY_KEYS, cityLabelKey, coordsToWrite, type Coords } from '@/lib/cities'
+import {
+  CITY_KEYS,
+  cityContaining,
+  cityLabelKey,
+  coordsToWrite,
+  type CoordDecision,
+  type Coords,
+} from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { humanizeJobType, formatSalary, initials, canonicalLocation } from '@/lib/jobFormat'
@@ -102,6 +109,80 @@ function coordinateFields(fix: Coords | undefined) {
   return fix ? { latitude: fix.lat, longitude: fix.lon } : {}
 }
 
+type LocationHint = { key: string; city?: string; tone: 'good' | 'warn' } | null
+
+/**
+ * What this form will do with the location, said out loud (TD-41).
+ *
+ * A coordinate has no visible representation, so before this the employer got
+ * nothing: press "Use my current location" and the button just stops spinning;
+ * type "Nagpur" and nothing hints that the job will be invisible in every
+ * seeker's Nearby list.
+ *
+ * It DESCRIBES `coordsToWrite`'s decision rather than reaching its own. Deciding
+ * twice is the drift `coordsToWrite` was extracted into `lib/cities` to prevent,
+ * and the first draft of this function proved the point by disagreeing on the
+ * one case the rule exists for — see the switch below.
+ *
+ * The seeker's copy cannot be borrowed. `profile:seeker.locationOn` reads "You
+ * will see jobs near you", which is backwards on a screen where the reader is
+ * the one being found.
+ *
+ * `pinned` is the sharp one, and it exists because of TD-42: latitude and
+ * longitude are `.optional()` and not `.nullable()` on the backend schema, so no
+ * client can clear a stored coordinate. Edit a job's location from "Bangalore"
+ * to somewhere we cannot place, and it KEEPS the Bangalore pin — it goes on
+ * showing to Bangalore seekers at 0 km and never reaches the new town. That is
+ * invisible today. Until Asrar makes the fields nullable, the honest thing is to
+ * say so rather than let the employer believe the job moved.
+ */
+function locationHint(args: {
+  decision: CoordDecision
+  saved: Coords | null
+  text: string
+  translate: (key: string) => string
+}): LocationHint {
+  const { decision, saved, text, translate } = args
+
+  // Read off `coordsToWrite`'s own verdict — never re-derived from the same
+  // inputs. Working it out a second time is what made the first draft lie in
+  // precisely the case the rule exists for: a fix taken in Pune, then
+  // "Bangalore" typed, writes the Bangalore centroid while the screen said
+  // "Location captured".
+  switch (decision.reason) {
+    case 'fix':
+      return { key: 'employer:jobForm.locationCaptured', tone: 'good' }
+    // 'keep' means the stored pin already sits in the city just typed, so from
+    // the employer's side it is the same good news as writing one.
+    case 'city':
+    case 'keep':
+      return {
+        key: 'employer:jobForm.locationCity',
+        city: decision.cityKey ? translate(decision.cityKey) : '',
+        tone: 'good',
+      }
+  }
+
+  // reason === 'none': we could not place the text at all.
+  // Nothing typed yet — say nothing rather than warn about an empty box.
+  if (!text.trim()) return null
+  // Whether that is merely useless or actively misleading depends entirely on
+  // whether a pin is already stored.
+  if (saved) {
+    // A stored pin need not sit in any of the ten. Press the location button at
+    // a Devanahalli warehouse and the fix lands 35 km from the Bangalore
+    // centroid — outside its 30 km radius — so `cityContaining` returns ''. The
+    // named message would then render "stays pinned to  and will keep showing",
+    // a broken sentence in ten languages, in the one state this whole ticket
+    // exists to expose. Hence a second wording with no city in it.
+    const stuckIn = cityContaining(saved)
+    return stuckIn
+      ? { key: 'employer:jobForm.locationPinned', city: translate(stuckIn), tone: 'warn' }
+      : { key: 'employer:jobForm.locationPinnedUnnamed', tone: 'warn' }
+  }
+  return { key: 'employer:jobForm.locationUnknown', tone: 'warn' }
+}
+
 export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: JobFormProps) {
   const { t } = useTranslation()
   const [f, setF] = useState<FormState>(() => buildInitialState(initial))
@@ -113,6 +194,38 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }))
+
+  // The pin the server already holds. Read from `initial`, not FormState —
+  // nothing on this form edits it directly; only the location button replaces
+  // it. Rebuilt each render, which is two null checks feeding pure functions.
+  const savedPin =
+    initial?.latitude != null && initial?.longitude != null
+      ? { lat: initial.latitude, lon: initial.longitude }
+      : null
+  const translateCity = (key: string) => t(cityLabelKey(key))
+  // ONE decision, used twice: `handleSubmit` sends `decision.coords` and the
+  // line under the input describes `decision.reason`. What the employer is told
+  // and what is actually written cannot drift apart, because they are the same
+  // call.
+  //
+  // NOT memoised on `f`. `set()` clones the whole FormState on every keystroke in
+  // every field, so a memo keyed on `f` never hits — it would read as an
+  // optimisation while rebuilding this on each character typed into the salary
+  // box (docs/location-plan.md flags exactly that trap). Keyed on `f.location` it
+  // would be a real memo and still not worth one: a lookup over ten cities.
+  const decision = coordsToWrite({
+    gpsFix,
+    saved: savedPin,
+    text: f.location,
+    textIsNewer,
+    translate: translateCity,
+  })
+  const hint = locationHint({
+    decision,
+    saved: savedPin,
+    text: f.location,
+    translate: translateCity,
+  })
 
   // The cascading picker emits the full triple; mirror it into the flat form
   // fields (empty levels come back as undefined → stored as '').
@@ -172,26 +285,14 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       // location score cannot fire: it needs the JOB's pair as well as the
       // seeker's.
       //
-      // Computed HERE rather than in the render body. Nothing on this screen
-      // displays it, so a memo would only exist to stay off a hot path it need
-      // not be on at all — and would bring the hazard that depending on `f`
-      // (which `set()` clones every keystroke) silently makes it a no-op.
+      // `decision` is computed once in the render body and shared with the hint
+      // line under the location input (TD-41), so what the employer was told and
+      // what is sent are the same verdict rather than two derivations of it.
       //
-      // `saved` comes from `initial`, not FormState: it is not editable, only
-      // the location button replaces it. On the post-a-job form there is no
-      // `initial`, so any recognised city wins.
-      ...coordinateFields(
-        coordsToWrite({
-          gpsFix,
-          saved:
-            initial?.latitude != null && initial?.longitude != null
-              ? { lat: initial.latitude, lon: initial.longitude }
-              : null,
-          text: f.location,
-          textIsNewer,
-          translate: (key) => t(cityLabelKey(key)),
-        })
-      ),
+      // It moved into the render body FOR that reason. An older note here argued
+      // the opposite — compute it in the submit handler, because nothing on the
+      // screen displayed it. Something does now.
+      ...coordinateFields(decision.coords),
     }
     onSubmit(data)
   }
@@ -277,6 +378,24 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               }}
               className="mt-2"
             />
+            {/* TD-41. The coordinate is invisible, so this line is the only
+                feedback there is — and it must never call an unsaved capture
+                saved.
+
+                ALWAYS RENDERED, empty when there is nothing to say. A live
+                region has to be in the DOM before the text arrives: mount the
+                element and its first message in the same commit and screen
+                readers generally announce nothing, which would silently lose the
+                one case this is here for — pressing the location button on a
+                blank form, where the button itself just stops spinning. */}
+            <p
+              role="status"
+              className={`text-xs mt-1.5 ${
+                !hint ? 'sr-only' : hint.tone === 'warn' ? 'text-amber-700' : 'text-green-700'
+              }`}
+            >
+              {hint ? t(hint.key, { city: hint.city }) : ''}
+            </p>
           </div>
 
           <div>

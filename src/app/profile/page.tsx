@@ -184,6 +184,10 @@ function SeekerProfileContent() {
   // keystroke in the bio, the name or any experience row rebuilds the ten
   // translated city labels — ~10 t() calls and a Map — to recompute a value
   // that cannot have changed.
+  // `.coords` — coordsToWrite also reports WHY it chose what it chose, which the
+  // employer job form needs to describe the save in words (TD-41). This screen
+  // only needs the coordinate: its three states are answerable from whether one
+  // is pending and whether one is already stored.
   const pendingFix = useMemo(
     () =>
       coordsToWrite({
@@ -192,7 +196,7 @@ function SeekerProfileContent() {
         text: location,
         textIsNewer,
         translate: (key) => t(cityLabelKey(key)),
-      }),
+      }).coords,
     [gpsFix, savedCoords, location, textIsNewer, t]
   )
 

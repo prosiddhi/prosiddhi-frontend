@@ -96,6 +96,21 @@ export const CITY_COORDS: Record<string, City> = {
 /** Stable display order for the dropdown. */
 export const CITY_KEYS = Object.keys(CITY_COORDS)
 
+/**
+ * How far a precise fix may sit from a typed city and still count as the SAME
+ * place — used only by `coordsToWrite` when deciding whether words typed after a
+ * fix should override it.
+ *
+ * Deliberately much larger than any city radius (the largest is Delhi at 50) and
+ * far smaller than the gap between any two cities on the list. The nearest pair
+ * we ship is Ahmedabad–Surat at ~230 km, so 100 cannot make one look like the
+ * other, while an outlying industrial belt — Devanahalli is 33 km out, Sriperumbudur
+ * ~40 — still reads as its own metro rather than as somewhere else entirely.
+ *
+ * It is NOT a commute radius and must never be used as one.
+ */
+const SAME_PLACE_KM = 100
+
 /** One spelling convention for every lookup in this file. */
 const normalizeCity = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ')
 
@@ -286,15 +301,28 @@ export function cityKeyFromText(
 }
 
 /**
- * The same match, as a centroid. One matcher, two return shapes — so the
- * backfill script and the forms can never disagree about where a job is.
+ * Why `coordsToWrite` decided what it decided.
+ *
+ * It exists because TD-41 needs to TELL the employer what the save will do, and
+ * a second function working that out from the same inputs is a second copy of
+ * this rule. The first draft did exactly that and disagreed with reality in the
+ * one case the rule was written for: a recruiter taps the location button in
+ * Pune, types "Bangalore", and the save correctly writes the Bangalore centroid
+ * while the screen said "Location captured".
+ *
+ * - `fix`  a precise fix taken during this edit is being written
+ * - `city` the typed city's centroid is being written
+ * - `keep` nothing to send; what the server already holds is at least as good
+ * - `none` we know nothing useful about where this is
  */
-function cityCoordsFromText(
-  value: string | null | undefined,
-  translate?: (key: string) => string
-): City | undefined {
-  const key = cityKeyFromText(value, translate)
-  return key ? CITY_COORDS[key] : undefined
+export type CoordSource = 'fix' | 'city' | 'keep' | 'none'
+
+export interface CoordDecision {
+  /** Undefined means SEND NOTHING — see the note on nullability below. */
+  coords?: Coords
+  reason: CoordSource
+  /** The city key the text resolved to, when it resolved to one. */
+  cityKey?: string
 }
 
 /**
@@ -359,7 +387,7 @@ export function coordsToWrite({
    * would catch it.
    */
   translate: (key: string) => string
-}): Coords | undefined {
+}): CoordDecision {
   const typedKey = cityKeyFromText(text, translate)
   const city = typedKey ? CITY_COORDS[typedKey] : undefined
   if (gpsFix) {
@@ -372,26 +400,40 @@ export function coordsToWrite({
     //   type a city, then tap        → fix wins (a seeker who moved and is
     //                                  telling us where they are now)
     //
-    // "Demonstrably not in" is `cityContaining`, NOT raw distance. A warehouse at
-    // Devanahalli is 35 km from the Bangalore centroid — past its 30 km radius —
-    // so a distance test threw away a precise fix and replaced it with the city
-    // centre the moment the employer typed "Bangalore". It is not another city;
-    // it is the edge of that one. Only a fix sitting inside a DIFFERENT listed
-    // city loses to the text.
-    const fixKey = cityContaining(gpsFix)
-    if (!city || !textIsNewer || !fixKey || fixKey === typedKey) return gpsFix
-    return { lat: city.lat, lon: city.lon }
+    // "Demonstrably not in" is measured against the TYPED city, generously.
+    //
+    // The city's own radius is far too tight for this job: a warehouse at
+    // Devanahalli is 33 km from the Bangalore centroid, past its 30 km, and
+    // throwing away a precise fix there the moment someone types "Bangalore"
+    // was the first bug this branch had. It is not another city; it is the edge
+    // of that one.
+    //
+    // But `cityContaining(gpsFix)` — asking only whether the fix sits in SOME
+    // listed city — was the over-correction, and it left a worse hole: a fix at
+    // Devanahalli is inside no listed city, so it beat the text no matter what
+    // the text said. Tap there, type "Chennai", and the job pins 290 km from
+    // Chennai — invisible to the seekers it names, and shown to Bangalore.
+    //
+    // One distance against the typed city answers both. Well inside → the fix is
+    // a more precise version of what they typed, keep it. Far outside → they
+    // mean a different place, and the words typed later win.
+    if (!city || !textIsNewer || distanceKm(gpsFix, city) <= SAME_PLACE_KM) {
+      return { coords: gpsFix, reason: 'fix', cityKey: typedKey || undefined }
+    }
+    return { coords: { lat: city.lat, lon: city.lon }, reason: 'city', cityKey: typedKey }
   }
-  if (!city) return undefined
+  if (!city) return { reason: 'none' }
   // Still inside the city we already have a coordinate for: that coordinate is
   // at least as good as the centroid, so leave it alone.
-  if (saved && distanceKm(saved, city) <= city.radius) return undefined
+  if (saved && distanceKm(saved, city) <= city.radius) {
+    return { reason: 'keep', cityKey: typedKey }
+  }
   // A FRESH object, never the CITY_COORDS entry itself. That entry is a `City`
   // and carries `radius` at runtime however this is typed, so a caller spreading
   // `...fix` into a job payload would ship the very field TD-03 removed from
   // PostJobData — and the backend would store it. It would also hand out a
   // mutable reference to module state.
-  return { lat: city.lat, lon: city.lon }
+  return { coords: { lat: city.lat, lon: city.lon }, reason: 'city', cityKey: typedKey }
 }
 
 /**
