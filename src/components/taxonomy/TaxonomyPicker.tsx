@@ -15,6 +15,9 @@ import { useTranslation } from 'react-i18next'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyTriple } from '@/lib/api'
 
+/** The three levels, by the key each one carries in a TaxonomyTriple. */
+export type TaxonomyLevel = 'category' | 'sector' | 'jobTitle'
+
 interface TaxonomyPickerProps {
   value: TaxonomyTriple
   onChange: (next: TaxonomyTriple) => void
@@ -23,8 +26,20 @@ interface TaxonomyPickerProps {
   /** Hide the third (JobTitle) level — e.g. a coarse category/sector-only filter. */
   showJobTitle?: boolean
   disabled?: boolean
-  /** Marks each label with a `*` (visual only; hosts own their validation). */
-  required?: boolean
+  /**
+   * Which levels to mark required.
+   *
+   * `true` marks all three — the seeker flows, where the backend genuinely
+   * requires the whole triple (auth.validator.ts: preferredSector and
+   * preferredJobTitle are both required). An array marks only those levels:
+   * the job form needs it, because createJobSchema requires `category` but
+   * leaves `sector` and `jobTitle` optional, so marking all three there would
+   * claim two fields are mandatory when the server accepts the job without
+   * them (DEF-024).
+   *
+   * Drives `aria-required` as well as the visual `*`.
+   */
+  required?: boolean | TaxonomyLevel[]
   className?: string
   selectClassName?: string
   labelClassName?: string
@@ -62,7 +77,18 @@ export function TaxonomyPicker({
 
   const isFilter = variant === 'filter'
   const controlsDisabled = disabled || loading || error
-  const star = required ? <span className="text-red-500"> *</span> : null
+  // aria-hidden on the star: the asterisk is decoration, and `aria-required`
+  // below is what actually tells a screen reader the field is mandatory.
+  const requiredLevels: TaxonomyLevel[] =
+    required === true ? ['category', 'sector', 'jobTitle'] : required || []
+  const isRequired = (level: TaxonomyLevel) => requiredLevels.includes(level)
+  const star = (level: TaxonomyLevel) =>
+    isRequired(level) ? (
+      <span className="text-red-500" aria-hidden="true">
+        {' '}
+        *
+      </span>
+    ) : null
 
   return (
     <div className={className ?? 'space-y-4'}>
@@ -70,11 +96,12 @@ export function TaxonomyPicker({
       <div>
         <label className={labelClassName}>
           {t('taxonomy:category')}
-          {star}
+          {star('category')}
         </label>
         <select
           className={selectClassName}
           value={value.category ?? ''}
+          aria-required={isRequired('category')}
           onChange={(e) => handleCategory(e.target.value)}
           disabled={controlsDisabled}
         >
@@ -97,11 +124,12 @@ export function TaxonomyPicker({
       <div>
         <label className={labelClassName}>
           {t('taxonomy:sector')}
-          {star}
+          {star('sector')}
         </label>
         <select
           className={selectClassName}
           value={value.sector ?? ''}
+          aria-required={isRequired('sector')}
           onChange={(e) => handleSector(e.target.value)}
           disabled={controlsDisabled || !value.category}
         >
@@ -125,12 +153,13 @@ export function TaxonomyPicker({
         <div>
           <label className={labelClassName}>
             {t('taxonomy:jobTitle')}
-            {star}
+            {star('jobTitle')}
           </label>
           <select
             className={selectClassName}
             value={value.jobTitle ?? ''}
-            onChange={(e) => handleJobTitle(e.target.value)}
+            aria-required={isRequired('jobTitle')}
+          onChange={(e) => handleJobTitle(e.target.value)}
             disabled={controlsDisabled || !value.sector}
           >
             <option value="">

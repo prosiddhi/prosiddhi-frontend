@@ -68,6 +68,28 @@ const inputCls =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent'
 const sectionTitleCls = 'text-base font-semibold text-black'
 
+// Required-field marker (DEF-024). The form gave no sign which fields were
+// mandatory, so the first thing an employer learned about it was a validation
+// error after pressing Post.
+//
+// These five are exactly what `validate()` below enforces, which is in turn
+// exactly what createJobSchema requires with no default
+// (prosiddhi-backend/src/validators/job.validator.ts): title, category,
+// description, location, jobType. Nothing else is marked - salary, skills,
+// requirements, company name, urgency and positions all post fine empty, and
+// claiming otherwise would just be a different kind of wrong.
+//
+// aria-hidden on the star; `aria-required` on the control is what a screen
+// reader actually reads.
+function Req() {
+  return (
+    <span className="text-red-500" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  )
+}
+
 export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: JobFormProps) {
   const { t } = useTranslation()
   const [f, setF] = useState<FormState>(() => buildInitialState(initial))
@@ -136,16 +158,22 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
       {/* Form */}
       <div className="space-y-6">
+        <p className="text-xs text-[#717182]">
+          <span className="text-red-500">*</span> {t('status.required')}
+        </p>
+
         {/* Section: Basics */}
         <section className="space-y-4">
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionBasics')}</h2>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.jobTitleLabel')}</label>
-            <input className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
+            <label className={labelCls}>{t('employer:jobForm.jobTitleLabel')}<Req /></label>
+            <input aria-required className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
           </div>
 
+          {/* category only: sector and jobTitle are optional server-side. */}
           <TaxonomyPicker
+            required={['category']}
             value={{
               category: f.category || undefined,
               sector: f.sector || undefined,
@@ -163,13 +191,13 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           </div>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.locationLabel')}</label>
-            <input className={inputCls} value={f.location} onChange={(e) => set('location', e.target.value)} placeholder={t('employer:jobForm.locationPlaceholder')} />
+            <label className={labelCls}>{t('employer:jobForm.locationLabel')}<Req /></label>
+            <input aria-required className={inputCls} value={f.location} onChange={(e) => set('location', e.target.value)} placeholder={t('employer:jobForm.locationPlaceholder')} />
           </div>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span></label>
-            <textarea className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
+            <label className={labelCls}>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span><Req /></label>
+            <textarea aria-required className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
             <p className="text-xs text-gray-400 mt-0.5">{f.description.trim().length}/5000</p>
           </div>
         </section>
@@ -214,8 +242,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <label className={labelCls}>{t('employer:jobForm.jobTypeLabel')}</label>
-              <select className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
+              <label className={labelCls}>{t('employer:jobForm.jobTypeLabel')}<Req /></label>
+              <select aria-required className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
                 <option value="">{t('employer:jobForm.selectPlaceholder')}</option>
                 {JOB_TYPES.map((jt) => (
                   <option key={jt} value={jt}>{humanizeJobType(jt)}</option>
