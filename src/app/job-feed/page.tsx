@@ -4,7 +4,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { CITY_COORDS, CITY_KEYS, toCityKey } from '@/lib/cities'
+import { CITY_COORDS, CITY_KEYS, toCityKey, cityLabelKey } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
@@ -360,7 +360,7 @@ function JobFeedPageContent() {
                     <option value="">{t('seeker:jobFeed.anyLocation')}</option>
                     {CITY_KEYS.map((key) => (
                       <option key={key} value={key}>
-                        {t(`seeker:jobFeed.city.${key}`)}
+                        {t(cityLabelKey(key))}
                       </option>
                     ))}
                   </select>

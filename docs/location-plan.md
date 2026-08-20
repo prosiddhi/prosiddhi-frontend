@@ -54,9 +54,44 @@ already describes the rule, so moving it is lateral, not a new layer. A
 "do not copy this" comment is a sign on the thing most likely to be copied.
 
 Also: the city labels live under `seeker:jobFeed.city.*` and the job form is an
-**employer** screen. TD-03 owns that namespace decision — reach across (there is
-precedent in `employee/page.tsx`), or move the labels somewhere shared. Do not
-duplicate 100 translated strings into `employer.json`.
+**employer** screen.
+
+⚠️ *Correction, 2026-08-20:* an earlier draft of this line cited
+`app/employee/page.tsx` as precedent for reaching across roles. **It is not** —
+"employee" there means job seeker, so that is a seeker screen reading a seeker
+namespace. The real precedent is [`lib/jobFormat.ts`](../src/lib/jobFormat.ts),
+which does `i18n.t('seeker:jobCard.perMonth')` and **is already imported and
+rendered by `JobForm`** — so the employer job form displays seeker-namespace
+strings today.
+
+The key now lives in one place, `cityLabelKey` in `@/lib/cities`, used by all
+four screens. **Do not duplicate 100 translated strings into `employer.json`.**
+The clean end state is moving the ten-key `jobFeed.city` block into
+`common.json` (the default namespace), so every caller says `t('city.bangalore')`
+and nothing reaches anywhere — a *move*, so `verify-locales` parity stays clean.
+It edits 20 locale files for no user-visible gain, so: after the go-live freeze.
+
+### The job form stays FREE TEXT — not a dropdown
+
+Decided at the TD-03 review, and the asymmetry runs opposite to the intuition
+that "a job's city is a business fact":
+
+- A seeker outside the ten cities loses Near By. **An employer outside the ten
+  could not post the job at all.** That is "we do not serve Nagpur employers" —
+  Shaik's call, not an implementation detail.
+- A `<select>` on one form and free text on the other reinstates exactly the
+  divergence `coordsToWrite` was extracted to prevent.
+
+**Ship:** keep the text input, add a `<datalist>` of the ten translated labels
+for canonical spellings, add `<UseMyLocation>` beneath it, and call
+`coordsToWrite` in `handleSubmit`. `<datalist>` → `<select>` is one edit if the
+product later restricts it. Note the `location.trim().length >= 3` guard in
+`JobForm` stays meaningful with a datalist and would be dead with a select.
+
+⚠️ **`JobForm` keeps every field in one `FormState` object and clones it on each
+keystroke.** Its memo must depend on `f.location`, **never** on `f` — depending
+on `f` turns the memo into a no-op that rebuilds the ten translated labels on
+every keystroke in every field.
 
 ---
 

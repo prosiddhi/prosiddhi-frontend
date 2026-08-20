@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CITY_KEYS } from '@/lib/cities'
+import { CITY_KEYS, cityLabelKey } from '@/lib/cities'
 import { Footer } from '@/components/home/Footer'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
@@ -161,7 +161,7 @@ export default function EmployeeLandingPage() {
                   <option value="">{t('seeker:landing.selectLocation')}</option>
                   {CITY_KEYS.map(key => (
                     <option key={key} value={key}>
-                      {t(`seeker:jobFeed.city.${key}`)}
+                      {t(cityLabelKey(key))}
                     </option>
                   ))}
                 </select>

@@ -48,9 +48,15 @@ function EditJobContent() {
           requirements: job.requirements ?? undefined,
           skillsRequired: job.skillsRequired ?? [],
           location: job.location ?? '',
+          // ⚠️ These reach JobForm's `initial` prop and stop there — TD-03 still
+          // has to wire them into FormState, because buildInitialState does not
+          // read them and handleSubmit does not send them. Until it does, an
+          // employer's `saved` coordinate is always undefined and the guard that
+          // stops a centroid replacing a precise pin never fires for them.
+          // `radius` was carried here too and was dead the same way; that field
+          // is now gone from PostJobData entirely rather than left as a trap.
           latitude: job.latitude ?? undefined,
           longitude: job.longitude ?? undefined,
-          radius: job.radius ?? undefined,
           salaryMin: job.salaryMin ?? undefined,
           salaryMax: job.salaryMax ?? undefined,
           paymentType: (job.paymentType as PaymentTypeValue) ?? undefined,

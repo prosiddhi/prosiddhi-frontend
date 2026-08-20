@@ -18,7 +18,7 @@ import {
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
-import { cityCoordsFromText, distanceKm, type Coords } from '@/lib/cities'
+import { coordsToWrite, cityLabelKey, type Coords } from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -171,34 +171,24 @@ function SeekerProfileContent() {
     ])
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
 
-  // TD-02 — the coordinate this save would write, if any.
-  //
-  // Precision ranking: a fix taken just now beats a coordinate already stored,
-  // which beats a city centroid. A centroid may only REPLACE a stored
-  // coordinate when the seeker has plainly moved, judged by DISTANCE rather than
-  // by comparing the location text — the text is often blank, or an area name,
-  // or in another script, and comparing it meant that simply filling in a blank
-  // city box flattened a precise fix to the city centre.
-  //
-  // The threshold is the typed city's OWN radius (TD-06). One flat number cannot
-  // serve both Delhi, which reaches 50 km, and Surat, which reaches 20.
-  //
-  // ⚠️ TD-03 needs this same rule for the employer job form (components/job/
-  // JobForm.tsx, same free-text location + hydrate shape). MOVE it into
-  // @/lib/cities as TD-03's FIRST commit — do not copy it, or an employer
-  // editing a job title will quietly move its pin to the city centre.
+  // The coordinate this save would write, if any (TD-02). The rule itself lives
+  // in @/lib/cities because the employer job form needs exactly the same one —
+  // see coordsToWrite for why distance decides it and not the location text.
   //
   // Memoised because this sits in the body of a large form: without it, every
   // keystroke in the bio, the name or any experience row rebuilds the ten
   // translated city labels — ~10 t() calls and a Map — to recompute a value
   // that cannot have changed.
-  const typedCity = useMemo(
-    () => cityCoordsFromText(location, (key) => t(`seeker:jobFeed.city.${key}`)),
-    [location, t]
+  const pendingFix = useMemo(
+    () =>
+      coordsToWrite({
+        gpsFix,
+        saved: savedCoords,
+        text: location,
+        translate: (key) => t(cityLabelKey(key)),
+      }),
+    [gpsFix, savedCoords, location, t]
   )
-  const movedCity =
-    !!typedCity && (!savedCoords || distanceKm(savedCoords, typedCity) > typedCity.radius)
-  const pendingFix = gpsFix ?? (movedCity ? typedCity : undefined)
 
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for

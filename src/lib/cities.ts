@@ -1,5 +1,10 @@
 /**
- * The cities the location filter offers, and their centroids.
+ * The cities we offer, their centroids — and the rule for which coordinate a
+ * save is allowed to write (`coordsToWrite`).
+ *
+ * That second job arrived with TD-03: the seeker profile and the employer job
+ * form need the identical precedence rule, and a rule living in one of the two
+ * pages is a rule the other page copies and then quietly diverges from.
  *
  * The backend has **no city-name filter** on `GET /api/jobs` — it filters
  * geographically, on `latitude` + `longitude` + `maxDistance`. So a city choice
@@ -23,8 +28,30 @@ export interface Coords {
 
 /** A city we offer: its centre, and how far out "in this city" reaches. */
 export interface City extends Coords {
+  /**
+   * How far the city spreads, in km.
+   *
+   * ⚠️ **This is geography, not anybody's preference.** In particular it is NOT
+   * an employer's hiring reach. The two are the same shape and a plausible
+   * `radius: city.radius` on a job payload reads as obviously correct in review
+   * — and would silently claim every Delhi job draws commuters from 50 km.
+   * `PostJobData` deliberately has no radius field so that cannot be typed.
+   */
   radius: number
 }
+
+/**
+ * The i18n key for a city's label, in one place because four screens need it —
+ * the job feed, the seeker landing page, the seeker profile and (TD-03) the
+ * employer job form.
+ *
+ * The labels live under `seeker:` for historical reasons and the job form is an
+ * employer screen, so this is the seam where that decision sits. Moving the
+ * block to `common.json` (the default namespace) would let every caller say
+ * `t('city.bangalore')` and reach nowhere — worth doing, but it edits 20 locale
+ * files for no user-visible gain, so not during a defect pass.
+ */
+export const cityLabelKey = (key: string) => `seeker:jobFeed.city.${key}`
 
 /**
  * The ten cities, alphabetical — a stable, predictable dropdown order.
@@ -39,7 +66,7 @@ export interface City extends Coords {
  *
  * ⚠️ **A radius does two jobs.** It is the job feed's `maxDistance`, and it is
  * also the threshold at which a typed city may overwrite a stored coordinate
- * (`app/profile/page.tsx`). They fail in opposite directions: too small on the
+ * (`coordsToWrite`, below). They fail in opposite directions: too small on the
  * feed shows too few jobs, which a user sees and retries; too small on the
  * overwrite guard silently replaces someone's precise GPS fix with a centroid.
  * Tune one for the feed and you have retuned the other.
@@ -142,7 +169,7 @@ export function toCityKey(value: string | null | undefined): string {
  * Returns undefined rather than guessing. A wrong coordinate is worse than
  * none: it would show a Nagpur worker jobs in Pune and call them nearby.
  */
-export function cityCoordsFromText(
+function cityCoordsFromText(
   value: string | null | undefined,
   translate?: (key: string) => string
 ): City | undefined {
@@ -177,13 +204,65 @@ export function cityCoordsFromText(
 }
 
 /**
+ * The coordinate a save should write, or undefined when we know nothing useful.
+ *
+ * The two-tier rule from docs/location-plan.md §3, in one place because the
+ * seeker profile and the employer job form both need it and must not drift.
+ *
+ * **Precision ranking:** a fix taken just now beats a coordinate already stored,
+ * which beats a city centroid. A centroid may only REPLACE a stored coordinate
+ * when the person has plainly moved — judged by distance against the typed
+ * city's own radius, never by comparing the location text. See `distanceKm`.
+ *
+ * Returning undefined means **send nothing** — not "send null". The backend
+ * fields are `.optional()`, not `.nullable()`, so an explicit null is a 400 and
+ * a stored coordinate cannot be cleared through them at all. That is the only
+ * reason this returns `| undefined` rather than `| null`.
+ *
+ * **A named argument object, not positional.** `gpsFix` and `saved` are the same
+ * type; transposed, this silently returns the stored coordinate whenever one
+ * exists, throwing away a fresh fix and letting a centroid win. That is the
+ * exact bug TD-02 was written to kill, it compiles clean, and no smoke test
+ * catches it unless the tester presses the location button on a profile that
+ * already has coordinates.
+ */
+export function coordsToWrite({
+  gpsFix,
+  saved,
+  text,
+  translate,
+}: {
+  /** A precise fix taken during THIS edit, not yet saved. */
+  gpsFix?: Coords | null
+  /** What the server already holds, if anything. */
+  saved?: Coords | null
+  /** The free-text location, as typed. */
+  text?: string | null
+  /** Resolves a city key to its label in the CURRENT language — see `cityLabelKey`. */
+  translate?: (key: string) => string
+}): Coords | undefined {
+  if (gpsFix) return gpsFix
+  const city = cityCoordsFromText(text, translate)
+  if (!city) return undefined
+  // Still inside the city we already have a coordinate for: that coordinate is
+  // at least as good as the centroid, so leave it alone.
+  if (saved && distanceKm(saved, city) <= city.radius) return undefined
+  // A FRESH object, never the CITY_COORDS entry itself. That entry is a `City`
+  // and carries `radius` at runtime however this is typed, so a caller spreading
+  // `...fix` into a job payload would ship the very field TD-03 removed from
+  // PostJobData — and the backend would store it. It would also hand out a
+  // mutable reference to module state.
+  return { lat: city.lat, lon: city.lon }
+}
+
+/**
  * Great-circle distance in km — the same Haversine the backend filters with.
  *
  * Used to tell "the seeker moved city" from "the seeker typed their city in for
  * the first time". Comparing the location TEXT cannot do that: it is often
  * blank, or an area name, or written in another script.
  */
-export function distanceKm(a: Coords, b: Coords): number {
+function distanceKm(a: Coords, b: Coords): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180
   const dLat = toRad(b.lat - a.lat)
   const dLon = toRad(b.lon - a.lon)
