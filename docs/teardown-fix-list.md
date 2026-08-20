@@ -22,10 +22,20 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**44 items: 21 done · 14 open · 5 WEB-done/MOBILE-pending · 3 superseded · 1 that
-cannot be done from this machine (TD-32).** *(Recounted 2026-08-20 with the two
-`grep -c` lines below, after TD-04 and TD-39 closed. The hand-written total has
-been wrong twice; do not update it by hand.)*
+**47 items: 22 ✅ done · 16 🔴 open · 4 🟠 WEB-done/MOBILE-pending · 3 ⛔ superseded ·
+1 🟡 written-but-not-run (TD-40) · 1 ⚠️ not possible here (TD-32).**
+
+*Recounted 2026-08-20 from the table with the loop below, after TD-04, TD-39 and
+TD-41 closed and TD-44/45/46 were added. **The hand-written total has now been
+wrong three times, most recently by the person adding this note.** Run the loop;
+do not count by hand:*
+
+```bash
+for m in '✅' '🔴' '🟠' '⛔' '🟡'; do
+  printf '%s ' "$m"; grep -c "^| TD-.*$m" docs/teardown-fix-list.md
+done
+grep -c '^| TD-' docs/teardown-fix-list.md   # total
+```
 
 ⚠️ **A ✅ here meant "done on the web".** Checked 2026-08-20: TD-07, TD-08,
 TD-10 and TD-12 are all marked `WEB` `MOB` and only ever shipped on the web.
@@ -82,9 +92,12 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-38 | Location on mobile | 🔴 open | |
 | TD-39 | `aria-required` with no field name | ✅ done — 27/27, `smoke-td39.js` | |
 | TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
-| TD-41 | Job form gives no location feedback | 🔴 open | |
+| TD-41 | Job form gives no location feedback | ✅ done — 14/14, `smoke-td41.js` | `80b8002` |
 | TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
 | TD-43 | Role-agnostic `POST /auth/login` | ✅ **done** — BE + FE, ⚠️ tell Asrar | BE `61258ef` |
+| TD-44 | Seeker profile repeats TD-41's lie | 🔴 open — needs 2–3 keys × 10 locales | |
+| TD-45 | Job-form validation error is silent to a screen reader | 🔴 open | |
+| TD-46 | `language-fallback.png` 404 on the home page | 🔴 open — XS | |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
@@ -986,6 +999,44 @@ the ordering dependency and the double rate-limit spend, on both clients at once
 
 ⏱️ **Worth raising BEFORE the mobile session ports `loginAnyRole` into Dart**, or
 we own the same backend detail twice, in two languages.
+
+### TD-44 · The seeker profile tells the same lie TD-41 just fixed `WEB` · S
+
+Found by review during TD-41, on the other side of the same feature.
+
+A seeker with saved Bangalore coordinates who edits their location to "Nagpur"
+still sees **"You will see jobs near you."** in green
+([profile/page.tsx](../src/app/profile/page.tsx), the `locationOn` branch). They
+will see Bangalore jobs. `pendingFix` is undefined because nothing can be
+written, `savedCoords` is set, and the three-state line reads that as success.
+
+The machinery to fix it already exists: `coordsToWrite` now returns a `reason`
+(`fix` / `city` / `keep` / `none`), so the seeker screen can branch exactly as
+the employer form does. What it needs is its own copy — the employer's wording
+is about who will see the job, and the seeker's is about what they will see —
+so it is 2–3 new keys × 10 locales, not a code-only change.
+
+### TD-45 · The job form's validation error is silent to a screen reader `WEB` · S
+
+Found by review during TD-39. `JobForm.tsx` renders `shownError` in a plain
+`<div>` with no `role="alert"` and no `aria-live`, and no control carries
+`aria-invalid` or `aria-describedby` pointing at it. Press Post with a screen
+reader and nothing is announced; focus stays on the button. Now that every field
+on that form has a name (TD-39), this is the largest hole left on it.
+
+Note the pattern TD-41 used for its own status line: the live region is rendered
+**always**, empty when there is nothing to say. Mounting the element and its
+first message in the same commit means screen readers generally announce
+neither — which is the trap this ticket has to avoid, not repeat.
+
+### TD-46 · `/assets/language-fallback.png` does not exist `WEB` · XS
+
+A 404 on the home page, every load. Referenced by
+[LanguageSection.tsx:84](../src/components/home/LanguageSection.tsx#L84) and
+[LanguageModal.tsx:85](../src/components/home/LanguageModal.tsx#L85) as the
+`<video>` poster fallback; `public/assets/` holds `language.mp4` and no such
+PNG. Chrome requests it anyway, so every smoke run in `scripts/smoke/` has been
+filtering it as known noise. Either add the file or drop the `<img>`.
 
 ### TD-39 · `aria-required` announces a field with no name `WEB` · S
 
