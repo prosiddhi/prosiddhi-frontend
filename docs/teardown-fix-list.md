@@ -709,6 +709,21 @@ button → precise fix), and give TD-04 its recovery action. Android needs
 `ACCESS_FINE_LOCATION`, iOS `NSLocationWhenInUseUsageDescription`, both with a
 translated plain-language reason.
 
+### TD-39 · `aria-required` announces a field with no name `WEB` · S
+
+Found by review on **already-shipped `b46301a`** (DEF-024), so it is not a
+regression from that fix — the fix simply made an existing gap audible.
+
+`TaxonomyPicker.tsx:96` now sets `aria-required` on `<select>` elements whose
+`<label>` neither wraps them nor carries an `htmlFor`. A `<select>` has no
+placeholder to fall back on, so a screen reader announces **"combo box,
+required"** with no field name at all. The same sibling-label pattern is in
+`JobForm.tsx:170 / 194 / 199 / 245`.
+
+Fix is mechanical — `id` on the control, `htmlFor` on the label — but it
+touches the shared `Field` wrapper used across the whole form, so it is its own
+ticket rather than a rider on someone else's.
+
 ### How job filtering actually works — answer to Nazir's question
 
 **Yes, there is real keyword search, and it is better than expected.** Two
