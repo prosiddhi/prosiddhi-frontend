@@ -622,6 +622,126 @@ Still needs a real device or emulator before release.
 
 ---
 
+## 9b. Added by Nazir, 2026-08-20 (second batch)
+
+Three new items. All checked against the code before writing; none is started.
+
+### TD-36 · Remove purchasing from mobile — web-only `MOB` · M · ⚠️ needs D2 reopened
+
+**Decision (Nazir, 2026-08-20): all purchases happen on the web.** Reason: Play
+takes 30% and, per
+[store-policy notes](../../prosiddhi-mobile-app), grants **no B2B exemption** —
+the credits→"Job Posts" rename is not a defence.
+
+**No in-app purchase was ever built**, so this is removal of *shopfront*, not of
+plumbing: `pubspec.yaml` has no Razorpay and no billing dependency at all. What
+exists and sells:
+
+| File | What it does |
+|---|---|
+| `features/employer/screens/plans_screen.dart` | the 8 plans |
+| `features/employer/widgets/plan_card.dart` | a plan, priced |
+| `features/employer/screens/credit_wallet_screen.dart` | wallet + top-up entry |
+| `features/employer/widgets/no_credits_sheet.dart` | "you are out" upsell |
+| `features/employer/widgets/action_blocked_sheet.dart` | the gate's upsell |
+| `features/employer/utils/post_job_gate.dart` | blocks posting when empty |
+
+**Keep** the wallet *balance* and the gates — an employer must still see what
+they have and why a post is blocked. **Remove** the priced plans and every
+buy/top-up action.
+
+⚠️ **Do not write the "buy it on the web" copy from guesswork.** Play's
+anti-steering rules govern whether the app may link to, or even mention, an
+external purchase — and they differ by market (India has the CCI ruling; the US
+position moved after Epic v. Google). **Check current policy, then write the
+words.** Removing the purchase is safe; advertising the alternative may not be.
+
+⚠️ **This contradicts locked decision D2.** Shaik must reopen it formally —
+Nazir's call here is the trigger, not the authority. **Closes TD-33** as
+won't-do once D2 is reopened.
+
+### TD-37 · One login: phone + password, plus Google `WEB` `MOB` · M · ⛔ see the warning
+
+**Decision (Nazir, 2026-08-20): keep mobile-number login only; Google stays
+alongside it.** That part is good and unblocks TD-16/TD-17, which were parked on
+DLT.
+
+⛔ **But NOT by "hiding the OTP and letting the user straight in."** That is an
+authentication bypass: anyone who knows a phone number owns that account —
+every seeker's PII, every employer's billing. It would also make the existing
+`EXPOSE_OTP_IN_RESPONSE` hole (§ SESSION STATE, 2026-08-20) the front door
+rather than a leak.
+
+**It is not needed.** Phone + password **already works** and needs no SMS:
+`POST /jobseekers/login` and `/employers/login` take `identifier` + `password`,
+where `identifier` is the phone. The smoke suite has used exactly this since
+2026-08-20 (`scripts/smoke/lib-smoke.js`, `loginSeeker`) precisely because OTP
+trips the rate limiter.
+
+So the single clean login is: **phone + password**, with **"Continue with
+Google"** beside it. Google is real on both surfaces — backend
+`authService.googleLoginOrSignup` verifies the ID token against Google's JWKS
+(`google-auth-library`, needs `GOOGLE_CLIENT_ID`), and mobile already ships
+`google_sign_in: ^7.2.0`.
+
+**Bonus: this lets `EXPOSE_OTP_IN_RESPONSE` be turned OFF**, closing a live
+account-takeover vector instead of formalising it. Registration is unaffected —
+it verifies by **email**, which does deliver.
+
+Keep phone-OTP in the code, unadvertised, and promote it when DLT clears.
+
+### TD-38 · Location on mobile — nothing is captured `MOB` · M
+
+**Answer to "have we done location filtering in mobile?": no.** Mobile is
+exactly where the web was before TD-02.
+
+- The service layer is **already ready** — `seeker_profile_service.dart:35-48`
+  accepts and sends `latitude` / `longitude`.
+- **Nothing ever calls it with a coordinate**, because there is **no
+  geolocation package in `pubspec.yaml` at all** — no `geolocator`, no
+  `location`. *(This settles the "⚠️ Unverified" question in
+  [location-plan.md](location-plan.md) §3.)*
+- `home_tab.dart:115` does call `/api/jobs/nearby`, so it gets
+  `noLocation: true` and shows the struck-through pin — **TD-04**.
+
+Work: add a geolocation plugin, mirror TD-02's two tiers (typed city → centroid,
+button → precise fix), and give TD-04 its recovery action. Android needs
+`ACCESS_FINE_LOCATION`, iOS `NSLocationWhenInUseUsageDescription`, both with a
+translated plain-language reason.
+
+### How job filtering actually works — answer to Nazir's question
+
+**Yes, there is real keyword search, and it is better than expected.** Two
+layers, in `job.service.ts:239-260` and `utils/search.ts:40`.
+
+**1. Postgres full-text search.** A `search_vector` column kept current by a
+trigger and GIN-indexed (`prisma/migrations/fts-setup.sql`). Fields are
+**weighted**:
+
+| Weight | Fields |
+|---|---|
+| **A** (highest) | `title`, `location`, `jobTitle` |
+| **B** | `skillsRequired`, `category`, `sector`, `requirements` |
+| **C** (lowest) | `description` |
+
+The query is stemmed and OR-joined, so *"need nodejs job in banglore"* becomes
+`bangalor | job | need | nodej` and ranks by `ts_rank_cd`. There is also a
+**typo-tolerant location bonus**: `word_similarity(location, query) > 0.3` adds
+`+1.0`, which is why *"banglore"* still puts Bangalore jobs above Pune ones.
+
+**2. Fallback.** If FTS matches nothing (a query of pure stop words), it drops
+to `ILIKE contains` on `title` + `description` only.
+
+On top of both sit exact filters — category, sector, jobTitle, jobType, salary
+— and the geographic filter.
+
+⚠️ **This raises the price of TD-34.** Location text is weighted **A**, the
+joint-highest. So *"bangalore"* / *"Bengaluru, Karnataka"* / *"Mysore"* sitting
+in one column degrades **search ranking**, not just the city filter. Cleaning
+that data is now a search fix as well as a filter fix.
+
+---
+
 ## 10. Data, not code
 
 - **TD-34 · Untidy job data.** Cities stored as *"bangalore"*, *"Mysore"* and
