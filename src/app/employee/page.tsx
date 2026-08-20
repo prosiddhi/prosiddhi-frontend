@@ -83,25 +83,25 @@ export default function EmployeeLandingPage() {
               <span>{t('seeker:nav.findJobs')}</span>
             </Link>
 
-            <button className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors">
+            <Link href="/employer/welcome" className="flex items-center gap-1 text-black text-[18px] hover:text-primary-50 transition-colors">
               <Building2 className="w-4 h-4" />
               <span>{t('seeker:nav.companies')}</span>
-            </button>
+            </Link>
 
             <LanguageSwitcher />
           </nav>
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-5">
-            <button className="flex items-center gap-2 px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors">
+            <Link href="/register" className="flex items-center gap-2 px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors">
               <UserPlus className="w-4 h-4" />
               <span>{t('seeker:nav.register')}</span>
-            </button>
+            </Link>
 
-            <button className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-white hover:bg-primary-60 transition-colors">
+            <Link href="/login" className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-white hover:bg-primary-60 transition-colors">
               <LogIn className="w-5 h-5" />
               <span>{t('seeker:nav.login')}</span>
-            </button>
+            </Link>
 
             <Link
               href="/employer/welcome"
@@ -209,9 +209,9 @@ export default function EmployeeLandingPage() {
           </div>
 
           <div className="text-center mt-[74px]">
-            <button className="px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors">
+            <Link href="/job-feed" className="inline-flex items-center px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors">
               {t('seeker:landing.viewMoreCategory')}
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -229,14 +229,18 @@ export default function EmployeeLandingPage() {
             <div className="bg-neutral-50 border-4 border-white rounded-[20px] p-8 sm:p-12 w-full max-w-[425px] min-h-[400px] sm:min-h-[425px] relative shadow-lg lg:transform lg:-rotate-[5deg] flex flex-col">
               {/* Register/Login Buttons - Inside box at top-left with rounded container */}
               <div className="mb-auto pb-8">
-                <div className="bg-white border border-[#efefef] rounded-r-[32px] px-6 sm:px-7 py-3.5 sm:py-3.5 flex items-center gap-3 w-fit lg:transform lg:rotate-[5deg] -ml-8 sm:-ml-12">
-                  <button className="px-3 py-2 border border-secondary-70 rounded-lg text-sm sm:text-base text-black whitespace-nowrap">
+                {/* Illustration of the Register / Login controls, not the
+                    controls themselves - this card is explaining step 1. Spans,
+                    not buttons: as <button> they were focusable, clickable and
+                    announced as buttons, and did nothing when pressed. */}
+                <div aria-hidden="true" className="bg-white border border-[#efefef] rounded-r-[32px] px-6 sm:px-7 py-3.5 sm:py-3.5 flex items-center gap-3 w-fit lg:transform lg:rotate-[5deg] -ml-8 sm:-ml-12">
+                  <span className="px-3 py-2 border border-secondary-70 rounded-lg text-sm sm:text-base text-black whitespace-nowrap">
                     {t('seeker:nav.register')}
-                  </button>
-                  <button className="px-3 py-2 bg-primary-50 text-white rounded-lg text-sm sm:text-base flex items-center gap-2 whitespace-nowrap">
+                  </span>
+                  <span className="px-3 py-2 bg-primary-50 text-white rounded-lg text-sm sm:text-base flex items-center gap-2 whitespace-nowrap">
                     <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
                     {t('seeker:nav.login')}
-                  </button>
+                  </span>
                 </div>
               </div>
 
@@ -372,14 +376,14 @@ export default function EmployeeLandingPage() {
                   buttons, pushing the column out of line with the illustration
                   beside it. The heading's 77px was the same story. */}
               <div className="flex items-center gap-4">
-                <button className="px-3 py-2 bg-primary-50 text-white rounded-lg text-base flex items-center gap-2">
+                <Link href="/register" className="px-3 py-2 bg-primary-50 text-white rounded-lg text-base flex items-center gap-2 hover:bg-primary-60 transition-colors">
                   <LogIn className="w-5 h-5" />
                   {t('seeker:landing.signUpToday')}
-                </button>
-                <button className="px-3 py-2 border border-secondary-70 rounded-lg text-base text-black flex items-center gap-2">
+                </Link>
+                <Link href="/contact" className="px-3 py-2 border border-secondary-70 rounded-lg text-base text-black flex items-center gap-2 hover:bg-secondary-10 transition-colors">
                   <Phone className="w-4 h-4" />
                   {t('seeker:landing.contactUs')}
-                </button>
+                </Link>
               </div>
               {/* "Download our App platform" and two App Store / Google Play
                   tiles used to sit here (TD-14). They were plain divs, not
