@@ -82,7 +82,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
 | TD-41 | Job form gives no location feedback | 🔴 open | |
 | TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
-| TD-43 | Role-agnostic `POST /auth/login` | 🔴 open — ⚠️ Asrar, removes a client-side guess | |
+| TD-43 | Role-agnostic `POST /auth/login` | ✅ **done** — BE + FE, ⚠️ tell Asrar | BE `61258ef` |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
@@ -900,7 +900,7 @@ the ordering dependency and the double rate-limit spend, on both clients at once
 ⏱️ **Worth raising BEFORE the mobile session ports `loginAnyRole` into Dart**, or
 we own the same backend detail twice, in two languages.
 
-### TD-39 ·  announces a field with no name  · S
+### TD-39 · `aria-required` announces a field with no name `WEB` · S
 
 Found by review on **already-shipped `b46301a`** (DEF-024), so it is not a
 regression from that fix — the fix simply made an existing gap audible.

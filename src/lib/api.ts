@@ -647,6 +647,40 @@ export const authAPI = {
      */
     preferred: LoginRole = 'seeker'
   ) => {
+    // TD-43 — one role-agnostic endpoint, so there is nothing to guess. The
+    // backend does not gate on role here; we read the real one off the user it
+    // returns.
+    try {
+      return await apiRequest<LoginResult>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      })
+    } catch (err) {
+      // ⚠️ TRANSITIONAL, and delete it once the backend carrying TD-43 is live.
+      //
+      // Only a 404 falls through: that is "this server predates the endpoint",
+      // not "these credentials are wrong". Without it, a frontend deployed ahead
+      // of its backend does not degrade — NOBODY can log in at all. The deploy
+      // checklist already says backend first, but the cost of getting that wrong
+      // went from a confusing message to a dead product, which is worth ten
+      // lines of belt and braces.
+      if (!(err instanceof ApiError) || err.status !== 404) throw err
+    }
+    return authAPI.loginByGuessingRole(credentials, preferred)
+  },
+
+  /**
+   * The pre-TD-43 way in: try one role gate, and when the backend answers
+   * `ROLE_MISMATCH` with the account's real role, use it.
+   *
+   * Kept ONLY as the fallback above, for the window where a frontend is newer
+   * than its backend. Delete both once TD-43 is deployed — this is exactly the
+   * client-side copy of backend internals that TD-43 exists to remove.
+   */
+  loginByGuessingRole: async (
+    credentials: { identifier: string; password: string },
+    preferred: LoginRole = 'seeker'
+  ) => {
     const fallback: LoginRole = preferred === 'seeker' ? 'employer' : 'seeker'
     try {
       return await authAPI.login(preferred, credentials)

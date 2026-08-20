@@ -65,7 +65,14 @@ export function toE164(raw: string): string | null {
   const trimmed = toWesternDigits(raw.trim())
   if (trimmed.startsWith('+')) {
     const digits = trimmed.slice(1).replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null
+    // A leading + means the country code is already there — so a bare 10 digits
+    // after it is an Indian number MISSING its code, not an international one.
+    // Returning `+9876543210` verbatim shipped a number that is not E.164 and
+    // that the backend's phoneRegex rejects with a raw zod message.
+    if (digits.length === 10) return `+91${digits}`
+    // And a country code never starts with 0, so `+0…` is a typo, not a number.
+    if (digits.startsWith('0')) return null
+    return digits.length >= 11 && digits.length <= 15 ? `+${digits}` : null
   }
   let digits = trimmed.replace(/\D/g, '')
   // "00" is the other way of writing "+" — 0091 98765 43210.
@@ -103,6 +110,14 @@ export function toE164(raw: string): string | null {
  */
 export function toIdentifier(raw: string): string | null {
   const trimmed = raw.trim()
-  if (trimmed.includes('@')) return trimmed.toLowerCase()
-  return toE164(trimmed)
+  if (!trimmed.includes('@')) return toE164(trimmed)
+  // Shape-check the email too. The field used to be `type="email"`, so the
+  // browser refused "boss@acme" before it could be submitted; making it accept
+  // phone numbers as well took that check away, and a half-typed address came
+  // back as "Invalid credentials" — blaming the password for a missing ".com".
+  // Deliberately loose: something@something.something, no attempt to be a
+  // full RFC validator. The server is the authority; this only catches the
+  // typo that would otherwise be reported as a wrong password.
+  const email = trimmed.toLowerCase()
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email : null
 }

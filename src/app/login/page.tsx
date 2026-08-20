@@ -184,6 +184,13 @@ function LoginContent() {
    * dead and "try again" would be a lie.
    */
   const handleLoginError = (err: unknown, onWrongRole?: () => void): boolean => {
+    // TD-43's role-agnostic endpoint has no role to mismatch, so it refuses an
+    // admin with its own code. Translate it: the backend's string is English
+    // only, and this product ships in ten languages.
+    if (err instanceof ApiError && err.code === 'ADMIN_ACCOUNT') {
+      setError(t('auth:login.errorAdminAccount'))
+      return false
+    }
     if (err instanceof ApiError && err.code === 'ROLE_MISMATCH') {
       const actual = err.details?.actualRole
       // Admin has no tab here — the console is a separate app. Say so; do not
@@ -784,10 +791,20 @@ function LoginContent() {
                 {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
 
-              {/* Phone-first recovery. "Forgot password?" resets via EMAIL, so it
-                  is a dead end for exactly the user this form serves. */}
-              <div className="text-center">
-                <p className="text-sm text-[#777776] mb-1">{t('auth:login.forgotPasswordPhone')}</p>
+              {/* BOTH recovery routes, because this one form now serves both
+                  kinds of user. "Forgot password?" resets via EMAIL — a dead end
+                  for a phone-only seeker, which is why the OTP route is offered
+                  too. But the reverse is just as true and was the gap: after
+                  TD-37 this field accepts an email, and an email-only employer
+                  with no phone had ONLY the OTP link, which cannot help them. */}
+              <div className="text-center space-y-1">
+                <Link
+                  href="/forgot-password"
+                  className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                >
+                  {t('auth:login.forgotPassword')}
+                </Link>
+                <p className="text-sm text-[#777776]">{t('auth:login.forgotPasswordPhone')}</p>
                 <button
                   type="button"
                   onClick={switchToPhoneOtp}
@@ -819,7 +836,13 @@ function LoginContent() {
               <div className="flex items-center justify-center gap-4 mt-4">
                 <button
                   type="button"
-                  onClick={() => switchTab('email')}
+                  onClick={() => {
+                    // Carry what they already typed. switchToPhoneOtp handles the
+                    // mirror case; dropping it here made the link punish the
+                    // user for using it.
+                    if (phone.includes('@') && !email) setEmail(phone)
+                    switchTab('email')
+                  }}
                   className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                 >
                   {t('auth:login.useEmailInstead')}
@@ -971,14 +994,14 @@ function LoginContent() {
                 href="/register"
                 className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
-                {t('auth:login.roleSeeker')}
+                {t('auth:login.signUpSeeker')}
               </Link>
               <span className="text-[#b5b5b5]" aria-hidden="true">·</span>
               <Link
                 href="/employer/register"
                 className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
-                {t('auth:login.roleEmployer')}
+                {t('auth:login.signUpEmployer')}
               </Link>
             </div>
             {/* Employers only. This link was rendered for every role, so a job seeker
