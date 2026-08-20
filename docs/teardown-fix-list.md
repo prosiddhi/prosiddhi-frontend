@@ -108,14 +108,23 @@ before any backend deploy.
    process from a previous start kept holding `:5000` and answering with old
    code for several minutes. Kill by PID from `netstat`, with `//T`.
 
-### Still to do, in the order I would take them
+### The agreed order of work (Nazir, 2026-08-20)
 
-1. **TD-02/03/04/05/06 — the location workstream.** The biggest piece and the
-   root cause of Near By returning 0 and of 20 dead points in the
-   recommendation score. `SeekerProfileUpdate` in `api.ts` **already has
-   `latitude`/`longitude`**; `profile/page.tsx` simply never sends them.
-   ⚠️ TD-06 (widen the city list) means ~30 cities × 10 locales ≈ 300 new
-   translated labels — budget for a translator, not a code session.
+**Location first → then the rest of the teardown → then every bug, one by one,
+last.** The bug pass is deliberately last because 20 register rows cannot be
+judged until the deploy lands.
+
+### Still to do, in that order
+
+1. **TD-02/03/04/05/06 — the location workstream.** ⭐ **Design is written up
+   in [location-plan.md](location-plan.md)** — read that, not the backend.
+   It records the three mechanisms, why all three return zero (nothing ever
+   writes a coordinate, and the city filter discards every job on a null check
+   before the distance maths runs), and the two-tier plan. **No backend change
+   is needed for any of it.**
+   ⚠️ Blocked on one input: **the six new city names.** ~10 cities is decided;
+   which ten is not. Do NOT map one city per language — see §4 for why that
+   breaks for migrant workers.
 2. **TD-23** show candidates before the employer types · `WEB` `MOB` · M
 3. **TD-22** the Category→Sector→Job title cascade · `WEB` · M
 4. **TD-25** "Recommended" returns 1 job in 10 — partly TD-05 · M
@@ -124,8 +133,27 @@ before any backend deploy.
    machine has no emulator, and the repo has only `android` and `ios`
    configured, so there is no web or desktop target to fall back on.
 7. **DEF-018** duplicate GST at registration · needs BE verification
-8. **DEF-024 / DEF-031** small `WEB` items, need live verification
-9. **TD-34 / TD-35** data, not code
+8. **TD-34 / TD-35** data, not code
+
+### Closed after the list above was written
+
+- **DEF-024** (`b46301a`) — the register said the job form had no
+  required-field indicators. Half true: four labels had an asterisk **baked
+  into the translated string** in all ten languages, Category had none at all,
+  nothing explained what the asterisk meant, and no control carried
+  `aria-required`. The asterisk now lives in the component, not the copy.
+- **DEF-031** (`b8f9a1f`) — the work-experience step used
+  `grid-cols-[434px_265px_265px_auto]`, fixed pixel columns needing ~1036px in
+  a pane only 785px wide at 1440. "To Year" was **clipped, not scrollable**, so
+  it could not be reached at all. It only ever fitted at 1920. Mobile was never
+  affected.
+
+### Verification scripts now live in the repo
+
+[scripts/smoke/](../scripts/smoke/) — eight browser checks covering TD-08, 12,
+14, 18, 19, 20 plus a dead-control scan. They were in a session temp directory
+and would have been lost. `smoke-td20.js` is how anyone re-checks the 0/118 tap
+targets. Read that folder's README before running two dev servers at once.
 
 **Blocked, unchanged:** TD-16/17 on DLT, TD-33 on decision D2.
 
