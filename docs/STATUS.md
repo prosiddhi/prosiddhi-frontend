@@ -42,7 +42,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | Surface | Done | Left |
 |---|---|---|
 | **Backend** | Feature-complete. Auth (rebuilt 2026-08-03), jobs + taxonomy, applications, chat, search, **all of billing**, candidate DB, team seats, admin API + SUPER_ADMIN + audit log, notification adapters, outbound email. | **1.** Merge the trial-lot invite fix — written and verified on `fix/invite-trial-lot-blocks-cold-path` (`2b5a3ad`), **never merged**; without it no new invitee can accept (§3 item 1a). **2.** Decide the OTP-enumeration question — `POST /api/otp/send` names an already-registered number; keep it (actionable) or make it generic. **Asrar's call** (§4 bug 22). **3.** `NODE_ENV=production` — must land together with MSG91 delivery, or nobody can register. **4.** Restrict CORS (`app.use(cors())` is open). **5.** Small: a machine-readable `code` on registration errors (§4 bug 18), one error message with three causes (bug 19). |
-| **Portal** (web) | Feature-complete. Every seeker + employer flow, chat, monetization, candidate DB, team seats, 10 languages, branding, the auth rework, and the QA-defect pass. | **9 open QA defects, none above S2** → [`qa/defect-log.csv`](qa/defect-log.csv). Plus the inert location subsystem (§3e), the notifications dropdown, and JWT → httpOnly cookie (hardening). |
+| **Portal** (web) | Feature-complete. Every seeker + employer flow, chat, monetization, candidate DB, team seats, 10 languages, branding, the auth rework, and the QA-defect pass. | **6 open QA defects, none above S2**, plus **19 that cannot be judged until production is deployed** → [`qa/defect-log.csv`](qa/defect-log.csv) *(re-counted 2026-08-20)*. Plus the location subsystem — **seeker half now done, employer half is TD-03** (§3e) — the notifications dropdown, and JWT → httpOnly cookie (hardening). ⭐ **The live work list is [teardown-fix-list.md](teardown-fix-list.md); it has a status index at the top.** |
 | **Admin console** | Feature-complete. 10 pages · 55 API functions, all on real routes, no mock data. QA-defect pass done; SUPER_ADMIN screens, admin-adds-user and the audit log all shipped. | **One task: enable the invoice-PDF download.** The BE route exists (`admin.routes.ts:489`); the console still disables the button with a stale "an ADMIN gets 403" comment (`monetization/page.tsx:317`, `api.ts:667`). Nothing else is open. |
 | **Mobile** (Flutter) | ~85%. Free product, candidate DB, team seats, chat, 10 languages, branding, registration rework — all done and verified against the live API. | **1.** 🔴 **Run it on a device — it never has.** Blocked on toolchain: no Android SDK, no emulator, no phone. **2.** Checkout — blocked, **D2 must be reopened first** ([store-policy-assessment.md](store-policy-assessment.md)). **3.** Invoices — never built. **4.** Google sign-in — code merged, switched off, needs Cloud-console clients. **5.** FCM push config. |
 
@@ -53,7 +53,7 @@ Other docs: [PRODUCT.md](PRODUCT.md) (what we're building) · [MONETIZATION.md](
 | Surface | Repo | State |
 |---|---|---|
 | **Backend** | `prosiddhi-backend` | ✅ **Feature-complete.** Everything the apps need is live, incl. the full billing system, the **SUPER_ADMIN role + admin-user CRUD + admin-adds-user + append-only audit log**, and **outbound email delivery** (OTP / invites / interview `.ics`). **Auth rebuilt 2026-08-03** (`2165880`…`09a88fc`, Asrar): password at registration, both contacts verified before the account exists, seeker email optional, `/set-password` deleted. **10 more commits since (HEAD `63632c2`, Asrar):** a **breaking** `Job` field removal (`fe246f1` — see §3 item 3d), job-expiry corrections, a **Prisma error-leak fix** (`890500a`), a rate-limit on the recruiter-contact reveal, and 404-not-500 on an unknown job id. |
-| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** QA-defect pass done 2026-07-12 (2 criticals + 10 majors, audio removed, i18n cache bug, two open redirects); team invites + the public `/invite/<token>` page rebuilt the same day. **Registration + login rebuilt 2026-08-06** for the new auth contract — see §3 item 3a. **Branding fixed 2026-08-13** (`c2ed0a1`) — DEF-010 + DEF-011 closed. The 04-Aug QA run turned out to hold 32 issues, not 13 — items 14–32 were untriaged until 2026-08-13. **Now 19 fixed / 9 open / 1 by-design, and nothing above S2** (→ [qa/defect-log.csv](qa/defect-log.csv), §3 item 3b). The Contact Recruiter button and the dead job-form fields are reconciled (`5d982ac`). *(One BE bug still blocks cold-start invites — §3 item 1a.)* |
+| **Portal** (seeker + employer) | `prosiddhi-frontend` | ✅ **Feature-complete.** QA-defect pass done 2026-07-12 (2 criticals + 10 majors, audio removed, i18n cache bug, two open redirects); team invites + the public `/invite/<token>` page rebuilt the same day. **Registration + login rebuilt 2026-08-06** for the new auth contract — see §3 item 3a. **Branding fixed 2026-08-13** (`c2ed0a1`) — DEF-010 + DEF-011 closed. The 04-Aug QA run turned out to hold 32 issues, not 13 — items 14–32 were untriaged until 2026-08-13. **Re-counted 2026-08-20: 10 resolved / 19 awaiting retest / 6 open, nothing above S2** (→ [qa/defect-log.csv](qa/defect-log.csv), §3 item 3b). ⚠️ **The 19 cannot be judged until production is deployed** — testing prod today tests old code. The Contact Recruiter button and the dead job-form fields are reconciled (`5d982ac`). *(One BE bug still blocks cold-start invites — §3 item 1a.)* |
 | **Admin console** | `prosiddhi-admin` | ✅ **Feature-complete + QA-defect pass DONE** (2026-07-12). The two missing screens (**taxonomy**, **monetization**) are built, the reports queue and content scan are wired, the Revenue-card lie is fixed, and all 5 majors + the minors are done. **10 pages · 55 API functions.** Every fix verified against a live backend. **Super-admin management, admin-adds-user, and the audit-log feed added (2026-07-27); the per-entity history panel is now built too (`b84f7d8`, `AuditTrail.tsx`) — this row previously said it was outstanding, which was stale.** *(The admin's own QA audit doc was fully resolved and deleted on 2026-08-18; its remaining state is this row and §0.)* **GO for handover.** **HEAD `9bdcc71`; no code changes since 2026-08-06 — admin is the one surface with nothing open.** *(Only loose end: the **invoice-PDF download is still disabled in the console**. The BE route now exists — `admin.routes.ts:489` `/monetization/invoices/:id/pdf` — but `monetization/page.tsx:317` and `api.ts:667` still carry the old "employer-gated, an ADMIN gets 403" comments. **One small enable-and-wire task.**)* |
 | **Mobile app** | `prosiddhi-mobile-app` | 🟡 **~85% built** (Flutter). Free product, candidate DB, team seats, chat and **all 10 languages** all done. Registration reworked + **verified** 2026-08-06 (3 real defects found and fixed). **Branding shipped 2026-08-13** (`78b625a`) — it had Flutter's **default launcher icon** until then, plus the wrong app name under it. Six UI/UX fixes since (notification unread count + body truncation, message-tab and text-overflow fixes, redundant filters removed). **Missing: checkout** (parked on the store-policy call — and see [store-policy-assessment.md](store-policy-assessment.md), which says the locked plan is not permissible) and **invoices** (never built). 🔴 **Never run on a device or emulator — no Android SDK on any dev machine.** Still the biggest single unknown in the project. → **`prosiddhi-mobile-app/docs/STATUS.md`** *(updated 2026-08-18)* |
 
@@ -258,21 +258,46 @@ Real **Razorpay** keys + a real webhook secret (test mode + a `local-dev-*` plac
 
 **10. Portal — delete the audio UI** *(FE)* — ✅ **DONE 2026-07-12.** The 2-min apply recorder, the 60-sec chat recorder + audio bubbles, `useAudioRecorder`, the test-microphone page, the audio params in `api.ts` and all audio i18n keys (incl. the "Voice Message" plan-feature advert) are gone; the mic Permissions-Policy was revoked. Verified in the running app: 0 `<audio>` elements, 0 mic icons, an application still submits end-to-end.
 
-**3e. 🔴 The whole location subsystem is inert — nothing captures coordinates** *(FE + mobile)* — **OPEN, traced 2026-08-18.**
+**3e. 🟡 The location subsystem — seeker half FIXED 2026-08-20, employer half still open** *(FE + mobile)*
+
+> **Update 2026-08-20.** The design and the full progress log live in
+> **[location-plan.md](location-plan.md)** — read that first.
+>
+> | | |
+> |---|---|
+> | **TD-02** the portal now writes the seeker's coordinates | ✅ `aa1abb3` |
+> | **TD-06** ten cities, each with its own radius | ✅ `f7e631e` `d42204d` |
+> | **TD-03** the post-job form still writes none | 🔴 **next** |
+> | **TD-05** re-check the 20-point score | 🔴 Asrar, after TD-03 |
+> | **TD-38/04** mobile — still no geolocation package at all | 🔴 open |
+>
+> **The table below is still accurate for what a USER sees**, and will be until
+> TD-03 lands: `getNearbyForSeeker` drops every job with a null coordinate, and
+> no job has one. Two corrections to what this section used to claim, both
+> proven on a local full stack:
+>
+> - **The 20-point score needs BOTH coordinates** (`job.service.ts:1314-1319`),
+>   so the seeker half alone does not revive it. TD-03 does.
+> - **Near By is no longer `noLocation: true`** for a seeker who sets a
+>   location — the dead end is gone, the feed is merely empty. Verified by
+>   putting a seeker on the only three jobs that carry coordinates: 3 returned
+>   at 0 km.
+
+**Original 2026-08-18 tracing, kept because it is still the employer half:**
 
 The backend's geography is built and correct: Haversine distance (`R = 6371km`), a Near By endpoint with a radius, and a location component worth **up to 20 points** in the recommendation score (full marks inside 10 km, then exponential decay `20 × e^(-(d-10)/15)`). **No client ever supplies a coordinate.**
 
-- The portal's **post-job form sends no lat/long** — `CreateJobData` has no such fields, though `job.validator.ts` accepts them.
-- The portal **never sets a seeker's coordinates** either.
+- The portal's **post-job form sends no lat/long** — ⚠️ **still true, this is TD-03.** (`PostJobData` does declare the fields; `JobForm` never fills them.)
+- ~~The portal never sets a seeker's coordinates either.~~ ✅ **Fixed 2026-08-20, TD-02.**
 - The **mobile app has no location package at all** — no `geolocator`, no `permission_handler` in `pubspec.yaml`. Its profile service exposes a `latitude` parameter that no screen fills.
 
 **What that means in production, today:**
 
 | Surface | Actual behaviour |
 |---|---|
-| Seeker **Near By** tab | Empty for **every** seeker — `getNearbyForSeeker` returns `noLocation: true` |
-| Location score in **Recommended** | **0 for every job** — the branch requires all four coordinates |
-| Portal **city dropdown** | Filters on coordinates no job has → no results |
+| Seeker **Near By** tab | Empty — but no longer a dead end. A seeker who sets a location clears `noLocation`; the feed stays empty only because no JOB has a coordinate |
+| Location score in **Recommended** | **0 for every job** — the branch requires all four coordinates, and the job's two are still missing |
+| Portal **city dropdown** | Ten cities now, each with its own radius on the wire — still returns nothing, because no job has a coordinate |
 
 This is the real **DEF-035** ("Near By returns the same as All Jobs"). The earlier hypothesis — geolocation blocked over HTTP — was **wrong**; the app never requests geolocation at all. **The fix is client-side data capture, not a filter bug:** geolocation permission + capture on mobile, and a geocoded address (or a map pin) on the job form. Until then the 20-point weight and the Near By tab are dead weight, and the tab shows an empty state to every user.
 

@@ -14,6 +14,69 @@ is theoretical. Where a claim comes from code, the file and line are named.
 
 ---
 
+## 📋 STATUS INDEX — every TD item, one glance
+
+**Updated 2026-08-20.** Keep this current when you close something. Closures used
+to be recorded only as prose inside three separate session sections, which meant
+working out what was left required cross-referencing them by hand — and three
+items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
+done.
+
+**Totals: 22 done · 13 open · 3 superseded · 1 can't-do-here · 1 blocked.**
+
+| # | Item | Status | Where |
+|---|---|---|---|
+| TD-00 | Deploy `main` to production | 🔴 **OPEN — blocks 19 retests** | Nayan / Asrar |
+| TD-01 | Re-run the retest table | 🔴 open — after TD-00 | |
+| TD-02 | Seeker coordinates | ✅ done | `aa1abb3` |
+| TD-03 | **Job coordinates** | 🔵 **NEXT** | |
+| TD-04 | Surface `noLocation` on mobile | 🔴 open — folded into TD-38 | |
+| TD-05 | Re-check the 20-point score | 🔴 open — Asrar, needs TD-03 first | |
+| TD-06 | Widen the city list to ten | ✅ done | `f7e631e` `d42204d` |
+| TD-07 | Tell employers about the trial | ✅ done | `e098ae9` `d1d6f38` |
+| TD-08 | Wrong-role login error | ✅ done | `cf1927e` + BE `d3bda2b` |
+| TD-09 | Paywall quotes ₹499 on ₹589 | ✅ done in code — ships with deploy | |
+| TD-10 | Wallet speaks accounting | ✅ done | `eacd112` |
+| TD-11 | Footer legal name | ✅ done in code — ships with deploy | |
+| TD-12 | Trust signals | ✅ done | `7f8b2b4` |
+| TD-13 | Copy / format inconsistencies | ✅ done | `4de0b23` |
+| TD-14 | "App is on the way" footer | ✅ done | `4457fd1` |
+| TD-15 | Job feed first screen | ✅ done | `f9b5f3b` |
+| TD-16 | Rebuild the web login | ⛔ **SUPERSEDED by TD-37** | |
+| TD-17 | Mirror login on mobile | ⛔ **SUPERSEDED by TD-37** | |
+| TD-18 | Employer dashboard order | ✅ done | `de79a36` `f8caf5b` |
+| TD-19 | One Apply button | ✅ done | `e67564a` |
+| TD-20 | Tap targets under 44 px | ✅ done | `8630d7d` |
+| TD-21 | Remove voice icons | ✅ done | `5755d6e` |
+| TD-22 | Untangle the filter cascade | 🔴 open | |
+| TD-23 | Show candidates before typing | 🔴 open | |
+| TD-24 | Stale "Applied" badge | ✅ done in code — ships with deploy | |
+| TD-25 | "Recommended" returns 1 in 10 | 🔴 open — partly TD-05 | |
+| TD-26 | Mobile's two brand blues | ✅ done — ⚠️ visual check owed | `55dc23e` |
+| TD-27 | Mobile welcome logo | ✅ done — ⚠️ visual check owed | `cd8ee11` |
+| TD-28 | Employer vs seeker identity | 🔴 open | |
+| TD-29 | Welcome screen onto the web | 🔴 open | |
+| TD-30 | `NODE_ENV` danger flags | ✅ code done — env is deliberate, see §9 | BE `79ebc15` |
+| TD-31 | CORS allowlist | ✅ done | BE `624fd30` |
+| TD-32 | Run mobile on a real device | ⚠️ **cannot be done from this machine** | Sailaja |
+| TD-33 | Mobile checkout | ⛔ **SUPERSEDED by TD-36** | |
+| TD-34 | Untidy job data | 🔴 open — data, **now also a search fix** | |
+| TD-35 | Ten jobs in production | 🔴 open — data | |
+| TD-36 | Remove purchasing from mobile | 🔴 open — ⚠️ needs D2 reopened by Shaik | |
+| TD-37 | One login: phone + password + Google | 🔴 open — approach agreed 2026-08-20 | |
+| TD-38 | Location on mobile | 🔴 open | |
+| TD-39 | `aria-required` with no field name | 🔴 open | |
+
+### The register — `docs/qa/defect-log.csv`, 35 rows
+
+**10 resolved · 19 awaiting retest · 6 open** *(re-counted 2026-08-20)*.
+
+The 19 cannot be judged until TD-00. The 6 genuinely open are DEF-006
+(deferred), DEF-018 (Asrar), DEF-032 + one other (Shaik's call), DEF-035
+(closes with TD-03), and one landing-page item.
+
+---
+
 ## 🔴 SESSION STATE — 2026-08-20, end of the SECOND fix session
 
 **Read this first.** The 2026-08-19 section below it is the first session; §0
@@ -476,7 +539,13 @@ layout — title, search box, result count, jobs. Delete the hero heading and su
 from [job-feed/page.tsx](../src/app/job-feed/page.tsx). **Target: first card above
 300 px.** Related: DEF-006.
 
-### TD-16 · Rebuild the web login as one choice `WEB` · M · ⭐
+### TD-16 · Rebuild the web login as one choice `WEB` · M · ⛔ SUPERSEDED
+
+> **Replaced by TD-37 (2026-08-20).** Same goal — one login instead of eight
+> combinations — but TD-16 was parked on DLT because it assumed phone + OTP had
+> to be the primary method. TD-37 uses **phone + password**, which already works
+> with no SMS, so the DLT block does not apply. Do not build TD-16. Read §9b.
+
 
 2 roles × 4 methods = **8 combinations**; 11 buttons and 3 inputs. WorkIndia's is one
 box and a "Skip" link. Default to **phone + OTP**, "Use email instead" as a text
@@ -484,7 +553,10 @@ link, **remove the role toggle** —
 [login/page.tsx:19](../src/app/login/page.tsx#L19). Keep all methods working
 underneath. If this lands, **TD-08 becomes unreachable**.
 
-### TD-17 · Mirror the login simplification on mobile `MOB` · M
+### TD-17 · Mirror the login simplification on mobile `MOB` · M · ⛔ SUPERSEDED
+
+> **Replaced by TD-37 (2026-08-20)**, which covers web and mobile together.
+
 
 9 buttons, 8 under 44 px.
 
@@ -583,7 +655,12 @@ It demonstrably **runs**: clean `flutter analyze`, builds, boots, logs into
 production, zero console errors, both roles walked. But that was the **web target**.
 Still needs a real device or emulator before release.
 
-### TD-33 · Mobile checkout `MOB` · L · ⛔ blocked on D2
+### TD-33 · Mobile checkout `MOB` · L · ⛔ SUPERSEDED
+
+> **Replaced by TD-36 (2026-08-20).** Nazir's call: purchasing is web-only, to
+> avoid Play's 30%. So mobile checkout is not "blocked" — it is **not being
+> built**. TD-36 removes the shopfront instead. Still needs Shaik to reopen D2.
+
 
 ---
 

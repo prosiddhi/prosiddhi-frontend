@@ -73,7 +73,10 @@ message for however long the gap lasts.
 
 - [ ] Push `prosiddhi-backend` (1 local commit: `624fd30`, CORS)
 - [ ] Deploy + restart the API, confirm §5 passes
-- [ ] Push `prosiddhi-frontend` (7 local commits)
+- [ ] Push `prosiddhi-frontend` — **10 local commits as of 2026-08-20**, the 7
+      from the second fix session plus the location work (`aa1abb3` TD-02,
+      `f7e631e` + `d42204d` TD-06) and the doc updates. **Re-run the command
+      below rather than trusting this number.**
 - [ ] Build + restart the portal
 - [ ] `prosiddhi-mobile-app` is already fully pushed; nothing to do
 
@@ -145,6 +148,15 @@ The whole point of this release is what a person sees, so look at it.
 - [ ] The home page badge reads "Job seekers are free, forever."
 - [ ] The seeker landing's **Register / Login / Sign up today** buttons
       actually navigate (they did nothing before this release)
+- [ ] **The job-feed city dropdown offers ten cities**, translated, not four
+- [ ] **The seeker profile has a "Use my current location" button**, and saving
+      a recognised city stores a coordinate. Re-checkable with
+      `node scripts/smoke/smoke-td02.js` and `smoke-td06.js` against a local
+      stack — both must read the record back over the API, because the form
+      saves happily whether or not a coordinate was written.
+
+⚠️ **Near By will still be empty after this deploy, and that is expected.** No
+job carries a coordinate until TD-03 ships. Do not log it as a regression.
 
 ---
 

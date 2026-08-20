@@ -5,7 +5,60 @@ Covers TD-02 · TD-03 · TD-04 · TD-05 · TD-06 and DEF-035, which are one piec
 of work, not six.
 
 **Decided:** a fixed, short city list (~10), per Nazir 2026-08-20.
-**Still open:** which cities. See §4.
+
+---
+
+## ⚡ PROGRESS — updated 2026-08-20
+
+| | Status |
+|---|---|
+| **TD-02** seeker coordinates | ✅ **done** — `aa1abb3` |
+| **TD-06** ten cities, per-city radius | ✅ **done** — `f7e631e` `d42204d` |
+| **TD-03** job coordinates | 🔵 **next — nothing is user-visible until this lands** |
+| **TD-05** re-check the score | 🔴 Asrar, after TD-03 |
+| **TD-04 / TD-38** mobile | 🔴 open — mobile has **no geolocation package at all** |
+
+### Five things we learned by building it — read before TD-03
+
+1. **TD-02 alone changes nothing a user can see, and neither does TD-06.**
+   `getNearbyForSeeker` drops every job with a null coordinate, and no job has
+   one. Verified by putting a seeker on top of the only three jobs that do:
+   3 returned at 0 km. The machinery works; it is starved of job coordinates.
+
+2. **The 20-point location score needs BOTH coordinates**
+   (`job.service.ts:1314-1319`). The claim that TD-02 "revives 20 dead points"
+   was half right — it is TD-03 that switches them on.
+
+3. **`Job.radius` is written and never read.** `getNearbyForSeeker` filters on
+   the *seeker's* radius. So TD-03 should **send nothing** for it rather than
+   guess — and must NOT pass `City.radius`, which measures the city's extent,
+   not the employer's hiring reach. There is a warning on the field in
+   `api.ts`.
+
+4. **A city's radius does two jobs** — the feed's `maxDistance`, and the
+   threshold at which a typed city may overwrite a stored coordinate. They fail
+   in opposite directions. Tuning one retunes the other.
+
+5. **Match city text RIGHT TO LEFT.** Indian addresses end with the city, so
+   "Delhi Gate, Ahmedabad" scanned left-to-right resolves 900 km wrong — and a
+   wrong centroid reads as a *move*, so the next save overwrites a real
+   coordinate. Also match the **translated** labels: a Kannada seeker types
+   "ಬೆಂಗಳೂರು", which is what the job feed just showed them.
+
+### For TD-03, do this first
+
+**MOVE** the coordinate-precedence rule out of `app/profile/page.tsx` into
+`@/lib/cities` as TD-03's **first commit**, before touching `JobForm.tsx`.
+`distanceKm` is already exported there for that single caller and its docstring
+already describes the rule, so moving it is lateral, not a new layer. A
+"do not copy this" comment is a sign on the thing most likely to be copied.
+
+Also: the city labels live under `seeker:jobFeed.city.*` and the job form is an
+**employer** screen. TD-03 owns that namespace decision — reach across (there is
+precedent in `employee/page.tsx`), or move the labels somewhere shared. Do not
+duplicate 100 translated strings into `employer.json`.
+
+---
 
 ---
 
@@ -168,18 +221,32 @@ bengaluru: { lat: 12.9716, lon: 77.5946, radius: 30 },
 
 Delhi NCR ~50, Mumbai and Bengaluru ~30, smaller cities ~20.
 
-**Still to decide:** the six new names. Four exist already (Bangalore, Delhi,
-Mumbai, Pune). Candidates, to be confirmed against where our employers
-actually are: Hyderabad, Chennai, Kolkata, Ahmedabad, Surat, Jaipur.
+**✅ SETTLED 2026-08-20 by Nazir — the ten, shipped in `f7e631e`:**
+Ahmedabad 20 · Bangalore 30 · Chennai 30 · Delhi 50 · Hyderabad 30 ·
+Jaipur 20 · Kolkata 25 · Mumbai 30 · Pune 25 · Surat 20 *(km)*.
+
+Alphabetical, because that is the dropdown order. Every radius is on the wire
+and checked by `scripts/smoke/smoke-td06.js`.
 
 ---
 
-## 5. The trap
+## 5. The trap — ✅ handled 2026-08-20
 
 **`maxDistance` defaults to 5 km.** Pick "Bengaluru", get the centroid, and
 without an explicit radius you see only jobs within 5 km of the city centre —
-in a city roughly 50 km across. The frontend **must** send the city's radius
-explicitly. This is a one-line change and very easy to miss.
+in a city roughly 50 km across.
+
+Fixed in `f7e631e`: the job feed sends `coords.radius`, and `smoke-td06.js`
+reads every city's radius off the outgoing request rather than the screen,
+because a missing radius is invisible until you look at the wire.
+
+Two places the same trap was still live and are now closed:
+
+- `getNearbyJobs` in `api.ts` defaulted to **5 km**, disagreeing with both the
+  city filter on the same screen and the backend service default. It was never
+  reached before TD-02 because the call short-circuited on `noLocation`. Now 50.
+- The Near By tab keeps a flat 50 **deliberately** — it is keyed to the seeker's
+  own coordinate, not a dropdown choice, so there is no city radius to read.
 
 ---
 
