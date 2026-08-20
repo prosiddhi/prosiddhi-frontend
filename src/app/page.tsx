@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/home/Header'
 import { HeroSection } from '@/components/home/HeroSection'
-import { LanguageSection } from '@/components/home/LanguageSection'
+import { GetStartedSection } from '@/components/home/GetStartedSection'
 import { Footer } from '@/components/home/Footer'
 
 export default function HomePage() {
@@ -11,7 +11,7 @@ export default function HomePage() {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <LanguageSection />
+        <GetStartedSection />
       </main>
       <Footer />
     </div>

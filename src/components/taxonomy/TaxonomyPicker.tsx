@@ -11,7 +11,7 @@
 // selectClassName / labelClassName so it can match each host form; `variant`
 // switches placeholder wording between a form ("Select a…") and a filter ("All…").
 
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, X } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
@@ -174,7 +174,22 @@ export function TaxonomyPicker({
   // Flatten once per tree, not per keystroke. The tree is module-cached by
   // useCategories, so `categories` is referentially stable between loads.
   const flat = useMemo(() => flattenJobTitles(categories), [categories])
-  const matches = useMemo(() => (showSearch ? searchJobTitles(flat, query) : []), [flat, query, showSearch])
+  // Debounced, because the results sit in an `aria-live` region: undebounced, a
+  // screen reader re-reads up to eight rows — each a title AND its category path
+  // — on every keystroke, so typing "welder" is six full list readings. 250ms is
+  // short enough that a sighted user does not perceive lag and long enough that
+  // an ordinary typing burst produces one announcement. Same reason TD-41
+  // debounced the job form's status line.
+  const [settledQuery, setSettledQuery] = useState('')
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledQuery(query), 250)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const matches = useMemo(
+    () => (showSearch ? searchJobTitles(flat, settledQuery) : []),
+    [flat, settledQuery, showSearch]
+  )
   // A real job title from the tree, for the placeholder — the SHORTEST one.
   //
   // Not `flat[0]`, which is whatever the backend happens to return first and is
@@ -196,7 +211,7 @@ export function TaxonomyPicker({
       ),
     [flat]
   )
-  const searching = showSearch && open && query.trim().length >= 2
+  const searching = showSearch && open && settledQuery.trim().length >= 2
 
   // Picking a result answers all three levels at once — which is the entire
   // point of the box.
@@ -213,6 +228,7 @@ export function TaxonomyPicker({
   const pickJobTitle = (hit: FlatJobTitle) => {
     onChange({ category: hit.category, sector: hit.sector, jobTitle: hit.jobTitle })
     setQuery('')
+    setSettledQuery('')
     setOpen(false)
     restoreFocus()
   }
@@ -300,10 +316,16 @@ export function TaxonomyPicker({
               // While the tree is still loading there is no example, and
               // interpolating an empty one leaves a dangling half-sentence —
               // "Type a job, e.g. " on a greyed-out input, or "வேலை, எ.கா. ".
+              // Gated on `loading`, not on the example being empty. A tree that
+              // loads and turns out to be empty is a different thing from one
+              // still in flight, and conflating them leaves an enabled box
+              // reading "Loading…" forever on an unseeded environment.
               placeholder={
-                exampleJob
-                  ? t('taxonomy:searchPlaceholder', { example: exampleJob })
-                  : t('taxonomy:loading')
+                loading
+                  ? t('taxonomy:loading')
+                  : exampleJob
+                    ? t('taxonomy:searchPlaceholder', { example: exampleJob })
+                    : t('taxonomy:searchLabel')
               }
               className={`${selectClassName} pl-9 ${query ? 'pr-9' : ''}`}
               autoComplete="off"
@@ -322,8 +344,11 @@ export function TaxonomyPicker({
             {query && (
               <button
                 type="button"
+                // Same Safari reason as the result buttons above.
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setQuery('')
+                  setSettledQuery('')
                   setOpen(false)
                   restoreFocus()
                 }}
@@ -351,13 +376,21 @@ export function TaxonomyPicker({
             >
               {matches.length === 0 ? (
                 <li className="px-3 py-2 text-sm text-[#717182]">
-                  {t('taxonomy:searchNoMatch', { query: query.trim() })}
+                  {t('taxonomy:searchNoMatch', { query: settledQuery.trim() })}
                 </li>
               ) : (
                 matches.map((hit) => (
                   <li key={`${hit.category}|${hit.sector}|${hit.jobTitle}`}>
                     <button
                       type="button"
+                      // Safari and iOS Safari do NOT focus a <button> on click,
+                      // so the input's blur fires with relatedTarget null, the
+                      // list unmounts, and the click lands on nothing — the box
+                      // is simply dead there. Chromium focuses buttons, which is
+                      // why smoke-td22.js cannot see this. Suppressing the
+                      // default pointer-down keeps focus on the input so the
+                      // close never runs before the click.
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => pickJobTitle(hit)}
                       className="w-full text-left px-3 py-2 min-h-[44px] hover:bg-primary-10 focus:bg-primary-10 focus:outline-none"
                     >

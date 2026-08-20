@@ -22,7 +22,7 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**47 items: 22 ✅ done · 16 🔴 open · 4 🟠 WEB-done/MOBILE-pending · 3 ⛔ superseded ·
+**49 items: 25 ✅ done · 15 🔴 open · 4 🟠 WEB-done/MOBILE-pending · 3 ⛔ superseded ·
 1 🟡 written-but-not-run (TD-40) · 1 ⚠️ not possible here (TD-32).**
 
 *Recounted 2026-08-20 from the table with the loop below, after TD-04, TD-39 and
@@ -80,7 +80,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-26 | Mobile's two brand blues | ✅ done — ⚠️ visual check owed | `55dc23e` |
 | TD-27 | Mobile welcome logo | ✅ done — ⚠️ visual check owed | `cd8ee11` |
 | TD-28 | Employer vs seeker identity | ✅ done — one header, 5/5 `smoke-td28.js` | |
-| TD-29 | Welcome screen onto the web | 🔴 open | |
+| TD-29 | Welcome screen onto the web | ✅ done — 12/12, `smoke-td29.js` | |
 | TD-30 | `NODE_ENV` danger flags | ✅ code done — env is deliberate, see §9 | BE `79ebc15` |
 | TD-31 | CORS allowlist | ✅ done | BE `624fd30` |
 | TD-32 | Run mobile on a real device | ⚠️ **cannot be done from this machine** | Sailaja |
@@ -1089,12 +1089,18 @@ neither — which is the trap this ticket has to avoid, not repeat.
 
 ### TD-46 · `/assets/language-fallback.png` does not exist `WEB` · XS
 
-A 404 on the home page, every load. Referenced by
-[LanguageSection.tsx:84](../src/components/home/LanguageSection.tsx#L84) and
-[LanguageModal.tsx:85](../src/components/home/LanguageModal.tsx#L85) as the
-`<video>` poster fallback; `public/assets/` holds `language.mp4` and no such
-PNG. Chrome requests it anyway, so every smoke run in `scripts/smoke/` has been
-filtering it as known noise. Either add the file or drop the `<img>`.
+A 404 for a file that does not exist: `public/assets/` holds `language.mp4` and
+no such PNG. It is the `<img>` fallback inside a `<video>`, and Chrome requests
+it regardless, so `scripts/smoke/smoke-td41.js` filters it as known noise.
+
+**Shrunk by TD-29.** It had two call sites; the home page's went with
+`LanguageSection`, which TD-29 replaced by
+[GetStartedSection.tsx](../src/components/home/GetStartedSection.tsx) — no video,
+no fallback. The one left is
+[LanguageModal.tsx:85](../src/components/home/LanguageModal.tsx#L85), which is
+**not** on the home page, so the "every load" this was first written about is
+already gone. Either add the file or drop the `<img>`; and if it is dropped, drop
+the filter in the smoke with it.
 
 ### TD-39 · `aria-required` announces a field with no name `WEB` · S
 
