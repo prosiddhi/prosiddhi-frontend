@@ -7,7 +7,7 @@
 // for everybody. That failure is invisible in the UI: the form saves happily.
 // Only the stored record proves it, so every check here reads the record back
 // over the API rather than trusting the green "Saved" tick.
-const { chromium, LAUNCH, FE, BE, OUT, loginSeeker } = require('./lib-smoke')
+const { chromium, LAUNCH, FE, OUT, authed, nearby, loginSeeker } = require('./lib-smoke')
 
 // Bangalore's centroid, from src/lib/cities.ts. The coarse tier must produce
 // exactly this from typed text.
@@ -17,28 +17,16 @@ const BLR = { lat: 12.9716, lon: 77.5946 }
 const FIX = { lat: 12.95, lon: 77.6 }
 
 async function profile(token) {
-  const res = await fetch(`${BE}/jobseekers/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  const j = await res.json()
+  const j = await authed('/jobseekers/profile', token)
   const js = j?.data?.jobSeeker
   if (!js) throw new Error('could not read profile: ' + JSON.stringify(j))
   return { lat: js.latitude, lon: js.longitude, location: js.location }
 }
 
-async function nearby(token) {
-  // radius=50 and page=1 both matter, and both must match what the portal sends
-  // (src/lib/api.ts getNearbyJobs). Omitting radius gets the backend's zod
-  // default of 5 km — a radius the app never uses. Omitting page is worse: the
-  // service computes skip = (page - 1) * limit, which on a null page is -10, and
-  // slice(-10, 0) returns nothing while `pagination.total` still reports the
-  // real count. See the backend note in docs/teardown-fix-list.md.
-  const res = await fetch(`${BE}/jobs/nearby?radius=50&page=1&limit=10`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  const j = await res.json()
-  return { jobs: j?.data?.jobs ?? [], noLocation: j?.data?.noLocation === true }
-}
+// `nearby` used to live here. It moved to lib-smoke.js when TD-04's suite needed
+// the same call: the radius and page parameters are load-bearing in a way that
+// is invisible at the call site, and the warning explaining why was in this copy
+// only. Two copies means one of them eventually loses the warning.
 
 // Coordinates round-trip through JSON and a 3-decimal rounding step, so compare
 // with a tolerance rather than ===.

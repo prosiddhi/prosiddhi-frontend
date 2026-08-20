@@ -6,7 +6,7 @@
 // coordinates every one of those returns nothing: getNearbyForSeeker drops any
 // job with a null latitude before the distance maths runs. So the assertion
 // that matters is the last one — a seeker in the same city sees the job.
-const { chromium, LAUNCH, FE, BE, OUT, loginSeeker, loginEmployer } = require('./lib-smoke')
+const { chromium, LAUNCH, FE, OUT, authed, loginSeeker, loginEmployer } = require('./lib-smoke')
 
 const BLR = { lat: 12.9716, lon: 77.5946 }
 const near = (a, b) => a != null && b != null && Math.abs(a - b) < 0.002
@@ -16,13 +16,7 @@ function check(label, ok, detail) {
   return ok
 }
 
-async function authed(path, token, init) {
-  const res = await fetch(BE + path, {
-    ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init?.headers || {}) },
-  })
-  return res.json()
-}
+// `authed` moved to lib-smoke.js — TD-04's suite needed the same wrapper.
 
 async function session(browser, who, geo) {
   const ctx = await browser.newContext({

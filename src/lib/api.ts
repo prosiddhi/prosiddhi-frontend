@@ -358,6 +358,30 @@ export interface JobsPagination {
 export interface JobsPage {
   jobs: Job[]
   pagination: JobsPagination
+  /**
+   * Near By only. `true` means the SEEKER has no saved coordinate, so the
+   * backend returned early without ever running the distance filter
+   * (`job.service.ts`, `getNearbyForSeeker`). Absent on every other feed.
+   *
+   * The distinction is the whole point: "you have not told us where you are"
+   * is fixable by the seeker and deserves an action, while "nothing within
+   * 50 km of where you are" is not — offering "Add your location" to someone
+   * who already has one is what makes the tab read as broken.
+   *
+   * ⚠️ **That same early return also sends `message` — do not render it.** It
+   * is a hardcoded English string ("Add your location to see nearby jobs.")
+   * and it looks exactly like a ready-made empty state, which is the trap. We
+   * ship ten languages; printing it puts English on a Tamil seeker's screen,
+   * and nothing would catch it — no locale file is involved, so type-check,
+   * lint and `verify-locales.mjs` all stay green. It is left untyped on
+   * purpose so reaching for it does not compile.
+   *
+   * ⚠️ One endpoint-specific flag on this shared type is fine. A SECOND is the
+   * signal to split into discriminated variants instead — five endpoints
+   * return `JobsPage`, and each optional flag is one more field an employer
+   * screen can read and get `undefined` from forever.
+   */
+  noLocation?: boolean
 }
 
 // A saved-jobs row: the BE wraps the job in a SavedJob record (GET /api/saved-jobs).

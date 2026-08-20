@@ -11,10 +11,12 @@ import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
 import {
   Search,
   MapPin,
+  MapPinOff,
+  MapPinPlus,
   ChevronDown,
   Home,
   Briefcase,
@@ -69,6 +71,35 @@ const EMPTY_FILTERS: AppliedFilters = {
 // actually sorts ascending regardless of the BE's default sortOrder.
 function sortOrderFor(sortBy: JobFeedFilters['sortBy']): 'asc' | 'desc' {
   return sortBy === 'salaryMin' || sortBy === 'title' ? 'asc' : 'desc'
+}
+
+/**
+ * The three empty states, decided ONCE — icon, sentence and whether there is
+ * anything to press.
+ *
+ * `noLocation` (Near By only) means the seeker has no saved coordinate, so the
+ * backend never ran the distance filter. That is fixable by the seeker and
+ * earns an action. An empty Near By WITH a coordinate is not fixable by adding
+ * a location they already gave us, and offering the button there is what makes
+ * the tab read as broken.
+ *
+ * One derivation rather than three, because mobile shipped the bug that costs:
+ * its icon branch did not know about `_noLocation`, so it stacked a
+ * struck-through pin directly above an "Add location" button — two contradicting
+ * glyphs in one box. It now switches on the same pair
+ * (`home_tab.dart`, `getNearbyForSeeker`'s consumer); this keeps the web from
+ * re-deriving the same rule in three places and drifting apart from it.
+ */
+function emptyStateFor(tab: Tab, noLocation: boolean, t: (key: string) => string) {
+  if (tab === 'recommended') {
+    return { Icon: Briefcase, body: t('seeker:jobFeed.emptyRecommended'), cta: false }
+  }
+  if (tab === 'all') {
+    return { Icon: Briefcase, body: t('seeker:jobFeed.emptyDefault'), cta: false }
+  }
+  return noLocation
+    ? { Icon: MapPinPlus, body: t('profile:seeker.locationOff'), cta: true }
+    : { Icon: MapPinOff, body: t('seeker:jobFeed.emptyNearby'), cta: false }
 }
 
 function JobFeedPageContent() {
@@ -262,6 +293,11 @@ function JobFeedPageContent() {
   const jobs: Job[] = data?.jobs ?? []
   const pagination = data?.pagination
   const totalPages = pagination?.totalPages ?? 1
+  // Set by GET /jobs/nearby alone, and only when the seeker has no saved
+  // coordinate. Read straight off `data` rather than kept in its own state: the
+  // two would then need to be cleared together on every tab switch, and the one
+  // that got missed would carry a stale flag onto the next tab.
+  const empty = emptyStateFor(tab, data?.noLocation === true, t)
 
   const sectionTitle =
     tab === 'recommended'
@@ -503,19 +539,19 @@ function JobFeedPageContent() {
           {/* Empty */}
           {!loading && !error && jobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
-              <Briefcase className="w-10 h-10 mb-4 text-gray-300" />
+              <empty.Icon className="w-10 h-10 mb-4 text-gray-300" />
               <p className="text-lg font-medium text-black mb-1">{t('seeker:jobFeed.emptyTitle')}</p>
-              <p className="max-w-md">
-                {tab === 'nearby'
-                  ? t('seeker:jobFeed.emptyNearby')
-                  : tab === 'recommended'
-                  ? t('seeker:jobFeed.emptyRecommended')
-                  : t('seeker:jobFeed.emptyDefault')}
-              </p>
-              {/* Near By is GPS-keyed. A seeker who only typed a city name has no
-                  lat/lon, so this tab is empty for them FOREVER — with nothing to
-                  click. Give them the one action that fixes it. */}
-              {tab === 'nearby' && (
+              {/* `profile:` on the seeker feed is deliberate: this is the same
+                  sentence about the same fix, and the button below goes to the
+                  very field it names, so a second key would only give the two
+                  screens somewhere to drift apart. Every namespace ships in one
+                  chunk (locales/<lng>/index.ts), so it costs no extra download.
+                  Its proper home is `common.json`'s existing `location` block —
+                  a move worth making with `emptyNearbyCta`, but it edits 20
+                  locale files for no user-visible gain, so not during a defect
+                  pass. Same call, same reason, as `cityLabelKey` in lib/cities. */}
+              <p className="max-w-md">{empty.body}</p>
+              {empty.cta && (
                 <Link
                   href="/profile"
                   className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm"

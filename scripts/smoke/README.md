@@ -45,6 +45,7 @@ machine that got Playwright via `npx` usually has no bundled Chromium.
 | `PLAYWRIGHT_PATH` | — |
 | `SMOKE_BROWSER` | `chrome` |
 | `SMOKE_SEEKER_PHONE` / `SMOKE_SEEKER_PASSWORD` | `+919876500019` / `Demo@12345` |
+| `SMOKE_SEEKER_NOLOC` / `SMOKE_SEEKER_NOLOC_PASSWORD` | `+919876500077` / `Demo@12345` — the seeker that must never own a coordinate |
 | `SMOKE_EMPLOYER` / `SMOKE_EMPLOYER_PASSWORD` | `demo.employer@prosiddhi.test` / `Demo@12345` |
 
 ## Two traps that will waste your afternoon
@@ -72,6 +73,7 @@ the code — killing the server by PID and restarting compiled the same route in
 |---|---|
 | `smoke-td02.js` | The seeker profile actually **writes** a coordinate — typed city → centroid, the GPS button → a precise fix, a bio-only save leaves that fix alone, a city typed in Kannada still matches, and Near By loses `noLocation`. Every check reads the record back over the API, because the form saves happily either way |
 | `smoke-td03.js` | The payoff check for the whole location workstream: a job posted through the real form carries the city centroid, **a seeker in that city then finds it in Near By**, a title edit does not move the pin, and the location button overrides the centroid. ⚠️ **Posts a real job and spends a real post credit** — it deletes the job at the end, so let it finish |
+| `smoke-td04.js` | The Near By empty state tells "you never gave us a location" apart from "nothing is within 50 km", and offers the **"Add your location"** link only for the first. ⚠️ Registers its own coordinate-less seeker on first run (`+919876500077`) and reuses it after — TD-42 means a coordinate cannot be cleared, only overwritten, so the case needs an account that never had one. It also moves `SMOKE_SEEKER_PHONE` out to sea and back; let it finish |
 | `smoke-td06.js` | All ten cities are offered and translated, and each sends **its own** `maxDistance` (Delhi 50, Surat 20 …). Reads the outgoing request, not the screen — a missing radius silently becomes the backend's 5 km default |
 | `smoke-td08.js` | Wrong-role login names the account and moves the tab; a wrong password does **not**; an ADMIN does not start a tab ping-pong |
 | `smoke-td12.js` | The trust claim is above the fold on `/` and `/employee`, in four languages, at ≥4.5:1 contrast |

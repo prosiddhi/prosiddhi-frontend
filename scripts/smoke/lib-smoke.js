@@ -67,14 +67,18 @@ async function loginEmployer() {
 // Phone + password (login arm 3). Preferred over phone+OTP because repeated
 // smoke runs trip the OTP rate limiter (5 per 15 min) and then every later
 // suite fails for a reason that has nothing to do with what it is testing.
-async function loginSeeker() {
-  const j = await post('/jobseekers/login', { identifier: SEEKER_PHONE, password: SEEKER_PASSWORD })
+//
+// Takes the phone and password so a suite needing a DIFFERENT seeker — TD-04
+// keeps one that must never own a coordinate — gets the same OTP fallback
+// rather than hand-rolling a bare login POST beside it.
+async function loginSeeker(phone = SEEKER_PHONE, password = SEEKER_PASSWORD) {
+  const j = await post('/jobseekers/login', { identifier: phone, password })
   if (j.success) return j.data
   // Fall back to OTP. Needs EXPOSE_OTP_IN_RESPONSE=true on the backend.
-  const sent = await post('/auth/login-phone-send', { phoneNumber: SEEKER_PHONE })
+  const sent = await post('/auth/login-phone-send', { phoneNumber: phone })
   const otp = sent?.data?.otp
   if (!otp) throw new Error('seeker login failed: ' + JSON.stringify(j) + ' / ' + JSON.stringify(sent))
-  const k = await post('/jobseekers/login', { identifier: SEEKER_PHONE, otp })
+  const k = await post('/jobseekers/login', { identifier: phone, otp })
   if (!k.success) throw new Error('seeker OTP login failed: ' + JSON.stringify(k))
   return k.data
 }
@@ -83,6 +87,33 @@ async function jobs(limit = 5) {
   const res = await fetch(`${BE}/jobs?page=1&limit=${limit}`)
   const j = await res.json()
   return j.data.jobs
+}
+
+// Any authed call, GET by default. `init` carries the method and body, so this
+// covers the profile PUTs as well as the reads.
+async function authed(path, token, init) {
+  const res = await fetch(BE + path, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers || {}),
+    },
+  })
+  return res.json()
+}
+
+// The seeker's Near By feed.
+//
+// ⚠️ Every parameter here is load-bearing, which is why this is a function and
+// not a URL typed at each call site. Omitting `radius` gets the backend's zod
+// default of 5 km — a radius the app never sends. Omitting `page` is worse: the
+// service computes `skip = (page - 1) * limit`, which on a null page is -10, and
+// `slice(-10, 0)` returns nothing while `pagination.total` still reports the
+// real count. These must stay in step with `getNearbyJobs` in src/lib/api.ts.
+async function nearby(token) {
+  const j = await authed('/jobs/nearby?radius=50&page=1&limit=10', token)
+  return { jobs: j?.data?.jobs ?? [], noLocation: j?.data?.noLocation === true }
 }
 
 // A page with the session already in localStorage, plus error collection.
@@ -124,6 +155,8 @@ module.exports = {
   BE,
   OUT,
   post,
+  authed,
+  nearby,
   loginEmployer,
   loginSeeker,
   jobs,
