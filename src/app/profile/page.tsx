@@ -59,12 +59,6 @@ function toDateInput(iso?: string | null): string {
 let rowSeq = 0
 const newKey = () => `row-${rowSeq++}`
 
-// How far a typed city must sit from the stored coordinate before we treat it as
-// a move rather than a first-time fill-in. Wider than any centroid-to-suburb
-// distance in our list (Delhi NCR is the broadest, ~25 km), far narrower than the
-// gap between any two cities on it (Mumbai–Pune is ~120 km).
-const MOVED_KM = 40
-
 function SeekerProfileContent() {
   const { t } = useTranslation()
   const { user, updateUser } = useAuth()
@@ -191,8 +185,14 @@ function SeekerProfileContent() {
   // JobForm.tsx, which has the identical free-text location + hydrate shape).
   // MOVE it into @/lib/cities then — do not copy it, or an employer editing a
   // job title will quietly move its pin to the city centre.
+  // "Moved" is measured against the typed city's OWN radius (TD-06), not a flat
+  // number. A fixed threshold cannot be right for both Delhi, which reaches
+  // 50 km, and Surat, which reaches 20: set it wide and a real move across a
+  // small city goes unnoticed; set it narrow and a Delhi seeker's own suburb
+  // reads as a different city.
   const typedCity = cityCoordsFromText(location, (key) => t(`seeker:jobFeed.city.${key}`))
-  const movedCity = !!typedCity && (!savedCoords || distanceKm(savedCoords, typedCity) > MOVED_KM)
+  const movedCity =
+    !!typedCity && (!savedCoords || distanceKm(savedCoords, typedCity) > typedCity.radius)
   const pendingFix = gpsFix ?? (movedCity ? typedCity : undefined)
 
   const handleSave = async () => {

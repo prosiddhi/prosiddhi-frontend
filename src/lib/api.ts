@@ -1031,7 +1031,9 @@ export const jobSeekerAPI = {
     // seeker whose GPS puts them in Whitefield sits ~18 km from the Bangalore
     // centroid a typed-city job would carry.
     //
-    // TD-06 replaces this with the chosen city's own radius.
+    // TD-06 gave the All-jobs city filter a per-city radius, but this tab has no
+    // city to read one from — it is keyed to the seeker's own coordinate, not to
+    // a dropdown choice. 50 km stays the "near me" default.
     const { radius = 50, page = 1, limit = 10 } = params
     return apiRequest<JobsPage>(`/jobs/nearby?radius=${radius}&page=${page}&limit=${limit}`)
   },

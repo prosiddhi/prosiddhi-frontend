@@ -22,10 +22,16 @@
     "searchPlaceholder": "ଚାକିରିର ନାମ କିମ୍ବା କିୱାର୍ଡ",
     "anyLocation": "ଯେକୌଣସି ସ୍ଥାନ",
     "city": {
+      "ahmedabad": "ଅହମଦାବାଦ",
       "bangalore": "ବାଙ୍ଗାଲୋର",
+      "chennai": "ଚେନ୍ନାଇ",
       "delhi": "ଦିଲ୍ଲୀ",
+      "hyderabad": "ହାଇଦ୍ରାବାଦ",
+      "jaipur": "ଜୟପୁର",
+      "kolkata": "କୋଲକାତା",
       "mumbai": "ମୁମ୍ବାଇ",
-      "pune": "ପୁଣେ"
+      "pune": "ପୁଣେ",
+      "surat": "ସୁରଟ"
     },
     "searchJobs": "ଚାକିରି ଖୋଜନ୍ତୁ",
     "filter": "ଫିଲ୍ଟର୍",

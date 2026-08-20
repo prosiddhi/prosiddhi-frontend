@@ -22,10 +22,16 @@
     "searchPlaceholder": "नौकरी का नाम या कीवर्ड",
     "anyLocation": "कोई भी स्थान",
     "city": {
+      "ahmedabad": "अहमदाबाद",
       "bangalore": "बैंगलोर",
+      "chennai": "चेन्नई",
       "delhi": "दिल्ली",
+      "hyderabad": "हैदराबाद",
+      "jaipur": "जयपुर",
+      "kolkata": "कोलकाता",
       "mumbai": "मुंबई",
-      "pune": "पुणे"
+      "pune": "पुणे",
+      "surat": "सूरत"
     },
     "searchJobs": "नौकरियाँ खोजें",
     "filter": "फ़िल्टर",

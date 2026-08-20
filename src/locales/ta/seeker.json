@@ -22,10 +22,16 @@
     "searchPlaceholder": "வேலையின் பெயர் அல்லது முக்கிய வார்த்தை",
     "anyLocation": "எந்த இடமும்",
     "city": {
+      "ahmedabad": "அகமதாபாத்",
       "bangalore": "பெங்களூரு",
+      "chennai": "சென்னை",
       "delhi": "டெல்லி",
+      "hyderabad": "ஹைதராபாத்",
+      "jaipur": "ஜெய்ப்பூர்",
+      "kolkata": "கொல்கத்தா",
       "mumbai": "மும்பை",
-      "pune": "புனே"
+      "pune": "புனே",
+      "surat": "சூரத்"
     },
     "searchJobs": "வேலை தேடுங்கள்",
     "filter": "வடிகட்டி",

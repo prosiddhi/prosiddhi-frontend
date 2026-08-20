@@ -22,10 +22,16 @@
     "searchPlaceholder": "ఉద్యోగం పేరు లేదా కీవర్డ్",
     "anyLocation": "ఏ ప్రాంతమైనా",
     "city": {
+      "ahmedabad": "అహ్మదాబాద్",
       "bangalore": "బెంగళూరు",
+      "chennai": "చెన్నై",
       "delhi": "ఢిల్లీ",
+      "hyderabad": "హైదరాబాద్",
+      "jaipur": "జైపూర్",
+      "kolkata": "కోల్కతా",
       "mumbai": "ముంబై",
-      "pune": "పుణె"
+      "pune": "పుణె",
+      "surat": "సూరత్"
     },
     "searchJobs": "ఉద్యోగాలు వెతకండి",
     "filter": "ఫిల్టర్",

@@ -22,10 +22,16 @@
     "searchPlaceholder": "નોકરીનું નામ અથવા કીવર્ડ",
     "anyLocation": "કોઈ પણ સ્થળ",
     "city": {
+      "ahmedabad": "અમદાવાદ",
       "bangalore": "બેંગલોર",
+      "chennai": "ચેન્નઈ",
       "delhi": "દિલ્હી",
+      "hyderabad": "હૈદરાબાદ",
+      "jaipur": "જયપુર",
+      "kolkata": "કોલકાતા",
       "mumbai": "મુંબઈ",
-      "pune": "પુણે"
+      "pune": "પુણે",
+      "surat": "સુરત"
     },
     "searchJobs": "નોકરીઓ શોધો",
     "filter": "ફિલ્ટર",

@@ -22,10 +22,16 @@
     "searchPlaceholder": "ജോലിയുടെ പേര് അല്ലെങ്കിൽ കീവേഡ്",
     "anyLocation": "ഏത് സ്ഥലവും",
     "city": {
+      "ahmedabad": "അഹമ്മദാബാദ്",
       "bangalore": "ബെംഗളൂരു",
+      "chennai": "ചെന്നൈ",
       "delhi": "ഡൽഹി",
+      "hyderabad": "ഹൈദരാബാദ്",
+      "jaipur": "ജയ്പൂർ",
+      "kolkata": "കൊൽക്കത്ത",
       "mumbai": "മുംബൈ",
-      "pune": "പുണെ"
+      "pune": "പുണെ",
+      "surat": "സൂറത്ത്"
     },
     "searchJobs": "ജോലി തിരയുക",
     "filter": "ഫിൽട്ടർ",

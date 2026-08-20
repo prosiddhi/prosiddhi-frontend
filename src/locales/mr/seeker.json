@@ -22,10 +22,16 @@
     "searchPlaceholder": "नोकरीचे नाव किंवा शब्द",
     "anyLocation": "कोणतेही ठिकाण",
     "city": {
+      "ahmedabad": "अहमदाबाद",
       "bangalore": "बंगळुरू",
+      "chennai": "चेन्नई",
       "delhi": "दिल्ली",
+      "hyderabad": "हैदराबाद",
+      "jaipur": "जयपूर",
+      "kolkata": "कोलकाता",
       "mumbai": "मुंबई",
-      "pune": "पुणे"
+      "pune": "पुणे",
+      "surat": "सुरत"
     },
     "searchJobs": "नोकऱ्या शोधा",
     "filter": "फिल्टर",

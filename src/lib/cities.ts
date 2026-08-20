@@ -21,11 +21,33 @@ export interface Coords {
   lon: number
 }
 
-export const CITY_COORDS: Record<string, Coords> = {
-  bangalore: { lat: 12.9716, lon: 77.5946 },
-  delhi: { lat: 28.6139, lon: 77.209 },
-  mumbai: { lat: 19.076, lon: 72.8777 },
-  pune: { lat: 18.5204, lon: 73.8567 },
+/** A city we offer: its centre, and how far out "in this city" reaches. */
+export interface City extends Coords {
+  radius: number
+}
+
+/**
+ * The ten cities, alphabetical — a stable, predictable dropdown order.
+ *
+ * ⚠️ **`radius` is not decoration.** The backend's `maxDistance` defaults to
+ * **5 km** and is capped at 100. Send a centroid without an explicit radius and
+ * a seeker who picks Bengaluru sees only jobs within 5 km of the city centre,
+ * in a city roughly 50 km across — which reads as "the filter is broken".
+ *
+ * Radii are the built-up spread, not the district boundary: Delhi carries NCR,
+ * the four other big metros ~30 km, and the smaller cities 20–25 km.
+ */
+export const CITY_COORDS: Record<string, City> = {
+  ahmedabad: { lat: 23.0225, lon: 72.5714, radius: 20 },
+  bangalore: { lat: 12.9716, lon: 77.5946, radius: 30 },
+  chennai: { lat: 13.0827, lon: 80.2707, radius: 30 },
+  delhi: { lat: 28.6139, lon: 77.209, radius: 50 },
+  hyderabad: { lat: 17.385, lon: 78.4867, radius: 30 },
+  jaipur: { lat: 26.9124, lon: 75.7873, radius: 20 },
+  kolkata: { lat: 22.5726, lon: 88.3639, radius: 25 },
+  mumbai: { lat: 19.076, lon: 72.8777, radius: 30 },
+  pune: { lat: 18.5204, lon: 73.8567, radius: 25 },
+  surat: { lat: 21.1702, lon: 72.8311, radius: 20 },
 }
 
 /** Stable display order for the dropdown. */
@@ -49,8 +71,21 @@ const CITY_ALIASES = new Map<string, string>([
   ['banglore', 'bangalore'],
   ['new delhi', 'delhi'],
   ['delhi ncr', 'delhi'],
+  // NOT a bare 'ncr'. NCR is a ~55 km REGION, not a city: it reaches Meerut and
+  // Rohtak, so mapping it to Connaught Place would put a seeker 60 km from the
+  // point we claim they are at. Satellite cities are listed individually below
+  // because each really does sit inside Delhi's 50 km radius.
+  ['gurgaon', 'delhi'],
+  ['gurugram', 'delhi'],
+  ['noida', 'delhi'],
   ['bombay', 'mumbai'],
+  ['navi mumbai', 'mumbai'],
+  ['thane', 'mumbai'],
   ['poona', 'pune'],
+  ['madras', 'chennai'],
+  ['calcutta', 'kolkata'],
+  ['amdavad', 'ahmedabad'],
+  ['secunderabad', 'hyderabad'],
 ])
 
 /**
@@ -77,9 +112,9 @@ export function toCityKey(value: string | null | undefined): string {
  * refuse the browser's location request.
  *
  * The profile takes free text rather than the dropdown that docs/location-plan.md
- * §3 describes, because four cities is far too short a list to be someone's only
- * option — a person in Nagpur must still be able to say where they are. Revisit
- * once TD-06 widens the list.
+ * §3 describes. Ten cities is still far too short a list to be someone's only
+ * option — a person in Nagpur or Patna must be able to say where they are, and
+ * gets no coordinate rather than a wrong one.
  *
  * `translate` should resolve a city key to its label in the language the seeker
  * is actually using — pass `(key) => t(`seeker:jobFeed.city.${key}`)`. Without
@@ -93,7 +128,7 @@ export function toCityKey(value: string | null | undefined): string {
 export function cityCoordsFromText(
   value: string | null | undefined,
   translate?: (key: string) => string
-): Coords | undefined {
+): City | undefined {
   if (!value) return undefined
   // People write "Bengaluru, Karnataka", "Whitefield Bangalore", "Mumbai / Thane"
   // — with punctuation and without. Splitting on commas alone missed every
@@ -101,10 +136,11 @@ export function cityCoordsFromText(
   // word plus each adjacent PAIR, pairs first so "New Delhi" never resolves as
   // bare "Delhi".
   //
-  // The cost of matching loosely is a false positive on a street name that
-  // happens to carry a city word ("Delhi Road, Agra" → Delhi). We take that
-  // trade: a missed city means an empty Near By for a real seeker, while the
-  // street case is rare and self-correcting via the location button.
+  // Scanned RIGHT TO LEFT, because an Indian address ends with its city:
+  // "Whitefield, Bangalore", "Delhi Gate, Ahmedabad". Left to right, that
+  // second one resolves to Delhi — 900 km wrong — and a wrong centroid is not
+  // a harmless miss: it sits far enough from a stored GPS fix to read as a
+  // move, and the next save overwrites the seeker's real coordinate with it.
   const words = normalizeCity(value).split(/[\s,/]+/).filter(Boolean)
   // The labels of the ONE locale that is loaded — a Kannada seeker is shown
   // "ಬೆಂಗಳೂರು" on the job feed, so that is what they will type here.
@@ -112,8 +148,10 @@ export function cityCoordsFromText(
     ? new Map(CITY_KEYS.map((key) => [normalizeCity(translate(key)), key]))
     : null
 
-  for (let i = 0; i < words.length; i++) {
-    for (const name of i + 1 < words.length ? [`${words[i]} ${words[i + 1]}`, words[i]] : [words[i]]) {
+  for (let i = words.length - 1; i >= 0; i--) {
+    // The PAIR ending at i before the single word at i, so "New Delhi" and
+    // "Navi Mumbai" are never read as bare "Delhi" or "Mumbai".
+    for (const name of i > 0 ? [`${words[i - 1]} ${words[i]}`, words[i]] : [words[i]]) {
       const key = toCityKey(name) || CITY_ALIASES.get(name) || labels?.get(name)
       if (key) return CITY_COORDS[key]
     }

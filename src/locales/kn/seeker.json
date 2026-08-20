@@ -22,10 +22,16 @@
     "searchPlaceholder": "ಹುದ್ದೆ ಅಥವಾ ಕೀವರ್ಡ್",
     "anyLocation": "ಯಾವುದೇ ಸ್ಥಳ",
     "city": {
+      "ahmedabad": "ಅಹಮದಾಬಾದ್",
       "bangalore": "ಬೆಂಗಳೂರು",
+      "chennai": "ಚೆನ್ನೈ",
       "delhi": "ದೆಹಲಿ",
+      "hyderabad": "ಹೈದರಾಬಾದ್",
+      "jaipur": "ಜೈಪುರ",
+      "kolkata": "ಕೋಲ್ಕತ್ತಾ",
       "mumbai": "ಮುಂಬೈ",
-      "pune": "ಪುಣೆ"
+      "pune": "ಪುಣೆ",
+      "surat": "ಸೂರತ್"
     },
     "searchJobs": "ಕೆಲಸ ಹುಡುಕಿ",
     "filter": "ಫಿಲ್ಟರ್",

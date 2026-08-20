@@ -22,10 +22,16 @@
     "searchPlaceholder": "চাকরির নাম বা কীওয়ার্ড",
     "anyLocation": "যেকোনো জায়গা",
     "city": {
+      "ahmedabad": "আহমেদাবাদ",
       "bangalore": "ব্যাঙ্গালোর",
+      "chennai": "চেন্নাই",
       "delhi": "দিল্লি",
+      "hyderabad": "হায়দরাবাদ",
+      "jaipur": "জয়পুর",
+      "kolkata": "কলকাতা",
       "mumbai": "মুম্বই",
-      "pune": "পুনে"
+      "pune": "পুনে",
+      "surat": "সুরাট"
     },
     "searchJobs": "চাকরি খুঁজুন",
     "filter": "ফিল্টার",

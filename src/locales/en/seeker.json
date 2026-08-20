@@ -22,10 +22,16 @@
     "searchPlaceholder": "Job title or keyword",
     "anyLocation": "Any location",
     "city": {
+      "ahmedabad": "Ahmedabad",
       "bangalore": "Bangalore",
+      "chennai": "Chennai",
       "delhi": "Delhi",
+      "hyderabad": "Hyderabad",
+      "jaipur": "Jaipur",
+      "kolkata": "Kolkata",
       "mumbai": "Mumbai",
-      "pune": "Pune"
+      "pune": "Pune",
+      "surat": "Surat"
     },
     "searchJobs": "Search Jobs",
     "filter": "Filter",

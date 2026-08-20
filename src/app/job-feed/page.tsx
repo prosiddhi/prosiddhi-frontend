@@ -201,7 +201,11 @@ function JobFeedPageContent() {
             maxSalary: applied.maxSalary ? Number(applied.maxSalary) : undefined,
             latitude: coords?.lat,
             longitude: coords?.lon,
-            maxDistance: coords ? 50 : undefined,
+            // The CITY'S radius, not a flat 50 (TD-06). Delhi carries NCR at
+            // 50 km; Surat needs 20. A single number either strands people on
+            // the edge of a big city or drags a small city's results in from
+            // two towns over. Without any radius the backend applies 5 km.
+            maxDistance: coords?.radius,
             sortBy: applied.sortBy,
             sortOrder: sortOrderFor(applied.sortBy),
             page,
