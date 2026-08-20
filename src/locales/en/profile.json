@@ -13,6 +13,8 @@
     "locationPlaceholder": "City / area",
     "locationCaptured": "Location captured. Save to keep it.",
     "locationOn": "You will see jobs near you.",
+    "locationStale": "We could not match this to a city, so you will keep seeing jobs near {{city}}. Pick a city from the list to change your location.",
+    "locationStaleUnnamed": "We could not match this to a city, so you will keep seeing jobs near the location already saved. Pick a city from the list to change your location.",
     "locationOff": "Add your city, or use your location, to see jobs near you.",
     "preferredLanguage": "Preferred Language",
     "aboutYou": "About You",

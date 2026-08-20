@@ -102,7 +102,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-41 | Job form gives no location feedback | ✅ done — 14/14, `smoke-td41.js` | `80b8002` |
 | TD-42 | A coordinate cannot be cleared | ✅ done — BE nullish + a clear control | BE `9dbb470` |
 | TD-43 | Role-agnostic `POST /auth/login` | ✅ **done** — BE + FE, ⚠️ tell Asrar | BE `61258ef` |
-| TD-44 | Seeker profile repeats TD-41's lie | 🔴 open — needs 2–3 keys × 10 locales | |
+| TD-44 | Seeker profile repeats TD-41's lie | ✅ done — 8/8, `smoke-td44.js` | |
 | TD-45 | Job-form validation error is silent to a screen reader | ✅ done — announces + moves focus, 7/7 | |
 | TD-46 | `language-fallback.png` 404 — was DEAD CODE | ✅ done — LanguageModal deleted, 269 lines | |
 | TD-47 | Taxonomy renders in English in all ten locales | 🔴 open — ⚠️ Asrar, needs a display-name layer | |

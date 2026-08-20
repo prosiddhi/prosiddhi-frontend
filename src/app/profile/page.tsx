@@ -18,7 +18,7 @@ import {
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
-import { coordsToWrite, cityLabelKey, CITY_KEYS, type Coords } from '@/lib/cities'
+import { coordsToWrite, cityContaining, cityLabelKey, CITY_KEYS, type Coords } from '@/lib/cities'
 import { canonicalLocation } from '@/lib/jobFormat'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
@@ -188,7 +188,7 @@ function SeekerProfileContent() {
   // employer job form needs to describe the save in words (TD-41). This screen
   // only needs the coordinate: its three states are answerable from whether one
   // is pending and whether one is already stored.
-  const pendingFix = useMemo(
+  const decision = useMemo(
     () =>
       coordsToWrite({
         gpsFix,
@@ -196,9 +196,45 @@ function SeekerProfileContent() {
         text: location,
         textIsNewer,
         translate: (key) => t(cityLabelKey(key)),
-      }).coords,
+      }),
     [gpsFix, savedCoords, location, textIsNewer, t]
   )
+  const pendingFix = decision.coords
+
+  // TD-44 — the four states the seeker's line can be in, decided ONCE from the
+  // same verdict the save uses.
+  //
+  // The old version branched on "is a coordinate stored", which cannot tell
+  // "your pin still matches what you typed" from "your pin is somewhere you no
+  // longer are". Those need opposite sentences.
+  //
+  // `stalePin` is the one that was missing and the reason this ticket exists: a
+  // seeker with a saved Bangalore pin who types "Nagpur" gets no new coordinate
+  // — we cannot place Nagpur — so nothing changes and they keep seeing Bangalore
+  // jobs. Saying "you will see jobs near you" there is false in the way that
+  // matters most, because it is the reassuring one.
+  const stalePin = decision.reason === 'none' && !!savedCoords && location.trim().length > 0
+  // Which city the pin is actually in. '' when the stored coordinate sits
+  // outside every city we know — a fix taken at a warehouse on the outskirts —
+  // which needs its own wording, exactly as the employer form found. Without
+  // the split, `cityLabelKey('')` resolves to a missing key and i18next renders
+  // the key itself on screen.
+  const stuckIn = stalePin ? cityContaining(savedCoords!) : ''
+  const locationKey = pendingFix
+    ? 'profile:seeker.locationCaptured'
+    : stalePin
+      ? stuckIn
+        ? 'profile:seeker.locationStale'
+        : 'profile:seeker.locationStaleUnnamed'
+      : savedCoords
+        ? 'profile:seeker.locationOn'
+        : 'profile:seeker.locationOff'
+  const locationCity = stuckIn ? t(cityLabelKey(stuckIn)) : ''
+  const locationTone = stalePin
+    ? 'text-amber-700'
+    : pendingFix || savedCoords
+      ? 'text-green-700'
+      : 'text-[#717182]'
 
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
@@ -386,14 +422,19 @@ function SeekerProfileContent() {
                     {/* Three states, and the difference matters: the coordinate
                         is invisible, so this line is the only feedback there is.
                         It must never call an unsaved change saved. */}
-                    <p className={`text-xs mt-1.5 ${pendingFix || savedCoords ? 'text-green-700' : 'text-[#717182]'}`}>
-                      {t(
-                        pendingFix
-                          ? 'profile:seeker.locationCaptured'
-                          : savedCoords
-                          ? 'profile:seeker.locationOn'
-                          : 'profile:seeker.locationOff'
-                      )}
+                    {/* TD-44. The green "You will see jobs near you" used to
+                        show whenever a coordinate was STORED, whatever the box
+                        said. So a seeker who moved and typed "Nagpur" over their
+                        Bangalore pin was told, in green, that they would see
+                        jobs near them — and went on seeing Bangalore jobs. It is
+                        the same lie TD-41 fixed on the employer side, on the
+                        half with more people behind it.
+
+                        `reason` comes from the same `coordsToWrite` the save
+                        uses, so the line cannot disagree with what is written —
+                        that was the whole point of returning it. */}
+                    <p className={`text-xs mt-1.5 ${locationTone}`} role="status">
+                      {t(locationKey, { city: locationCity })}
                     </p>
                   </Field>
                   {/* Preferred Category → Sector → JobTitle (PJP-112). */}
