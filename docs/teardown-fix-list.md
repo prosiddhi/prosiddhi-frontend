@@ -56,9 +56,23 @@ but it does not fix the deployed environment.
 | `prosiddhi-frontend` | `de79a36` TD-18 · `f8caf5b` TD-18 gate correction · `e67564a` TD-19 · `cf1927e` TD-08 · `4457fd1` TD-14 · `7f8b2b4` TD-12 · `67b0787` review fixes · `bf32f3d` dead buttons · `8630d7d` **TD-20 tap targets** |
 | `prosiddhi-mobile-app` | `55dc23e` TD-26 one brand blue · `cd8ee11` TD-27 welcome logo |
 
-⚠️ **All 14 are unpushed**, on top of the first session's unpushed work.
+⚠️ **Partly pushed — do not assume either way.** Checked against the remote
+after a fetch on 2026-08-20: mobile is fully pushed, backend has only `624fd30`
+local, frontend has 7 local. An earlier note here said all 14 were unpushed;
+that was wrong. Re-check before deploying:
+
+```bash
+for r in prosiddhi-frontend prosiddhi-backend prosiddhi-mobile-app; do
+  printf '%-24s ' "$r"; (cd "../$r" && git fetch -q origin && git status -sb | head -1)
+done
+```
+
 **Push backend before frontend** — the portal's TD-08 fix reads the
 `ROLE_MISMATCH` code the backend only started sending in `d3bda2b`.
+
+⚠️ **`79ebc15` is already on `main` and will refuse to boot on a placeholder
+Razorpay webhook secret.** See [deploy-checklist.md](deploy-checklist.md) §1
+before any backend deploy.
 
 ### Closed: TD-08, TD-12, TD-14, TD-18, TD-19, TD-20, TD-26, TD-27, TD-30, TD-31
 
