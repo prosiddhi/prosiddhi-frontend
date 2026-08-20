@@ -195,6 +195,9 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
   const { t } = useTranslation()
   const [f, setF] = useState<FormState>(() => buildInitialState(initial))
   const [validationError, setValidationError] = useState('')
+  // Which control the validation error belongs to — drives `aria-invalid` and
+  // where focus goes. '' when the failure has no addressable field.
+  const [invalidField, setInvalidField] = useState('')
   // TD-03.
   const [gpsFix, setGpsFix] = useState<Coords | null>(null)
   // TD-42 — the employer asked for the stored pin to be removed.
@@ -280,25 +283,52 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
     .map((s) => s.trim())
     .filter(Boolean)
 
-  const validate = (): string => {
-    if (f.title.trim().length < 5) return t('employer:jobForm.validation.titleMin')
-    if (f.category.trim().length < 2) return t('employer:jobForm.validation.categoryRequired')
-    if (f.description.trim().length < 50) return t('employer:jobForm.validation.descriptionMin')
-    if (f.location.trim().length < 3) return t('employer:jobForm.validation.locationRequired')
-    if (!f.jobType) return t('employer:jobForm.validation.jobTypeRequired')
+  /**
+   * The first problem, and WHICH control has it (TD-45).
+   *
+   * It used to return a bare string. The message was then painted in red for
+   * sighted users and that was the whole of it: nothing marked the offending
+   * field, and pressing Post with a screen reader announced nothing at all.
+   * Returning the id lets the caller move focus there and mark it invalid, which
+   * is the difference between "something is wrong somewhere on this form" and
+   * being put on the box to fix.
+   *
+   * `field` is a DOM id where one exists. Category is the exception — it lives
+   * inside TaxonomyPicker, whose ids come from `useId` because it renders on
+   * four screens — so that case announces without moving focus. Better than
+   * today either way, and honest about the gap.
+   */
+  const validate = (): { field?: string; message: string } => {
+    const fail = (message: string, field?: string) => ({ field, message })
+    if (f.title.trim().length < 5) return fail(t('employer:jobForm.validation.titleMin'), 'job-title')
+    if (f.category.trim().length < 2) return fail(t('employer:jobForm.validation.categoryRequired'))
+    if (f.description.trim().length < 50) return fail(t('employer:jobForm.validation.descriptionMin'), 'job-description')
+    if (f.location.trim().length < 3) return fail(t('employer:jobForm.validation.locationRequired'), 'job-location')
+    if (!f.jobType) return fail(t('employer:jobForm.validation.jobTypeRequired'), 'job-type')
     const min = f.salaryMin ? Number(f.salaryMin) : undefined
     const max = f.salaryMax ? Number(f.salaryMax) : undefined
-    if (min != null && max != null && max < min) return t('employer:jobForm.validation.salaryRange')
-    return ''
+    if (min != null && max != null && max < min) {
+      return fail(t('employer:jobForm.validation.salaryRange'), 'job-salary-max')
+    }
+    return { message: '' }
   }
 
   const handleSubmit = () => {
-    const err = validate()
-    if (err) {
-      setValidationError(err)
+    const { field, message } = validate()
+    if (message) {
+      setValidationError(message)
+      setInvalidField(field ?? '')
+      // Move to the problem rather than describing it. Focus stayed on the Post
+      // button before, so a keyboard or screen-reader user had to hunt for a
+      // field the page had not identified. `preventScroll` is deliberately off:
+      // the offending control is often above the fold-out of a long form.
+      if (field) {
+        requestAnimationFrame(() => document.getElementById(field)?.focus())
+      }
       return
     }
     setValidationError('')
+    setInvalidField('')
     const data: PostJobData = {
       title: f.title.trim(),
       description: f.description.trim(),
@@ -354,7 +384,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
           <div>
             <label className={labelCls} htmlFor="job-title">{t('employer:jobForm.jobTitleLabel')}<Req /></label>
-            <input id="job-title" aria-required className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
+            <input id="job-title" aria-required aria-invalid={invalidField === 'job-title'} className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
           </div>
 
           {/* category only: sector and jobTitle are optional server-side. */}
@@ -388,6 +418,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
             <input
               id="job-location"
               aria-required
+              aria-invalid={invalidField === 'job-location'}
               list="job-location-cities"
               className={inputCls}
               value={f.location}
@@ -466,7 +497,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
           <div>
             <label className={labelCls} htmlFor="job-description">{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span><Req /></label>
-            <textarea id="job-description" aria-required className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
+            <textarea id="job-description" aria-required aria-invalid={invalidField === 'job-description'} className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
             <p className="text-xs text-gray-400 mt-0.5">{f.description.trim().length}/5000</p>
           </div>
         </section>
@@ -482,7 +513,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
             </div>
             <div>
               <label className={labelCls} htmlFor="job-salary-max">{t('employer:jobForm.maxSalaryLabel')}</label>
-              <input type="number" min={0} className={inputCls} id="job-salary-max" value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
+              <input type="number" min={0} className={inputCls} id="job-salary-max" aria-invalid={invalidField === 'job-salary-max'} value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
             </div>
             <div>
               <label className={labelCls} htmlFor="job-pay-period">{t('employer:jobForm.payPeriodLabel')}</label>
@@ -512,7 +543,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelCls} htmlFor="job-type">{t('employer:jobForm.jobTypeLabel')}<Req /></label>
-              <select id="job-type" aria-required className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
+              <select id="job-type" aria-required aria-invalid={invalidField === 'job-type'} className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
                 <option value="">{t('employer:jobForm.selectPlaceholder')}</option>
                 {JOB_TYPES.map((jt) => (
                   <option key={jt} value={jt}>{humanizeJobType(jt)}</option>
@@ -542,12 +573,32 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               left to toggle. */}
         </section>
 
-        {shownError && (
-          <div className="flex items-center gap-2 text-red-600 text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{shownError}</span>
-          </div>
-        )}
+        {/* TD-45. `role="alert"` so pressing Post ANNOUNCES the problem. Without
+            it a screen-reader user pressed the button, heard nothing, and kept
+            focus on the button with no idea the form had refused — the error was
+            painted for sighted users only.
+
+            ALWAYS RENDERED, empty when there is nothing wrong, for the reason
+            TD-41 wrote down: a live region mounted together with its first
+            message announces neither, and every one of these messages arrives
+            exactly when the element would have been created. Rendering the
+            container up front is what makes the announcement happen at all.
+
+            `role="alert"` rather than `role="status"` — this one interrupts,
+            because the employer has just pressed a button and nothing happened. */}
+        <div
+          role="alert"
+          className={
+            shownError ? 'flex items-center gap-2 text-red-600 text-sm' : 'sr-only'
+          }
+        >
+          {shownError && (
+            <>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{shownError}</span>
+            </>
+          )}
+        </div>
 
         <button
           onClick={handleSubmit}

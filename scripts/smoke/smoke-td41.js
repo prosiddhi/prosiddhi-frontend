@@ -62,28 +62,14 @@ async function open(browser, employer, path, geo) {
 // Called before every ctx.close(). A failed API call under a hint claiming all
 // is well is exactly what this suite would otherwise miss.
 //
-// One known 404 is filtered: `/assets/language-fallback.png` is referenced by
-// LanguageSection and LanguageModal and does not exist in public/assets. It is
-// real but pre-existing and unrelated to this form — recorded in the teardown
-// list rather than left to cry wolf on every run here.
-//
-// It arrives TWICE per page — once as `HTTP 404 <url>` from the response hook,
-// once as a bare "Failed to load resource" console line with no URL in it. A
-// filter on the URL alone drops half of a pair and reports the other half,
-// which is how this printed a warning naming nothing at all.
-const KNOWN_404 = /language-fallback\.png/
+// The `/assets/language-fallback.png` 404 that used to be filtered here is gone:
+// it was referenced by LanguageSection (replaced in TD-29) and by LanguageModal,
+// which turned out to be dead code and was deleted in TD-46. Nothing is
+// whitelisted now — if this prints, look at it.
 function reportErrors(errors) {
-  const knownOnly = errors.every(
-    (e) => KNOWN_404.test(e) || /Failed to load resource.*404/.test(e),
-  )
-  if (knownOnly) return
-  console.log(`  ⚠️  page errors: ${errors.join(' | ')}`)
+  if (errors.length) console.log(`  ⚠️  page errors: ${errors.join(' | ')}`)
 }
 
-// The hint is debounced by 600ms so it does not warn mid-word and, being a
-// role="status" live region, re-announce on every keystroke. Any check that
-// reads it sooner reads the PREVIOUS state — which is how this suite briefly
-// reported the old sentence as a failure of the new one.
 const settle = (page) => page.waitForTimeout(900)
 
 const hintText = async (page) =>
