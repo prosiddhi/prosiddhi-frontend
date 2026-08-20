@@ -105,7 +105,7 @@ function CandidatesContent() {
                 className="w-full h-11 pl-10 pr-4 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
-            <button onClick={() => setSearch(searchDraft.trim())} className="h-11 px-5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
+            <button onClick={() => setSearch(searchDraft.trim())} className="h-11 px-5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm">
               {t('employer:candidates.search')}
             </button>
           </div>
@@ -136,7 +136,7 @@ function CandidatesContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
             </div>
           )}
 

@@ -164,7 +164,7 @@ function SettingsContent() {
             </dl>
             <Link
               href={isEmployer ? '/employer/profile' : '/profile'}
-              className="inline-flex items-center mt-5 min-h-[44px] px-5 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50 hover:text-white transition-colors text-sm"
+              className="inline-flex items-center mt-5 min-h-[44px] px-5 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50 hover:text-primary-100 transition-colors text-sm"
             >
               {t('settings.account.editProfile')}
             </Link>
@@ -278,7 +278,7 @@ function SettingsContent() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
+                className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {t('settings.password.submit')}

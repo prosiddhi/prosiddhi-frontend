@@ -69,7 +69,7 @@ function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) 
         <button
           type="button"
           onClick={() => onBuy(plan)}
-          className="mt-5 w-full bg-primary-50 text-white rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
+          className="mt-5 w-full bg-primary-50 text-primary-100 rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
         >
           {t('employer:plans.buy')}
         </button>
@@ -163,7 +163,7 @@ export function PricingPlans() {
               aria-pressed={tab === tabItem.key}
               className={`px-5 sm:px-6 py-2 rounded-full text-base sm:text-[20px] transition-colors ${
                 tab === tabItem.key
-                  ? 'bg-primary-50 text-white font-semibold'
+                  ? 'bg-primary-50 text-primary-100 font-semibold'
                   : 'text-[#aaaaaa] hover:text-[#717182]'
               }`}
             >

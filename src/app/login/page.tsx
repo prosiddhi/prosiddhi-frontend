@@ -647,7 +647,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
               >
                 {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
@@ -677,7 +677,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading || !phone}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
@@ -707,7 +707,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
                   </button>
@@ -786,7 +786,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
               >
                 {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
               </button>
@@ -924,7 +924,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
@@ -956,7 +956,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
+                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
                   >
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>

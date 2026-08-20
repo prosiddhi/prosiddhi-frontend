@@ -116,7 +116,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
               </p>
               <button
                 onClick={handleClose}
-                className="px-8 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
+                className="px-8 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
               >
                 {t('seeker:applyModal.done')}
               </button>
@@ -172,7 +172,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
                   {submitting ? t('seeker:applyModal.submitting') : t('seeker:applyModal.submit')}

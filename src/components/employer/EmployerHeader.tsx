@@ -29,14 +29,12 @@ import { HeaderActions } from '@/components/navigation/HeaderActions'
  * on white**, well under the 4.5:1 WCAG AA needs for text. `primary-90` is
  * ~9:1. `HeroSection.tsx` records the same finding for the same reason.
  *
- * ⚠️ The solid "Post a Job" button keeps `primary-50` and **does not pass** —
- * white on sky measures 2.02:1, verified in the browser by
- * `scripts/smoke/smoke-td28.js`. An earlier draft of this comment asserted that
- * a fill "is a different measurement and passes". It is not and it does not.
- * It is left alone deliberately: that button style is the product's primary
- * action everywhere, seeker screens included, so repainting it is a brand
- * decision for a designer across the whole scale — the same call TD-26 left
- * open on mobile. Recorded as TD-48. Do not fix it here.
+ * The solid "Post a Job" button keeps the sky FILL but no longer white text.
+ * White on `primary-50` measures 2.02:1 and failed; `primary-100` on it is
+ * 6.62:1, and 4.73:1 on the `primary-60` hover shade. That was TD-48, fixed
+ * across all 106 call sites rather than here — an earlier draft of this comment
+ * claimed a fill "is a different measurement and passes", which is simply false,
+ * and `scripts/smoke/smoke-td28.js` measures it on every run.
  */
 export function EmployerHeader({
   logoHref = '/employer',
@@ -92,14 +90,12 @@ export const employerHeaderLinkCls =
   'items-center gap-2 px-4 py-2 min-h-[44px] border border-primary-90 text-primary-90 rounded-lg hover:bg-primary-90/5 transition-colors text-sm sm:text-base'
 
 /**
- * The one primary action.
+ * The one primary action. Sky fill, `primary-100` text — 6.62:1 (TD-48).
  *
- * ⚠️ White on `primary-50` is **2.02:1** and fails WCAG AA. Left as-is on
- * purpose — see TD-48 on the component above; it is the product's action colour
- * everywhere, so changing it is a brand decision, not this file's. Do not copy
- * this pairing into new code believing it is fine.
+ * ⚠️ Do not "restore" `text-white` here. It reads as the obvious pairing for a
+ * coloured button and it is 2.02:1, which is what shipped for months.
  */
 export const employerHeaderCtaCls =
-  'inline-flex items-center gap-2 px-4 py-2 min-h-[44px] bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base'
+  'inline-flex items-center gap-2 px-4 py-2 min-h-[44px] bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base'
 
 export default EmployerHeader

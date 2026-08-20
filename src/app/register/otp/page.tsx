@@ -223,7 +223,7 @@ export default function RegisterOTPPage() {
                 <button
                   onClick={handleVerify}
                   disabled={otp.join('').length !== OTP_LENGTH || loading}
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-[20px]">{loading ? t('auth:otp.verifying') : t('buttons.verify')}</span>
                   <ChevronRight className="w-6 h-6" />
@@ -308,7 +308,7 @@ export default function RegisterOTPPage() {
           <button
             onClick={handleVerify}
             disabled={otp.join('').length !== OTP_LENGTH || loading}
-            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white px-6 py-3 rounded-lg disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-6 py-3 rounded-lg disabled:opacity-50"
           >
             <span className="text-lg">{loading ? t('auth:otp.verifying') : t('buttons.verify')}</span>
             <ChevronRight className="w-5 h-5" />

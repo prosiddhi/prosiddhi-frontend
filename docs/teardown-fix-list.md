@@ -106,7 +106,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-45 | Job-form validation error is silent to a screen reader | 🔴 open | |
 | TD-46 | `language-fallback.png` 404 on the home page | 🔴 open — XS | |
 | TD-47 | Taxonomy renders in English in all ten locales | 🔴 open — ⚠️ Asrar, needs a display-name layer | |
-| TD-48 | Primary action button is 2.02:1 — fails WCAG AA | 🔴 open — ⚠️ designer, same call as TD-26 | |
+| TD-48 | Primary action button is 2.02:1 — fails WCAG AA | ✅ done — sky kept, text darkened, 6.62:1 | ⚠️ mobile should match |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 

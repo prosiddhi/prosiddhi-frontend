@@ -130,7 +130,7 @@ function EmployerLandingPageContent() {
               <span>{t('employer:landing.help')}</span>
             </Link>
 
-            <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-white rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
+            <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-primary-100 rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
               {t('employer:landing.signUp')}
             </Link>
           </div>
@@ -176,7 +176,7 @@ function EmployerLandingPageContent() {
                     sign-up, which is the actual conversion path. */}
                 <Link
                   href={postJobHref}
-                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-white rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors"
+                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-primary-100 rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors"
                 >
                   {t('employer:landing.postAJob')}
                 </Link>
@@ -237,7 +237,7 @@ function EmployerLandingPageContent() {
 
                 {/* Sign In — routes to the real login (this landing's inline form is
                     presentational; /login owns the actual auth + role toggle). */}
-                <Link href="/login" className="block w-full py-3 bg-primary-50 text-white rounded-lg text-xl text-center hover:bg-primary-60 transition-colors">
+                <Link href="/login" className="block w-full py-3 bg-primary-50 text-primary-100 rounded-lg text-xl text-center hover:bg-primary-60 transition-colors">
                   {t('employer:landing.signIn')}
                 </Link>
 
@@ -292,7 +292,7 @@ function EmployerLandingPageContent() {
                             <div className="h-1 bg-gray-300 rounded w-3/4" />
                             <div className="h-1 bg-gray-300 rounded w-1/2" />
                           </div>
-                          <span className="px-3 py-1 bg-primary-50 rounded text-xs text-white">
+                          <span className="px-3 py-1 bg-primary-50 rounded text-xs text-primary-100">
                             {t('employer:landing.offers.selected')}
                           </span>
                         </div>
@@ -328,7 +328,7 @@ function EmployerLandingPageContent() {
                           <div className="h-3 bg-gray-300 rounded w-3/4" />
                           <div className="h-2 bg-gray-300 rounded w-1/2" />
                         </div>
-                        <span className="px-4 py-1 bg-primary-50 rounded text-xs text-white ml-auto block">
+                        <span className="px-4 py-1 bg-primary-50 rounded text-xs text-primary-100 ml-auto block">
                           {t('employer:landing.offers.postAJob')}
                         </span>
                       </div>

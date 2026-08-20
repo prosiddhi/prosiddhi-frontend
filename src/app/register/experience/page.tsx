@@ -329,7 +329,7 @@ export default function RegisterExperiencePage() {
                 {/* Next Button */}
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg transition-colors"
                 >
                   <span className="text-[20px]">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
@@ -516,7 +516,7 @@ export default function RegisterExperiencePage() {
             {/* Next Button */}
             <button
               onClick={handleNext}
-              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-6 py-3 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-6 py-3 rounded-lg transition-colors"
             >
               <span className="text-lg">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />

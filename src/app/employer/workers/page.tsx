@@ -214,7 +214,7 @@ function UnlockedList() {
         <p className="text-red-600 mb-4 max-w-md">{error}</p>
         <button
           onClick={() => goToPage(page)}
-          className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+          className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
         >
           {t('buttons.retry')}
         </button>
@@ -498,7 +498,7 @@ function WorkersSearchContent() {
               </div>
               <button
                 onClick={submit}
-                className="h-12 px-8 bg-primary-50 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors whitespace-nowrap"
+                className="h-12 px-8 bg-primary-50 text-primary-100 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors whitespace-nowrap"
               >
                 <Search className="w-5 h-5" />
                 {t('employer:workers.searchButton')}
@@ -521,7 +521,7 @@ function WorkersSearchContent() {
               {applied && (
                 <button
                   onClick={() => goToPage(page)}
-                  className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                  className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
                 >
                   {t('buttons.retry')}
                 </button>

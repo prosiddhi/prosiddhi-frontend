@@ -337,7 +337,7 @@ function TeamContent() {
                 {seatsFull ? (
                   <div className="text-sm text-[#717182]">
                     <p className="mb-3">{t('employer:team.inviteFull')}</p>
-                    <Link href="/employer/plans" className="inline-flex px-5 py-2.5 bg-primary-50 text-white rounded-lg text-sm hover:bg-primary-60 transition-colors">
+                    <Link href="/employer/plans" className="inline-flex px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm hover:bg-primary-60 transition-colors">
                       {t('employer:team.viewPlans')}
                     </Link>
                   </div>
@@ -359,7 +359,7 @@ function TeamContent() {
                         type="button"
                         onClick={handleInvite}
                         disabled={inviting || !email.trim()}
-                        className="h-11 px-5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+                        className="h-11 px-5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
                       >
                         {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                         {t('employer:team.sendInvite')}

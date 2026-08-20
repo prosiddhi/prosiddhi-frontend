@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
                 />
                 <p className="mt-2 text-sm text-gray-600">{t('auth:forgot.emailHint')}</p>
               </div>
-              <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
                 {loading ? t('auth:forgot.sending') : t('auth:forgot.sendResetCode')}
               </button>
               <button type="button" onClick={handleBackToLogin} className="w-full flex items-center justify-center gap-2 text-primary-50 hover:text-primary-60 transition-colors text-sm font-medium">
@@ -173,7 +173,7 @@ export default function ForgotPasswordPage() {
                   required
                 />
               </div>
-              <button type="submit" disabled={loading || otp.length !== 6} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
+              <button type="submit" disabled={loading || otp.length !== 6} className="w-full bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
                 {loading ? t('auth:forgot.verifying') : t('auth:forgot.verifyCode')}
               </button>
               <button type="button" onClick={() => { setStage('email'); setOtp(''); setError('') }} className="w-full flex items-center justify-center gap-2 text-primary-50 hover:text-primary-60 transition-colors text-sm font-medium">
@@ -217,7 +217,7 @@ export default function ForgotPasswordPage() {
                   required
                 />
               </div>
-              <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-50">
                 {loading ? t('auth:forgot.saving') : t('auth:forgot.resetPassword')}
               </button>
             </form>
@@ -231,7 +231,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-2xl font-semibold text-black mb-3">{t('auth:forgot.doneTitle')}</h2>
               <p className="text-base text-[#777776] mb-8">{t('auth:forgot.doneBody')}</p>
-              <button onClick={handleBackToLogin} className="w-full bg-primary-50 hover:bg-primary-60 text-white py-3 rounded-lg transition-colors text-base font-medium">
+              <button onClick={handleBackToLogin} className="w-full bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium">
                 {t('auth:forgot.backToLogin')}
               </button>
             </div>

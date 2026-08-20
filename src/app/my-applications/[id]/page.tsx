@@ -149,7 +149,7 @@ function ApplicationDetailsContent() {
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
-                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('buttons.retry')}
               </button>
@@ -294,7 +294,7 @@ function ApplicationDetailsContent() {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 lg:mb-20">
                 <Link
                   href={`/job-details/${application.jobId}`}
-                  className="px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="px-6 sm:px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Briefcase className="w-5 h-5" />
                   {t('seeker:applicationDetail.viewJob')}

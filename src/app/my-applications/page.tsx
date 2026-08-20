@@ -147,7 +147,7 @@ function MyApplicationsPageContent() {
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
-                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('buttons.retry')}
               </button>
@@ -228,7 +228,7 @@ function MyApplicationsPageContent() {
                           </span>
                           <Link
                             href={`/my-applications/${app.id}`}
-                            className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
+                            className="px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
                           >
                             {t('buttons.viewDetails')}
                           </Link>
@@ -255,7 +255,7 @@ function MyApplicationsPageContent() {
               </p>
               <Link
                 href="/job-feed"
-                className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('seeker:myApplications.browseJobs')}
               </Link>
@@ -279,7 +279,7 @@ function MyApplicationsPageContent() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors ${
-                      page === i + 1 ? 'bg-primary-50 text-white' : 'hover:bg-gray-100'
+                      page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
                     }`}
                   >
                     {i + 1}

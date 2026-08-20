@@ -175,7 +175,7 @@ export default function InviteLandingPage() {
               <button
                 type="button"
                 onClick={() => router.replace('/employer')}
-                className="w-full py-2.5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
+                className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
               >
                 {t('employer:invite.goToDashboard')}
               </button>
@@ -271,7 +271,7 @@ export default function InviteLandingPage() {
                   type="button"
                   onClick={() => void accept()}
                   disabled={accepting}
-                  className="w-full py-2.5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {accepting && <Loader2 className="w-4 h-4 animate-spin" />}
                   {t('employer:invite.accept')}
@@ -286,7 +286,7 @@ export default function InviteLandingPage() {
                       <button
                         type="button"
                         onClick={() => goToAuth('login')}
-                        className="w-full py-2.5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
+                        className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
                       >
                         {t('employer:invite.signInToAccept')}
                       </button>
@@ -303,7 +303,7 @@ export default function InviteLandingPage() {
                       <button
                         type="button"
                         onClick={() => goToAuth('register')}
-                        className="w-full py-2.5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
+                        className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 transition-colors"
                       >
                         {t('employer:invite.createAccount')}
                       </button>

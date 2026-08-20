@@ -175,7 +175,7 @@ function CandidateContent() {
                     <button
                       type="button"
                       onClick={() => { setUnlockError(''); setConfirmOpen(true) }}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium whitespace-nowrap"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium whitespace-nowrap"
                     >
                       <Unlock className="w-4 h-4" /> {t('employer:candidate.unlockCta')}
                     </button>
@@ -251,7 +251,7 @@ function CandidateContent() {
               <button type="button" onClick={() => setConfirmOpen(false)} disabled={unlocking} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
                 {t('employer:candidate.confirmCancel')}
               </button>
-              <button type="button" onClick={handleUnlock} disabled={unlocking} className="flex-1 py-2.5 bg-primary-50 text-white rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 flex items-center justify-center gap-2">
+              <button type="button" onClick={handleUnlock} disabled={unlocking} className="flex-1 py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm font-medium hover:bg-primary-60 disabled:opacity-60 flex items-center justify-center gap-2">
                 {unlocking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 {t('employer:candidate.confirmUnlock')}
               </button>

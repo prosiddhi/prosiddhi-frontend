@@ -52,7 +52,7 @@ export function OutOfCreditsUpsell({ wallet }: { wallet?: CreditWalletData | nul
         <button
           type="button"
           onClick={() => setTopUp(true)}
-          className="inline-flex items-center justify-center px-6 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
+          className="inline-flex items-center justify-center px-6 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
         >
           {t('employer:postGate.topUpNow')}
         </button>

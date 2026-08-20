@@ -56,7 +56,7 @@ export function Header() {
 
           <Link
             href="/login"
-            className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-white hover:bg-primary-60 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-primary-100 hover:bg-primary-60 transition-colors"
           >
             <LogIn className="w-5 h-5" />
             <span>{t('nav.login')}</span>

@@ -256,7 +256,7 @@ export default function RegisterPage() {
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
             <button
               onClick={handleNext}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-8 py-3 rounded-lg transition-colors order-2 sm:order-1"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg transition-colors order-2 sm:order-1"
             >
               <span className="text-base font-medium">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />

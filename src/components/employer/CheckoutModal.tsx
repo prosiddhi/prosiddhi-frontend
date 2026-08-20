@@ -191,7 +191,7 @@ export function CheckoutModal({
             <button
               type="button"
               onClick={() => router.push('/employer')}
-              className="w-full py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
+              className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
             >
               {t('employer:checkout.goToDashboard')}
             </button>
@@ -205,7 +205,7 @@ export function CheckoutModal({
             <button
               type="button"
               onClick={() => router.push('/employer')}
-              className="w-full py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
+              className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
             >
               {t('employer:checkout.goToDashboard')}
             </button>
@@ -281,7 +281,7 @@ export function CheckoutModal({
               type="button"
               onClick={handlePay}
               disabled={submitting}
-              className="w-full py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {submitting

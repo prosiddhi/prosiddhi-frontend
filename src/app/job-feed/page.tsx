@@ -432,7 +432,7 @@ function JobFeedPageContent() {
 
                 <button
                   onClick={handleSearch}
-                  className="h-12 flex-1 min-w-[150px] px-4 sm:px-6 lg:px-[43px] lg:flex-none bg-primary-50 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors"
+                  className="h-12 flex-1 min-w-[150px] px-4 sm:px-6 lg:px-[43px] lg:flex-none bg-primary-50 text-primary-100 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors"
                 >
                   <Search className="w-5 h-5" />
                   <span className="text-base">{t('seeker:jobFeed.searchJobs')}</span>
@@ -505,7 +505,7 @@ function JobFeedPageContent() {
                     </select>
                   </div>
                   <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
-                    <button onClick={handleApplyFilters} className="h-11 px-8 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium">
+                    <button onClick={handleApplyFilters} className="h-11 px-8 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium">
                       {t('seeker:jobFeed.filters.applyFilters')}
                     </button>
                   </div>
@@ -570,7 +570,7 @@ function JobFeedPageContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
                 {t('buttons.retry')}
               </button>
             </div>
@@ -594,7 +594,7 @@ function JobFeedPageContent() {
               {empty.cta && (
                 <Link
                   href="/profile"
-                  className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm"
+                  className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm"
                 >
                   {t('seeker:jobFeed.emptyNearbyCta')}
                 </Link>
@@ -674,7 +674,7 @@ function JobFeedPageContent() {
                             {savedIds.has(job.id) ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
                           </span>
                         </button>
-                        <Link href={`/job-details/${job.id}`} className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base text-center">
+                        <Link href={`/job-details/${job.id}`} className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base text-center">
                           {t('seeker:jobCard.viewJob')}
                         </Link>
                       </div>
@@ -702,7 +702,7 @@ function JobFeedPageContent() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors ${
-                      page === i + 1 ? 'bg-primary-50 text-white' : 'hover:bg-gray-100'
+                      page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
                     }`}
                   >
                     {i + 1}

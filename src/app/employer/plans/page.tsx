@@ -39,7 +39,7 @@ function PlansContent() {
             <button
               type="button"
               onClick={() => setTopUp(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               {t('employer:plans.quickTopUp')}

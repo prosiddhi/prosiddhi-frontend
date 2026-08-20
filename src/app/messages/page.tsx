@@ -91,7 +91,7 @@ function MessagesListContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
             </div>
           )}
 
@@ -124,7 +124,7 @@ function MessagesListContent() {
                           {preview}
                         </p>
                         {unread > 0 && (
-                          <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-primary-50 text-white text-xs font-medium rounded-full flex items-center justify-center">{unread}</span>
+                          <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-primary-50 text-primary-100 text-xs font-medium rounded-full flex items-center justify-center">{unread}</span>
                         )}
                       </div>
                       {c.job?.title && <p className="text-xs text-[#9a9aa5] truncate mt-0.5">{t('chat:list.jobRef', { title: c.job.title })}</p>}

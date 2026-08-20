@@ -335,7 +335,7 @@ export default function RegisterPasswordPage() {
                   // Blocked while the carried-over name is invalid — the message
                   // above says why and links to the field.
                   disabled={loading || nameIssue !== null}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
                   <span className="text-base lg:text-[20px]">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
                   <ChevronRight className="w-6 h-6" />

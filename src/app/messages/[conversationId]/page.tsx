@@ -224,7 +224,7 @@ function ChatContent() {
                 const readByOther = !!(otherUserId && m.readBy?.includes(otherUserId))
                 return (
                   <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${mine ? 'bg-primary-50 text-white rounded-br-sm' : 'bg-white border border-[#e6e6e6] text-black rounded-bl-sm'}`}>
+                    <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${mine ? 'bg-primary-50 text-primary-100 rounded-br-sm' : 'bg-white border border-[#e6e6e6] text-black rounded-bl-sm'}`}>
                       <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
                       <div className={`flex items-center gap-1 mt-1 ${mine ? 'justify-end text-white/80' : 'justify-start text-[#9a9aa5]'}`}>
                         <span className="text-[10px]">{relativeTime(m.createdAt)}</span>
@@ -253,7 +253,7 @@ function ChatContent() {
                 placeholder={t('chat:conversation.typePlaceholder')}
                 className="flex-1 h-10 px-3 text-sm bg-transparent focus:outline-none"
               />
-              <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title={t('buttons.send')}>
+              <button onClick={handleSendText} disabled={sending || !text.trim()} className="p-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 disabled:opacity-50 disabled:cursor-not-allowed" title={t('buttons.send')}>
                 {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
             </div>

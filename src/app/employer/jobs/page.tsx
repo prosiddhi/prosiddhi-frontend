@@ -165,7 +165,7 @@ function MyJobsContent() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
+              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
                 {t('buttons.retry')}
               </button>
             </div>
@@ -179,7 +179,7 @@ function MyJobsContent() {
                 {tab === 'active' ? t('employer:jobs.noActiveBody') : t('employer:jobs.noExpiredBody')}
               </p>
               {tab === 'active' && (
-                <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm">
+                <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm">
                   <Plus className="w-4 h-4" /> {t('employer:jobs.postJob')}
                 </Link>
               )}

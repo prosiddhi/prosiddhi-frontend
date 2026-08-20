@@ -144,7 +144,7 @@ export function LanguageModal({ isOpen, onClose, onSave }: LanguageModalProps) {
               {/* Continue Button */}
               <button
                 onClick={handleLanguageContinue}
-                className="bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg text-xl font-normal transition-colors"
+                className="bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg text-xl font-normal transition-colors"
               >
                 Continue
               </button>
@@ -254,7 +254,7 @@ export function LanguageModal({ isOpen, onClose, onSave }: LanguageModalProps) {
                   <button
                     onClick={handleFinalSave}
                     disabled={!selectedUserType}
-                    className="flex-1 bg-primary-50 hover:bg-primary-60 text-white px-8 py-3 rounded-lg text-xl font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg text-xl font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Get Started
                   </button>

@@ -113,7 +113,7 @@ export default function RegisterSuccessPage() {
               {/* Start Button */}
               <button
                 onClick={handleStartExplore}
-                className="bg-primary-50 hover:bg-primary-60 text-white px-12 py-3 rounded-lg transition-colors"
+                className="bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg transition-colors"
               >
                 <span className="text-[20px]">{t('auth:success.startExplore')}</span>
               </button>
@@ -195,7 +195,7 @@ export default function RegisterSuccessPage() {
           {/* Start Button */}
           <button
             onClick={handleStartExplore}
-            className="w-full max-w-xs bg-primary-50 hover:bg-primary-60 text-white px-8 py-3 rounded-lg transition-colors mb-8"
+            className="w-full max-w-xs bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg transition-colors mb-8"
           >
             <span className="text-lg">{t('auth:success.startExplore')}</span>
           </button>

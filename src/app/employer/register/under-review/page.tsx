@@ -41,7 +41,7 @@ export default function EmployerUnderReviewPage() {
         </p>
         <Link
           href="/employer/profile"
-          className="block w-full px-8 py-3 mb-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-base font-medium text-center"
+          className="block w-full px-8 py-3 mb-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-base font-medium text-center"
         >
           {t('employerRegister:underReview.uploadDocs')}
         </Link>

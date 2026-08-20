@@ -124,7 +124,7 @@ function MyInterviewsPageContent() {
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
-                className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('buttons.retry')}
               </button>
@@ -213,7 +213,7 @@ function MyInterviewsPageContent() {
               </p>
               <Link
                 href="/my-applications"
-                className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('seeker:myInterviews.viewApplications')}
               </Link>

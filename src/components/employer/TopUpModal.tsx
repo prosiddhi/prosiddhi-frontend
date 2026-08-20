@@ -87,7 +87,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             <p className="text-[#717182] mb-4">{t('employer:topUp.unavailable')}</p>
             <Link
               href="/employer/plans"
-              className="inline-flex px-5 py-2.5 bg-primary-50 text-white rounded-lg text-sm hover:bg-primary-60 transition-colors"
+              className="inline-flex px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg text-sm hover:bg-primary-60 transition-colors"
             >
               {t('employer:topUp.viewAllPlans')}
             </Link>
@@ -122,7 +122,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => setCheckingOut(true)}
-              className="w-full bg-primary-50 text-white rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
+              className="w-full bg-primary-50 text-primary-100 rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
             >
               {t('employer:topUp.cta')}
             </button>

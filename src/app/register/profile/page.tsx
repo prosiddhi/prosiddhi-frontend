@@ -285,7 +285,7 @@ export default function RegisterProfilePage() {
                 <button
                   onClick={handleNext}
                   disabled={loading}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-white px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
                   <span className="text-[20px]">
                     {loading ? t('auth:profile.sendingCode') : t('buttons.next')}
@@ -376,7 +376,7 @@ export default function RegisterProfilePage() {
           <button
             onClick={handleNext}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-white py-3 rounded-lg disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 py-3 rounded-lg disabled:opacity-50"
           >
             <span>{loading ? t('auth:profile.sendingCode') : t('buttons.next')}</span>
             <ChevronRight className="w-5 h-5" />

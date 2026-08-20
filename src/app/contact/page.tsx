@@ -28,7 +28,7 @@ export default function ContactPage() {
         <p>{t('contact.email.body')}</p>
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
-          className="inline-flex items-center gap-2 min-h-[48px] px-6 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+          className="inline-flex items-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
         >
           <Mail className="w-5 h-5" />
           {t('contact.email.cta', { email: SUPPORT_EMAIL })}

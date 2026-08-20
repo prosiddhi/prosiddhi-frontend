@@ -79,7 +79,7 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
               </p>
               <button
                 onClick={onClose}
-                className="px-8 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
+                className="px-8 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors"
               >
                 {t('seeker:reportModal.done')}
               </button>

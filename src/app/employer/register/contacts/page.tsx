@@ -209,7 +209,7 @@ export default function EmployerContactsPage() {
             <button
               onClick={handleNext}
               disabled={loading || phoneNumber.length < 10 || !email.trim()}
-              className="px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
+              className="px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
               {loading ? t('employerRegister:contacts.sending') : t('employerRegister:contacts.sendCodes')}
             </button>

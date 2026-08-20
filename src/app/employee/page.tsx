@@ -98,7 +98,7 @@ export default function EmployeeLandingPage() {
               <span>{t('seeker:nav.register')}</span>
             </Link>
 
-            <Link href="/login" className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-white hover:bg-primary-60 transition-colors">
+            <Link href="/login" className="flex items-center gap-2 px-3 py-2 bg-primary-50 rounded-lg text-base text-primary-100 hover:bg-primary-60 transition-colors">
               <LogIn className="w-5 h-5" />
               <span>{t('seeker:nav.login')}</span>
             </Link>
@@ -173,7 +173,7 @@ export default function EmployeeLandingPage() {
               <button
                 type="button"
                 onClick={runSearch}
-                className="px-[43px] py-3.5 bg-primary-50 text-white rounded-lg flex items-center gap-2 hover:bg-primary-60 transition-colors"
+                className="px-[43px] py-3.5 bg-primary-50 text-primary-100 rounded-lg flex items-center gap-2 hover:bg-primary-60 transition-colors"
               >
                 <Search className="w-5 h-5" />
                 <span className="text-base">{t('seeker:landing.searchJobs')}</span>
@@ -237,7 +237,7 @@ export default function EmployeeLandingPage() {
                   <span className="px-3 py-2 border border-secondary-70 rounded-lg text-sm sm:text-base text-black whitespace-nowrap">
                     {t('seeker:nav.register')}
                   </span>
-                  <span className="px-3 py-2 bg-primary-50 text-white rounded-lg text-sm sm:text-base flex items-center gap-2 whitespace-nowrap">
+                  <span className="px-3 py-2 bg-primary-50 text-primary-100 rounded-lg text-sm sm:text-base flex items-center gap-2 whitespace-nowrap">
                     <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
                     {t('seeker:nav.login')}
                   </span>
@@ -376,7 +376,7 @@ export default function EmployeeLandingPage() {
                   buttons, pushing the column out of line with the illustration
                   beside it. The heading's 77px was the same story. */}
               <div className="flex items-center gap-4">
-                <Link href="/register" className="px-3 py-2 bg-primary-50 text-white rounded-lg text-base flex items-center gap-2 hover:bg-primary-60 transition-colors">
+                <Link href="/register" className="px-3 py-2 bg-primary-50 text-primary-100 rounded-lg text-base flex items-center gap-2 hover:bg-primary-60 transition-colors">
                   <LogIn className="w-5 h-5" />
                   {t('seeker:landing.signUpToday')}
                 </Link>

@@ -35,7 +35,7 @@ export default function Error({
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={reset}
-          className="flex items-center justify-center gap-2 px-6 min-h-[48px] bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors font-medium"
+          className="flex items-center justify-center gap-2 px-6 min-h-[48px] bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors font-medium"
         >
           <RefreshCw className="w-5 h-5" />
           {t('buttons.tryAgain')}

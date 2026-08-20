@@ -141,7 +141,7 @@ export function DocumentsSection({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm disabled:opacity-60"
+          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm disabled:opacity-60"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
           {uploading ? t('profile:documents.uploading') : t('profile:documents.uploadDocument')}

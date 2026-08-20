@@ -68,7 +68,7 @@ export function CreditWallet({ className }: { className?: string }) {
         <h2 className="text-lg sm:text-xl font-semibold text-black">{t('employer:wallet.title')}</h2>
         <Link
           href="/employer/plans"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
         >
           <Plus className="w-4 h-4" />
           {t('employer:wallet.buyCredits')}

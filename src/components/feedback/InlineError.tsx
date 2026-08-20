@@ -27,7 +27,7 @@ export function InlineError({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="flex items-center gap-2 px-6 min-h-[44px] bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+          className="flex items-center gap-2 px-6 min-h-[44px] bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           {t('buttons.retry')}

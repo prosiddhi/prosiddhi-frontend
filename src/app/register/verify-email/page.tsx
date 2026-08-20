@@ -207,7 +207,7 @@ export default function RegisterVerifyEmailPage() {
                 <button
                   onClick={handleVerify}
                   disabled={otp.join('').length !== OTP_LENGTH || loading}
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-white px-8 lg:px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 lg:px-12 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-base lg:text-[20px]">{loading ? t('auth:verifyEmail.verifying') : t('auth:verifyEmail.verifyContinue')}</span>
                   <ChevronRight className="w-6 h-6" />

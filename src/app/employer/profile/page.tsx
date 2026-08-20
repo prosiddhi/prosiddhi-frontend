@@ -339,7 +339,7 @@ function EmployerProfileContent() {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
                   >
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     {saving ? t('profile:employer.saving') : t('buttons.saveChanges')}

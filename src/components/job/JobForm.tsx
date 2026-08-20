@@ -552,7 +552,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full px-6 py-3 bg-primary-50 text-white rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
           {submitting ? t('employer:jobForm.saving') : submitLabel}

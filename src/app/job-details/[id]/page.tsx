@@ -194,7 +194,7 @@ function JobDetailsContent() {
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
-              <Link href="/job-feed" className="px-6 py-2 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors">
+              <Link href="/job-feed" className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
                 {t('seeker:jobDetails.backToFeed')}
               </Link>
             </div>
@@ -280,7 +280,7 @@ function JobDetailsContent() {
                   <button
                     onClick={() => setIsApplyModalOpen(true)}
                     disabled={hasApplied}
-                    className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center min-h-[48px] px-6 sm:px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
                   </button>

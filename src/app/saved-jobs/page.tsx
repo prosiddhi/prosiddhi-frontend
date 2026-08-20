@@ -252,7 +252,7 @@ function SavedJobsPageContent() {
                         </button>
                         <Link
                           href={`/job-details/${jobId}`}
-                          className="px-4 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
+                          className="px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
                         >
                           {t('seeker:jobCard.viewJob')}
                         </Link>
@@ -278,7 +278,7 @@ function SavedJobsPageContent() {
               </p>
               <Link
                 href="/job-feed"
-                className="px-6 py-3 bg-primary-50 text-white rounded-lg hover:bg-primary-60 transition-colors"
+                className="px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
               >
                 {t('seeker:savedJobs.browseJobs')}
               </Link>
@@ -302,7 +302,7 @@ function SavedJobsPageContent() {
                     key={i}
                     onClick={() => setPage(i + 1)}
                     className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors ${
-                      page === i + 1 ? 'bg-primary-50 text-white' : 'hover:bg-gray-100'
+                      page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
                     }`}
                   >
                     {i + 1}
