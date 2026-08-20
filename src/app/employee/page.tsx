@@ -375,15 +375,12 @@ export default function EmployeeLandingPage() {
                   {t('seeker:landing.contactUs')}
                 </button>
               </div>
-              <p className="text-2xl text-black">{t('seeker:landing.downloadApp')}</p>
-              <div className="flex gap-4 mt-6">
-                <div className="w-[140px] h-[43px] bg-black rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm">{t('seeker:landing.appStore')}</span>
-                </div>
-                <div className="w-[132px] h-[40px] bg-black rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm">{t('seeker:landing.googlePlay')}</span>
-                </div>
-              </div>
+              {/* "Download our App platform" and two App Store / Google Play
+                  tiles used to sit here (TD-14). They were plain divs, not
+                  links, for listings that do not exist — the strongest form of
+                  the same claim the footer was making, on the page where a
+                  seeker decides whether to trust us. The phone illustration
+                  stays: the site genuinely works in a mobile browser. */}
             </div>
             <div className="relative w-[900px] h-[600px]">
               <Image src="/assets/171.svg" alt={t('seeker:landing.mobileAppAlt')} fill className="object-contain" />

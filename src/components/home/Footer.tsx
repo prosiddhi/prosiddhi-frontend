@@ -70,16 +70,6 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Mobile app — honest about not having shipped yet, instead of two
-              dead store buttons. */}
-          <div className="w-full lg:w-auto lg:max-w-[340px]">
-            <h3 className="text-xl sm:text-2xl font-medium mb-3 leading-tight">
-              {t('footer.mobileTitle')}
-            </h3>
-            <p className="text-sm text-[rgba(255,255,255,0.7)] leading-relaxed">
-              {t('footer.mobileBody')}
-            </p>
-          </div>
         </div>
 
         <div className="border-t border-white/10 pt-[18px] text-center">

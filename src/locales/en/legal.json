@@ -13,8 +13,6 @@
     "contact": "Contact Us",
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions",
-    "mobileTitle": "Our mobile app is on the way",
-    "mobileBody": "The ProSiddhi Android app is in development. Until it launches, everything works in your mobile browser.",
     "copyright": "© {{year}} {{company}}. All rights reserved."
   },
   "privacy": {

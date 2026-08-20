@@ -413,12 +413,6 @@ function EmployerLandingPageContent() {
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-medium mb-2">{t('employer:landing.cta.downloadApp')}</p>
-                  {/* The app is not on either store yet, so there is nothing to link
-                      to. Two dead href="#" buttons implied there was. */}
-                  <p className="text-sm text-[#717182]">{t('legal:footer.mobileBody', { ns: 'legal' })}</p>
-                </div>
               </div>
             </div>
           </div>
