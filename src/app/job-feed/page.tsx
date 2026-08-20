@@ -4,14 +4,14 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { CITY_COORDS, CITY_KEYS, toCityKey, cityLabelKey, localizeLocation } from '@/lib/cities'
+import { CITY_COORDS, CITY_KEYS, toCityKey, cityLabelKey } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
 import {
   Search,
   MapPin,

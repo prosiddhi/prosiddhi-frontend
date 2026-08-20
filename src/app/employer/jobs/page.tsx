@@ -3,12 +3,11 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { employerAPI, type Job } from '@/lib/api'
 import { jobStatusLabel } from '@/lib/applicationStatus'
-import { formatSalary, humanizeJobType, relativeTime } from '@/lib/jobFormat'
+import { formatSalary, humanizeJobType, relativeTime, localizeLocation } from '@/lib/jobFormat'
 import {
   Plus,
   MapPin,

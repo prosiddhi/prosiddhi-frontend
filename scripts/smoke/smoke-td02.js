@@ -203,7 +203,12 @@ async function save(page) {
     await page.getByRole('button', { name: 'ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ' }).click()
     await page.waitForTimeout(2500)
     const p = await profile(seeker.token)
-    ok = check('Kannada city name matched', near(p.lat, BLR.lat) && near(p.lon, BLR.lon), `location=${JSON.stringify(p.location)} lat=${p.lat} lon=${p.lon}`) && ok
+    ok = check('Kannada city name matched', near(p.lat, BLR.lat) && near(p.lon, BLR.lon), `lat=${p.lat} lon=${p.lon}`) && ok
+    // The coordinate is only half of it. The backend's cold-start filter is
+    // `job.location CONTAINS seeker.location`, so text stored in Kannada matches
+    // no job at all and the seeker gets an EMPTY recommendation list. The save
+    // canonicalises what was typed, using the city it already resolved.
+    ok = check('…and stored canonically, not in Kannada', p.location === 'Bangalore', JSON.stringify(p.location)) && ok
     console.log(`  errors: ${errors.length ? errors.join(' | ') : 'none'}`)
     await page.screenshot({ path: `${OUT}/td02-4-kannada.png`, fullPage: true })
     await ctx.close()

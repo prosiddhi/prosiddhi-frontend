@@ -19,6 +19,7 @@ import {
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
 import { coordsToWrite, cityLabelKey, CITY_KEYS, type Coords } from '@/lib/cities'
+import { canonicalLocation } from '@/lib/jobFormat'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -233,7 +234,10 @@ function SeekerProfileContent() {
       await jobSeekerAPI.updateProfile({
         fullName: fullName.trim() || undefined,
         bio: bio.trim() || undefined,
-        location: location.trim() || undefined,
+        // Canonicalised, not raw — see canonicalLocation. Typing a city in your
+        // own script and having it stored verbatim empties your own cold-start
+        // recommendations.
+        location: canonicalLocation(location) || undefined,
         // TD-02. The backend has accepted these for months and this client never
         // sent them, so every seeker carried a null coordinate: "Near By" returned
         // nothing for everybody and the 20-point location component of the

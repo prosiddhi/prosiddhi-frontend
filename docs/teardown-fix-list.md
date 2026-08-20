@@ -22,8 +22,12 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**43 items: 21 done · 18 open · 3 superseded · 1 that cannot be done from this
-machine (TD-32).**
+**43 items: 17 done · 18 open · 4 WEB-done/MOBILE-pending · 3 superseded · 1 that
+cannot be done from this machine (TD-32).**
+
+⚠️ **A ✅ here meant "done on the web".** Checked 2026-08-20: TD-07, TD-08,
+TD-10 and TD-12 are all marked `WEB` `MOB` and only ever shipped on the web.
+The mobile halves were never started. Surface matters — read the badges.
 
 *Counted from the table below, not by hand — the hand-written total was wrong
 twice. To recount:*
@@ -42,12 +46,12 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-04 | Surface `noLocation` on mobile | 🔴 open — folded into TD-38 | |
 | TD-05 | Re-check the 20-point score | 🔴 open — Asrar, needs TD-03 first | |
 | TD-06 | Widen the city list to ten | ✅ done | `f7e631e` `d42204d` |
-| TD-07 | Tell employers about the trial | ✅ done | `e098ae9` `d1d6f38` |
-| TD-08 | Wrong-role login error | ✅ done | `cf1927e` + BE `d3bda2b` |
+| TD-07 | Tell employers about the trial | 🟠 **WEB done, MOBILE not started** — 0 mentions of "trial" in app_en.arb | `e098ae9` `d1d6f38` |
+| TD-08 | Wrong-role login error | 🟠 **WEB done, MOBILE not started** — no `ROLE_MISMATCH` handling in lib/ | `cf1927e` + BE `d3bda2b` |
 | TD-09 | Paywall quotes ₹499 on ₹589 | ✅ done in code — ships with deploy | |
-| TD-10 | Wallet speaks accounting | ✅ done | `eacd112` |
+| TD-10 | Wallet speaks accounting | 🟠 **WEB done, MOBILE not started** — 33 "credit" strings still in app_en.arb | `eacd112` |
 | TD-11 | Footer legal name | ✅ done in code — ships with deploy | |
-| TD-12 | Trust signals | ✅ done | `7f8b2b4` |
+| TD-12 | Trust signals | 🟠 **WEB done, MOBILE not started** | `7f8b2b4` |
 | TD-13 | Copy / format inconsistencies | ✅ done | `4de0b23` |
 | TD-14 | "App is on the way" footer | ✅ done | `4457fd1` |
 | TD-15 | Job feed first screen | ✅ done | `f9b5f3b` |
@@ -75,7 +79,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-37 | One login: phone + password + Google | 🔴 open — approach agreed 2026-08-20 | |
 | TD-38 | Location on mobile | 🔴 open | |
 | TD-39 | `aria-required` with no field name | 🔴 open | |
-| TD-40 | **Backfill coordinates on existing jobs** | 🔴 open — ⭐ or DEF-035 still looks broken on live data | |
+| TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
 | TD-41 | Job form gives no location feedback | 🔴 open | |
 | TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
 
@@ -812,10 +816,37 @@ whole existing job table** — Near By and the city filter will look broken to
 anyone testing with today's data, while `smoke-td03.js` passes on a job it just
 created.
 
-One-off script: for each job with a null coordinate, run its `location` text
-through the same matcher and write the centroid where it resolves. Leave the
-rest null — a wrong coordinate is worse than none. Pairs naturally with
-**TD-34**, which normalises the same column.
+**✅ The script is written and tested: [`scripts/backfill/job-coordinates.mjs`](../scripts/backfill/job-coordinates.mjs).
+What remains is running it on production — Asrar or Nayan.**
+
+```bash
+API=https://api.prosiddhi.com/api npx tsx scripts/backfill/job-coordinates.mjs > backfill.sql
+```
+
+**It writes nothing.** It reads the job list, matches each `location` string with
+the application's own matcher, and prints `UPDATE` statements for a human to
+**read before running**. That shape is deliberate: the frontend holds no database
+credentials, the backend is Asrar's to commit to, and — because of **TD-42** — a
+coordinate written onto the wrong city cannot be cleared through any API, only
+by more hand-SQL.
+
+Each statement names the job id and the text it matched, and carries
+`AND latitude IS NULL`, so re-running is safe and a job that gained a coordinate
+in the meantime is left alone.
+
+Jobs whose text names no city we know are **left alone on purpose** and listed at
+the end with their ids, for **TD-34** or a human. A wrong coordinate is worse
+than none.
+
+⚠️ `tsx` is not a dependency of this repo, so `npx` fetches it on first run —
+the same friction `scripts/smoke/README.md` documents for Playwright.
+
+*Two things found while building it, both now fixed and worth knowing: the first
+draft re-implemented the matcher and silently lost alias support, so "Bengaluru"
+matched nothing; and it read only ACTIVE jobs, because `getJobs` defaults its
+WHERE to that — it now asks for all six `JobStatus` values by name and prints
+which it scanned. On the local database those two bugs hid 9 jobs and 3 of the
+rows needing a coordinate.*
 
 ### TD-41 · The job form never says whether it captured a location `WEB` · S
 

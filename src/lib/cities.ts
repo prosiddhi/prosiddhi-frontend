@@ -18,9 +18,15 @@
  *
  * Labels are NOT here: they are translated, under `seeker:jobFeed.city.<key>`,
  * so all ten languages render the city name in their own script.
+ *
+ * ⚠️ **This module must stay free of i18n and of React.**
+ * `scripts/backfill/job-coordinates.mjs` imports it directly under `tsx`, so a
+ * data backfill matches city text by exactly the same rules the app does —
+ * duplicating those rules is how a backfill writes coordinates the app would
+ * never have chosen, and the first draft of that script did precisely that. The
+ * display-side counterpart, `localizeLocation`, lives in `lib/jobFormat.ts` with
+ * the other formatters that read the shared i18next instance.
  */
-
-import i18n from '@/i18n/config'
 
 /** A point on the map. Lives here, with the coordinates, not in a UI component. */
 export interface Coords {
@@ -96,32 +102,50 @@ const normalizeCity = (value: string) => value.trim().toLowerCase().replace(/\s+
 /**
  * English spellings people type that are NOT the city key itself. Every key is
  * matched by toCityKey already, and every TRANSLATED name is matched from the
- * locale files (see cityCoordsFromText), so this only needs the variants
- * neither of those covers.
+ * locale files (see cityKeyFromText), so this only needs the variants neither of
+ * those covers.
  *
  * A Map, not an object literal, for the reason spelled out under toCityKey:
  * on a plain object `aliases['constructor']` returns a function, which is
  * truthy, so "constructor" would read as a known city.
  */
-const CITY_ALIASES = new Map<string, string>([
+/**
+ * Other ways of writing the SAME place. "Bengaluru" and "Bangalore" are one
+ * city; so are Bombay and Mumbai, Madras and Chennai.
+ *
+ * Because these name the same place, they are safe to swap for the canonical
+ * label when displaying, and safe to normalise to on save.
+ */
+const CITY_SPELLINGS = new Map<string, string>([
   ['bengaluru', 'bangalore'],
   ['banglore', 'bangalore'],
   ['new delhi', 'delhi'],
   ['delhi ncr', 'delhi'],
-  // NOT a bare 'ncr'. NCR is a ~55 km REGION, not a city: it reaches Meerut and
-  // Rohtak, so mapping it to Connaught Place would put a seeker 60 km from the
-  // point we claim they are at. Satellite cities are listed individually below
-  // because each really does sit inside Delhi's 50 km radius.
-  ['gurgaon', 'delhi'],
-  ['gurugram', 'delhi'],
-  ['noida', 'delhi'],
   ['bombay', 'mumbai'],
-  ['navi mumbai', 'mumbai'],
-  ['thane', 'mumbai'],
   ['poona', 'pune'],
   ['madras', 'chennai'],
   ['calcutta', 'kolkata'],
   ['amdavad', 'ahmedabad'],
+])
+
+/**
+ * DIFFERENT towns that sit inside a listed city's radius, near enough that its
+ * centroid is a reasonable coordinate for them.
+ *
+ * Kept apart from the spellings above because they must never be used for
+ * display or normalisation: Noida is not Delhi, and printing "Delhi" on a job in
+ * Noida renames the place rather than translating it. A coordinate can be
+ * approximate; a name cannot.
+ *
+ * NOT a bare 'ncr'. NCR is a ~55 km REGION reaching Meerut and Rohtak, so
+ * mapping it to Connaught Place would put someone 60 km from the point we claim.
+ */
+const CITY_NEARBY = new Map<string, string>([
+  ['gurgaon', 'delhi'],
+  ['gurugram', 'delhi'],
+  ['noida', 'delhi'],
+  ['navi mumbai', 'mumbai'],
+  ['thane', 'mumbai'],
   ['secunderabad', 'hyderabad'],
 ])
 
@@ -132,8 +156,60 @@ const CITY_ALIASES = new Map<string, string>([
  *
  * A Map for the same reason as everything else in this file — see toCityKey.
  */
-const CITY_NAMES = new Map<string, string>(CITY_ALIASES)
+const CITY_NAMES = new Map<string, string>([...CITY_SPELLINGS, ...CITY_NEARBY])
 for (const key of CITY_KEYS) CITY_NAMES.set(key, key)
+
+/**
+ * Names that mean the SAME place — keys plus spelling variants, no satellites.
+ * This is the set that may be swapped for a label or normalised to on save.
+ */
+const CITY_SAME_PLACE = new Map<string, string>(CITY_SPELLINGS)
+for (const key of CITY_KEYS) CITY_SAME_PLACE.set(key, key)
+
+/**
+ * The city key for text that names a city AND NOTHING ELSE — or `''`.
+ *
+ * Whole-string, and satellites excluded, so this answers "is this string just a
+ * name for one of our cities?" It is what display and save-normalisation use:
+ * "Whitefield, Bangalore" must keep its area name, and a job in Noida must keep
+ * saying Noida.
+ *
+ * Contrast `cityKeyFromText`, which scans inside the string and accepts
+ * satellites, because there the answer wanted is a coordinate.
+ */
+export function wholeCityKey(
+  value: string | null | undefined,
+  translate?: (key: string) => string
+): string {
+  if (!value) return ''
+  const name = normalizeCity(value)
+  const key = CITY_SAME_PLACE.get(name)
+  if (key) return key
+  if (!translate) return ''
+  // Written in the reader's own script — "ಬೆಂಗಳೂರು" is as much a name for
+  // Bangalore as "Bengaluru" is.
+  for (const candidate of CITY_KEYS) {
+    if (normalizeCity(translate(candidate)) === name) return candidate
+  }
+  return ''
+}
+
+/**
+ * Which of our cities a coordinate sits in, or `''` if none of them.
+ *
+ * "Sits in" means inside that city's own radius. Used to tell "the text names a
+ * DIFFERENT city from where this device is" apart from "this device is on the
+ * outskirts of the city the text names" — a warehouse at Devanahalli is 35 km
+ * from the Bangalore centroid, outside its 30 km radius, but it is emphatically
+ * not another city, and a precise fix there must not be thrown away.
+ */
+export function cityContaining(point: Coords): string {
+  for (const key of CITY_KEYS) {
+    const city = CITY_COORDS[key]
+    if (distanceKm(point, city) <= city.radius) return key
+  }
+  return ''
+}
 
 /**
  * Narrow an untrusted string (a URL parameter, typically) to a known city key.
@@ -152,43 +228,13 @@ export function toCityKey(value: string | null | undefined): string {
 }
 
 /**
- * A stored location string, as the READER should see it.
- *
- * We store ONE canonical spelling — "Bangalore", whoever posted the job and in
- * whatever language — so the backend's cold-start recommendation, which
- * substring-matches on this column, has a single string to compare. But
- * `job.location` is printed straight onto every job card, and this product
- * ships ten languages for people who may not read Latin script at all. Storing
- * canonically AND displaying canonically would make a Tamil seeker read
- * "Bangalore". So: store one spelling, show the reader theirs.
- *
- * Matches the WHOLE string only. "Whitefield, Bangalore" is returned untouched —
- * translating it would silently delete the area name. This swaps a label; it
- * never rewrites an address. Anything unrecognised (a Nagpur job, or the untidy
- * legacy text TD-34 exists to clean) comes back exactly as stored.
- *
- * Reads the shared i18next instance rather than taking `t`, which is the house
- * convention for display formatters — see the note atop `lib/jobFormat.ts`.
- * Every screen rendering this already calls `useTranslation()`, so it re-renders
- * on `languageChanged` and re-invokes this.
- */
-export function localizeLocation(text: string | null | undefined): string {
-  if (!text) return ''
-  // toCityKey, NOT CITY_NAMES. That map carries satellite aliases — noida and
-  // gurgaon resolve to `delhi`, thane to `mumbai` — which is right when the
-  // answer wanted is a COORDINATE, and badly wrong here: it would print "Delhi"
-  // on a job in Noida, renaming the place instead of translating it. Only an
-  // exact canonical key is safe to swap for a label.
-  const key = toCityKey(text)
-  return key ? i18n.t(cityLabelKey(key)) : text
-}
-
-/**
- * Centroid for a TYPED location, or undefined when it names no city we know.
+ * The city key for a TYPED location, or `''` when it names no city we know.
  *
  * This is the coarse tier of TD-02. It costs no permission prompt and no
  * geocoding service, and it is the path that carries the many seekers who will
- * refuse the browser's location request.
+ * refuse the browser's location request. It is also what
+ * `scripts/backfill/job-coordinates.mjs` calls, so an existing job and a newly
+ * posted one can never be placed by different rules.
  *
  * The profile takes free text rather than the dropdown that docs/location-plan.md
  * §3 describes. Ten cities is still far too short a list to be someone's only
@@ -196,19 +242,20 @@ export function localizeLocation(text: string | null | undefined): string {
  * gets no coordinate rather than a wrong one.
  *
  * `translate` should resolve a city key to its label in the language the seeker
- * is actually using — pass `(key) => t(`seeker:jobFeed.city.${key}`)`. Without
- * it this matches English spellings only, and a Kannada seeker who types
- * "ಬೆಂಗಳೂರು" — exactly what the job feed just showed them — gets no centroid and
- * an empty Near By. That is 8 of our 10 languages.
+ * is actually using — pass `(key) => t(cityLabelKey(key))`. Without it this
+ * matches English spellings only, and a Kannada seeker who types "ಬೆಂಗಳೂರು" —
+ * exactly what the job feed just showed them — gets no centroid and an empty
+ * Near By. That is 8 of our 10 languages. The backfill omits it on purpose:
+ * stored legacy text is Latin, and a script should not guess at a language.
  *
- * Returns undefined rather than guessing. A wrong coordinate is worse than
- * none: it would show a Nagpur worker jobs in Pune and call them nearby.
+ * Returns `''` rather than guessing. A wrong coordinate is worse than none: it
+ * would show a Nagpur worker jobs in Pune and call them nearby.
  */
-function cityCoordsFromText(
+export function cityKeyFromText(
   value: string | null | undefined,
   translate?: (key: string) => string
-): City | undefined {
-  if (!value) return undefined
+): string {
+  if (!value) return ''
   // People write "Bengaluru, Karnataka", "Whitefield Bangalore", "Mumbai / Thane"
   // — with punctuation and without. Splitting on commas alone missed every
   // comma-less form, which is most of them. So: split into words, and test each
@@ -233,9 +280,21 @@ function cityCoordsFromText(
     // The PAIR ending at i before the single word at i, so "New Delhi" and
     // "Navi Mumbai" are never read as bare "Delhi" or "Mumbai".
     const key = (i > 0 && match(`${words[i - 1]} ${words[i]}`)) || match(words[i])
-    if (key) return CITY_COORDS[key]
+    if (key) return key
   }
-  return undefined
+  return ''
+}
+
+/**
+ * The same match, as a centroid. One matcher, two return shapes — so the
+ * backfill script and the forms can never disagree about where a job is.
+ */
+function cityCoordsFromText(
+  value: string | null | undefined,
+  translate?: (key: string) => string
+): City | undefined {
+  const key = cityKeyFromText(value, translate)
+  return key ? CITY_COORDS[key] : undefined
 }
 
 /**
@@ -301,10 +360,11 @@ export function coordsToWrite({
    */
   translate: (key: string) => string
 }): Coords | undefined {
-  const city = cityCoordsFromText(text, translate)
+  const typedKey = cityKeyFromText(text, translate)
+  const city = typedKey ? CITY_COORDS[typedKey] : undefined
   if (gpsFix) {
     // The last deliberate action wins. Typed words override a fix only when they
-    // came AFTER it and name a DIFFERENT city from the one the device is in:
+    // came AFTER it and name a city the device is demonstrably NOT in:
     //
     //   tap, then type an area name  → fix wins (no city named, nothing to argue)
     //   tap, then type another city  → text wins (a recruiter in Pune posting a
@@ -312,9 +372,14 @@ export function coordsToWrite({
     //   type a city, then tap        → fix wins (a seeker who moved and is
     //                                  telling us where they are now)
     //
-    // Without the `textIsNewer` half, that third case silently threw away the
-    // fresh fix while the screen said "Location captured".
-    if (!city || !textIsNewer || distanceKm(gpsFix, city) <= city.radius) return gpsFix
+    // "Demonstrably not in" is `cityContaining`, NOT raw distance. A warehouse at
+    // Devanahalli is 35 km from the Bangalore centroid — past its 30 km radius —
+    // so a distance test threw away a precise fix and replaced it with the city
+    // centre the moment the employer typed "Bangalore". It is not another city;
+    // it is the edge of that one. Only a fix sitting inside a DIFFERENT listed
+    // city loses to the text.
+    const fixKey = cityContaining(gpsFix)
+    if (!city || !textIsNewer || !fixKey || fixKey === typedKey) return gpsFix
     return { lat: city.lat, lon: city.lon }
   }
   if (!city) return undefined

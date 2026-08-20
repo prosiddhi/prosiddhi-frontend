@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
@@ -14,7 +13,7 @@ import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Job } from '@/lib/api'
-import { humanizeJobType, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,

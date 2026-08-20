@@ -133,12 +133,18 @@ async function open(browser, seeker, path, lang) {
     const { ctx, page, errors } = await open(browser, seeker, '/job-feed', 'kn')
     await page.waitForTimeout(2500)
     const body = await page.evaluate(() => document.body.innerText)
-    // Guard on what is ON THE PAGE, not on a database query. Querying 50 jobs
-    // while the feed renders 10 can assert against a page that legitimately has
-    // no Hyderabad job on it, and report a failure that is really a paging
-    // accident.
-    if (!body.includes('Hyderabad') && !body.includes('ಹೈದರಾಬಾದ್')) {
-      console.log('  ⚠️  SKIPPED — no Hyderabad job on this page of the feed to translate')
+    // Guard on a job whose location is EXACTLY a city name, matching the feed's
+    // own page size. Two ways to get this wrong, both of which produce a failure
+    // that is not a defect: query more jobs than the feed renders, or key on the
+    // word "Hyderabad" appearing at all — a job stored "Hyderabad, Telangana" is
+    // correctly left untranslated, because localizeLocation swaps whole strings
+    // only and must not delete "Telangana".
+    const page1 = await (await fetch(`${BE}/jobs?page=1&limit=10`)).json()
+    const translatable = (page1?.data?.jobs ?? []).some(
+      (j) => String(j.location ?? '').trim().toLowerCase() === 'hyderabad',
+    )
+    if (!translatable) {
+      console.log('  ⚠️  SKIPPED — no job on page 1 whose location is exactly a city name')
     } else {
       ok = check('Kannada label shown, not the stored English', body.includes('ಹೈದರಾಬಾದ್'), body.includes('Hyderabad') ? 'still showing "Hyderabad"' : 'ಹೈದರಾಬಾದ್ found') && ok
     }

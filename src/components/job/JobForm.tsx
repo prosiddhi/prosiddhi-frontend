@@ -12,7 +12,7 @@ import {
 import { CITY_KEYS, cityLabelKey, coordsToWrite, type Coords } from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
-import { humanizeJobType, formatSalary, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, initials, canonicalLocation } from '@/lib/jobFormat'
 import { Clock, Briefcase, MapPin, IndianRupee, Loader2, AlertCircle } from 'lucide-react'
 
 const JOB_TYPES: JobTypeValue[] = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'TEMPORARY', 'INTERNSHIP']
@@ -152,7 +152,10 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       title: f.title.trim(),
       description: f.description.trim(),
       category: f.category.trim(),
-      location: f.location.trim(),
+      // Canonicalised, not raw — see canonicalLocation. A job stored under a
+      // translated city name is a job that only matches seekers in that one
+      // language.
+      location: canonicalLocation(f.location),
       jobType: f.jobType as JobTypeValue,
       paymentType: f.paymentType,
       urgencyLevel: f.urgencyLevel,

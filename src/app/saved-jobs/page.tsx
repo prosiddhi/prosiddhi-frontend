@@ -3,7 +3,6 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
@@ -11,7 +10,7 @@ import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { InlineError } from '@/components/feedback/InlineError'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,

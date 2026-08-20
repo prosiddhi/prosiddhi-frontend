@@ -3,13 +3,12 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { localizeLocation } from '@/lib/cities'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
-import { formatSalary, formatDate, initials } from '@/lib/jobFormat'
+import { formatSalary, formatDate, initials, localizeLocation } from '@/lib/jobFormat'
 import {
   Home,
   Briefcase,

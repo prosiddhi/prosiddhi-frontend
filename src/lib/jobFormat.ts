@@ -10,6 +10,64 @@
 // in Hindi.
 
 import i18n from '@/i18n/config'
+import { wholeCityKey, cityLabelKey } from '@/lib/cities'
+
+/**
+ * A stored location string, as the READER should see it.
+ *
+ * We store ONE canonical spelling — "Bangalore", whoever posted the job and in
+ * whatever language — so the backend's cold-start recommendation, which
+ * substring-matches on that column, has a single string to compare. But
+ * `job.location` is printed straight onto every job card, and this product ships
+ * ten languages for people who may not read Latin script at all. Storing
+ * canonically AND displaying canonically would make a Tamil seeker read
+ * "Bangalore". So: store one spelling, show the reader theirs.
+ *
+ * Matches the WHOLE string only. "Whitefield, Bangalore" is returned untouched —
+ * translating it would silently delete the area name. This swaps a label; it
+ * never rewrites an address. Anything unrecognised (a Nagpur job, or the untidy
+ * legacy text TD-34 exists to clean) comes back exactly as stored.
+ *
+ * It lives here rather than in `lib/cities.ts` for two reasons: it is a display
+ * formatter, like everything else in this file; and keeping i18n out of
+ * `cities.ts` is what lets `scripts/backfill/` import the city-matching rules
+ * directly, instead of copying them and drifting.
+ */
+/**
+ * The location string to STORE for what somebody typed.
+ *
+ * The datalists on the profile and the job form offer English values under
+ * translated labels, but a datalist only helps if it is opened. Someone who
+ * simply types "ಬೆಂಗಳೂರು" would have had that stored verbatim — and the
+ * backend's cold-start recommendation runs
+ * `job.location CONTAINS seeker.location`, so their text matches no job at all
+ * and they get an EMPTY recommendation list, not a shorter one.
+ *
+ * We already resolve the city on that same save in order to write a coordinate.
+ * This uses the same answer for the text, so both sides of that match are
+ * canonical however the field was filled in.
+ *
+ * Only when the whole string names a city, and only for same-place names, so
+ * "Whitefield, Bangalore" keeps its area and a Noida job keeps saying Noida.
+ * Everything else is stored exactly as typed — a person in Nagpur is not
+ * rewritten into somewhere we happen to know.
+ */
+export function canonicalLocation(text: string | null | undefined): string {
+  const raw = (text ?? '').trim()
+  const key = wholeCityKey(raw, (k) => i18n.t(cityLabelKey(k)))
+  return key ? i18n.t(cityLabelKey(key), { lng: 'en' }) : raw
+}
+
+export function localizeLocation(text: string | null | undefined): string {
+  if (!text) return ''
+  // wholeCityKey: the whole string, and SAME-PLACE names only. It accepts
+  // spelling variants — a job stored "Bengaluru" is a Bangalore job and should
+  // read ಬೆಂಗಳೂರು next to one stored "Bangalore", not sit in Latin beside it —
+  // while refusing the satellite towns, because printing "Delhi" on a job in
+  // Noida renames the place instead of translating it.
+  const key = wholeCityKey(text)
+  return key ? i18n.t(cityLabelKey(key)) : text
+}
 
 /** Map the app language to a BCP-47 locale for Intl. Both are Indian locales, so
  *  digits and the lakh/crore grouping stay right; only the language differs. */
