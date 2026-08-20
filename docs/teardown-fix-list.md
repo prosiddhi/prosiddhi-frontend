@@ -95,6 +95,87 @@ workstream closes outright.
 
 ---
 
+## 🟢 SESSION STATE — 2026-08-20, end of the THIRD fix session
+
+**Read this first.** The status index at the top of this file is the live truth;
+this section is what a new session needs that the index cannot say.
+
+### Shipped this session — all gates green on every one
+
+| Ticket | What |
+|---|---|
+| **TD-02** `aa1abb3` | Seeker coordinates. Two tiers: typed city → centroid, button → precise fix |
+| **TD-06** `f7e631e` `d42204d` | Ten cities, **each with its own radius**. The radius is the half that matters |
+| **TD-03** `6fd606c` `da49122` | Job coordinates. **DEF-035 closed end to end** — the first register row this workstream closes outright |
+| **TD-40** `20a7e8f` | Backfill script for existing jobs. Written and tested; **still needs running on prod** |
+| **TD-37** `a2dbbf8` `777acb3` | One login. 11 buttons → 6, 3 inputs → 2, role choices → 0 |
+| **TD-43** BE `61258ef` | Role-agnostic `POST /api/auth/login` |
+
+**Everything is PUSHED**, both repos. No deploy-ordering problem remains.
+
+### ⚠️ Three things owed to people
+
+1. **Asrar has not been told** about backend `61258ef`. It is on `main`. Additive
+   only — one controller method, one route — but he should hear it from Nazir,
+   not discover it.
+2. **TD-40's SQL has not been run on production.** Until it is, DEF-035 still
+   reproduces on the existing job table, because TD-03 only writes a coordinate
+   for jobs posted or edited *after* it. Nayan or Asrar.
+   `API=https://api.prosiddhi.com/api npx tsx scripts/backfill/job-coordinates.mjs`
+3. **TD-00 is still the biggest blocker in the project.** 19 register rows cannot
+   be judged until production is deployed. Nothing built today is visible to
+   anyone yet.
+
+### A parallel mobile session is running
+
+In `prosiddhi-mobile-app`, closing the location gap. It has landed TD-38 1/3 and
+2/3 (Dart port of `cities.ts` with 40 tests; geolocator + write path) and is on
+3/3. Then TD-08 → TD-10 → TD-07+TD-12 → TD-36 → TD-37.
+
+**Sailaja also commits there.** Coordinate.
+
+⚠️ **One promise made to that session, and it is the web's to keep:** our Near By
+empty state does NOT branch on `noLocation` — see
+[job-feed/page.tsx:504-525](../src/app/job-feed/page.tsx#L504-L525). The CTA
+shows whenever the Near By tab is empty, so a seeker who *has* a coordinate but
+no jobs within 50 km is still told to "Add your location". Mobile was told to
+branch on the flag properly, and that **web would follow them** rather than stay
+diverged. If mobile has done it, do it here.
+
+### Five things learned the hard way — worth not relearning
+
+1. **My own tests lied five times today.** A wrong endpoint, a missing language
+   switch, an email in a phone field, a mock that swallowed the path under test,
+   a guard keyed on the wrong string. **When a check goes red, suspect the check
+   first** — it was the test, not the code, every time but one.
+2. **`/simplify` catches what the other gates miss.** type-check, lint,
+   `/code-review` and `/security-review` all passed a matcher that silently lost
+   alias support, a rule that discarded a fresh GPS fix, and a helper that
+   deleted Devanagari digits. Diff size is not a reason to skip it.
+3. **The dev server wedges on ONE route** while every other route compiles in a
+   second — twice today, once with webpack cache corruption. Restart by PID
+   before debugging. See `scripts/smoke/README.md`.
+4. **`/security-review` sometimes harvests an empty diff** and reports clean on
+   nothing. Check the branch state; review the real diff.
+5. **Comments go stale inside the same commit that writes them.** Three times a
+   docblock described the behaviour the diff had just changed.
+
+### What is left for the WEB session
+
+**Mine: 6.** TD-39 (aria-label, small) · TD-41 (job-form location feedback,
+small) · TD-22 (filter cascade) · TD-23 (candidates before typing — mobile may
+design this first; follow them) · TD-28 (employer identity) · TD-29 (welcome
+screen onto web). Plus **TD-25**, which needs TD-05 first.
+
+**Not mine: 7.** TD-00 deploy · TD-01 retest · TD-05 the score (Asrar) ·
+TD-42 nullable coordinates (Asrar) · TD-34/35 data · TD-40's SQL run.
+
+**Register: 11 resolved · 19 awaiting retest · 5 open.** Only ONE of the five
+open is web code I can pick up (DEF-006). The 19 are the real number and they
+move only when TD-00 does.
+
+---
+
 ## 🔴 SESSION STATE — 2026-08-20, end of the SECOND fix session
 
 **Read this first.** The 2026-08-19 section below it is the first session; §0
