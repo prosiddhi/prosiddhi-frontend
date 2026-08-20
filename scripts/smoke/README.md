@@ -63,6 +63,7 @@ old process keeps holding the port and answering with old code.
 
 | Script | Checks |
 |---|---|
+| `smoke-td02.js` | The seeker profile actually **writes** a coordinate — typed city → centroid, the GPS button → a precise fix, a bio-only save leaves that fix alone, a city typed in Kannada still matches, and Near By loses `noLocation`. Every check reads the record back over the API, because the form saves happily either way |
 | `smoke-td08.js` | Wrong-role login names the account and moves the tab; a wrong password does **not**; an ADMIN does not start a tab ping-pong |
 | `smoke-td12.js` | The trust claim is above the fold on `/` and `/employee`, in four languages, at ≥4.5:1 contrast |
 | `smoke-td14.js` | No page still says the product is a preview |

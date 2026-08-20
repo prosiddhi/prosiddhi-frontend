@@ -18,6 +18,8 @@ import {
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
+import { cityCoordsFromText, distanceKm, type Coords } from '@/lib/cities'
+import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import {
@@ -57,6 +59,12 @@ function toDateInput(iso?: string | null): string {
 let rowSeq = 0
 const newKey = () => `row-${rowSeq++}`
 
+// How far a typed city must sit from the stored coordinate before we treat it as
+// a move rather than a first-time fill-in. Wider than any centroid-to-suburb
+// distance in our list (Delhi NCR is the broadest, ~25 km), far narrower than the
+// gap between any two cities on it (Mumbai–Pune is ~120 km).
+const MOVED_KM = 40
+
 function SeekerProfileContent() {
   const { t } = useTranslation()
   const { user, updateUser } = useAuth()
@@ -73,6 +81,10 @@ function SeekerProfileContent() {
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [location, setLocation] = useState('')
+  // TD-02. `savedCoords` is what the server holds; `gpsFix` is a precise fix
+  // taken during THIS edit and not yet saved.
+  const [savedCoords, setSavedCoords] = useState<Coords | null>(null)
+  const [gpsFix, setGpsFix] = useState<Coords | null>(null)
   const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
@@ -89,6 +101,13 @@ function SeekerProfileContent() {
     originalFullName.current = (js?.fullName ?? '').trim()
     setBio(js?.bio ?? '')
     setLocation(js?.location ?? '')
+    // Stored coordinates are all-or-nothing — the backend writes both or neither.
+    const lat = js?.latitude
+    const lon = js?.longitude
+    setSavedCoords(lat != null && lon != null ? { lat, lon } : null)
+    // A fix belongs to the edit session that took it, not to the record we just
+    // loaded, so a re-fetch after saving clears it.
+    setGpsFix(null)
     setTriple({
       category: js?.preferredCategory || undefined,
       sector: js?.preferredSector || undefined,
@@ -158,6 +177,24 @@ function SeekerProfileContent() {
     ])
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
 
+  // TD-02 — the coordinate this save would write, if any.
+  //
+  // Precision ranking: a fix taken just now beats a coordinate already stored,
+  // which beats a city centroid. A centroid may only REPLACE a stored
+  // coordinate when the seeker has plainly moved — and that is judged by
+  // distance, not by comparing the location text, because the text is often
+  // blank, or an area name, or written in another script. Comparing text meant
+  // that simply filling in a blank city box flattened a precise fix to the city
+  // centre, which is the opposite of what this guard is for.
+  //
+  // ⚠️ TD-03 needs this same rule for the employer job form (components/job/
+  // JobForm.tsx, which has the identical free-text location + hydrate shape).
+  // MOVE it into @/lib/cities then — do not copy it, or an employer editing a
+  // job title will quietly move its pin to the city centre.
+  const typedCity = cityCoordsFromText(location, (key) => t(`seeker:jobFeed.city.${key}`))
+  const movedCity = !!typedCity && (!savedCoords || distanceKm(savedCoords, typedCity) > MOVED_KM)
+  const pendingFix = gpsFix ?? (movedCity ? typedCity : undefined)
+
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
     // a few seconds, so a guard that returns early without clearing it leaves the
@@ -198,6 +235,14 @@ function SeekerProfileContent() {
         fullName: fullName.trim() || undefined,
         bio: bio.trim() || undefined,
         location: location.trim() || undefined,
+        // TD-02. The backend has accepted these for months and this client never
+        // sent them, so every seeker carried a null coordinate: "Near By" returned
+        // nothing for everybody and the 20-point location component of the
+        // recommendation score was always 0. Sent as undefined (dropped by
+        // JSON.stringify) when there is no fix — the BE schema is `.optional()`,
+        // NOT `.nullable()`, so an explicit null is a 400.
+        latitude: pendingFix?.lat,
+        longitude: pendingFix?.lon,
         preferredCategory: triple.category || undefined,
         preferredSector: triple.sector || undefined,
         preferredJobTitle: triple.jobTitle || undefined,
@@ -295,7 +340,29 @@ function SeekerProfileContent() {
                     <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
                   </Field>
                   <Field label={t('profile:seeker.location')}>
-                    <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t('profile:seeker.locationPlaceholder')} className={inputCls} />
+                    {/* Typing must NOT discard a fix already taken: pressing the
+                        button and then naming your area is the ordinary way to
+                        use this, and clearing here threw the good coordinate
+                        away and saved nothing. */}
+                    <input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder={t('profile:seeker.locationPlaceholder')}
+                      className={inputCls}
+                    />
+                    <UseMyLocation onLocated={setGpsFix} className="mt-2" />
+                    {/* Three states, and the difference matters: the coordinate
+                        is invisible, so this line is the only feedback there is.
+                        It must never call an unsaved change saved. */}
+                    <p className={`text-xs mt-1.5 ${pendingFix || savedCoords ? 'text-green-700' : 'text-[#717182]'}`}>
+                      {t(
+                        pendingFix
+                          ? 'profile:seeker.locationCaptured'
+                          : savedCoords
+                          ? 'profile:seeker.locationOn'
+                          : 'profile:seeker.locationOff'
+                      )}
+                    </p>
                   </Field>
                   {/* Preferred Category → Sector → JobTitle (PJP-112). */}
                   <TaxonomyPicker

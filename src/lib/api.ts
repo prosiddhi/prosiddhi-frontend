@@ -1018,7 +1018,21 @@ export const jobSeekerAPI = {
   // Near By feed (seeker-only, JWT — uses the seeker's profile location).
   // GET /api/jobs/nearby → { jobs, pagination }.
   getNearbyJobs: async (params: { radius?: number; page?: number; limit?: number } = {}) => {
-    const { radius = 5, page = 1, limit = 10 } = params
+    // 50 km, not 5. Until TD-02 no seeker had a coordinate, so Near By always
+    // short-circuited on `noLocation` and this radius was never reached; 5 km
+    // was untested rather than chosen. It also disagreed with the city filter on
+    // the same screen (`maxDistance: 50`) and with the backend service default,
+    // both 50.
+    //
+    // ⚠️ This does NOT make Near By return jobs on its own. `getNearbyForSeeker`
+    // drops every job with a null coordinate, and JobForm still posts none — so
+    // the feed stays empty at any radius until TD-03 lands. What 5 km would do
+    // once TD-03 ships is make the PRECISE tier worse than the coarse one: a
+    // seeker whose GPS puts them in Whitefield sits ~18 km from the Bangalore
+    // centroid a typed-city job would carry.
+    //
+    // TD-06 replaces this with the chosen city's own radius.
+    const { radius = 50, page = 1, limit = 10 } = params
     return apiRequest<JobsPage>(`/jobs/nearby?radius=${radius}&page=${page}&limit=${limit}`)
   },
 

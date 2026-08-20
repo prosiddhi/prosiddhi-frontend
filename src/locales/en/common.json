@@ -130,6 +130,12 @@
     "comingSoon": "voice assistance coming soon",
     "tooltip": "Voice assistance — coming soon"
   },
+  "location": {
+    "useMyLocation": "Use my current location",
+    "locating": "Finding you…",
+    "denied": "Location permission was refused. Type your city instead — that works too.",
+    "failed": "Could not get your location. Type your city instead."
+  },
   "applicationStatus": {
     "PENDING": "Applied",
     "REVIEWED": "Under Review",
