@@ -119,6 +119,109 @@ workstream closes outright.
 
 ---
 
+## 🟢 SESSION STATE — 2026-08-21, end of the FIFTH fix session
+
+**Read this first.** The index above is the live truth; this is what it cannot say.
+
+### The register is down to SIX open, and none of the six is web code
+
+| Still open | Whose |
+|---|---|
+| **TD-00** deploy `main` | Nayan / Asrar — still blocks 19 register retests |
+| **TD-01** re-run the retest table | after TD-00 |
+| **TD-25** "Recommended" returns 1 in 10 | ⚠️ may already be fixed — see below |
+| **TD-34 / TD-35** untidy job data, ten jobs in prod | data, not code |
+| **TD-47** the taxonomy is English in all ten locales | **PARKED by Nazir**, 2026-08-21 |
+
+### Shipped this session
+
+**Web:** TD-04, TD-39, TD-41, TD-22, TD-28, TD-29, TD-23, TD-45, TD-46, TD-44,
+TD-48, and the web half of TD-42.
+**Backend:** TD-42 (`9dbb470`) and TD-05 (`b5f6a0d`) — ⚠️ **Asrar has not been
+told about either**, nor about `61258ef` from the previous session.
+**Mobile:** its whole queue, in its own repo. The TD-07/08/10/12 badge updates in
+the index above are the mobile session's edits to this file, committed here
+alongside web work.
+
+**Twelve smoke suites, 148 checks, all green at close.**
+
+### ⚠️ TD-25 may be done and nobody has checked
+
+TD-05 was the stated blocker and it is closed. On the local database the
+recommendation now returns **6 of 6** jobs, not 1 in 10. That is six jobs, so it
+proves nothing about production — but the specific cause TD-25 names, a dead
+20-point location component, is gone. **Re-measure after TD-00 before spending
+any time on it.**
+
+### Two decisions taken, both delegated, both need mobile
+
+1. **TD-48 — the primary button.** White on `primary-50` measured 2.02:1. Fixed
+   by keeping the sky fill and darkening the text to `primary-100`: 6.62:1, and
+   4.73:1 on the hover shade. Chosen over darkening the FILL because it is the
+   only option where the product still looks like itself. 106 call sites.
+   ⚠️ **TD-26 answered this question differently on mobile** (action colour →
+   primary/80). One surface should move; web's answer keeps one brand colour on
+   both.
+2. **TD-42 — clearing a coordinate.** Backend now accepts `null` on the two
+   UPDATE schemas. The web offers an explicit "Remove the saved location"; it is
+   NEVER inferred from unmatched text, because "Whitefield" matches no city and
+   an employer narrowing "Bangalore" to it would silently lose a good pin.
+
+### What the reviews caught that reading could not
+
+- **`SAME_PLACE_KM` was 100 on a false premise.** The comment said the closest
+  city pair was ~230 km; it is **Mumbai–Pune at 120.2**. A recruiter in Panvel
+  typing "Pune" had the job pinned 94 km away. Recomputed to (50, 93.7) → 60.
+- **The taxonomy search was DEAD on iOS.** Safari does not focus a `<button>` on
+  click, so the blur-close unmounted the result before its click fired. Every
+  Chromium check passed.
+- **TD-05 was meant to be a verification.** It found that a job with no
+  coordinate scored 0 — ranked as if 150 km away — which quietly buried every
+  employer outside the ten cities. Unknown now scores the midpoint.
+- **The mobile session caught a live gap in TD-37:** the OTP arm never moved off
+  the role-split endpoints, which is why the role toggle was still on that tab.
+  It also caught that `identifier.ts`'s comment claimed a rejection the code does
+  not perform. Both fixed in `a156cdd`.
+
+### Eighteen times my own checks lied
+
+Up from twelve. The new ones are worth reading because they are all the same
+shape — **a check that passes for a reason other than the one it claims**:
+
+- `tagName === 'BUTTON'` matched the Clear button, not a search result
+- `getByRole('button', {name: /^search$/i})` matched the TAB — `tabSearch` and
+  `searchButton` are both the string "Search"
+- the no-jobs assertion matched `workers.subtitle`, which is on that page always;
+  both strings open "Search the candidate database"
+- **a race test that could not observe a race** — `getMyJobs` answers in
+  milliseconds locally, so it passed with the guard deleted. Forcing the timing
+  with `page.route` made it real
+- `{lat, lon}` where the API wants `{latitude, longitude}`: the PUT is accepted
+  and ignored, so three checks passed on a seeker who was already in Bangalore —
+  including the one asserting the coordinate had MOVED
+
+**The lesson that generalises: print what you matched, not just whether you
+matched.** Two of these were caught only because the detail line showed the
+wrong string.
+
+### Owed, unchanged and honest
+
+- **Nothing this session was seen by a human eye.** Every claim is a measurement
+  or a browser assertion.
+- **~40 translated strings** came from the i18n-translator against each
+  language's termbase. It flagged several itself for a native check: Marathi
+  `स्वरूप`, Telugu `ప్రాంతం`, the Tamil placeholder now being a bare noun phrase,
+  and an English fragment ("…to move.") that it fixed in nine languages before
+  the English was corrected to match.
+- **`/register/categories` still never rendered** — it sits behind a
+  phone-verification guard.
+- **`authRateLimit` (10 per 15 min, no `skipSuccessfulRequests`) trips a full
+  suite run twice over.** Restarting the backend clears the in-memory store.
+  It is also the thing TD-43 warns can lock out an employer at the moment they
+  finally type their password correctly.
+
+---
+
 ## 🟢 SESSION STATE — 2026-08-21, end of the FOURTH fix session
 
 **Read this first.** The status index at the top is the live truth; this is what
