@@ -14,9 +14,48 @@ of work, not six.
 |---|---|
 | **TD-02** seeker coordinates | ✅ **done** — `aa1abb3` |
 | **TD-06** ten cities, per-city radius | ✅ **done** — `f7e631e` `d42204d` |
-| **TD-03** job coordinates | 🔵 **next — nothing is user-visible until this lands** |
-| **TD-05** re-check the score | 🔴 Asrar, after TD-03 |
+| **TD-03** job coordinates | ✅ **done** — `6fd606c` `da49122`. **DEF-035 closed end to end** |
+| **TD-05** re-check the score | 🔴 Asrar — unblocked now, see below |
 | **TD-04 / TD-38** mobile | 🔴 open — mobile has **no geolocation package at all** |
+| **TD-40** backfill existing jobs | 🔴 ⭐ open — without it DEF-035 still reproduces on live data |
+| **TD-41 / TD-42** feedback, and clearing a coordinate | 🔴 open |
+
+**Proven on a local full stack** (`scripts/smoke/smoke-td03.js`, 9/9): a job
+posted through the real form carries the Bangalore centroid, and a seeker in
+Bangalore then finds it in Near By at 0 km. The city filter returns it too.
+
+### What TD-05 must check — worked out while building TD-03
+
+1. **Both pairs, not one.** The 20 points need the job's coordinates *and* the
+   seeker's (`job.service.ts:1314-1319`).
+2. **Test the band, not the midrange.** The coarse tier writes centroids, so
+   every same-city job sits at ~0 km and everything else is 300 km+. The
+   distance score is effectively binary until employers supply precise pins.
+   Check behaviour AT 0 km and beyond 100 km, not at 12 km.
+3. **Jobs with no coordinates must still score.** Confirm the *scored* path
+   gives them 0 location points rather than dropping them the way
+   `getNearbyForSeeker` does. Otherwise every employer outside the ten cities
+   becomes unrecommendable — a far bigger hit than losing Near By.
+
+### ⚠️ A product question TD-03 answered by implication — put it to Nazir
+
+Is `location` **display text** or a **canonical key**? TD-03 makes the datalist
+insert the **English** name while showing the reader's own script, so a Tamil
+employer sees `பெங்களூரு` and the job stores `"Bangalore"`.
+
+That was chosen because the cold-start recommendation does a case-insensitive
+substring match on this column: storing the translated label would make the text
+canonical only *within* one language, so a Tamil employer's job would stop
+matching a Hindi seeker in the same city. Storing English keeps one spelling for
+everyone — but it does mean the stored string is not in the poster's language.
+It is reversible in one line if the answer is "display text".
+
+### One limitation that is not fixable here
+
+Editing a job's location from "Bangalore" to "Nagpur" **keeps the Bangalore
+coordinates**. `latitude`/`longitude` are `.optional()` and not `.nullable()`,
+so no client can clear one — the backend simply keeps what it has. The job goes
+on showing to Bangalore seekers at 0 km. Tracked as **TD-42**, needs Asrar.
 
 ### Five things we learned by building it — read before TD-03
 

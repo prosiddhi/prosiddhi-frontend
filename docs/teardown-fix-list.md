@@ -22,14 +22,14 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**Totals: 22 done · 13 open · 3 superseded · 1 can't-do-here · 1 blocked.**
+**Totals: 23 done · 15 open · 3 superseded · 1 can't-do-here · 1 blocked.**
 
 | # | Item | Status | Where |
 |---|---|---|---|
 | TD-00 | Deploy `main` to production | 🔴 **OPEN — blocks 19 retests** | Nayan / Asrar |
 | TD-01 | Re-run the retest table | 🔴 open — after TD-00 | |
 | TD-02 | Seeker coordinates | ✅ done | `aa1abb3` |
-| TD-03 | **Job coordinates** | 🔵 **NEXT** | |
+| TD-03 | **Job coordinates** | ✅ **done — DEF-035 closed end to end** | `6fd606c` `da49122` |
 | TD-04 | Surface `noLocation` on mobile | 🔴 open — folded into TD-38 | |
 | TD-05 | Re-check the 20-point score | 🔴 open — Asrar, needs TD-03 first | |
 | TD-06 | Widen the city list to ten | ✅ done | `f7e631e` `d42204d` |
@@ -66,14 +66,18 @@ done.
 | TD-37 | One login: phone + password + Google | 🔴 open — approach agreed 2026-08-20 | |
 | TD-38 | Location on mobile | 🔴 open | |
 | TD-39 | `aria-required` with no field name | 🔴 open | |
+| TD-40 | **Backfill coordinates on existing jobs** | 🔴 open — ⭐ or DEF-035 still looks broken on live data | |
+| TD-41 | Job form gives no location feedback | 🔴 open | |
+| TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
-**10 resolved · 19 awaiting retest · 6 open** *(re-counted 2026-08-20)*.
+**11 resolved · 19 awaiting retest · 5 open** *(re-counted 2026-08-20, after TD-03 closed DEF-035)*.
 
-The 19 cannot be judged until TD-00. The 6 genuinely open are DEF-006
-(deferred), DEF-018 (Asrar), DEF-032 + one other (Shaik's call), DEF-035
-(closes with TD-03), and one landing-page item.
+The 19 cannot be judged until TD-00. The 5 genuinely open are DEF-006
+(deferred), DEF-018 (Asrar), DEF-032 plus one more that is Shaik's call, and one
+landing-page item. **DEF-035 closed 2026-08-20** — the first register row this
+workstream closes outright.
 
 ---
 
@@ -785,6 +789,46 @@ Work: add a geolocation plugin, mirror TD-02's two tiers (typed city → centroi
 button → precise fix), and give TD-04 its recovery action. Android needs
 `ACCESS_FINE_LOCATION`, iOS `NSLocationWhenInUseUsageDescription`, both with a
 translated plain-language reason.
+
+### TD-40 · Existing jobs have no coordinates — backfill them `DATA` · S ⭐
+
+**Found by review during TD-03, and it is the difference between "fixed" and
+"fixed for new jobs only".**
+
+TD-03 gives a coordinate to every job posted or edited *from now on*. It does
+nothing for the jobs already in the table, and both
+`getJobs` (`job.service.ts:336`) and `getNearbyForSeeker` (`:1478`) drop a job
+with a null coordinate. So **after the deploy, DEF-035 still reproduces on the
+whole existing job table** — Near By and the city filter will look broken to
+anyone testing with today's data, while `smoke-td03.js` passes on a job it just
+created.
+
+One-off script: for each job with a null coordinate, run its `location` text
+through the same matcher and write the centroid where it resolves. Leave the
+rest null — a wrong coordinate is worse than none. Pairs naturally with
+**TD-34**, which normalises the same column.
+
+### TD-41 · The job form never says whether it captured a location `WEB` · S
+
+A coordinate has no visible representation. Press "Use my current location" on
+the job form and the button simply stops spinning; type "Nagpur" and nothing
+hints that the job will be invisible in Near By. The seeker profile has three
+explicit states for exactly this reason; the employer form has none.
+
+The seeker copy cannot be borrowed — `profile:seeker.locationOn` is worded
+"You will see jobs near you", which is backwards for an employer. Needs 3 new
+keys × 10 locales.
+
+### TD-42 · A coordinate cannot be cleared, only replaced `BE` · S ⚠️ Asrar
+
+`latitude` / `longitude` are `.optional()` and **not** `.nullable()` on both the
+seeker-profile and job schemas, so no client can null one. Consequence, worst on
+the employer side: edit a job's location from "Bangalore" to "Nagpur" and it
+**keeps the Bangalore coordinates** — it goes on showing to Bangalore seekers at
+0 km and never reaches Nagpur.
+
+Not fixable in the frontend. Needs `.nullable()` plus a service that writes
+`null` through, then one line in `coordsToWrite`.
 
 ### TD-39 · `aria-required` announces a field with no name `WEB` · S
 
