@@ -199,7 +199,18 @@ export default function RegisterExperiencePage() {
                 {/* Experience Entries */}
                 <div className="space-y-6 mb-4">
                   {experiences.map((exp, index) => (
-                    <div key={exp.id} className="grid grid-cols-[434px_265px_265px_auto] gap-6">
+                    // Fractional columns, not the fixed 434/265/265 this had
+                    // (DEF-031). Those add up to 1036px before the Remove
+                    // column and the three 24px gaps, but this pane is only
+                    // 785px wide at 1440 and 625px at 1280 — so "To Year" ran
+                    // off the right and was CLIPPED, not scrollable, which put
+                    // it out of reach entirely. It only fitted at 1920.
+                    // minmax(0,…) lets the inputs actually shrink; without it
+                    // the default `auto` minimum keeps the overflow.
+                    <div
+                      key={exp.id}
+                      className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-6"
+                    >
                       {/* Designation */}
                       <div>
                         <label className="text-[20px] font-medium text-black mb-4 block">
