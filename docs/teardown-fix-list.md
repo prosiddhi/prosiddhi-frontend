@@ -75,7 +75,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-33 | Mobile checkout | ⛔ **SUPERSEDED by TD-36** | |
 | TD-34 | Untidy job data | 🔴 open — data, **now also a search fix** | |
 | TD-35 | Ten jobs in production | 🔴 open — data | |
-| TD-36 | Remove purchasing from mobile | 🔴 open — ⚠️ needs D2 reopened by Shaik | |
+| TD-36 | Remove purchasing from mobile | 🔴 open — **unblocked, D2 resolved 2026-08-20** | |
 | TD-37 | One login: phone + password + Google | 🔴 open — approach agreed 2026-08-20 | |
 | TD-38 | Location on mobile | 🔴 open | |
 | TD-39 | `aria-required` with no field name | 🔴 open | |
@@ -720,7 +720,7 @@ Still needs a real device or emulator before release.
 
 Three new items. All checked against the code before writing; none is started.
 
-### TD-36 · Remove purchasing from mobile — web-only `MOB` · M · ⚠️ needs D2 reopened
+### TD-36 · Remove purchasing from mobile — web-only `MOB` · M · ✅ UNBLOCKED
 
 **Decision (Nazir, 2026-08-20): all purchases happen on the web.** Reason: Play
 takes 30% and, per
@@ -750,9 +750,10 @@ external purchase — and they differ by market (India has the CCI ruling; the U
 position moved after Epic v. Google). **Check current policy, then write the
 words.** Removing the purchase is safe; advertising the alternative may not be.
 
-⚠️ **This contradicts locked decision D2.** Shaik must reopen it formally —
-Nazir's call here is the trigger, not the authority. **Closes TD-33** as
-won't-do once D2 is reopened.
+✅ **D2 is REOPENED AND RESOLVED — 2026-08-20, Nazir as PO.** Purchasing is
+web-only. Nothing about this is blocked; build it. The decision is recorded in
+`docs/STATUS.md` §Decisions and in the mobile repo's own STATUS and session-start
+docs, so `scope-drift-checker` will not fight it. **Closes TD-33** as won't-do.
 
 ### TD-37 · One login: phone + password, plus Google `WEB` `MOB` · M · ⛔ see the warning
 
