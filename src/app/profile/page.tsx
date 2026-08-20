@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { nameProblem } from '@/lib/nameValidation'
+import { Field } from '@/components/form/Field'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -693,15 +694,6 @@ function SkillsSection() {
 // ---- small presentational helpers -----------------------------------------
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
-
-function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
-  return (
-    <div className={full ? 'sm:col-span-2' : ''}>
-      <label className="text-sm font-medium text-black mb-1.5 block">{label}</label>
-      {children}
-    </div>
-  )
-}
 
 export default function SeekerProfilePage() {
   return (

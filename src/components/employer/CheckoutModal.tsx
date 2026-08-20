@@ -248,11 +248,12 @@ export function CheckoutModal({
 
             {/* Place of supply (required unless GSTIN given) */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-black mb-1">
+              <label className="block text-sm font-medium text-black mb-1" htmlFor="checkout-place-of-supply">
                 {t('employer:checkout.stateLabel')}
                 {stateRequired && <span className="text-red-500"> *</span>}
               </label>
               <select
+                id="checkout-place-of-supply"
                 value={placeOfSupply}
                 onChange={(e) => setPlaceOfSupply(e.target.value)}
                 disabled={hasGstin}

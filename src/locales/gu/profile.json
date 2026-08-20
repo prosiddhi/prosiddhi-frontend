@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "કંપની નોંધણી",
       "OTHER": "અન્ય"
     },
+    "typeLabel": "દસ્તાવેજનો પ્રકાર",
     "uploading": "અપલોડ થઈ રહ્યું છે…",
     "uploadDocument": "દસ્તાવેજ અપલોડ કરો",
     "loadError": "દસ્તાવેજો લોડ થઈ શક્યા નથી.",

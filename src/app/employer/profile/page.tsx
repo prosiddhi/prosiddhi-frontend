@@ -19,6 +19,7 @@ import { Camera, Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucid
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
 import { nameProblem } from '@/lib/nameValidation'
+import { Field } from '@/components/form/Field'
 
 const EMPLOYER_DOC_TYPES = [
   { value: 'GST_CERTIFICATE', label: 'GST Certificate' },
@@ -37,15 +38,6 @@ const COMPANY_SIZES: { value: CompanySize; label: string }[] = [
 
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
-
-function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
-  return (
-    <div className={full ? 'sm:col-span-2' : ''}>
-      <label className="text-sm font-medium text-black mb-1.5 block">{label}</label>
-      {children}
-    </div>
-  )
-}
 
 // ISO datetime → yyyy-mm-dd for <input type="date">.
 function toDateInput(iso?: string | null): string {

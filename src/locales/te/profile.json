@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "కంపెనీ రిజిస్ట్రేషన్",
       "OTHER": "ఇతరం"
     },
+    "typeLabel": "పత్రం రకం",
     "uploading": "అప్‌లోడ్ అవుతోంది…",
     "uploadDocument": "పత్రం అప్‌లోడ్ చేయండి",
     "loadError": "పత్రాలు లోడ్ కాలేదు.",

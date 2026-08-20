@@ -120,7 +120,12 @@ export function DocumentsSection({
     <div>
       {/* Upload control */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* TD-39. No visible label — the control sits inline beside the Upload
+            button — so the name has to come from aria-label, and a <select> has
+            no placeholder to fall back on. Until this, a screen reader on either
+            profile page reached it and said only "combo box". */}
         <select
+          aria-label={t('profile:documents.typeLabel')}
           value={uploadType}
           onChange={(e) => setUploadType(e.target.value as DocumentType)}
           className="h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-primary-50"

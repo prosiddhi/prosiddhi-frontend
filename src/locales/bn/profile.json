@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "কোম্পানি রেজিস্ট্রেশন",
       "OTHER": "অন্যান্য"
     },
+    "typeLabel": "কাগজের ধরন",
     "uploading": "আপলোড হচ্ছে…",
     "uploadDocument": "কাগজপত্র আপলোড করুন",
     "loadError": "কাগজপত্র লোড করা যায়নি।",

@@ -378,6 +378,24 @@ function JobFeedPageContent() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
+                    // No aria-label, deliberately. Chrome names a textbox from
+                    // its placeholder, so this control was never the TD-39
+                    // defect — unlike the <select> beside it, which has no such
+                    // fallback and announced nothing.
+                    //
+                    // An aria-label here was tried and reverted: "Search Jobs"
+                    // is the submit button's own name two elements away, so the
+                    // toolbar ended up with a textbox and a button answering to
+                    // one phrase — worse for voice control than the placeholder
+                    // it replaced. The placeholder text itself is no good either;
+                    // accname promotes an unused placeholder to the DESCRIPTION,
+                    // so an identical label is announced twice.
+                    //
+                    // A visually-hidden <label> is the real answer (WCAG 3.3.2
+                    // wants a label that does not vanish behind the user's own
+                    // text) and the identical control on /employee:141 needs the
+                    // same treatment. That is a visible-design change, not a
+                    // naming fix, so it is not smuggled in here.
                     placeholder={t('seeker:jobFeed.searchPlaceholder')}
                     value={searchDraft}
                     onChange={(e) => setSearchDraft(e.target.value)}
@@ -388,7 +406,16 @@ function JobFeedPageContent() {
 
                 <div className="flex-1 min-w-[150px] lg:max-w-[416px] relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  {/* TD-39. No visible label — the MapPin icon carries the
+                      meaning for sighted users — so the name has to come from
+                      aria-label, and a <select> has no placeholder to fall back
+                      on. Reuses the key the IDENTICAL control on /employee
+                      already uses rather than adding an eleventh translation of
+                      "Select location"; the two screens disagreeing about this
+                      control is how one of them lost its name in the first
+                      place. */}
                   <select
+                    aria-label={t('seeker:landing.selectLocation')}
                     value={cityDraft}
                     onChange={(e) => setCityDraft(e.target.value)}
                     className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
@@ -438,9 +465,12 @@ function JobFeedPageContent() {
                     selectClassName="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm"
                     labelClassName="block text-sm font-medium text-black mb-1"
                   />
+                  {/* Same TD-39 family as the city select above: these labels
+                      sat beside their controls rather than pointing at them, so
+                      every one announced as an unnamed combo box. */}
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.jobType')}</label>
-                    <select value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
+                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-job-type">{t('seeker:jobFeed.filters.jobType')}</label>
+                    <select id="filter-job-type" value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
                       <option value="">{t('seeker:jobFeed.filters.any')}</option>
                       {JOB_TYPES.map((value) => (
                         <option key={value} value={value}>{t(`seeker:jobFeed.jobType.${value}`)}</option>
@@ -448,16 +478,16 @@ function JobFeedPageContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.minSalary')}</label>
-                    <input type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.minSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-min-salary">{t('seeker:jobFeed.filters.minSalary')}</label>
+                    <input id="filter-min-salary" type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.minSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.maxSalary')}</label>
-                    <input type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.maxSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-max-salary">{t('seeker:jobFeed.filters.maxSalary')}</label>
+                    <input id="filter-max-salary" type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.maxSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">{t('seeker:jobFeed.filters.sortBy')}</label>
-                    <select value={sortByDraft} onChange={(e) => setSortByDraft(e.target.value as JobFeedFilters['sortBy'])} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
+                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-sort-by">{t('seeker:jobFeed.filters.sortBy')}</label>
+                    <select id="filter-sort-by" value={sortByDraft} onChange={(e) => setSortByDraft(e.target.value as JobFeedFilters['sortBy'])} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
                       <option value="postedAt">{t('seeker:jobFeed.filters.sortNewest')}</option>
                       <option value="salaryMax">{t('seeker:jobFeed.filters.sortSalaryHigh')}</option>
                       <option value="salaryMin">{t('seeker:jobFeed.filters.sortSalaryLow')}</option>

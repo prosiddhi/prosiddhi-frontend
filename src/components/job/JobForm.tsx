@@ -211,8 +211,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionBasics')}</h2>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.jobTitleLabel')}<Req /></label>
-            <input aria-required className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
+            <label className={labelCls} htmlFor="job-title">{t('employer:jobForm.jobTitleLabel')}<Req /></label>
+            <input id="job-title" aria-required className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
           </div>
 
           {/* category only: sector and jobTitle are optional server-side. */}
@@ -230,8 +230,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           />
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.companyNameLabel')}</label>
-            <input className={inputCls} value={f.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employer:jobForm.companyNamePlaceholder')} />
+            <label className={labelCls} htmlFor="job-company">{t('employer:jobForm.companyNameLabel')}</label>
+            <input className={inputCls} id="job-company" value={f.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employer:jobForm.companyNamePlaceholder')} />
           </div>
 
           <div>
@@ -280,8 +280,8 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           </div>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span><Req /></label>
-            <textarea aria-required className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
+            <label className={labelCls} htmlFor="job-description">{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span><Req /></label>
+            <textarea id="job-description" aria-required className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
             <p className="text-xs text-gray-400 mt-0.5">{f.description.trim().length}/5000</p>
           </div>
         </section>
@@ -292,16 +292,16 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <label className={labelCls}>{t('employer:jobForm.minSalaryLabel')}</label>
-              <input type="number" min={0} className={inputCls} value={f.salaryMin} onChange={(e) => set('salaryMin', e.target.value)} placeholder={t('employer:jobForm.optional')} />
+              <label className={labelCls} htmlFor="job-salary-min">{t('employer:jobForm.minSalaryLabel')}</label>
+              <input type="number" min={0} className={inputCls} id="job-salary-min" value={f.salaryMin} onChange={(e) => set('salaryMin', e.target.value)} placeholder={t('employer:jobForm.optional')} />
             </div>
             <div>
-              <label className={labelCls}>{t('employer:jobForm.maxSalaryLabel')}</label>
-              <input type="number" min={0} className={inputCls} value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
+              <label className={labelCls} htmlFor="job-salary-max">{t('employer:jobForm.maxSalaryLabel')}</label>
+              <input type="number" min={0} className={inputCls} id="job-salary-max" value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
             </div>
             <div>
-              <label className={labelCls}>{t('employer:jobForm.payPeriodLabel')}</label>
-              <select className={inputCls} value={f.paymentType} onChange={(e) => set('paymentType', e.target.value as PaymentTypeValue)}>
+              <label className={labelCls} htmlFor="job-pay-period">{t('employer:jobForm.payPeriodLabel')}</label>
+              <select className={inputCls} id="job-pay-period" value={f.paymentType} onChange={(e) => set('paymentType', e.target.value as PaymentTypeValue)}>
                 {PAYMENT_TYPES.map((p) => (
                   <option key={p} value={p}>{t(`employer:jobForm.paymentType.${p}`)}</option>
                 ))}
@@ -315,19 +315,19 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionDetails')}</h2>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.requirementsLabel')}</label>
-            <textarea className={inputCls} rows={3} maxLength={3000} value={f.requirements} onChange={(e) => set('requirements', e.target.value)} placeholder={t('employer:jobForm.requirementsPlaceholder')} />
+            <label className={labelCls} htmlFor="job-requirements">{t('employer:jobForm.requirementsLabel')}</label>
+            <textarea className={inputCls} rows={3} maxLength={3000} id="job-requirements" value={f.requirements} onChange={(e) => set('requirements', e.target.value)} placeholder={t('employer:jobForm.requirementsPlaceholder')} />
           </div>
 
           <div>
-            <label className={labelCls}>{t('employer:jobForm.skillsLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.skillsHint')}</span></label>
-            <input className={inputCls} value={f.skills} onChange={(e) => set('skills', e.target.value)} placeholder={t('employer:jobForm.skillsPlaceholder')} />
+            <label className={labelCls} htmlFor="job-skills">{t('employer:jobForm.skillsLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.skillsHint')}</span></label>
+            <input className={inputCls} id="job-skills" value={f.skills} onChange={(e) => set('skills', e.target.value)} placeholder={t('employer:jobForm.skillsPlaceholder')} />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <label className={labelCls}>{t('employer:jobForm.jobTypeLabel')}<Req /></label>
-              <select aria-required className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
+              <label className={labelCls} htmlFor="job-type">{t('employer:jobForm.jobTypeLabel')}<Req /></label>
+              <select id="job-type" aria-required className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
                 <option value="">{t('employer:jobForm.selectPlaceholder')}</option>
                 {JOB_TYPES.map((jt) => (
                   <option key={jt} value={jt}>{humanizeJobType(jt)}</option>
@@ -335,16 +335,16 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
               </select>
             </div>
             <div>
-              <label className={labelCls}>{t('employer:jobForm.urgencyLabel')}</label>
-              <select className={inputCls} value={f.urgencyLevel} onChange={(e) => set('urgencyLevel', e.target.value as UrgencyLevelValue)}>
+              <label className={labelCls} htmlFor="job-urgency">{t('employer:jobForm.urgencyLabel')}</label>
+              <select className={inputCls} id="job-urgency" value={f.urgencyLevel} onChange={(e) => set('urgencyLevel', e.target.value as UrgencyLevelValue)}>
                 {URGENCY_LEVELS.map((u) => (
                   <option key={u} value={u}>{t(`employer:jobForm.urgency.${u}`)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>{t('employer:jobForm.positionsLabel')}</label>
-              <input type="number" min={1} className={inputCls} value={f.numberOfPositions} onChange={(e) => set('numberOfPositions', e.target.value)} />
+              <label className={labelCls} htmlFor="job-positions">{t('employer:jobForm.positionsLabel')}</label>
+              <input type="number" min={1} className={inputCls} id="job-positions" value={f.numberOfPositions} onChange={(e) => set('numberOfPositions', e.target.value)} />
             </div>
           </div>
 

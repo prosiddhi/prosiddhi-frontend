@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "कंपनी पंजीकरण",
       "OTHER": "अन्य"
     },
+    "typeLabel": "दस्तावेज़ का प्रकार",
     "uploading": "अपलोड हो रहा है…",
     "uploadDocument": "दस्तावेज़ अपलोड करें",
     "loadError": "दस्तावेज़ लोड करने में विफल।",

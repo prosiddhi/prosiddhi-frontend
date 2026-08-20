@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "ಕಂಪನಿ ನೋಂದಣಿ",
       "OTHER": "ಇತರೆ"
     },
+    "typeLabel": "ದಾಖಲೆಯ ಪ್ರಕಾರ",
     "uploading": "ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
     "uploadDocument": "ದಾಖಲೆ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
     "loadError": "ದಾಖಲೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ.",

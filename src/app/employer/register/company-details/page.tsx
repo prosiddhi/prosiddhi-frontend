@@ -246,8 +246,8 @@ export default function CompanyDetailsPage() {
                 <input type="date" value={form.companyFoundedDate} onChange={(e) => set('companyFoundedDate', e.target.value)} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companySize')} <span className="text-red-500">*</span></label>
-                <select value={form.companySize} onChange={(e) => set('companySize', e.target.value)} disabled={loading} className={inputCls}>
+                <label className="block text-sm font-medium text-black mb-2" htmlFor="company-size">{t('employerRegister:companyDetails.companySize')} <span className="text-red-500">*</span></label>
+                <select id="company-size" value={form.companySize} onChange={(e) => set('companySize', e.target.value)} disabled={loading} className={inputCls}>
                   <option value="">{t('employerRegister:companyDetails.selectOption')}</option>
                   {SIZE_VALUES.map((value) => (
                     <option key={value} value={value}>{t(`employerRegister:companyDetails.sizeOptions.${value}`)}</option>

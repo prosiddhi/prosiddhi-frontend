@@ -266,8 +266,9 @@ export default function RegisterProfilePage() {
                 </div>
 
                 <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.genderLabel')}</label>
+                  <label className="text-[20px] font-medium text-black mb-6 block" htmlFor="gender-lg">{t('auth:profile.genderLabel')}</label>
                   <select
+                    id="gender-lg"
                     value={gender}
                     onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
                     className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
@@ -357,8 +358,9 @@ export default function RegisterProfilePage() {
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">{t('auth:profile.genderLabel')}</label>
+              <label className="text-base font-medium mb-2 block" htmlFor="gender-sm">{t('auth:profile.genderLabel')}</label>
               <select
+                id="gender-sm"
                 value={gender}
                 onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
                 className="w-full h-14 px-3 border rounded-lg"

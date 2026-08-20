@@ -11,6 +11,7 @@
 // selectClassName / labelClassName so it can match each host form; `variant`
 // switches placeholder wording between a form ("Select a…") and a filter ("All…").
 
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyTriple } from '@/lib/api'
@@ -62,6 +63,15 @@ export function TaxonomyPicker({
 }: TaxonomyPickerProps) {
   const { t } = useTranslation()
   const { categories, loading, error, reload } = useCategories()
+  // TD-39. Each label must point at its own control with `htmlFor`, and a
+  // <select> has no placeholder to fall back on — without this a screen reader
+  // announces "combo box, required" with no field name at all.
+  //
+  // useId, not a literal: this component is on four screens and nothing stops
+  // two of them appearing at once. Duplicate ids would silently attach every
+  // label to the FIRST matching control, which is worse than no label because
+  // it reads as correct.
+  const id = useId()
 
   const sectors = categories.find((c) => c.name === value.category)?.sectors ?? []
   const jobTitles = sectors.find((s) => s.name === value.sector)?.jobTitles ?? []
@@ -94,11 +104,12 @@ export function TaxonomyPicker({
     <div className={className ?? 'space-y-4'}>
       {/* Category */}
       <div>
-        <label className={labelClassName}>
+        <label className={labelClassName} htmlFor={`${id}-category`}>
           {t('taxonomy:category')}
           {star('category')}
         </label>
         <select
+          id={`${id}-category`}
           className={selectClassName}
           value={value.category ?? ''}
           aria-required={isRequired('category')}
@@ -122,11 +133,12 @@ export function TaxonomyPicker({
 
       {/* Sector */}
       <div>
-        <label className={labelClassName}>
+        <label className={labelClassName} htmlFor={`${id}-sector`}>
           {t('taxonomy:sector')}
           {star('sector')}
         </label>
         <select
+          id={`${id}-sector`}
           className={selectClassName}
           value={value.sector ?? ''}
           aria-required={isRequired('sector')}
@@ -151,15 +163,16 @@ export function TaxonomyPicker({
       {/* Job title */}
       {showJobTitle && (
         <div>
-          <label className={labelClassName}>
+          <label className={labelClassName} htmlFor={`${id}-jobTitle`}>
             {t('taxonomy:jobTitle')}
             {star('jobTitle')}
           </label>
           <select
+            id={`${id}-jobTitle`}
             className={selectClassName}
             value={value.jobTitle ?? ''}
             aria-required={isRequired('jobTitle')}
-          onChange={(e) => handleJobTitle(e.target.value)}
+            onChange={(e) => handleJobTitle(e.target.value)}
             disabled={controlsDisabled || !value.sector}
           >
             <option value="">

@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "कंपनी नोंदणी",
       "OTHER": "इतर"
     },
+    "typeLabel": "कागदपत्राचे स्वरूप",
     "uploading": "अपलोड होत आहे…",
     "uploadDocument": "कागदपत्र अपलोड करा",
     "loadError": "कागदपत्रे लोड होऊ शकली नाहीत.",

@@ -22,8 +22,10 @@ working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**44 items: 17 done · 18 open · 5 WEB-done/MOBILE-pending · 3 superseded · 1 that
-cannot be done from this machine (TD-32).**
+**44 items: 21 done · 14 open · 5 WEB-done/MOBILE-pending · 3 superseded · 1 that
+cannot be done from this machine (TD-32).** *(Recounted 2026-08-20 with the two
+`grep -c` lines below, after TD-04 and TD-39 closed. The hand-written total has
+been wrong twice; do not update it by hand.)*
 
 ⚠️ **A ✅ here meant "done on the web".** Checked 2026-08-20: TD-07, TD-08,
 TD-10 and TD-12 are all marked `WEB` `MOB` and only ever shipped on the web.
@@ -43,7 +45,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-01 | Re-run the retest table | 🔴 open — after TD-00 | |
 | TD-02 | Seeker coordinates | ✅ done | `aa1abb3` |
 | TD-03 | **Job coordinates** | ✅ **done — DEF-035 closed end to end** | `6fd606c` `da49122` |
-| TD-04 | Surface `noLocation` on mobile | 🔴 open — folded into TD-38 | |
+| TD-04 | Surface `noLocation` | ✅ **done both surfaces** — web `0d6b4d8`, mobile `724b120` | |
 | TD-05 | Re-check the 20-point score | 🔴 open — Asrar, needs TD-03 first | |
 | TD-06 | Widen the city list to ten | ✅ done | `f7e631e` `d42204d` |
 | TD-07 | Tell employers about the trial | 🟠 **WEB done, MOBILE not started** — 0 mentions of "trial" in app_en.arb | `e098ae9` `d1d6f38` |
@@ -78,7 +80,7 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-36 | Remove purchasing from mobile | 🔴 open — **unblocked, D2 resolved 2026-08-20** | |
 | TD-37 | One login: phone or email + password, Google | ✅ **WEB done** — mobile pending | `a2dbbf8` |
 | TD-38 | Location on mobile | 🔴 open | |
-| TD-39 | `aria-required` with no field name | 🔴 open | |
+| TD-39 | `aria-required` with no field name | ✅ done — 27/27, `smoke-td39.js` | |
 | TD-40 | Backfill coordinates on existing jobs | 🟡 **script written + tested** — needs running on prod | `scripts/backfill/` |
 | TD-41 | Job form gives no location feedback | 🔴 open | |
 | TD-42 | A coordinate cannot be cleared | 🔴 open — ⚠️ Asrar, BE schema | |
@@ -134,13 +136,17 @@ In `prosiddhi-mobile-app`, closing the location gap. It has landed TD-38 1/3 and
 
 **Sailaja also commits there.** Coordinate.
 
-⚠️ **One promise made to that session, and it is the web's to keep:** our Near By
-empty state does NOT branch on `noLocation` — see
-[job-feed/page.tsx:504-525](../src/app/job-feed/page.tsx#L504-L525). The CTA
-shows whenever the Near By tab is empty, so a seeker who *has* a coordinate but
-no jobs within 50 km is still told to "Add your location". Mobile was told to
-branch on the flag properly, and that **web would follow them** rather than stay
-diverged. If mobile has done it, do it here.
+✅ **That promise is KEPT — 2026-08-20, `0d6b4d8`.** The Near By empty state now
+branches on `noLocation`, so the "Add your location" CTA appears only for a
+seeker who has no coordinate at all. Mobile landed its half in `724b120` and went
+further, switching icon, message and action off one pair rather than three — the
+web copied that shape, because branching them separately is how mobile shipped a
+struck-through pin stacked above an "Add location" button. Both branches are
+proven on a local full stack by `scripts/smoke/smoke-td04.js` (8/8).
+
+⚠️ Note for whoever reads this next: mobile REFACTORED `home_tab.dart` mid-session.
+`canAddLocation`, cited in an earlier draft here, no longer exists — it is a
+`switch` on `(showDistance, _noLocation)` now. Re-read that file before quoting it.
 
 ### Five things learned the hard way — worth not relearning
 

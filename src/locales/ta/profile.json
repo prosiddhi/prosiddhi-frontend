@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "நிறுவனப் பதிவு",
       "OTHER": "மற்றவை"
     },
+    "typeLabel": "ஆவண வகை",
     "uploading": "பதிவேற்றப்படுகிறது…",
     "uploadDocument": "ஆவணத்தைப் பதிவேற்றுங்கள்",
     "loadError": "ஆவணங்களை ஏற்ற முடியவில்லை.",

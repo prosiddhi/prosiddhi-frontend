@@ -100,6 +100,7 @@
       "COMPANY_REGISTRATION": "Company Registration",
       "OTHER": "Other"
     },
+    "typeLabel": "Document type",
     "uploading": "Uploading…",
     "uploadDocument": "Upload Document",
     "loadError": "Failed to load documents.",
