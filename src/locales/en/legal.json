@@ -78,7 +78,7 @@
     },
     "storage": {
       "title": "Cookies and browser storage",
-      "body": "We keep a few things in your browser's storage: a sign-in token so you stay logged in, a copy of your basic account details (your name, phone number, email and account type) so pages load quickly, your email address if you asked us to remember it on the sign-in screen, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out."
+      "body": "We keep a few things in your browser's storage: a sign-in token so you stay logged in, a copy of your basic account details (your name, phone number, email and account type) so pages load quickly, and your chosen language. We do not use advertising or third-party tracking cookies. Clearing your browser storage signs you out."
     },
     "rights": {
       "title": "Your rights",
