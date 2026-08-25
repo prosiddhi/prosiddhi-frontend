@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, X } from 'lucide-react'
-import { VoiceButton } from '@/components/feedback/VoiceButton'
+import { ArrowLeft, Eye, EyeOff, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -13,11 +12,14 @@ import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
 
-// `phoneOtp` and `phonePassword` are BOTH phone-identified; they differ only in
-// the credential. Arm 3 (phone + password) exists because a seeker who
-// registered without an email has no other password login — the phone IS their
-// identity.
-type Tab = 'email' | 'phoneOtp' | 'phonePassword' | 'google'
+// `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
+// is misnamed by history: since TD-37 its field takes a phone number OR an
+// email, which is why there is no separate email arm. There was one, and it
+// called the same endpoint with the same payload — `toIdentifier` lowercases and
+// shape-checks an email exactly as that form did, and `authService.login`
+// detects the identifier type server-side either way. Two screens for one
+// capability, so the second was removed rather than kept in step.
+type Tab = 'phoneOtp' | 'phonePassword' | 'google'
 
 // New Google sign-ups land in PENDING_OTP_VERIFICATION; we hold them on /login
 // in a phone-bind view before sending them to their dashboard.
@@ -26,6 +28,45 @@ type Mode = 'login' | 'bindPhone'
 // The Google endpoint wants the full UserRole enum. The seeker tab maps straight
 // to JOB_SEEKER; the employer tab additionally picks an individual/business subtype.
 type EmployerSubtype = 'individual' | 'business'
+
+/**
+ * The official four-colour Google "G", inline.
+ *
+ * Inline rather than an import because there is nothing in the project to reuse:
+ * no mark in `public/`, no `react-icons`, and `lucide-react` ships only `Chrome`
+ * — a BROWSER icon, not Google's identity. Using it would put the wrong mark on
+ * a sign-in button, which is worse than shipping no mark at all.
+ *
+ * `@react-oauth/google` does render a branded button, but that is the OAuth
+ * widget on the Google tab; this is the entry control that switches to it.
+ *
+ * The paths are Google's own artwork and must not be recoloured or redrawn —
+ * their branding terms require the mark be used as issued. `aria-hidden` because
+ * the button's own text already says "Continue with Google"; announcing the logo
+ * too would read the word twice.
+ */
+function GoogleG({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
+  )
+}
 
 // Seeker → /job-feed, Employer (individual/business) → /employer.
 function homeForUser(user: AuthUser): string {
@@ -105,10 +146,10 @@ function LoginContent() {
   // initializer captures null and the Employer tab never preselects. Verified —
   // the SSR markup came back with Job Seeker active for an /employer returnUrl.
   const [roleTouched, setRoleTouched] = useState(false)
-  // TD-37: phone + password is THE login. Email and phone-OTP still work and are
-  // reachable by a text link; they are no longer choices you must make before
-  // you can start typing. `role` survives only for the Google arm — see the
-  // note on the role block in the render.
+  // TD-37: phone-or-email + password is THE login. Google and phone-OTP are
+  // still here, reachable by a text link below the form rather than a choice you
+  // must make before you can start typing. `role` survives only for the Google
+  // arm — see the note on the role block in the render.
   const [tab, setTab] = useState<Tab>('phonePassword')
 
   useEffect(() => {
@@ -125,10 +166,12 @@ function LoginContent() {
   const [mode, setMode] = useState<Mode>('login')
   const [bindUser, setBindUser] = useState<AuthUser | null>(null)
 
-  // Email/password
-  const [email, setEmail] = useState('')
+  // Password, for the one password form. There is no `rememberMe` any more: the
+  // checkbox only ever wrote a `rememberedEmail` key that nothing in the app
+  // read, so it promised a convenience it never delivered — and it was one of
+  // the six localStorage writes the Privacy Policy under-declares
+  // (docs/i18n/COPY-DEFECTS.md A1).
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   // Phone/OTP
@@ -224,36 +267,10 @@ function LoginContent() {
     return false
   }
 
-  // --- Email/password ---
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !password) return
-    try {
-      setLoading(true)
-      setError('')
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email)
-      }
-      // Also role-blind (TD-37). It is a password, so the retry is safe — and
-      // it MUST be, because the role toggle no longer renders on this arm.
-      // Leaving `authAPI.login(role, …)` here would have pinned every email
-      // login to whichever role happened to be inferred, with nothing on screen
-      // to correct it.
-      const result = await authAPI.loginAnyRole(
-        { identifier: email.trim().toLowerCase(), password },
-        role
-      )
-      onLoginSuccess(result)
-    } catch (err) {
-      handleLoginError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // --- Phone + password (arm 3) ---
-  // The only password login available to a seeker who registered without an
-  // email. Same endpoint as the email arm; only the identifier differs.
+  // --- Phone or email + password ---
+  // THE password login, for everybody. A seeker who registered phone-only has no
+  // other one — their phone IS their identity — and an employer with no phone
+  // signs in here with their email. `toIdentifier` decides which was typed.
   const handlePhonePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!phone || !password) return
@@ -287,8 +304,8 @@ function LoginContent() {
   }
 
   // "Forgot password?" is email-based, so it is a dead end for a phone-only
-  // seeker — the exact user arm 3 exists for. Offer the phone-OTP route as the
-  // way back in instead.
+  // seeker — the exact user the password form's phone identifier exists for.
+  // Offer the phone-OTP route as the way back in instead.
   const switchToPhoneOtp = () => {
     // The two screens share `phone`, and the primary field now accepts an email.
     // Carrying "boss@acme.com" into a box labelled Phone Number prefills a
@@ -472,8 +489,22 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
-      <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl">
+    /* `items-start` + `my-auto` on the card, NOT `items-center`.
+       They look identical while the card fits: auto margins absorb the free
+       space evenly, so the card is centred. They differ when it does NOT fit —
+       with `items-center` a flex item taller than its container overflows
+       EQUALLY in both directions, and the top overflow sits before the scroll
+       origin, so the logo and heading cannot be scrolled to at all. Auto margins
+       collapse to 0 instead, so the card starts at the top and every pixel is
+       reachable. That is the "no content clipped" case at 390px and on a short
+       laptop window.
+
+       min-h-dvh, not min-h-screen: `100vh` on a phone is the viewport with the
+       URL bar RETRACTED, so while the bar is showing the wrapper is taller than
+       what you can see and the page scrolls even when the card fits. `dvh`
+       tracks the visible viewport. On desktop the two are identical. */
+    <div className="min-h-dvh flex items-start justify-center bg-gradient-to-br from-blue-50 to-white p-4">
+      <div className="relative my-auto bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-6 sm:py-8 shadow-xl">
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
@@ -485,7 +516,7 @@ function LoginContent() {
         <div className="w-full">
           {/* Logo — this was a bare modal asking for credentials with nothing
               identifying the site. Matches the registration screens. */}
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-4">
             <div className="relative w-[180px] sm:w-[210px] h-[50px] sm:h-[58px]">
               <Image
                 src="/assets/prosiddhi-logo-horizontal.png"
@@ -498,7 +529,7 @@ function LoginContent() {
           </div>
 
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-5">
             <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
               {t('auth:login.title')}
             </h1>
@@ -506,6 +537,34 @@ function LoginContent() {
               {t('auth:login.subtitle')}
             </p>
           </div>
+
+          {/* Back navigation — ABOVE the role choice, not between it and the
+              Google content.
+              It used to sit after the role toggle, which put a navigation
+              control in the middle of the form's own steps: "which are you?" →
+              toggle → "go back" → employer type → Google. Read top to bottom it
+              looked like a third step of the same question rather than a way out
+              of the screen.
+              At the top of the content it reads as what it is: the header says
+              where you are, this says how to leave, and everything below it is
+              the task. Left-aligned against a centred header, which is what
+              separates navigation from content here — and it keeps the same
+              `ArrowLeft` + `text-sm font-medium text-primary-50` treatment the
+              back links on /forgot-password already use (page.tsx:152), rather
+              than inventing a second back-link style.
+              The literal "←" it used to print is now that icon: the glyph came
+              from whichever Noto face was serving the current locale, so its
+              weight and baseline shifted between languages. */}
+          {mode === 'login' && tab !== 'phonePassword' && (
+            <button
+              type="button"
+              onClick={() => switchTab('phonePassword')}
+              className="inline-flex items-center gap-2 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors mb-2"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              {t('auth:login.backToMain')}
+            </button>
+          )}
 
           {/* Role choice — now ONE arm, and it is the only one that genuinely
               cannot do without it (TD-37). It used to sit above every method, so
@@ -557,20 +616,6 @@ function LoginContent() {
           </>
           )}
 
-          {/* No method tabs. Eight combinations behind eleven buttons was the
-              screen's real defect: you had to make two decisions before you
-              could type anything. The other methods are still here, one text
-              link below the form away — see the alternatives block. */}
-          {mode === 'login' && tab !== 'phonePassword' && (
-            <button
-              type="button"
-              onClick={() => switchTab('phonePassword')}
-              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors mb-2"
-            >
-              ← {t('auth:login.backToMain')}
-            </button>
-          )}
-
           {/* Inline error */}
           {error && (
             <div
@@ -581,86 +626,9 @@ function LoginContent() {
             </div>
           )}
 
-          {/* --- Email + Password tab --- */}
-          {mode === 'login' && tab === 'email' && (
-            <form onSubmit={handleEmailSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.emailLabel')}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth:login.emailPlaceholder')}
-                    className="flex-1 h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                    required
-                  />
-                  <VoiceButton label={t('auth:login.emailVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.passwordLabel')}
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t('auth:login.passwordPlaceholder')}
-                      className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
-                      aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
-                    </button>
-                  </div>
-                  <VoiceButton label={t('auth:login.passwordVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                {/* min-h-[44px] on the LABEL, not the box (TD-20). The checkbox
-                    stays 16px, as checkboxes are, but the whole row is now the
-                    tap target. */}
-                <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 border border-[#aaaaaa] rounded cursor-pointer accent-primary-50"
-                  />
-                  <span className="text-sm text-black">{t('auth:login.rememberMe')}</span>
-                </label>
-                <Link href="/forgot-password" className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
-                  {t('auth:login.forgotPassword')}
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-              >
-                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
-              </button>
-            </form>
-          )}
-
           {/* --- Phone + OTP tab --- */}
           {mode === 'login' && tab === 'phoneOtp' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
                 <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
                   {t('auth:login.phoneLabel')}
@@ -672,7 +640,7 @@ function LoginContent() {
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={otpSent}
                   placeholder={t('auth:login.phonePlaceholder')}
-                  className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-50"
+                  className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-50"
                 />
               </div>
 
@@ -687,10 +655,15 @@ function LoginContent() {
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <form onSubmit={handleVerifyOtp} className="space-y-5">
                   <div>
                     <label className="block text-base font-medium text-black mb-2">{t('auth:login.otpLabel')}</label>
-                    <div className="flex justify-between gap-2">
+                    {/* grid, not `flex justify-between` with fixed w-12 boxes:
+                        six 48px boxes plus five 8px gaps is 328px, and the card's
+                        content box at 390px is ~310px — the row overflowed its
+                        own card. A 6-column grid divides whatever width there is,
+                        so the boxes shrink to fit instead. */}
+                    <div className="grid grid-cols-6 gap-2">
                       {otp.map((digit, i) => (
                         <input
                           key={i}
@@ -703,7 +676,7 @@ function LoginContent() {
                           value={digit}
                           onChange={(e) => handleOtpChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       ))}
                     </div>
@@ -721,7 +694,7 @@ function LoginContent() {
                       setOtpSent(false)
                       setError('')
                     }}
-                    className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                    className="w-full min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                   >
                     {t('auth:login.changePhone')}
                   </button>
@@ -730,9 +703,9 @@ function LoginContent() {
             </div>
           )}
 
-          {/* --- Phone + Password tab (login arm 3) --- */}
+          {/* --- Phone or email + password: the one password form --- */}
           {mode === 'login' && tab === 'phonePassword' && (
-            <form onSubmit={handlePhonePasswordSubmit} className="space-y-6">
+            <form onSubmit={handlePhonePasswordSubmit} className="space-y-5">
               <div>
                 <label htmlFor="pp-phone" className="block text-base font-medium text-black mb-2">
                   {t('auth:login.identifierLabel')}
@@ -756,7 +729,7 @@ function LoginContent() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder={t('auth:login.identifierPlaceholder')}
-                  className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                  className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -773,7 +746,7 @@ function LoginContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t('auth:login.passwordPlaceholder')}
-                    className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    className="w-full h-12 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                     required
                   />
                   <button
@@ -787,35 +760,67 @@ function LoginContent() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-              >
-                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
-              </button>
-
-              {/* BOTH recovery routes, because this one form now serves both
-                  kinds of user. "Forgot password?" resets via EMAIL — a dead end
-                  for a phone-only seeker, which is why the OTP route is offered
-                  too. But the reverse is just as true and was the gap: after
-                  TD-37 this field accepts an email, and an email-only employer
-                  with no phone had ONLY the OTP link, which cannot help them. */}
-              <div className="text-center space-y-1">
-                <Link
-                  href="/forgot-password"
-                  className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                >
-                  {t('auth:login.forgotPassword')}
-                </Link>
-                <p className="text-sm text-[#777776]">{t('auth:login.forgotPasswordPhone')}</p>
+              {/* The primary action and the two ways past it, as ONE group.
+                  Previously the recovery links were a separate child of the
+                  form's `space-y`, so they sat a full field-gap (24px) below the
+                  button AND carried their own 44px tap padding on top of it —
+                  roughly 37px of visual gap where a field-to-field gap is 20px.
+                  Grouping them lets the links sit close to the button they
+                  relate to without touching either tap target. */}
+              <div>
+                {/* focus-visible matches the Google button below. A keyboard ring
+                    on one of two adjacent buttons and not the other is worse than
+                    having it on neither — the pair has to behave alike. */}
                 <button
-                  type="button"
-                  onClick={switchToPhoneOtp}
-                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:opacity-60"
                 >
-                  {t('auth:login.useOtpInstead')}
+                  {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
                 </button>
+
+                {/* BOTH recovery routes, because this one form now serves both
+                    kinds of user. "Forgot password?" resets via EMAIL — a dead
+                    end for a phone-only seeker, which is why the OTP route is
+                    offered too. But the reverse is just as true and was the gap:
+                    after TD-37 this field accepts an email, and an email-only
+                    employer with no phone had ONLY the OTP link, which cannot
+                    help them.
+
+                    flex-col, NOT `text-center space-y-*`: both children are
+                    inline-level (the Link is inline-flex, the button
+                    inline-block), so in a block container they would render on
+                    ONE line and wrap mid-phrase on a handset.
+
+                    No `gap` while stacked: each child is a 44px tap target
+                    (TD-20), and two stacked 44px boxes already put ~30px between
+                    the two labels. Adding gap on top of that was spacing the
+                    padding, not the text.
+
+                    Side by side from sm up. Stacked, the pair costs 88px of card
+                    height; inline it costs 44px, and the two labels together run
+                    ~370px inside a 520px content box, so they fit with room to
+                    spare. `flex-wrap` is there for the long Indic translations,
+                    which drop to a second line rather than overflowing. */}
+                <div className="mt-2 flex flex-col items-center sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-4">
+                  {/* Recovery, not a sign-in method — normal weight, so it reads
+                      quieter than the OTP link below it. Both were `font-medium`
+                      and therefore indistinguishable. */}
+                  <Link
+                    href="/forgot-password"
+                    className="inline-flex items-center min-h-[44px] px-2 text-sm text-primary-50 hover:text-primary-60 transition-colors"
+                  >
+                    {t('auth:login.forgotPassword')}
+                  </Link>
+                  {/* An alternative way to sign in — keeps the medium weight. */}
+                  <button
+                    type="button"
+                    onClick={switchToPhoneOtp}
+                    className="inline-flex items-center min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors text-center"
+                  >
+                    {t('auth:login.useOtpInstead')}
+                  </button>
+                </div>
               </div>
             </form>
           )}
@@ -824,34 +829,37 @@ function LoginContent() {
               text link is an offer, a tab row is a question you must answer
               before you can start. Every method still works. */}
           {mode === 'login' && tab === 'phonePassword' && (
-            <div className="mt-6">
+            /* The divider belongs to the section BELOW it, so the gaps are
+               deliberately uneven: 24px above (mt-3 + the OTP link's own 12px of
+               tap padding) and 16px below. That binds "or" to the Google button
+               as one alternative-sign-in group, instead of leaving it floating
+               equidistant between two groups it does not belong to. The 24px
+               above matches the 24px down to the sign-up section, so the card
+               reads as three blocks at one rhythm. */
+            <div className="mt-3">
               <div className="flex items-center gap-3 mb-4">
                 <span className="h-px flex-1 bg-[#e5e5e5]" />
                 <span className="text-xs text-[#777776]">{t('auth:login.or')}</span>
                 <span className="h-px flex-1 bg-[#e5e5e5]" />
               </div>
+              {/* Same height, radius, padding and type scale as the Sign In
+                  button above — only the fill differs, which is what makes this
+                  read as the secondary of a matched pair rather than a different
+                  species of button.
+
+                  `justify-center` on the flex row centres the icon and the label
+                  AS A GROUP, so the text is not nudged off the button's centre
+                  by the icon's width. `shrink-0` keeps the mark circular if a
+                  longer translation ever pushes the row (Malayalam and Odia are
+                  the long ones). */}
               <button
                 type="button"
                 onClick={() => switchTab('google')}
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 border border-[#b5b5b5] rounded-lg py-3 text-base font-medium text-black hover:bg-gray-50 transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-3 border border-[#b5b5b5] rounded-lg px-4 py-3 text-base font-medium text-black hover:bg-gray-50 hover:border-grey-600 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-all"
               >
+                <GoogleG className="h-5 w-5 shrink-0" />
                 {t('auth:login.continueWithGoogle')}
               </button>
-              <div className="flex items-center justify-center gap-4 mt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Carry what they already typed. switchToPhoneOtp handles the
-                    // mirror case; dropping it here made the link punish the
-                    // user for using it.
-                    if (phone.includes('@') && !email) setEmail(phone)
-                    switchTab('email')
-                  }}
-                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                >
-                  {t('auth:login.useEmailInstead')}
-                </button>
-              </div>
             </div>
           )}
 
@@ -921,7 +929,7 @@ function LoginContent() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder={t('auth:bindPhone.phonePlaceholder')}
-                      className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                      className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       required
                     />
                   </div>
@@ -939,7 +947,9 @@ function LoginContent() {
                     <label className="block text-base font-medium text-black mb-2">
                       {t('auth:bindPhone.otpLabel')}
                     </label>
-                    <div className="flex justify-between gap-2">
+                    {/* Same 6-column grid as the sign-in OTP row above, and for
+                        the same reason — fixed-width boxes overflowed at 390px. */}
+                    <div className="grid grid-cols-6 gap-2">
                       {otp.map((d, i) => (
                         <input
                           key={i}
@@ -952,7 +962,7 @@ function LoginContent() {
                           value={d}
                           onChange={(e) => handleOtpChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       ))}
                     </div>
@@ -970,7 +980,7 @@ function LoginContent() {
                       setOtpSent(false)
                       setError('')
                     }}
-                    className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                    className="w-full min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                   >
                     {t('auth:bindPhone.changePhone')}
                   </button>
@@ -993,14 +1003,28 @@ function LoginContent() {
                 Registration already asks "I want a job / I want to hire" as its
                 first question, so naming both here costs nothing and guesses
                 nothing. */}
-            <div className="flex items-center justify-center gap-3 mt-1">
+            {/* Stacked on a handset, side by side from sm up. Inline at 390px
+                the pair plus the separator runs to ~295px inside a ~310px card
+                in ENGLISH alone — the longer Tamil and Malayalam labels wrap
+                mid-phrase. Stacking keeps each label on one line and each tap
+                target a full row wide.
+                The separator is decorative, so it is hidden rather than left
+                floating between two stacked rows.
+
+                secondary-50 is the brand sky blue and is a DELIBERATE choice,
+                confirmed 2026-08-25 after it was measured: #88d9fc on white is
+                1.57:1, against WCAG AA's 4.5:1 for normal text. Darkening it to
+                secondary-80 (4.77:1) was proposed and declined in favour of the
+                brand colour. Recorded here so it is not silently "fixed" later —
+                reopen it with the brand owner, not in a styling pass. */}
+            <div className="flex flex-col sm:flex-row items-center justify-center sm:gap-3 mt-1">
               <Link
                 href="/register"
                 className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpSeeker')}
               </Link>
-              <span className="text-[#b5b5b5]" aria-hidden="true">·</span>
+              <span className="hidden sm:inline text-[#b5b5b5]" aria-hidden="true">·</span>
               <Link
                 href="/employer/register"
                 className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
