@@ -21,6 +21,34 @@ import { toIdentifier, toE164 } from '@/lib/identifier'
 // capability, so the second was removed rather than kept in step.
 type Tab = 'phoneOtp' | 'phonePassword' | 'google'
 
+const OTP_LENGTH = 6
+
+// Shared by the primary actions on this card so they cannot drift apart.
+// Matched to /forgot-password's button, which is the same control in the same
+// flow.
+//
+// The disabled state is a real pair of tokens, NOT `disabled:opacity-60`.
+// Opacity fades the label and the fill together toward white, so the dark
+// primary-100 label ended up rendering as #6d858e on #9ddaf4 — 2.55:1, which is
+// not readable. "Send OTP" is disabled until a number is typed, so that
+// unreadable label was the FIRST thing on the phone-OTP screen. primary-20 on
+// primary-80 is 5.08:1: obviously inactive next to the sky-blue enabled state,
+// but still legible.
+const PRIMARY_BTN_CLS =
+  'w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:bg-primary-20 disabled:text-primary-80 disabled:cursor-not-allowed'
+
+// The brand sky blue, and a DELIBERATE choice — confirmed 2026-08-26 after it
+// was measured. #5cc2ed on white is 2.02:1, against WCAG AA's 4.5:1 for normal
+// text; that is the same figure TD-48 recorded before it darkened the primary
+// BUTTON's label, and it applies to every text link on this card. Darkening to
+// primary-80 (#236987, 6.10:1) was proposed and declined in favour of the brand
+// colour, on both auth pages.
+//
+// Recorded here so it is not silently "fixed" in a later styling pass — reopen
+// it with the brand owner, not in a cleanup. The same decision was taken for the
+// sign-up links (secondary-50) further down.
+const TEXT_LINK_CLS = 'text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors'
+
 // New Google sign-ups land in PENDING_OTP_VERIFICATION; we hold them on /login
 // in a phone-bind view before sending them to their dashboard.
 type Mode = 'login' | 'bindPhone'
@@ -340,20 +368,51 @@ function LoginContent() {
     }
   }
 
+  const focusOtpBox = (index: number) => {
+    otpRefs.current[Math.min(Math.max(index, 0), OTP_LENGTH - 1)]?.focus()
+  }
+
+  // `slice(-1)` so typing into a box that already holds a digit REPLACES it
+  // rather than being swallowed by maxLength.
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1)
     const next = [...otp]
     next[index] = digit
     setOtp(next)
-    if (digit && index < 5) {
-      otpRefs.current[index + 1]?.focus()
-    }
+    if (digit && index < OTP_LENGTH - 1) focusOtpBox(index + 1)
   }
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus()
+      // Clear the previous digit as well as moving to it. Moving alone meant
+      // two presses to delete one digit, and /forgot-password already behaves
+      // this way — one OTP field should not have two rules.
+      e.preventDefault()
+      const next = [...otp]
+      next[index - 1] = ''
+      setOtp(next)
+      focusOtpBox(index - 1)
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault()
+      focusOtpBox(index - 1)
+    } else if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      e.preventDefault()
+      focusOtpBox(index + 1)
     }
+  }
+
+  // Paste needs its own handler: the change handler only ever sees ONE
+  // character, so a pasted "502109" was landing as a single "9" in whichever
+  // box had focus. Pasting is how most people enter a code they were just sent,
+  // so this was the primary path failing, not an edge case.
+  const handleOtpPaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH - index)
+    if (!digits) return
+    e.preventDefault()
+    const next = [...otp]
+    for (let i = 0; i < digits.length; i++) next[index + i] = digits[i]
+    setOtp(next)
+    focusOtpBox(index + digits.length)
   }
 
   // --- Phone/OTP step 2: verify (login with identifier=phone, otp) ---
@@ -559,7 +618,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => switchTab('phonePassword')}
-              className="inline-flex items-center gap-2 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors mb-2"
+              className={`inline-flex items-center gap-2 min-h-[44px] mb-2 ${TEXT_LINK_CLS}`}
             >
               <ArrowLeft className="w-4 h-4 shrink-0" />
               {t('auth:login.backToMain')}
@@ -646,58 +705,75 @@ function LoginContent() {
 
               {!otpSent ? (
                 <form onSubmit={handleSendOtp}>
-                  <button
-                    type="submit"
-                    disabled={loading || !phone}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                  <button type="submit" disabled={loading || !phone} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-5">
                   <div>
-                    <label className="block text-base font-medium text-black mb-2">{t('auth:login.otpLabel')}</label>
-                    {/* grid, not `flex justify-between` with fixed w-12 boxes:
+                    <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
+                      {t('auth:login.otpLabel')}
+                    </label>
+                    {/* One field made of six boxes, not six fields. `role="group"`
+                        + `aria-labelledby` is what ties them together for a screen
+                        reader — it announces the label once on entry instead of
+                        treating each box as an unrelated control. The <label>
+                        points at the FIRST box, so clicking it starts you there.
+
+                        grid, not `flex justify-between` with fixed w-12 boxes:
                         six 48px boxes plus five 8px gaps is 328px, and the card's
                         content box at 390px is ~310px — the row overflowed its
                         own card. A 6-column grid divides whatever width there is,
                         so the boxes shrink to fit instead. */}
-                    <div className="grid grid-cols-6 gap-2">
+                    <div role="group" aria-labelledby="otp-label" className="grid grid-cols-6 gap-2 sm:gap-3">
                       {otp.map((digit, i) => (
                         <input
                           key={i}
+                          id={`otp-${i}`}
                           ref={(el) => {
                             otpRefs.current[i] = el
                           }}
                           type="text"
                           inputMode="numeric"
+                          /* First box only — that is where the platform offers
+                             the SMS autofill chip, and repeating it across all
+                             six makes some keyboards offer it six times. */
+                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
                           maxLength={1}
                           value={digit}
                           onChange={(e) => handleOtpChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          onPaste={(e) => handleOtpPaste(i, e)}
+                          /* Select on focus so tapping a filled box overtypes it
+                             rather than parking the caret beside the digit. */
+                          onFocus={(e) => e.target.select()}
+                          aria-label={`${t('auth:login.otpLabel')} ${i + 1}`}
+                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       ))}
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
-                    {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false)
-                      setError('')
-                    }}
-                    className="w-full min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                  >
-                    {t('auth:login.changePhone')}
-                  </button>
+                  {/* Primary action and its way out, grouped — same shape as the
+                      password form above and as /forgot-password. As a third
+                      child of the form's `space-y` the secondary link sat a full
+                      field-gap below the button AND carried its own 44px of tap
+                      padding on top of that. */}
+                  <div>
+                    <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                      {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false)
+                        setError('')
+                      }}
+                      className={`mt-2 w-full inline-flex items-center justify-center min-h-[44px] ${TEXT_LINK_CLS}`}
+                    >
+                      {t('auth:login.changePhone')}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
@@ -771,11 +847,7 @@ function LoginContent() {
                 {/* focus-visible matches the Google button below. A keyboard ring
                     on one of two adjacent buttons and not the other is worse than
                     having it on neither — the pair has to behave alike. */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:opacity-60"
-                >
+                <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                   {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
                 </button>
 
@@ -816,7 +888,7 @@ function LoginContent() {
                   <button
                     type="button"
                     onClick={switchToPhoneOtp}
-                    className="inline-flex items-center min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors text-center"
+                    className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
                   >
                     {t('auth:login.useOtpInstead')}
                   </button>
@@ -933,45 +1005,44 @@ function LoginContent() {
                       required
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleBindVerify} className="space-y-5">
                   <div>
-                    <label className="block text-base font-medium text-black mb-2">
+                    <label id="bind-otp-label" htmlFor="bind-otp-0" className="block text-base font-medium text-black mb-2">
                       {t('auth:bindPhone.otpLabel')}
                     </label>
-                    {/* Same 6-column grid as the sign-in OTP row above, and for
-                        the same reason — fixed-width boxes overflowed at 390px. */}
-                    <div className="grid grid-cols-6 gap-2">
+                    {/* Same six-box treatment as the sign-in OTP row above. These
+                        two rows share `handleOtpChange` / `handleOtpKeyDown`, so
+                        giving one of them paste and autofill and not the other
+                        would be a difference with no reason behind it. */}
+                    <div role="group" aria-labelledby="bind-otp-label" className="grid grid-cols-6 gap-2 sm:gap-3">
                       {otp.map((d, i) => (
                         <input
                           key={i}
+                          id={`bind-otp-${i}`}
                           ref={(el) => {
                             otpRefs.current[i] = el
                           }}
                           type="text"
                           inputMode="numeric"
+                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
                           maxLength={1}
                           value={d}
                           onChange={(e) => handleOtpChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          onPaste={(e) => handleOtpPaste(i, e)}
+                          onFocus={(e) => e.target.select()}
+                          aria-label={`${t('auth:bindPhone.otpLabel')} ${i + 1}`}
+                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       ))}
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>
                   <button
@@ -980,7 +1051,7 @@ function LoginContent() {
                       setOtpSent(false)
                       setError('')
                     }}
-                    className="w-full min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                    className={`w-full min-h-[44px] ${TEXT_LINK_CLS}`}
                   >
                     {t('auth:bindPhone.changePhone')}
                   </button>
@@ -1020,14 +1091,14 @@ function LoginContent() {
             <div className="flex flex-col sm:flex-row items-center justify-center sm:gap-3 mt-1">
               <Link
                 href="/register"
-                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+                className="inline-flex items-center min-h-[44px] font-medium text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpSeeker')}
               </Link>
               <span className="hidden sm:inline text-[#b5b5b5]" aria-hidden="true">·</span>
               <Link
                 href="/employer/register"
-                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+                className="inline-flex items-center min-h-[44px] font-medium text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpEmployer')}
               </Link>
