@@ -182,16 +182,22 @@ export default function ForgotPasswordPage() {
   // hand-copied class strings drift the moment one of them is edited. Matched to
   // the Sign In button on /login — same 44px target, radius, type scale, brand
   // fill and focus ring — because these two cards are one flow to the user.
+  // Disabled is a token pair, not `disabled:opacity-60` — opacity fades the
+  // label and the fill together, which rendered the label at 2.55:1. "Verify
+  // code" sits disabled until six digits are in, so that is the state the user
+  // looks at longest. primary-20 on primary-80 is 5.08:1.
   const primaryBtnCls =
-    'w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:opacity-60'
+    'w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:bg-primary-20 disabled:text-primary-80 disabled:cursor-not-allowed'
 
-  // primary-80, not primary-50. #5cc2ed on white measures 2.02:1 against WCAG
-  // AA's 4.5:1 for normal text — the same figure TD-48 recorded before it
-  // darkened the primary button's label. #236987 is 6.10:1 and is the existing
-  // token two steps down the same brand ramp; primary-70 was checked first and
-  // is only 4.10:1, so it would not have been enough.
+  // The brand sky blue, and a DELIBERATE choice — confirmed 2026-08-26 after it
+  // was measured. #5cc2ed on white is 2.02:1, against WCAG AA's 4.5:1 for normal
+  // text. Darkening to primary-80 (#236987, 6.10:1) was proposed and declined in
+  // favour of the brand colour, here and on /login.
+  //
+  // Recorded so it is not silently "fixed" in a later styling pass — reopen it
+  // with the brand owner, not in a cleanup.
   const backBtnCls =
-    'mt-2 w-full inline-flex items-center justify-center gap-2 min-h-[44px] text-sm font-medium text-primary-80 hover:text-primary-90 transition-colors'
+    'mt-2 w-full inline-flex items-center justify-center gap-2 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors'
 
   return (
     /* Same wrapper fix as /login. `items-center` centres the card while it fits,
