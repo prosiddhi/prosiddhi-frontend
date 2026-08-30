@@ -191,7 +191,12 @@ export function PricingPlans() {
       )}
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
+        // `min-[1350px]:grid-cols-4`, not `lg:` (1024) — at 1024-1280px (100-125%
+        // zoom on this page's usual 1280-wide window) four columns squeezed each
+        // card too narrow and clipped the price. 1350 sits between 1280 (100%,
+        // needs 2) and 1422 (90%, already fine at 4), so those two stay untouched
+        // while 100/110/125% drop to the `sm:grid-cols-2` tier already below it.
+        <div className="grid grid-cols-1 sm:grid-cols-2 min-[1350px]:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
           {shown.map((plan) => (
             <PlanCard key={plan.code} plan={plan} onBuy={handleBuy} />
           ))}

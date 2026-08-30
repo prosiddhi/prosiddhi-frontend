@@ -67,9 +67,28 @@ export function Footer() {
               width, so a flex/grid item still refuses to shrink below it. Tamil
               "தொழிலாளர்களைத் தேடுங்கள்" is 154px against a 124px column at a 305px
               layout width — with `break-words` it overflowed the page anyway.
-              `anywhere` is the one that shrinks min-content. */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere]">
-            <div>
+              `anywhere` is the one that shrinks min-content.
+
+              ⚠️ `sm:flex` + `sm:flex-auto` on the children, NOT `grid-cols-3`
+              (grid's equal `1fr` tracks) and NOT plain `flex-1` (`flex: 1 1 0%`,
+              basis zero) on the children either — both of those divide the row by
+              grow-factor alone and ignore content, which is the bug this replaced
+              twice already: first as fixed-width columns for every language
+              (English got a ~300px column for a ~180px heading), then as a
+              shrink-to-fit block that stopped stretching at all (short languages
+              clustered left with a dead zone on the right).
+              `flex-auto` (`flex: 1 1 auto`) starts each column at its OWN content
+              width and shares only the genuinely leftover row width on top of
+              that, equally — so columns keep growing to spread across the row for
+              short languages, without being force-equalised for languages that
+              already need most of the space.
+              `sm:`, not `lg:`: three real columns (`sm:grid-cols-3`) start at the
+              same breakpoint, and below `lg` the block sits under a full-width
+              logo (`w-full` there) rather than beside it, so `sm:w-full` gives it
+              the same row to grow into as the `lg:flex-1` tier does above 1024.
+              Only below `sm` (a real phone, `grid-cols-2`) is this untouched. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere]">
+            <div className="sm:flex-auto">
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/job-feed" className={linkClass}>{t('footer.browseJobs')}</Link></li>
@@ -77,7 +96,7 @@ export function Footer() {
                 <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
               </ul>
             </div>
-            <div>
+            <div className="sm:flex-auto">
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.employers')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
@@ -85,7 +104,7 @@ export function Footer() {
                 <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>
               </ul>
             </div>
-            <div>
+            <div className="sm:flex-auto">
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.companyLegal')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
