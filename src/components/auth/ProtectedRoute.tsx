@@ -4,12 +4,13 @@ import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/lib/api'
+import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 
 type RequiredRole = 'seeker' | 'employer'
 
 /** Home route for a given backend role. */
 function homeForRole(role: UserRole | undefined): string {
-  if (role === 'JOB_SEEKER') return '/job-feed'
+  if (role === 'JOB_SEEKER') return SEEKER_HOME_ROUTE
   // EMPLOYER_INDIVIDUAL | EMPLOYER_BUSINESS
   return '/employer'
 }

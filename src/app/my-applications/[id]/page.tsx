@@ -20,7 +20,6 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 function ApplicationDetailsContent() {
@@ -82,11 +81,6 @@ function ApplicationDetailsContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader />
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       {/* Main Content */}
       <main className="flex-1 py-6 sm:py-8 lg:py-12">

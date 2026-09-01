@@ -15,7 +15,6 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 // Pull a wide page so interviews on any application surface in one shot — a
@@ -56,11 +55,6 @@ function MyInterviewsPageContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader />
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       {/* Main Content */}
       <main className="flex-1 py-8 sm:py-12 lg:py-16">
