@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
+import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -96,9 +97,9 @@ function GoogleG({ className }: { className?: string }) {
   )
 }
 
-// Seeker → /job-feed, Employer (individual/business) → /employer.
+// Seeker → the seeker home page, Employer (individual/business) → /employer.
 function homeForUser(user: AuthUser): string {
-  return user.role === 'JOB_SEEKER' ? '/job-feed' : '/employer'
+  return user.role === 'JOB_SEEKER' ? SEEKER_HOME_ROUTE : '/employer'
 }
 
 // Employer-only areas. A seeker who lands on a /employer/* returnUrl would just be

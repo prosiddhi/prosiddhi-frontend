@@ -36,7 +36,6 @@ export function UserDropdown() {
   const workHref = isEmployer ? '/employer/jobs' : '/my-applications'
   const workLabel = isEmployer ? t('nav.myJobs') : t('nav.myApplications')
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -53,7 +52,6 @@ export function UserDropdown() {
     }
   }, [isOpen])
 
-  // Close dropdown on Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -90,7 +88,6 @@ export function UserDropdown() {
     // control (button + name), not just the text itself — so it also shows
     // when the button is reached by Tab, not just on mouse hover.
     <div className="relative min-w-0 group" ref={dropdownRef}>
-      {/* User Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="menu"
@@ -150,7 +147,7 @@ export function UserDropdown() {
             what lets HeaderActions.tsx use a single leading spacer to push
             the compact cluster flush against the right edge.
             `clamp(4.5rem, 5vw, 9rem)` instead of one flat number: a single
-            guessed width (e.g. "9rem, about what 'Bharath Kumar' needs") only
+            guessed width (e.g. "9rem, about what 'Venkata Subramaniam' needs") only
             happens to look right at the viewport it was eyeballed on — the
             `5vw` middle term scales the box with the actual viewport instead,
             growing from 1280px up to the page's own `max-w-[1920px]` cap (vw
@@ -208,7 +205,6 @@ export function UserDropdown() {
             role="menu"
             className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
           >
-            {/* Profile */}
             <Link
               href={profileHref}
               role="menuitem"
@@ -230,7 +226,6 @@ export function UserDropdown() {
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
 
-            {/* Settings */}
             <Link
               href="/settings"
               role="menuitem"
@@ -241,10 +236,8 @@ export function UserDropdown() {
               <span className="text-sm text-gray-900">{t('nav.settings')}</span>
             </Link>
 
-            {/* Divider */}
             <div className="h-px bg-gray-200 my-2" />
 
-            {/* Logout */}
             <button
               onClick={handleLogout}
               role="menuitem"

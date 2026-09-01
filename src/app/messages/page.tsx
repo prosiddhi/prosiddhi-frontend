@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { chatAPI, type Conversation } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { MessageCircle, Loader2, AlertCircle } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 
 function otherPartyName(c: Conversation, isSeeker: boolean, t: TFunction): string {
   if (isSeeker) return c.employer?.companyName || c.employer?.fullName || t('chat:list.otherParty.employer')
@@ -78,11 +77,6 @@ function MessagesListContent() {
           </div>
         </header>
       )}
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[900px] mx-auto px-4 sm:px-6">

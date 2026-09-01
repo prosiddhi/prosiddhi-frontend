@@ -26,7 +26,6 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 function companyOf(job: Job, fallback: string): string {
@@ -140,11 +139,6 @@ function JobDetailsContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader />
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">

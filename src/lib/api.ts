@@ -413,6 +413,7 @@ export interface JobFeedFilters {
   longitude?: number
   maxDistance?: number
   skills?: string // comma-separated
+  urgencyLevel?: string
   sortBy?: 'postedAt' | 'salaryMin' | 'salaryMax' | 'urgencyLevel' | 'title'
   sortOrder?: 'asc' | 'desc'
   page?: number

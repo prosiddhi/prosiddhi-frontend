@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Home, Briefcase, Bookmark } from 'lucide-react'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { HeaderActions } from './HeaderActions'
+import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 
 export type EmployeeHeaderActiveTab = 'home' | 'jobFeed' | 'savedJobs'
 
@@ -136,7 +137,7 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
           Ours has a real username of arbitrary length on the right. A grid
           item's default `min-width` is `auto`, which — exactly like a flex
           item's — floors it at its OWN content's min-content, not 0. With a
-          long name (e.g. "Bharath Kumar Srimanthula") that floor can exceed
+          long name (e.g. "Venkata Subramaniam Reddy") that floor can exceed
           the equal 50/50 share at tighter widths, so the grid pins that
           column to its min-content and lets the OTHER column absorb the
           leftover space, shifting the nav off-centre. `min-w-0` removes that
@@ -151,7 +152,7 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
           physically overlaps the nav at tighter widths. The nav has to stay
           a real grid item between two properly-constrained columns. */}
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <Link href="/" className="flex items-center min-h-[44px] justify-self-start min-w-0">
+        <Link href={SEEKER_HOME_ROUTE} className="flex items-center min-h-[44px] justify-self-start min-w-0">
           <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
             <Image
               src="/assets/prosiddhi-logo-horizontal.png"
@@ -223,7 +224,7 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
             block — that is a different box (one item's own icon+text row),
             not this one (nav's shared row of 4 sibling items). */}
         <nav className={`hidden lg:flex items-center justify-self-center min-w-0 max-w-[calc(100vw-570px)] ${NAV_GAP_CLS}`}>
-          <Link href="/" className={active === 'home' ? activeLinkClsFixed : inactiveLinkClsFixed}>
+          <Link href={SEEKER_HOME_ROUTE} className={active === 'home' ? activeLinkClsFixed : inactiveLinkClsFixed}>
             <span className={NAV_ICON_WRAP_CLS}>
               <Home className={NAV_ICON_CLS} />
             </span>
