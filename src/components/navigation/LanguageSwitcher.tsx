@@ -47,15 +47,38 @@ export { LANGUAGE_OPTIONS }
  * re-measuring that ladder; and do not truncate or hide it at high zoom, which
  * is what this decision explicitly rules out.
  *
- * There is no `wrapLabel` prop: the trigger is one unbreakable unit on one line,
- * and the ladder guarantees a tier where it fits.
+ * By default the trigger is one unbreakable unit on one line, and the caller's
+ * ladder is expected to guarantee a tier where it fits — that's still true
+ * for this file's own Header.tsx. `wrapLabel` opts OUT of that contract for
+ * callers that would rather wrap the label onto a second line than keep
+ * shrinking type to force one line (see EmployeeHeader.tsx, which wraps every
+ * nav item's label the same way and needs this control to match). It swaps
+ * `whitespace-nowrap` for `line-clamp-2` and top-aligns the icon/chevron
+ * against the label's first line instead of centering them against a block
+ * that may now be two lines tall.
  */
 export function LanguageSwitcher({
   className = '',
   labelClassName = '',
+  wrapLabel = false,
+  iconWrapClassName = 'flex h-[27px] items-center justify-center shrink-0',
+  rowGapClassName = 'gap-1',
 }: {
   className?: string
   labelClassName?: string
+  /** Wrap the label onto up to 2 lines instead of forcing one. Default false
+   *  preserves every existing caller's one-line contract. */
+  wrapLabel?: boolean
+  /** `wrapLabel` only: sizes the box the icon/chevron centre inside — must
+   *  match `labelClassName`'s actual rendered line-height (see EmployeeHeader.tsx,
+   *  the only current `wrapLabel` caller, for why that can vary by language).
+   *  Default matches `text-[18px] leading-normal`'s 27px for any future
+   *  caller that doesn't pass one. */
+  iconWrapClassName?: string
+  /** `wrapLabel` only: gap between icon, label, and chevron in the row
+   *  below. Default `gap-1` (4px) matches the spacing every caller had
+   *  before this prop existed. */
+  rowGapClassName?: string
 }) {
   const { t } = useTranslation()
   const { language: current, setLanguage } = useLanguagePreference()
@@ -101,20 +124,86 @@ export function LanguageSwitcher({
         // `whitespace-nowrap`: the bar is a fixed 75px, so this control must
         // resolve to one line or it pushes its own text out of the bar. The
         // header's tiers are sized so it always can.
-        className="flex items-center gap-1 whitespace-nowrap text-black text-[18px] hover:text-primary-50 transition-colors min-h-[44px]"
+        // `wrapLabel` swaps that for `min-w-0` (so the label can actually
+        // shrink below its one-line width — without it the flex default
+        // floors the button at min-content and nothing wraps).
+        //
+        // `wrapLabel`'s outer button is `items-center` — not `items-start` —
+        // over a SINGLE child (the inner row below). With `min-h-[44px]`
+        // (TD-20) and real content far shorter than that, `items-start` here
+        // pinned icon/text/chevron to the very TOP of the 44px box: measured
+        // 14px above the box's own centre, which is also the header's centre
+        // (nav's own `items-center` — see EmployeeHeader.tsx — centres this
+        // whole button by its outer box, blind to how content sits inside
+        // it). `items-center` on the outer button fixes that regardless of
+        // whether the inner row is 1 or 2 lines tall, since it centres
+        // whatever height that row turns out to be within the fixed 44px.
+        className={
+          wrapLabel
+            ? 'flex items-center min-w-0 text-black text-[18px] hover:text-primary-50 transition-colors min-h-[44px]'
+            : 'flex items-center gap-1 whitespace-nowrap text-black text-[18px] hover:text-primary-50 transition-colors min-h-[44px]'
+        }
       >
-        <Languages className="w-4 h-4 shrink-0" strokeWidth={1.5} />
         {/* One unbreakable unit. Deliberately NO `min-w-0` on the button: a flex
             item's default `min-width:auto` floors it at min-content, which is
             exactly how far this should shrink. `min-w-0` removed that floor once
             and the button collapsed to 39px while the text inside stayed ~200px
-            and spilled over its neighbours. */}
-        <span className={labelClassName}>
-          {t('language.label')}: {currentLabel}
-        </span>
-        <ChevronDown
-          className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
+            and spilled over its neighbours. (`wrapLabel` callers WANT that floor
+            gone — see above — because they let the label wrap instead.) */}
+        {wrapLabel ? (
+          // Inner row, `items-start`: this is the OTHER alignment question —
+          // once the label wraps to 2 lines, the icon/chevron must sit beside
+          // the FIRST line only, not centred against the full 2-line block
+          // (that would float them between the two lines). Icon and chevron
+          // are each wrapped in `iconWrapClassName` — a box matching the
+          // label's actual rendered line-height (constant across a given
+          // language's render, since it's set by `labelClassName`'s own CSS,
+          // not by script/content — the caller must keep the two in sync) —
+          // and centred inside it, so each one lands precisely on the first
+          // line's own vertical centre.
+          //
+          // A version of this put the chevron INSIDE the label span instead,
+          // as trailing inline content, so it would flow to wherever the
+          // text's own last line ended — reverted. `display:-webkit-box`
+          // (what `line-clamp` requires) does not give its children normal
+          // inline text flow despite looking like a block of wrapped text:
+          // WebKit's legacy box model treats each child as its own flex-like
+          // box, so the chevron rendered on a third line of its own, centred
+          // below the label, detached from the text entirely — confirmed by
+          // screenshot, not assumed. `rowGapClassName`/`chevronMarginClassName`
+          // widening the icon↔label gap and reserving less fixed width for a
+          // separate chevron box turned out to be enough on its own: freeing
+          // the ~20px a dedicated chevron sibling used to reserve lets Tamil/
+          // Malayalam's label fit on ONE line at the exact widths (1280–
+          // 1360px) that used to force a 2-line wrap — see EmployeeHeader.tsx
+          // for the measured before/after. On one line, "beside the first
+          // line" and "after the last line" are the same position, which is
+          // what actually fixes the reported "chevron detached from '(Tamil)'"
+          // complaint, without relying on inline flow inside `-webkit-box`.
+          <span className={`flex items-start ${rowGapClassName} min-w-0`}>
+            <span className={iconWrapClassName}>
+              <Languages className="w-4 h-4" strokeWidth={1.5} />
+            </span>
+            <span className={`${labelClassName} line-clamp-2 min-w-0`}>
+              {t('language.label')}: {currentLabel}
+            </span>
+            <span className={iconWrapClassName}>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </span>
+        ) : (
+          <>
+            <Languages className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+            <span className={labelClassName}>
+              {t('language.label')}: {currentLabel}
+            </span>
+            <ChevronDown
+              className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          </>
+        )}
       </button>
 
       {open && (

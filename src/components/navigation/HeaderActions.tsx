@@ -25,7 +25,35 @@ export function HeaderActions() {
   // reach messages OR notifications at all. This is a mobile-first product for
   // users who are mostly ON a phone — they are now always visible.
   return (
+    // Mail, Bell and the account button form a COMPACT cluster (their own
+    // natural sizes, the gaps below and nothing else) anchored to the right
+    // edge — matching the Figma, where this trio sits close together near
+    // the boundary rather than spread across the whole available width.
+    //
+    // The leading `flex-1 min-w-0` spacer, not `flex-1` on the account
+    // button, is what makes that possible without breaking "Mail/Bell/avatar
+    // never move when the username changes". Three earlier attempts at this
+    // same goal each failed a different requirement:
+    //   - `justify-end` on the whole row (packing Mail+Bell+account as one
+    //     group and right-aligning it) kept the cluster compact and right-
+    //     anchored, but dragged Mail/Bell's X left by up to ~90px as the
+    //     username got longer — the cluster's own width varied with the text.
+    //   - `flex-1` directly on the account button (an earlier version of
+    //     this file) froze Mail/Bell's X, but stretched the WHOLE cluster
+    //     across the entire rail — Mail ended up sitting right next to the
+    //     nav (measured: a 2px gap) while the username's box reached all the
+    //     way to the header's right edge, ~540px away. Compact and
+    //     position-invariant only look like opposite goals if the flexible
+    //     element's width still depends on the username's own text — put the
+    //     flex-1 BEFORE the fixed-size cluster instead of stretching a piece
+    //     of the cluster itself, and both are true at once: this spacer's
+    //     width is (rail width − Mail − Bell − account button's own fixed
+    //     max-width − gaps), which depends only on the viewport, never on
+    //     what name is loaded. See UserDropdown.tsx for the username's own
+    //     fixed-width, 2-line-clamped box that makes this possible.
     <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+      <div aria-hidden="true" className="flex-1 min-w-0" />
+
       <Link
         href="/messages"
         aria-label={t('nav.messages')}

@@ -80,7 +80,8 @@
     "emptyRecommended": "अजून शिफारस नाही — चांगल्या जुळणीसाठी तुमची प्रोफाइल पूर्ण करा.",
     "emptyDefault": "तुमचा शोध किंवा फिल्टर बदलून पहा.",
     "pageOf": "पान {{page}} / {{total}}",
-    "emptyNearbyCta": "तुमचे ठिकाण जोडा"
+    "emptyNearbyCta": "तुमचे ठिकाण जोडा",
+    "showMore": "आणखी पहा"
   },
   "jobDetails": {
     "back": "मागे",

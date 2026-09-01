@@ -87,7 +87,7 @@ export function Footer() {
               logo (`w-full` there) rather than beside it, so `sm:w-full` gives it
               the same row to grow into as the `lg:flex-1` tier does above 1024.
               Only below `sm` (a real phone, `grid-cols-2`) is this untouched. */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere]">
             <div className="sm:flex-auto">
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
@@ -108,6 +108,19 @@ export function Footer() {
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.companyLegal')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
+                <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
+                <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+              </ul>
+            </div>
+            {/* Support — deliberately only 2 links, both reusing existing
+                privacy/terms keys and real routes. The Figma this column is
+                modelled on also has Help Centre and FAQ, but neither /help nor
+                /faq exists in this app, and this file's own history (see the
+                top comment) is literally about removing dead links exactly
+                like those — not recreating them. */}
+            <div className="sm:flex-auto">
+              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.support')}</h3>
+              <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
               </ul>

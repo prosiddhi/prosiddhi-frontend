@@ -80,7 +80,8 @@
     "emptyRecommended": "আপনার জন্য এখনো কিছু বাছাই করা যায়নি — ভালো মিল পেতে প্রোফাইল পূরণ করুন।",
     "emptyDefault": "খোঁজা বা ফিল্টার একটু বদলে দেখুন।",
     "pageOf": "পেজ {{page}} / {{total}}",
-    "emptyNearbyCta": "আপনার জায়গা যোগ করুন"
+    "emptyNearbyCta": "আপনার জায়গা যোগ করুন",
+    "showMore": "আরও দেখুন"
   },
   "jobDetails": {
     "back": "পেছনে",

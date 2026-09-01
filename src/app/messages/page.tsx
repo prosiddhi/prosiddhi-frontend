@@ -8,6 +8,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { useAuth } from '@/contexts/AuthContext'
 import { chatAPI, type Conversation } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
@@ -60,16 +61,23 @@ function MessagesListContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
-            </div>
-          </Link>
-          <UserDropdown />
-        </div>
-      </header>
+      {/* Employer keeps the existing minimal header unchanged; only the seeker
+          side moves onto the shared EmployeeHeader (messages is reachable by
+          both roles, so this can't be an unconditional swap). */}
+      {isSeeker ? (
+        <EmployeeHeader />
+      ) : (
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
+            <Link href="/" className="flex items-center min-h-[44px]">
+              <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
+                <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
+              </div>
+            </Link>
+            <UserDropdown />
+          </div>
+        </header>
+      )}
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />

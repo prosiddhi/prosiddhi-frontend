@@ -163,7 +163,14 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative" ref={ref}>
+    // `inline-flex items-center`: the Mail link and this button both use the
+    // -m-2.5 trick to shrink a 44px tap target back to a ~24px footprint, but
+    // Mail's <a> is itself the header row's flex child, so `align-items: center`
+    // on the row centers it directly. This wrapper div is a plain block, so
+    // without its own flex context the inline-flex button inside falls back to
+    // baseline alignment, which does not cancel the negative margin the same
+    // way — the bell rendered a few px higher than Mail/the avatar as a result.
+    <div className="relative inline-flex items-center" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

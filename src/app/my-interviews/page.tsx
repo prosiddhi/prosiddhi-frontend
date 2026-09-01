@@ -3,16 +3,11 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { formatSalary, formatDate, initials, localizeLocation } from '@/lib/jobFormat'
 import {
-  Home,
-  Briefcase,
-  Bookmark,
   MapPin,
   IndianRupee,
   CalendarClock,
@@ -21,7 +16,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 // Pull a wide page so interviews on any application surface in one shot — a
 // seeker realistically has few. Interviews appear once BR-4 lands on the BE
@@ -60,34 +55,7 @@ function MyInterviewsPageContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header/Navbar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
-            </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
-            <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.home')}</span>
-            </Link>
-            <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
-            </Link>
-            <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-
-          <HeaderActions />
-        </div>
-      </header>
+      <EmployeeHeader />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />
