@@ -12,6 +12,7 @@ import {
   LanguageSwitcher,
   LANGUAGE_OPTIONS,
 } from '@/components/navigation/LanguageSwitcher'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, employerAPI, jobSeekerAPI } from '@/lib/api'
@@ -101,25 +102,32 @@ function SettingsContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image
-                src="/assets/prosiddhi-logo-horizontal.png"
-                alt={t('app.name')}
-                fill
-                className="object-contain"
-                priority
-              />
+      {/* Employer keeps the existing minimal header unchanged; only the seeker
+          side moves onto the shared EmployeeHeader (settings is reachable by
+          both roles, so this can't be an unconditional swap). */}
+      {isEmployer ? (
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
+            <Link href="/" className="flex items-center min-h-[44px]">
+              <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
+                <Image
+                  src="/assets/prosiddhi-logo-horizontal.png"
+                  alt={t('app.name')}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </Link>
+            <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+              <LanguageSwitcher className="hidden lg:block" />
+              <UserDropdown />
             </div>
-          </Link>
-          <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
-            <LanguageSwitcher className="hidden lg:block" />
-            <UserDropdown />
           </div>
-        </div>
-      </header>
+        </header>
+      ) : (
+        <EmployeeHeader />
+      )}
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />

@@ -80,7 +80,8 @@
     "emptyRecommended": "अभी कोई अनुशंसा नहीं है — बेहतर मिलान के लिए अपनी प्रोफ़ाइल पूरी करें।",
     "emptyDefault": "अपनी खोज या फ़िल्टर बदलकर देखें।",
     "pageOf": "पृष्ठ {{page}} / {{total}}",
-    "emptyNearbyCta": "अपनी जगह जोड़ें"
+    "emptyNearbyCta": "अपनी जगह जोड़ें",
+    "showMore": "और देखें"
   },
   "jobDetails": {
     "back": "वापस",

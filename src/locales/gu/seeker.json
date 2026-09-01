@@ -80,7 +80,8 @@
     "emptyRecommended": "હજી કોઈ ભલામણ નથી — વધુ સારો મેળ મળે તે માટે તમારી પ્રોફાઇલ પૂરી કરો.",
     "emptyDefault": "તમારી શોધ અથવા ફિલ્ટર બદલીને જુઓ.",
     "pageOf": "પેજ {{page}} / {{total}}",
-    "emptyNearbyCta": "તમારું સ્થળ ઉમેરો"
+    "emptyNearbyCta": "તમારું સ્થળ ઉમેરો",
+    "showMore": "વધુ જુઓ"
   },
   "jobDetails": {
     "back": "પાછા",

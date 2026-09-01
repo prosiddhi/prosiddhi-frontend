@@ -4,36 +4,35 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { CITY_COORDS, CITY_KEYS, toCityKey, cityLabelKey } from '@/lib/cities'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
-import { jobSeekerAPI, type Job, type JobsPage, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
+import { jobSeekerAPI, type Job, type JobFeedFilters, type TaxonomyTriple } from '@/lib/api'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
-import { humanizeJobType, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
+import { JobFeedCard } from '@/components/job/JobFeedCard'
 import {
   Search,
   MapPin,
   MapPinOff,
   MapPinPlus,
   ChevronDown,
-  Home,
   Briefcase,
-  Bookmark,
-  BookmarkCheck,
-  Clock,
-  ChevronRight,
-  ChevronLeft,
   SlidersHorizontal,
-  IndianRupee,
   Loader2,
   AlertCircle,
+  Info,
+  Eye,
+  type LucideIcon,
 } from 'lucide-react'
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
-type Tab = 'all' | 'recommended' | 'nearby'
+type SectionKind = 'all' | 'recommended' | 'nearby'
+// Recommended/Near By are preview sections (Figma: 4 cards, 2x2, before "Show
+// More") — All/search results is the deep, comprehensive list and keeps the
+// larger page size the filter/search UI already assumed.
+const PREVIEW_SIZE = 4
 const PAGE_SIZE = 10
 
 // City centroids live in @/lib/cities — the seeker landing page offers the same
@@ -81,20 +80,13 @@ function sortOrderFor(sortBy: JobFeedFilters['sortBy']): 'asc' | 'desc' {
  * backend never ran the distance filter. That is fixable by the seeker and
  * earns an action. An empty Near By WITH a coordinate is not fixable by adding
  * a location they already gave us, and offering the button there is what makes
- * the tab read as broken.
- *
- * One derivation rather than three, because mobile shipped the bug that costs:
- * its icon branch did not know about `_noLocation`, so it stacked a
- * struck-through pin directly above an "Add location" button — two contradicting
- * glyphs in one box. It now switches on the same pair
- * (`home_tab.dart`, `getNearbyForSeeker`'s consumer); this keeps the web from
- * re-deriving the same rule in three places and drifting apart from it.
+ * the section read as broken.
  */
-function emptyStateFor(tab: Tab, noLocation: boolean, t: (key: string) => string) {
-  if (tab === 'recommended') {
+function emptyStateFor(kind: SectionKind, noLocation: boolean, t: (key: string) => string) {
+  if (kind === 'recommended') {
     return { Icon: Briefcase, body: t('seeker:jobFeed.emptyRecommended'), cta: false }
   }
-  if (tab === 'all') {
+  if (kind === 'all') {
     return { Icon: Briefcase, body: t('seeker:jobFeed.emptyDefault'), cta: false }
   }
   return noLocation
@@ -102,10 +94,134 @@ function emptyStateFor(tab: Tab, noLocation: boolean, t: (key: string) => string
     : { Icon: MapPinOff, body: t('seeker:jobFeed.emptyNearby'), cta: false }
 }
 
+interface JobSectionProps {
+  headingIcon: LucideIcon
+  title: string
+  sub: string
+  count: number
+  loading: boolean
+  error: string
+  jobs: Job[]
+  kind: SectionKind
+  noLocation: boolean
+  hasMore: boolean
+  onShowMore: () => void
+  onRetry: () => void
+  savedIds: Set<string>
+  savingIds: Set<string>
+  onToggleSave: (jobId: string) => void
+  t: TFunction
+}
+
+/**
+ * One Recommended/Near By/All-results block: heading + count, loading/error/
+ * empty states, a 2-column card grid, and a "Show More" button. Pulled out as
+ * a local (non-exported) component because job-feed now renders three of
+ * these side by side instead of one tab-switched list — inlining this ~70
+ * lines of JSX three times would have tripled it for no reason, this file
+ * being the only place it's used.
+ */
+function JobSection({
+  headingIcon: HeadingIcon,
+  title,
+  sub,
+  count,
+  loading,
+  error,
+  jobs,
+  kind,
+  noLocation,
+  hasMore,
+  onShowMore,
+  onRetry,
+  savedIds,
+  savingIds,
+  onToggleSave,
+  t,
+}: JobSectionProps) {
+  const empty = emptyStateFor(kind, noLocation, t)
+
+  return (
+    <section className="py-6 sm:py-8">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2">
+          <HeadingIcon className="w-5 h-5 text-[#717182] shrink-0" />
+          <div>
+            <h2 className="text-lg sm:text-xl lg:text-[22px] font-semibold">{title}</h2>
+            {!loading && !error && (
+              <p className="text-sm text-[#717182]">
+                {sub} · {t('seeker:jobFeed.resultCount', { count })}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {loading && jobs.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-[#717182]">
+            <Loader2 className="w-8 h-8 animate-spin mb-3 text-primary-50" />
+            <p>{t('seeker:jobFeed.loading')}</p>
+          </div>
+        )}
+
+        {!loading && error && jobs.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
+            <p className="text-red-600 mb-4 max-w-md">{error}</p>
+            <button onClick={onRetry} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
+              {t('buttons.retry')}
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && jobs.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center text-[#717182]">
+            <empty.Icon className="w-8 h-8 mb-3 text-gray-300" />
+            <p className="text-lg font-medium text-black mb-1">{t('seeker:jobFeed.emptyTitle')}</p>
+            <p className="max-w-md">{empty.body}</p>
+            {empty.cta && (
+              <Link
+                href="/profile"
+                className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm"
+              >
+                {t('seeker:jobFeed.emptyNearbyCta')}
+              </Link>
+            )}
+          </div>
+        )}
+
+        {jobs.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+            {jobs.map((job) => (
+              <JobFeedCard
+                key={job.id}
+                job={job}
+                isSaved={savedIds.has(job.id)}
+                saving={savingIds.has(job.id)}
+                onToggleSave={onToggleSave}
+              />
+            ))}
+          </div>
+        )}
+
+        {hasMore && (
+          <div className="text-center mt-6 sm:mt-8">
+            <button
+              onClick={onShowMore}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-[#dddddd] rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+              {t('seeker:jobFeed.showMore')}
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function JobFeedPageContent() {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('all')
-  const [page, setPage] = useState(1)
 
   // Draft (input) vs applied (committed) filter state.
   const [searchDraft, setSearchDraft] = useState('')
@@ -125,11 +241,6 @@ function JobFeedPageContent() {
   // during the server render, so an initialiser captures nulls and the values are
   // lost — the exact bug that made the login page's role hint silently fail
   // (DEF-012). By the time effects run, the params are there.
-  //
-  // `seeded` gates the first fetch. Without it the feed fires an UNFILTERED
-  // request on mount, then a second filtered one once this effect has run — two
-  // round-trips to show one list, on a product built for low-end devices and
-  // metered data.
   const searchParams = useSearchParams()
   const [seeded, setSeeded] = useState(false)
   useEffect(() => {
@@ -147,13 +258,11 @@ function JobFeedPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const [data, setData] = useState<JobsPage | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [reloadKey, setReloadKey] = useState(0)
-
   // Persisted saved-job state (PJP-140). Fetched once on mount so each card's
   // Save toggle reflects what's already saved; mutated optimistically on toggle.
+  // Shared by all three sections below — keyed by job ID, not by section, so
+  // saving a job that happens to appear in both Recommended and All stays in
+  // sync between them.
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set())
 
@@ -204,61 +313,151 @@ function JobFeedPageContent() {
     }
   }
 
-  // Fetch on tab/page/filter change. The `ignore` flag drops stale responses
-  // when the user switches tab/page before an in-flight request resolves.
+  // --- Recommended section ---------------------------------------------
+  const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([])
+  const [recommendedLoading, setRecommendedLoading] = useState(true)
+  const [recommendedError, setRecommendedError] = useState('')
+  const [recommendedPage, setRecommendedPage] = useState(1)
+  const [recommendedHasMore, setRecommendedHasMore] = useState(false)
+  const [recommendedTotal, setRecommendedTotal] = useState(0)
+  const [recommendedReloadKey, setRecommendedReloadKey] = useState(0)
+
   useEffect(() => {
-    // Wait for the URL seeding above, so an arrival from the landing page makes
-    // ONE filtered request rather than an unfiltered one it immediately discards.
-    if (!seeded) return
     let ignore = false
     const run = async () => {
-      setLoading(true)
-      setError('')
+      setRecommendedLoading(true)
+      setRecommendedError('')
       try {
-        let res: JobsPage
-        if (tab === 'recommended') {
-          res = await jobSeekerAPI.getRecommendedJobs(page, PAGE_SIZE)
-        } else if (tab === 'nearby') {
-          res = await jobSeekerAPI.getNearbyJobs({ page, limit: PAGE_SIZE })
-        } else {
-          const coords = applied.city ? CITY_COORDS[applied.city] : undefined
-          const filters: JobFeedFilters = {
-            search: applied.search || undefined,
-            category: applied.category || undefined,
-            sector: applied.sector || undefined,
-            jobTitle: applied.jobTitle || undefined,
-            jobType: applied.jobType || undefined,
-            minSalary: applied.minSalary ? Number(applied.minSalary) : undefined,
-            maxSalary: applied.maxSalary ? Number(applied.maxSalary) : undefined,
-            latitude: coords?.lat,
-            longitude: coords?.lon,
-            // The CITY'S radius, not a flat 50 (TD-06). Delhi carries NCR at
-            // 50 km; Surat needs 20. A single number either strands people on
-            // the edge of a big city or drags a small city's results in from
-            // two towns over. Without any radius the backend applies 5 km.
-            maxDistance: coords?.radius,
-            sortBy: applied.sortBy,
-            sortOrder: sortOrderFor(applied.sortBy),
-            page,
-            limit: PAGE_SIZE,
-          }
-          res = await jobSeekerAPI.getJobFeed(filters)
-        }
-        if (!ignore) setData(res)
+        const res = await jobSeekerAPI.getRecommendedJobs(recommendedPage, PREVIEW_SIZE)
+        if (ignore) return
+        setRecommendedJobs((prev) => (recommendedPage === 1 ? res.jobs : [...prev, ...res.jobs]))
+        setRecommendedHasMore(!!res.pagination?.hasNextPage)
+        setRecommendedTotal(res.pagination?.total ?? 0)
       } catch (err) {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
-          setData(null)
-        }
+        if (!ignore) setRecommendedError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
       } finally {
-        if (!ignore) setLoading(false)
+        if (!ignore) setRecommendedLoading(false)
       }
     }
     run()
     return () => {
       ignore = true
     }
-  }, [seeded, tab, page, applied, reloadKey, t])
+  }, [recommendedPage, recommendedReloadKey, t])
+
+  // --- Near By section ----------------------------------------------------
+  const [nearbyJobs, setNearbyJobs] = useState<Job[]>([])
+  const [nearbyLoading, setNearbyLoading] = useState(true)
+  const [nearbyError, setNearbyError] = useState('')
+  const [nearbyPage, setNearbyPage] = useState(1)
+  const [nearbyHasMore, setNearbyHasMore] = useState(false)
+  const [nearbyTotal, setNearbyTotal] = useState(0)
+  // Set by GET /jobs/nearby alone, and only when the seeker has no saved
+  // coordinate — the backend never ran the distance filter in that case.
+  const [nearbyNoLocation, setNearbyNoLocation] = useState(false)
+  const [nearbyReloadKey, setNearbyReloadKey] = useState(0)
+
+  useEffect(() => {
+    let ignore = false
+    const run = async () => {
+      setNearbyLoading(true)
+      setNearbyError('')
+      try {
+        const res = await jobSeekerAPI.getNearbyJobs({ page: nearbyPage, limit: PREVIEW_SIZE })
+        if (ignore) return
+        setNearbyJobs((prev) => (nearbyPage === 1 ? res.jobs : [...prev, ...res.jobs]))
+        setNearbyHasMore(!!res.pagination?.hasNextPage)
+        setNearbyTotal(res.pagination?.total ?? 0)
+        setNearbyNoLocation(res.noLocation === true)
+      } catch (err) {
+        if (!ignore) setNearbyError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
+      } finally {
+        if (!ignore) setNearbyLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [nearbyPage, nearbyReloadKey, t])
+
+  // --- All / search-results section ---------------------------------------
+  // Only appears once the seeker has actually searched or filtered — with no
+  // active filter there is nothing this section would show that Recommended
+  // and Near By don't already cover, and it would just repeat "browse all
+  // jobs" underneath two sections already doing that.
+  const hasActiveFilters = !!(
+    applied.search ||
+    applied.city ||
+    applied.jobType ||
+    applied.minSalary ||
+    applied.maxSalary ||
+    applied.category ||
+    applied.sector ||
+    applied.jobTitle
+  )
+
+  const [allJobs, setAllJobs] = useState<Job[]>([])
+  const [allLoading, setAllLoading] = useState(false)
+  const [allError, setAllError] = useState('')
+  const [allPage, setAllPage] = useState(1)
+  const [allHasMore, setAllHasMore] = useState(false)
+  const [allTotal, setAllTotal] = useState(0)
+  const [allReloadKey, setAllReloadKey] = useState(0)
+
+  // A genuinely new query (search/filter change) starts over at page 1 —
+  // Show More only ever advances the CURRENT query.
+  useEffect(() => {
+    setAllPage(1)
+    setAllJobs([])
+  }, [applied])
+
+  useEffect(() => {
+    if (!seeded || !hasActiveFilters) return
+    let ignore = false
+    const run = async () => {
+      setAllLoading(true)
+      setAllError('')
+      try {
+        const coords = applied.city ? CITY_COORDS[applied.city] : undefined
+        const filters: JobFeedFilters = {
+          search: applied.search || undefined,
+          category: applied.category || undefined,
+          sector: applied.sector || undefined,
+          jobTitle: applied.jobTitle || undefined,
+          jobType: applied.jobType || undefined,
+          minSalary: applied.minSalary ? Number(applied.minSalary) : undefined,
+          maxSalary: applied.maxSalary ? Number(applied.maxSalary) : undefined,
+          latitude: coords?.lat,
+          longitude: coords?.lon,
+          // The CITY'S radius, not a flat 50 (TD-06). Delhi carries NCR at
+          // 50 km; Surat needs 20. A single number either strands people on
+          // the edge of a big city or drags a small city's results in from
+          // two towns over. Without any radius the backend applies 5 km.
+          maxDistance: coords?.radius,
+          sortBy: applied.sortBy,
+          sortOrder: sortOrderFor(applied.sortBy),
+          page: allPage,
+          limit: PAGE_SIZE,
+        }
+        const res = await jobSeekerAPI.getJobFeed(filters)
+        if (ignore) return
+        setAllJobs((prev) => (allPage === 1 ? res.jobs : [...prev, ...res.jobs]))
+        setAllHasMore(!!res.pagination?.hasNextPage)
+        setAllTotal(res.pagination?.total ?? 0)
+      } catch (err) {
+        if (!ignore) {
+          setAllError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
+        }
+      } finally {
+        if (!ignore) setAllLoading(false)
+      }
+    }
+    run()
+    return () => {
+      ignore = true
+    }
+  }, [seeded, hasActiveFilters, allPage, applied, allReloadKey, t])
 
   // Both the search bar and the filter panel commit the full draft state, so the
   // two controls never disagree about what's currently applied.
@@ -274,7 +473,6 @@ function JobFeedPageContent() {
       sector: taxonomyDraft.sector ?? '',
       jobTitle: taxonomyDraft.jobTitle ?? '',
     })
-    setPage(1)
   }
 
   const handleSearch = () => commitFilters()
@@ -284,445 +482,205 @@ function JobFeedPageContent() {
     setShowFilters(false)
   }
 
-  const switchTab = (t: Tab) => {
-    if (t === tab) return
-    setTab(t)
-    setPage(1)
-  }
-
-  const jobs: Job[] = data?.jobs ?? []
-  const pagination = data?.pagination
-  const totalPages = pagination?.totalPages ?? 1
-  // Set by GET /jobs/nearby alone, and only when the seeker has no saved
-  // coordinate. Read straight off `data` rather than kept in its own state: the
-  // two would then need to be cleared together on every tab switch, and the one
-  // that got missed would carry a stale flag onto the next tab.
-  const empty = emptyStateFor(tab, data?.noLocation === true, t)
-
-  const sectionTitle =
-    tab === 'recommended'
-      ? t('seeker:jobFeed.section.recommendedTitle')
-      : tab === 'nearby'
-      ? t('seeker:jobFeed.section.nearbyTitle')
-      : t('seeker:jobFeed.section.allTitle')
-  const sectionSub =
-    tab === 'recommended'
-      ? t('seeker:jobFeed.section.recommendedSub')
-      : tab === 'nearby'
-      ? t('seeker:jobFeed.section.nearbySub')
-      : t('seeker:jobFeed.section.allSub')
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Header/Navbar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
-            </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
-            <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.home')}</span>
-            </Link>
-            <Link href="/job-feed" className="flex items-center gap-1 text-primary-50">
-              <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px] font-medium">{t('seeker:nav.jobFeed')}</span>
-            </Link>
-            <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-
-          <HeaderActions />
-        </div>
-      </header>
+      <EmployeeHeader active="jobFeed" />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />
       </div>
 
+      {/* Hero + search — always visible now (it used to be gated to a
+          removed "All Jobs" tab). Same functional search bar as before, just
+          moved up into a proper hero band to match the Figma; no voice icon
+          (TD-21, deferred to v2, locked scope Q2). */}
+      <section className="relative bg-[#f5fcff] py-8 sm:py-10 lg:py-12 text-center">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-bold text-primary-90 mb-3">
+            {t('seeker:jobFeed.heroTitle')}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
+            {t('seeker:jobFeed.heroSubtitle')}
+          </p>
 
-      {/* Search Section (TD-15)
-          The 72px "Find Jobs Near You" hero that used to open this page is gone.
-          It cost ~400px above the fold on a phone, it repeated the landing page
-          word for word, and it announced "this is where you find jobs" to
-          someone who had signed in and tapped into the job feed. The section
-          header below already names the tab and the result count.
-
-          Measured on a 390x844 phone: the first job card began at 999px — 1.2
-          screens of scrolling, ZERO complete jobs visible. apna shows three; our
-          own Flutter app shows two and a half. */}
-      {/* Search — only on the All tab (Recommended/Near By are profile-driven).
-          The whole section is gated, not just its contents: with the hero gone
-          the search card is its only child, so leaving the section mounted
-          painted a bare blue band across the other two tabs. */}
-      {tab === 'all' && (
-      <section className="relative bg-[#f5fcff] py-4 sm:py-6 lg:py-8 overflow-hidden">
-        <div className="relative z-10 max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          <div className="bg-white rounded-lg shadow-[0px_5px_15px_0px_rgba(184,184,184,0.1)] p-3 sm:p-4 lg:p-[12px] max-w-[1408px] mx-auto">
-              {/* `flex-wrap` with a min-width per control, NOT a 2-column grid.
-                  A hard grid caps each column at ~161px on a 390px phone, and
-                  "Search Jobs" needs ~164px in English and ~205px in Telugu —
-                  the label rendered outside its own button. Wrapping lets the
-                  row hold two controls where they fit and fall to the next line
-                  where they do not, which is what the ten shipped languages
-                  actually require. */}
-              <div className="flex flex-wrap gap-3 sm:gap-4 lg:flex-nowrap lg:gap-5">
-                <div className="w-full lg:w-auto lg:flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    // No aria-label, deliberately. Chrome names a textbox from
-                    // its placeholder, so this control was never the TD-39
-                    // defect — unlike the <select> beside it, which has no such
-                    // fallback and announced nothing.
-                    //
-                    // An aria-label here was tried and reverted: "Search Jobs"
-                    // is the submit button's own name two elements away, so the
-                    // toolbar ended up with a textbox and a button answering to
-                    // one phrase — worse for voice control than the placeholder
-                    // it replaced. The placeholder text itself is no good either;
-                    // accname promotes an unused placeholder to the DESCRIPTION,
-                    // so an identical label is announced twice.
-                    //
-                    // A visually-hidden <label> is the real answer (WCAG 3.3.2
-                    // wants a label that does not vanish behind the user's own
-                    // text) and the identical control on /employee:141 needs the
-                    // same treatment. That is a visible-design change, not a
-                    // naming fix, so it is not smuggled in here.
-                    placeholder={t('seeker:jobFeed.searchPlaceholder')}
-                    value={searchDraft}
-                    onChange={(e) => setSearchDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-[150px] lg:max-w-[416px] relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  {/* TD-39. No visible label — the MapPin icon carries the
-                      meaning for sighted users — so the name has to come from
-                      aria-label, and a <select> has no placeholder to fall back
-                      on. Reuses the key the IDENTICAL control on /employee
-                      already uses rather than adding an eleventh translation of
-                      "Select location"; the two screens disagreeing about this
-                      control is how one of them lost its name in the first
-                      place. */}
-                  <select
-                    aria-label={t('seeker:landing.selectLocation')}
-                    value={cityDraft}
-                    onChange={(e) => setCityDraft(e.target.value)}
-                    className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
-                  >
-                    <option value="">{t('seeker:jobFeed.anyLocation')}</option>
-                    {CITY_KEYS.map((key) => (
-                      <option key={key} value={key}>
-                        {t(cityLabelKey(key))}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
-
-                <button
-                  onClick={handleSearch}
-                  className="h-12 flex-1 min-w-[150px] px-4 sm:px-6 lg:px-[43px] lg:flex-none bg-primary-50 text-primary-100 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                  <span className="text-base">{t('seeker:jobFeed.searchJobs')}</span>
-                </button>
-
-                <button
-                  onClick={() => setShowFilters((s) => !s)}
-                  className="h-12 flex-1 min-w-[110px] px-4 lg:flex-none bg-[#dddddd] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors lg:w-auto"
-                  aria-expanded={showFilters}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  <span className="text-base">{t('seeker:jobFeed.filter')}</span>
-                </button>
-
-                {/* TD-21: a muted-speaker button sat here with NO onClick — not a
-                    "coming soon" affordance, a control that did nothing at all when
-                    tapped. Voice search is deferred to v2 (locked scope Q2); the
-                    `jobFeed.voiceSearch*` strings are kept for when it ships. */}
+          <div className="bg-white rounded-lg shadow-[0px_5px_15px_0px_rgba(184,184,184,0.1)] p-3 sm:p-4 lg:p-[12px] max-w-[928px] mx-auto text-left">
+            {/* `flex-wrap` with a min-width per control, NOT a 2-column grid.
+                A hard grid caps each column at ~161px on a 390px phone, and
+                "Search Jobs" needs ~164px in English and ~205px in Telugu —
+                the label rendered outside its own button. Wrapping lets the
+                row hold two controls where they fit and fall to the next line
+                where they do not, which is what the ten shipped languages
+                actually require. */}
+            <div className="flex flex-wrap gap-3 sm:gap-4 lg:flex-nowrap lg:gap-5">
+              <div className="w-full lg:w-auto lg:flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  // No aria-label, deliberately. Chrome names a textbox from
+                  // its placeholder, so this control was never the TD-39
+                  // defect — unlike the <select> beside it, which has no such
+                  // fallback and announced nothing.
+                  placeholder={t('seeker:jobFeed.searchPlaceholder')}
+                  value={searchDraft}
+                  onChange={(e) => setSearchDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
+                />
               </div>
 
-              {/* Filter panel */}
-              {showFilters && (
-                <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Category → Sector → JobTitle filter (PJP-138). Full-width row. */}
-                  {/* The ONE screen that does not get TD-22's job search, and
-                      deliberately. A free-text box sits four inches above this
-                      panel and already reaches a job by its title — through the
-                      backend's weighted full-text search, which is a better
-                      answer here than an exact taxonomy match. A second input
-                      labelled "Search for a job" beside it would be two search
-                      boxes with near-identical labels doing different things.
-                      The cascade below stays, because here it is what it says it
-                      is: a filter, not the only way in. */}
-                  <TaxonomyPicker
-                    value={taxonomyDraft}
-                    onChange={setTaxonomyDraft}
-                    searchable={false}
-                    variant="filter"
-                    className="sm:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-4"
-                    selectClassName="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm"
-                    labelClassName="block text-sm font-medium text-black mb-1"
-                  />
-                  {/* Same TD-39 family as the city select above: these labels
-                      sat beside their controls rather than pointing at them, so
-                      every one announced as an unnamed combo box. */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-job-type">{t('seeker:jobFeed.filters.jobType')}</label>
-                    <select id="filter-job-type" value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
-                      <option value="">{t('seeker:jobFeed.filters.any')}</option>
-                      {JOB_TYPES.map((value) => (
-                        <option key={value} value={value}>{t(`seeker:jobFeed.jobType.${value}`)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-min-salary">{t('seeker:jobFeed.filters.minSalary')}</label>
-                    <input id="filter-min-salary" type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.minSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-max-salary">{t('seeker:jobFeed.filters.maxSalary')}</label>
-                    <input id="filter-max-salary" type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.maxSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-sort-by">{t('seeker:jobFeed.filters.sortBy')}</label>
-                    <select id="filter-sort-by" value={sortByDraft} onChange={(e) => setSortByDraft(e.target.value as JobFeedFilters['sortBy'])} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
-                      <option value="postedAt">{t('seeker:jobFeed.filters.sortNewest')}</option>
-                      <option value="salaryMax">{t('seeker:jobFeed.filters.sortSalaryHigh')}</option>
-                      <option value="salaryMin">{t('seeker:jobFeed.filters.sortSalaryLow')}</option>
-                      <option value="title">{t('seeker:jobFeed.filters.sortTitle')}</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
-                    <button onClick={handleApplyFilters} className="h-11 px-8 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium">
-                      {t('seeker:jobFeed.filters.applyFilters')}
-                    </button>
-                  </div>
-                </div>
-              )}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Job Listings Section — top padding kept tight (TD-15). The gap between
-          the search card and the first job is dead space on a phone; the bottom
-          keeps its room so the last card does not sit on the footer. */}
-      <section className="pt-4 pb-8 sm:pt-6 sm:pb-12 lg:pt-8 lg:pb-16">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          {/* Tabs */}
-          <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 border-b border-gray-200">
-            {([
-              { key: 'all', label: t('seeker:jobFeed.tabs.all') },
-              { key: 'recommended', label: t('seeker:jobFeed.tabs.recommended') },
-              { key: 'nearby', label: t('seeker:jobFeed.tabs.nearby') },
-            ] as { key: Tab; label: string }[]).map((tabItem) => (
-              <button
-                key={tabItem.key}
-                onClick={() => switchTab(tabItem.key)}
-                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px transition-colors ${
-                  tab === tabItem.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
-                }`}
-              >
-                {tabItem.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Section Header (TD-15)
-              Three lines became one on a phone: the descriptive half of the
-              title and the result count both move inline, and the subtitle is
-              held back for screens with room for it. The tab above already
-              says which list this is. */}
-          <div className="mb-4 sm:mb-6 lg:mb-8">
-            <h1 className="text-lg sm:text-2xl lg:text-[24px] font-semibold">
-              {sectionTitle}
-              <span className="hidden sm:inline font-normal"> - {sectionSub}</span>
-              {!loading && !error && (
-                <span className="ml-2 text-sm sm:text-base font-normal text-[#717182]">
-                  {t('seeker:jobFeed.resultCount', { count: pagination?.total ?? 0 })}
-                </span>
-              )}
-            </h1>
-          </div>
-
-          {/* Loading */}
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
-              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>{t('seeker:jobFeed.loading')}</p>
-            </div>
-          )}
-
-          {/* Error */}
-          {!loading && error && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-              <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
-                {t('buttons.retry')}
-              </button>
-            </div>
-          )}
-
-          {/* Empty */}
-          {!loading && !error && jobs.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
-              <empty.Icon className="w-10 h-10 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">{t('seeker:jobFeed.emptyTitle')}</p>
-              {/* `profile:` on the seeker feed is deliberate: this is the same
-                  sentence about the same fix, and the button below goes to the
-                  very field it names, so a second key would only give the two
-                  screens somewhere to drift apart. Every namespace ships in one
-                  chunk (locales/<lng>/index.ts), so it costs no extra download.
-                  Its proper home is `common.json`'s existing `location` block —
-                  a move worth making with `emptyNearbyCta`, but it edits 20
-                  locale files for no user-visible gain, so not during a defect
-                  pass. Same call, same reason, as `cityLabelKey` in lib/cities. */}
-              <p className="max-w-md">{empty.body}</p>
-              {empty.cta && (
-                <Link
-                  href="/profile"
-                  className="inline-flex items-center justify-center mt-5 min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm"
+              <div className="flex-1 min-w-[150px] lg:max-w-[416px] relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                {/* TD-39. No visible label — the MapPin icon carries the
+                    meaning for sighted users — so the name has to come from
+                    aria-label, and a <select> has no placeholder to fall back
+                    on. */}
+                <select
+                  aria-label={t('seeker:landing.selectLocation')}
+                  value={cityDraft}
+                  onChange={(e) => setCityDraft(e.target.value)}
+                  className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
                 >
-                  {t('seeker:jobFeed.emptyNearbyCta')}
-                </Link>
-              )}
+                  <option value="">{t('seeker:jobFeed.anyLocation')}</option>
+                  {CITY_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {t(cityLabelKey(key))}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+
+              <button
+                onClick={handleSearch}
+                className="h-12 flex-1 min-w-[150px] px-4 sm:px-6 lg:px-[43px] lg:flex-none bg-primary-50 text-primary-100 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-60 transition-colors"
+              >
+                <Search className="w-5 h-5" />
+                <span className="text-base">{t('seeker:jobFeed.searchJobs')}</span>
+              </button>
+
+              <button
+                onClick={() => setShowFilters((s) => !s)}
+                className="h-12 flex-1 min-w-[110px] px-4 lg:flex-none bg-[#dddddd] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-300 transition-colors lg:w-auto"
+                aria-expanded={showFilters}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className="text-base">{t('seeker:jobFeed.filter')}</span>
+              </button>
+
+              {/* TD-21: a muted-speaker button sat here with NO onClick — not a
+                  "coming soon" affordance, a control that did nothing at all when
+                  tapped. Voice search is deferred to v2 (locked scope Q2); the
+                  `jobFeed.voiceSearch*` strings are kept for when it ships. */}
             </div>
-          )}
 
-          {/* Job Cards */}
-          {!loading && !error && jobs.length > 0 && (
-            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-              {jobs.map((job) => (
-                <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6 lg:p-8 hover:shadow-lg transition-shadow">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
-                    <div className="flex items-start lg:items-center gap-4 flex-1">
-                      <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-[24px] font-semibold text-[#236987]">{initials(job.companyName || job.title)}</span>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-0.5 sm:mb-2">{job.title}</h3>
-                        <p className="text-sm sm:text-base text-black mb-2 sm:mb-4">{job.companyName || t('seeker:jobCard.company')}</p>
-
-                        <div className="flex items-center gap-1 mb-2 sm:mb-4">
-                          <IndianRupee className="w-4 h-4" />
-                          <span className="text-xs sm:text-sm lg:text-[14px]">{formatSalaryLine(job.salaryMin, job.salaryMax)}</span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
-                          {job.jobType && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{humanizeJobType(job.jobType)}</span>
-                            </div>
-                          )}
-                          {job.category && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{job.category}</span>
-                            </div>
-                          )}
-                          {job.location && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{localizeLocation(job.location)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* TD-15: on a phone this block used to add a date line and TWO
-                        full-width stacked buttons — about 130px per card, which is
-                        why only one job fitted on a screen.
-                        `flex-wrap` with a min-width, NOT a forced single row: at
-                        ~107px each the Tamil, Telugu, Malayalam and Odia labels
-                        wrapped to two or three lines and made the card TALLER than
-                        the stacked version. They now sit side by side where the
-                        language allows and fall back to stacking where it does
-                        not, so no locale is worse off than before. */}
-                    <div className="flex flex-col items-end gap-2 sm:gap-4 lg:min-w-[300px]">
-                      <span className="text-sm sm:text-base text-black">{relativeTime(job.createdAt)}</span>
-                      <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto lg:flex-nowrap">
-                        {/* Save toggle (PJP-140) — persists via /saved-jobs. */}
-                        <button
-                          onClick={() => toggleSave(job.id)}
-                          disabled={savingIds.has(job.id)}
-                          className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {savingIds.has(job.id) ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : savedIds.has(job.id) ? (
-                            <BookmarkCheck className="w-5 h-5 text-primary-50" />
-                          ) : (
-                            <Bookmark className="w-5 h-5" />
-                          )}
-                          <span className="text-sm sm:text-base">
-                            {savedIds.has(job.id) ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
-                          </span>
-                        </button>
-                        <Link href={`/job-details/${job.id}`} className="flex-1 min-w-[140px] lg:flex-none px-3 sm:px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base text-center">
-                          {t('seeker:jobCard.viewJob')}
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+            {/* Filter panel */}
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Category → Sector → JobTitle filter (PJP-138). Full-width row. */}
+                <TaxonomyPicker
+                  value={taxonomyDraft}
+                  onChange={setTaxonomyDraft}
+                  searchable={false}
+                  variant="filter"
+                  className="sm:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-4"
+                  selectClassName="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm"
+                  labelClassName="block text-sm font-medium text-black mb-1"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-job-type">{t('seeker:jobFeed.filters.jobType')}</label>
+                  <select id="filter-job-type" value={jobTypeDraft} onChange={(e) => setJobTypeDraft(e.target.value)} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
+                    <option value="">{t('seeker:jobFeed.filters.any')}</option>
+                    {JOB_TYPES.map((value) => (
+                      <option key={value} value={value}>{t(`seeker:jobFeed.jobType.${value}`)}</option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {!loading && !error && jobs.length > 0 && totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10 lg:mt-12">
-              <button
-                disabled={!pagination?.hasPrevPage}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {totalPages <= 10 ? (
-                Array.from({ length: totalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors ${
-                      page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {i + 1}
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-min-salary">{t('seeker:jobFeed.filters.minSalary')}</label>
+                  <input id="filter-min-salary" type="number" min={0} value={minSalaryDraft} onChange={(e) => setMinSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.minSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-max-salary">{t('seeker:jobFeed.filters.maxSalary')}</label>
+                  <input id="filter-max-salary" type="number" min={0} value={maxSalaryDraft} onChange={(e) => setMaxSalaryDraft(e.target.value)} placeholder={t('seeker:jobFeed.filters.maxSalaryPlaceholder')} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1" htmlFor="filter-sort-by">{t('seeker:jobFeed.filters.sortBy')}</label>
+                  <select id="filter-sort-by" value={sortByDraft} onChange={(e) => setSortByDraft(e.target.value as JobFeedFilters['sortBy'])} className="w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm">
+                    <option value="postedAt">{t('seeker:jobFeed.filters.sortNewest')}</option>
+                    <option value="salaryMax">{t('seeker:jobFeed.filters.sortSalaryHigh')}</option>
+                    <option value="salaryMin">{t('seeker:jobFeed.filters.sortSalaryLow')}</option>
+                    <option value="title">{t('seeker:jobFeed.filters.sortTitle')}</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
+                  <button onClick={handleApplyFilters} className="h-11 px-8 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium">
+                    {t('seeker:jobFeed.filters.applyFilters')}
                   </button>
-                ))
-              ) : (
-                <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
-              )}
-
-              <button
-                disabled={!pagination?.hasNextPage}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </section>
+
+      <JobSection
+        headingIcon={Info}
+        title={t('seeker:jobFeed.section.recommendedTitle')}
+        sub={t('seeker:jobFeed.section.recommendedSub')}
+        count={recommendedTotal}
+        loading={recommendedLoading}
+        error={recommendedError}
+        jobs={recommendedJobs}
+        kind="recommended"
+        noLocation={false}
+        hasMore={recommendedHasMore}
+        onShowMore={() => setRecommendedPage((p) => p + 1)}
+        onRetry={() => setRecommendedReloadKey((k) => k + 1)}
+        savedIds={savedIds}
+        savingIds={savingIds}
+        onToggleSave={toggleSave}
+        t={t}
+      />
+
+      <JobSection
+        headingIcon={Info}
+        title={t('seeker:jobFeed.section.nearbyTitle')}
+        sub={t('seeker:jobFeed.section.nearbySub')}
+        count={nearbyTotal}
+        loading={nearbyLoading}
+        error={nearbyError}
+        jobs={nearbyJobs}
+        kind="nearby"
+        noLocation={nearbyNoLocation}
+        hasMore={nearbyHasMore}
+        onShowMore={() => setNearbyPage((p) => p + 1)}
+        onRetry={() => setNearbyReloadKey((k) => k + 1)}
+        savedIds={savedIds}
+        savingIds={savingIds}
+        onToggleSave={toggleSave}
+        t={t}
+      />
+
+      {hasActiveFilters && (
+        <JobSection
+          headingIcon={Info}
+          title={t('seeker:jobFeed.section.allTitle')}
+          sub={t('seeker:jobFeed.section.allSub')}
+          count={allTotal}
+          loading={allLoading}
+          error={allError}
+          jobs={allJobs}
+          kind="all"
+          noLocation={false}
+          hasMore={allHasMore}
+          onShowMore={() => setAllPage((p) => p + 1)}
+          onRetry={() => setAllReloadKey((k) => k + 1)}
+          savedIds={savedIds}
+          savingIds={savingIds}
+          onToggleSave={toggleSave}
+          t={t}
+        />
+      )}
 
       <Footer />
     </div>

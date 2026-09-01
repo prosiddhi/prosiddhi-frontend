@@ -4,8 +4,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useRef, useCallback, useMemo, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
-import Link from 'next/link'
-import { UserDropdown } from '@/components/navigation/UserDropdown'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -316,16 +315,7 @@ function SeekerProfileContent() {
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/job-feed" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
-            </div>
-          </Link>
-          <UserDropdown />
-        </div>
-      </header>
+      <EmployeeHeader />
 
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
         <Breadcrumbs />

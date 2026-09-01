@@ -80,7 +80,8 @@
     "emptyRecommended": "No recommendations yet — complete your profile to improve matches.",
     "emptyDefault": "Try adjusting your search or filters.",
     "pageOf": "Page {{page}} of {{total}}",
-    "emptyNearbyCta": "Add your location"
+    "emptyNearbyCta": "Add your location",
+    "showMore": "Show More"
   },
   "jobDetails": {
     "back": "Back",
