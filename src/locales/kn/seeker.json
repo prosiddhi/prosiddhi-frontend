@@ -95,14 +95,21 @@
     "loadError": "ಈ ಕೆಲಸವನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ.",
     "notFound": "ಕೆಲಸ ಸಿಗಲಿಲ್ಲ.",
     "backToFeed": "ಕೆಲಸಗಳ ಪಟ್ಟಿಗೆ ಹಿಂದಿರುಗಿ",
+    "backToHome": "ಹೋಮ್‌ಗೆ ಹಿಂದಿರುಗಿ",
     "views_one": "{{count}} ವೀಕ್ಷಣೆ",
     "views_other": "{{count}} ವೀಕ್ಷಣೆಗಳು",
+    "applicants_one": "{{count}} ಅರ್ಜಿದಾರ",
+    "applicants_other": "{{count}} ಅರ್ಜಿದಾರರು",
+    "openings_one": "{{count}} ಖಾಲಿ ಹುದ್ದೆ",
+    "openings_other": "{{count}} ಖಾಲಿ ಹುದ್ದೆಗಳು",
+    "applyBy": "{{date}} ವರೆಗೆ ಅರ್ಜಿ ಹಾಕಿ",
     "applied": "ಅರ್ಜಿ ಹಾಕಲಾಗಿದೆ",
     "description": "ಕೆಲಸದ ವಿವರ",
     "skillsTitle": "ಕೌಶಲ್ಯ ಮತ್ತು ವಿದ್ಯಾರ್ಹತೆ",
     "contactRecruiter": "ಕೆಲಸ ಕೊಡುವವರನ್ನು ಸಂಪರ್ಕಿಸಿ",
     "reportJob": "ಈ ಕೆಲಸವನ್ನು ರಿಪೋರ್ಟ್ ಮಾಡಿ",
-    "relatedJobs": "ಸಂಬಂಧಿತ ಕೆಲಸಗಳು"
+    "relatedJobs": "ಸಂಬಂಧಿತ ಕೆಲಸಗಳು",
+    "aboutCompany": "ಕಂಪನಿ ಬಗ್ಗೆ"
   },
   "savedJobs": {
     "title": "ನೀವು ಉಳಿಸಿದ ಕೆಲಸಗಳು",

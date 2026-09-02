@@ -95,14 +95,21 @@
     "loadError": "ఈ ఉద్యోగం లోడ్ కాలేదు.",
     "notFound": "ఉద్యోగం దొరకలేదు.",
     "backToFeed": "ఉద్యోగాల ఫీడ్‌కి వెనక్కి",
+    "backToHome": "హోమ్‌కి వెనక్కి",
     "views_one": "{{count}} సారి చూశారు",
     "views_other": "{{count}} సార్లు చూశారు",
+    "applicants_one": "{{count}} దరఖాస్తుదారు",
+    "applicants_other": "{{count}} దరఖాస్తుదారులు",
+    "openings_one": "{{count}} ఖాళీ",
+    "openings_other": "{{count}} ఖాళీలు",
+    "applyBy": "{{date}} వరకు దరఖాస్తు చేయండి",
     "applied": "దరఖాస్తు చేశారు",
     "description": "ఉద్యోగం వివరాలు",
     "skillsTitle": "నైపుణ్యాలు & అర్హతలు",
     "contactRecruiter": "రిక్రూటర్‌ని సంప్రదించండి",
     "reportJob": "ఈ ఉద్యోగంపై రిపోర్ట్ చేయండి",
-    "relatedJobs": "ఇలాంటి ఉద్యోగాలు"
+    "relatedJobs": "ఇలాంటి ఉద్యోగాలు",
+    "aboutCompany": "కంపెనీ గురించి"
   },
   "savedJobs": {
     "title": "మీరు సేవ్ చేసిన ఉద్యోగాలు",

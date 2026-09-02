@@ -11,6 +11,9 @@ interface JobFeedCardProps {
   isSaved: boolean
   saving: boolean
   onToggleSave: (jobId: string) => void
+  /** Where this card is rendered — carried into the Job Details URL as `?from=`
+      so its Back link can return here instead of a generic browser-back. */
+  from?: 'home' | 'job-feed'
 }
 
 // Skills render as chips (no label) so a long list never needs a 10-language
@@ -35,7 +38,7 @@ const MAX_SKILL_CHIPS = 6
  * the level above sector in the same taxonomy, sits instead in the quick
  * metadata pills alongside job type and location.
  */
-export function JobFeedCard({ job, isSaved, saving, onToggleSave }: JobFeedCardProps) {
+export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFeedCardProps) {
   const { t } = useTranslation()
   const classification = [job.jobTitle, job.sector].filter(Boolean).join(' · ')
   const skills = job.skillsRequired ?? []
@@ -63,7 +66,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave }: JobFeedCardP
         {isSaved ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
       </button>
       <Link
-        href={`/job-details/${job.id}`}
+        href={from ? `/job-details/${job.id}?from=${from}` : `/job-details/${job.id}`}
         className="min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base flex items-center justify-center whitespace-nowrap"
       >
         {t('seeker:jobCard.viewJob')}

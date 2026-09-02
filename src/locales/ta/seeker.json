@@ -95,14 +95,21 @@
     "loadError": "இந்த வேலையை ஏற்ற முடியவில்லை.",
     "notFound": "வேலை கிடைக்கவில்லை.",
     "backToFeed": "வேலை பட்டியலுக்குத் திரும்புங்கள்",
+    "backToHome": "முகப்புக்குத் திரும்புங்கள்",
     "views_one": "{{count}} பார்வை",
     "views_other": "{{count}} பார்வைகள்",
+    "applicants_one": "{{count}} விண்ணப்பதாரர்",
+    "applicants_other": "{{count}} விண்ணப்பதாரர்கள்",
+    "openings_one": "{{count}} காலியிடம்",
+    "openings_other": "{{count}} காலியிடங்கள்",
+    "applyBy": "{{date}} வரை விண்ணப்பியுங்கள்",
     "applied": "விண்ணப்பிக்கப்பட்டது",
     "description": "வேலை விவரம்",
     "skillsTitle": "திறமைகளும் தகுதிகளும்",
     "contactRecruiter": "வேலை வழங்குபவரைத் தொடர்பு கொள்ளுங்கள்",
     "reportJob": "இந்த வேலை பற்றி புகார் அளியுங்கள்",
-    "relatedJobs": "தொடர்புடைய வேலைகள்"
+    "relatedJobs": "தொடர்புடைய வேலைகள்",
+    "aboutCompany": "நிறுவனத்தைப் பற்றி"
   },
   "savedJobs": {
     "title": "நீங்கள் சேமித்த வேலைகள்",

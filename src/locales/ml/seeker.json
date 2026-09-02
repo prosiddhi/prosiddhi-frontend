@@ -95,14 +95,21 @@
     "loadError": "ഈ ജോലി ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
     "notFound": "ജോലി കണ്ടെത്തിയില്ല.",
     "backToFeed": "ജോലി ഫീഡിലേക്ക് തിരികെ",
+    "backToHome": "ഹോമിലേക്ക് തിരികെ",
     "views_one": "{{count}} തവണ കണ്ടു",
     "views_other": "{{count}} തവണ കണ്ടു",
+    "applicants_one": "{{count}} അപേക്ഷകർ",
+    "applicants_other": "{{count}} അപേക്ഷകർ",
+    "openings_one": "{{count}} ഒഴിവ്",
+    "openings_other": "{{count}} ഒഴിവ്",
+    "applyBy": "{{date}} വരെ അപേക്ഷിക്കുക",
     "applied": "അപേക്ഷിച്ചു",
     "description": "ജോലിയുടെ വിവരണം",
     "skillsTitle": "കഴിവുകളും യോഗ്യതകളും",
     "contactRecruiter": "റിക്രൂട്ടറെ ബന്ധപ്പെടുക",
     "reportJob": "ഈ ജോലി റിപ്പോർട്ട് ചെയ്യുക",
-    "relatedJobs": "സമാനമായ ജോലികൾ"
+    "relatedJobs": "സമാനമായ ജോലികൾ",
+    "aboutCompany": "കമ്പനിയെക്കുറിച്ച്"
   },
   "savedJobs": {
     "title": "നിങ്ങൾ സേവ് ചെയ്ത ജോലികൾ",

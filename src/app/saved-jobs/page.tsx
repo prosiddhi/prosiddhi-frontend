@@ -8,19 +8,9 @@ import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type SavedJobItem } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { InlineError } from '@/components/feedback/InlineError'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
-import {
-  Briefcase,
-  Bookmark,
-  Clock,
-  MapPin,
-  IndianRupee,
-  BookmarkCheck,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { Bookmark, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
+import { JobFeedCard } from '@/components/job/JobFeedCard'
 
 const PAGE_SIZE = 10
 
@@ -129,92 +119,15 @@ function SavedJobsPageContent() {
 
           {/* Saved Jobs List */}
           {!loading && !error && items.length > 0 && (
-            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+            <div className="space-y-3 sm:space-y-4">
               {items.map(({ id, jobId, job }) => (
-                <div
+                <JobFeedCard
                   key={id}
-                  className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6 lg:p-8 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
-                    {/* Company Logo */}
-                    <div className="flex items-start lg:items-center gap-4 flex-1">
-                      <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-[24px] font-semibold text-[#236987]">
-                          {initials(job.companyName || job.title)}
-                        </span>
-                      </div>
-
-                      {/* Job Details */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl lg:text-[24px] font-semibold mb-1 sm:mb-2">
-                          {job.title}
-                        </h3>
-                        <p className="text-sm sm:text-base text-black mb-3 sm:mb-4">
-                          {job.companyName || t('seeker:jobCard.company')}
-                        </p>
-
-                        {/* Salary */}
-                        <div className="flex items-center gap-1 mb-3 sm:mb-4">
-                          <IndianRupee className="w-4 h-4" />
-                          <span className="text-xs sm:text-sm lg:text-[14px]">
-                            {formatSalaryLine(job.salaryMin, job.salaryMax)}
-                          </span>
-                        </div>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-5">
-                          {job.jobType && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{humanizeJobType(job.jobType)}</span>
-                            </div>
-                          )}
-                          {job.category && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{job.category}</span>
-                            </div>
-                          )}
-                          {job.location && (
-                            <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{localizeLocation(job.location)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Side - Time and Actions */}
-                    <div className="flex flex-col items-end gap-4 lg:min-w-[300px]">
-                      <span className="text-sm sm:text-base text-black">
-                        {relativeTime(job.createdAt)}
-                      </span>
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
-                        <button
-                          onClick={() => handleUnsave(jobId)}
-                          disabled={removing.has(jobId)}
-                          className="px-4 py-3 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {removing.has(jobId) ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <BookmarkCheck className="w-5 h-5" />
-                          )}
-                          <span className="text-sm sm:text-base">{removing.has(jobId) ? t('seeker:savedJobs.removing') : t('buttons.saved')}</span>
-                        </button>
-                        <Link
-                          href={`/job-details/${jobId}`}
-                          className="px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center"
-                        >
-                          {t('seeker:jobCard.viewJob')}
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  job={job}
+                  isSaved
+                  saving={removing.has(jobId)}
+                  onToggleSave={handleUnsave}
+                />
               ))}
             </div>
           )}

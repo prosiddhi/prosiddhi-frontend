@@ -382,10 +382,8 @@ function JobFeedPageContent() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filter sidebar — flush against the page, no card border/box,
-              matching the Figma reference (which has no visible sidebar
-              boundary; the earlier bordered-card treatment was a deviation). */}
-          <aside className="w-full lg:w-[280px] shrink-0">
+          {/* Filter sidebar — bordered card, matching the Figma reference. */}
+          <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-black">{t('seeker:jobFeed.filters.allFilters')}</h2>
               {hasActiveFilters && (
@@ -528,6 +526,7 @@ function JobFeedPageContent() {
               savedIds={savedIds}
               savingIds={savingIds}
               onToggleSave={toggleSave}
+              from="job-feed"
             />
           </div>
         </div>
