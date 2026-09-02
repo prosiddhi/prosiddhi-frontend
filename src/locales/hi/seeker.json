@@ -96,6 +96,7 @@
     "notFound": "नौकरी नहीं मिली।",
     "backToFeed": "जॉब फ़ीड पर वापस जाएँ",
     "backToHome": "होम पर वापस जाएँ",
+    "backToSavedJobs": "सहेजी गई नौकरियों पर वापस जाएँ",
     "views_one": "{{count}} बार देखा गया",
     "views_other": "{{count}} बार देखा गया",
     "applicants_one": "{{count}} आवेदक",

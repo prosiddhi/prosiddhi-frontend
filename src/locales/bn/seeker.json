@@ -96,6 +96,7 @@
     "notFound": "চাকরিটি পাওয়া যায়নি।",
     "backToFeed": "চাকরির ফিডে ফিরে যান",
     "backToHome": "হোমে ফিরে যান",
+    "backToSavedJobs": "সেভ করা চাকরিতে ফিরে যান",
     "views_one": "{{count}} বার দেখা হয়েছে",
     "views_other": "{{count}} বার দেখা হয়েছে",
     "applicants_one": "{{count}} জন আবেদনকারী",
