@@ -95,14 +95,21 @@
     "loadError": "এই চাকরিটি লোড করা যায়নি।",
     "notFound": "চাকরিটি পাওয়া যায়নি।",
     "backToFeed": "চাকরির ফিডে ফিরে যান",
+    "backToHome": "হোমে ফিরে যান",
     "views_one": "{{count}} বার দেখা হয়েছে",
     "views_other": "{{count}} বার দেখা হয়েছে",
+    "applicants_one": "{{count}} জন আবেদনকারী",
+    "applicants_other": "{{count}} জন আবেদনকারী",
+    "openings_one": "{{count}}টি শূন্যপদ",
+    "openings_other": "{{count}}টি শূন্যপদ",
+    "applyBy": "{{date}} পর্যন্ত আবেদন করুন",
     "applied": "আবেদন করা হয়েছে",
     "description": "চাকরির বিবরণ",
     "skillsTitle": "দক্ষতা আর যোগ্যতা",
     "contactRecruiter": "চাকরিদাতার সঙ্গে যোগাযোগ করুন",
     "reportJob": "এই চাকরিটি রিপোর্ট করুন",
-    "relatedJobs": "একই রকম চাকরি"
+    "relatedJobs": "একই রকম চাকরি",
+    "aboutCompany": "কোম্পানি সম্পর্কে"
   },
   "savedJobs": {
     "title": "আপনার সেভ করা চাকরি",

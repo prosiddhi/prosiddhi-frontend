@@ -95,14 +95,21 @@
     "loadError": "આ નોકરી લોડ થઈ શકી નથી.",
     "notFound": "નોકરી મળી નથી.",
     "backToFeed": "જોબ ફીડ પર પાછા જાઓ",
+    "backToHome": "હોમ પર પાછા જાઓ",
     "views_one": "{{count}} વાર જોવાઈ",
     "views_other": "{{count}} વાર જોવાઈ",
+    "applicants_one": "{{count}} અરજદાર",
+    "applicants_other": "{{count}} અરજદાર",
+    "openings_one": "{{count}} જગ્યા",
+    "openings_other": "{{count}} જગ્યા",
+    "applyBy": "{{date}} સુધી અરજી કરો",
     "applied": "અરજી કરી",
     "description": "નોકરીનું વર્ણન",
     "skillsTitle": "કૌશલ્ય અને લાયકાત",
     "contactRecruiter": "ભરતી કરનારનો સંપર્ક કરો",
     "reportJob": "આ નોકરીની રિપોર્ટ કરો",
-    "relatedJobs": "સંબંધિત નોકરીઓ"
+    "relatedJobs": "સંબંધિત નોકરીઓ",
+    "aboutCompany": "કંપની વિશે"
   },
   "savedJobs": {
     "title": "તમે સાચવેલી નોકરીઓ",

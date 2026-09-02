@@ -95,14 +95,21 @@
     "loadError": "यह नौकरी लोड नहीं हो सकी।",
     "notFound": "नौकरी नहीं मिली।",
     "backToFeed": "जॉब फ़ीड पर वापस जाएँ",
+    "backToHome": "होम पर वापस जाएँ",
     "views_one": "{{count}} बार देखा गया",
     "views_other": "{{count}} बार देखा गया",
+    "applicants_one": "{{count}} आवेदक",
+    "applicants_other": "{{count}} आवेदक",
+    "openings_one": "{{count}} रिक्ति",
+    "openings_other": "{{count}} रिक्तियाँ",
+    "applyBy": "{{date}} तक आवेदन करें",
     "applied": "आवेदन किया गया",
     "description": "नौकरी का विवरण",
     "skillsTitle": "कौशल और योग्यताएँ",
     "contactRecruiter": "भर्तीकर्ता से संपर्क करें",
     "reportJob": "इस नौकरी की शिकायत करें",
-    "relatedJobs": "संबंधित नौकरियाँ"
+    "relatedJobs": "संबंधित नौकरियाँ",
+    "aboutCompany": "कंपनी के बारे में"
   },
   "savedJobs": {
     "title": "आपकी सहेजी गई नौकरियाँ",

@@ -140,6 +140,7 @@ function SeekerHomeContent() {
           savedIds={savedIds}
           savingIds={savingIds}
           onToggleSave={toggleSave}
+          from="home"
         />
       )}
 
@@ -160,6 +161,7 @@ function SeekerHomeContent() {
           savedIds={savedIds}
           savingIds={savingIds}
           onToggleSave={toggleSave}
+          from="home"
         />
       )}
 
@@ -180,6 +182,7 @@ function SeekerHomeContent() {
           savedIds={savedIds}
           savingIds={savingIds}
           onToggleSave={toggleSave}
+          from="home"
         />
       )}
 

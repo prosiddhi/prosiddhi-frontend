@@ -326,13 +326,13 @@ export interface Job {
   longitude?: number | null
   radius?: number | null
   viewCount?: number
-  // `duration`, `expiresAt` and the showEmail/showPhone reveal toggles were DROPPED
-  // from Job by the backend in fe246f1 (2026-08-06) and are deliberately not
-  // declared here. Three of them governed nothing; the toggles did work but employer
-  // contact is now always shown, because the seeker side is free. Leaving them on
-  // this type is what let the Contact button keep gating on fields that no longer
-  // arrive — it rendered on no job at all. A job's life is `liveUntil` (30 days per
-  // POST credit), never a date the employer picked.
+  applicationCount?: number
+  // The job's actual life is `liveUntil` (30 days per POST credit), never a date
+  // the employer picked — shown on Job Details as the "apply by" date.
+  liveUntil?: string
+  // Distinct from `createdAt` when a job is renewed/reposted; Job Details prefers
+  // this for "posted X ago" and falls back to `createdAt` for older responses.
+  postedAt?: string
   employerId?: string
   employer?: {
     id?: string
@@ -340,6 +340,7 @@ export interface Job {
     companyName?: string | null
     fullName?: string | null
     companyEmail?: string | null
+    companySize?: CompanySize | null
     [key: string]: unknown
   } | null
   createdAt?: string

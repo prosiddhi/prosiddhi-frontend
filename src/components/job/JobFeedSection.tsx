@@ -62,6 +62,9 @@ export interface JobFeedSectionProps {
   savedIds: Set<string>
   savingIds: Set<string>
   onToggleSave: (jobId: string) => void
+  /** Where this section is rendered — passed through to each JobFeedCard so
+      its Job Details link carries `?from=` for the Back link. */
+  from?: 'home' | 'job-feed'
 }
 
 export function JobFeedSection({
@@ -82,6 +85,7 @@ export function JobFeedSection({
   savedIds,
   savingIds,
   onToggleSave,
+  from,
 }: JobFeedSectionProps) {
   const { t } = useTranslation()
   const empty = emptyStateFor(kind, noLocation, t)
@@ -141,12 +145,7 @@ export function JobFeedSection({
       )}
 
       {jobs.length > 0 && (
-        // Single column, capped at Tailwind's own 7xl scale token (1280px)
-        // rather than an invented number — measured against the real page
-        // container: content is 1040-1200px wide at 1280-1440, so the card
-        // runs edge-to-edge there and only picks up a deliberate margin
-        // beyond it.
-        <div className="flex flex-col gap-3 sm:gap-4 max-w-7xl">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {jobs.map((job) => (
             <JobFeedCard
               key={job.id}
@@ -154,6 +153,7 @@ export function JobFeedSection({
               isSaved={savedIds.has(job.id)}
               saving={savingIds.has(job.id)}
               onToggleSave={onToggleSave}
+              from={from}
             />
           ))}
         </div>

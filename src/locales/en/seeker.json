@@ -95,14 +95,21 @@
     "loadError": "Failed to load this job.",
     "notFound": "Job not found.",
     "backToFeed": "Back to Job Feed",
+    "backToHome": "Back to Home",
     "views_one": "{{count}} view",
     "views_other": "{{count}} views",
+    "applicants_one": "{{count}} applicant",
+    "applicants_other": "{{count}} applicants",
+    "openings_one": "{{count}} opening",
+    "openings_other": "{{count}} openings",
+    "applyBy": "Apply by {{date}}",
     "applied": "Applied",
     "description": "Job Description",
     "skillsTitle": "Skills & Qualifications",
     "contactRecruiter": "Contact the Recruiter",
     "reportJob": "Report this job",
-    "relatedJobs": "Related Jobs"
+    "relatedJobs": "Related Jobs",
+    "aboutCompany": "About the Company"
   },
   "savedJobs": {
     "title": "Your Saved Jobs",
