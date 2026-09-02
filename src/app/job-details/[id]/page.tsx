@@ -68,17 +68,24 @@ function JobDetailsContent() {
   const searchParams = useSearchParams()
   const jobId = String(params?.id ?? '')
 
-  // Home and Job Feed both link here with `?from=` so the Back link returns
-  // to whichever one the seeker actually came from, instead of a generic
-  // browser-back that breaks for any other entry point (saved jobs, my
-  // applications, employer's own job list) — those keep the old router.back().
+  // Home, Job Feed, and Saved Jobs all link here with `?from=` so the Back link
+  // returns to whichever one the seeker actually came from, instead of a generic
+  // browser-back that breaks for any other entry point (my applications,
+  // employer's own job list) — those keep the old router.back().
   const from = searchParams.get('from')
-  const activeNavTab = from === 'home' ? 'home' : from === 'job-feed' ? 'jobFeed' : undefined
+  const activeNavTab = from === 'home' ? 'home' : from === 'job-feed' ? 'jobFeed' : from === 'saved-jobs' ? 'savedJobs' : undefined
   const backLabel =
-    from === 'home' ? t('seeker:jobDetails.backToHome') : from === 'job-feed' ? t('seeker:jobDetails.backToFeed') : t('seeker:jobDetails.back')
+    from === 'home'
+      ? t('seeker:jobDetails.backToHome')
+      : from === 'job-feed'
+        ? t('seeker:jobDetails.backToFeed')
+        : from === 'saved-jobs'
+          ? t('seeker:jobDetails.backToSavedJobs')
+          : t('seeker:jobDetails.back')
   const goBack = () => {
     if (from === 'home') router.push('/home')
     else if (from === 'job-feed') router.push('/job-feed')
+    else if (from === 'saved-jobs') router.push('/saved-jobs')
     else router.back()
   }
 

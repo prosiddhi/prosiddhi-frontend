@@ -3,10 +3,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { Bell, Loader2, CheckCheck } from 'lucide-react'
+import {
+  Bell,
+  Loader2,
+  CheckCheck,
+  Check,
+  X,
+  Calendar,
+  Briefcase,
+  CreditCard,
+} from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { notificationAPI, type AppNotification } from '@/lib/api'
+import { notificationAPI, type AppNotification, type NotificationType } from '@/lib/api'
 import { relativeTime } from '@/lib/jobFormat'
+
+// Figma gives each notification a colored avatar badge carrying the actor's
+// initials (e.g. "AD", "UP"). Initials only work for a Latin title — every one
+// of our 10 shipped languages translates `title`, so slicing letters off it
+// would print two meaningless glyphs (or nothing at all) in Tamil/Kannada/
+// Malayalam/Bengali. `type` is the one field on AppNotification that is NOT
+// translated, so the badge is keyed off it instead: an icon + color that carry
+// the same "what kind of update is this" meaning without depending on script.
+const BADGE_BY_TYPE: Record<NotificationType, { icon: typeof Bell; className: string }> = {
+  APPLICATION_ACCEPTED: { icon: Check, className: 'bg-success-500' },
+  DOCUMENT_VERIFIED: { icon: Check, className: 'bg-success-500' },
+  PROFILE_APPROVED: { icon: Check, className: 'bg-success-500' },
+  APPLICATION_REJECTED: { icon: X, className: 'bg-error-500' },
+  DOCUMENT_REJECTED: { icon: X, className: 'bg-error-500' },
+  PROFILE_REJECTED: { icon: X, className: 'bg-error-500' },
+  ADMIN_WARNING: { icon: X, className: 'bg-error-500' },
+  INTERVIEW_SCHEDULED: { icon: Calendar, className: 'bg-primary-50' },
+  APPLICATION_SUBMITTED: { icon: Briefcase, className: 'bg-primary-50' },
+  ADMIN_PAYMENT_REMINDER: { icon: CreditCard, className: 'bg-warning-500' },
+  SYSTEM: { icon: Bell, className: 'bg-grey-500' },
+}
 
 // Match the chat's cadence: notifications are created by the same server-side
 // hooks (application status, interviews, document verification), and there is no
@@ -197,7 +227,19 @@ export function NotificationBell() {
           <div className="fixed inset-0 z-40 md:hidden" onClick={() => setOpen(false)} />
           <div
             role="menu"
-            className="absolute right-0 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn overflow-hidden"
+            // `top-full` is load-bearing, not decorative. This wrapper is
+            // `inline-flex items-center` (see the comment on it below), so
+            // without an explicit `top` the browser positions an
+            // absolutely-positioned flex child using `align-items` — i.e. it
+            // CENTERS the panel on the ~24px bell icon's cross axis instead of
+            // stacking it below. On a ~380px-tall panel that put roughly the
+            // top half — the "Notifications" heading and the first item —
+            // above the icon, rendering above the header/off the top of the
+            // viewport on any page where the header sits near the top of the
+            // screen. `top-full` (100% of the wrapper's own height) pins the
+            // panel's top edge to the wrapper's bottom edge, which is what
+            // "mt-2" alone was silently relying on and not getting.
+            className="absolute right-0 top-full mt-2 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-semibold text-black">{t('notifications.title')}</p>
@@ -232,30 +274,41 @@ export function NotificationBell() {
 
               {!loading &&
                 !error &&
-                items.map((n) => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleOpenItem(n)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors ${
-                      n.read ? '' : 'bg-[#f3f9fd]'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {!n.read && (
-                        <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-50 flex-shrink-0" />
-                      )}
-                      <div className={`min-w-0 flex-1 ${n.read ? 'pl-4' : ''}`}>
-                        <p className="text-sm font-medium text-black">{n.title}</p>
-                        <p className="text-xs text-[#717182] mt-0.5 line-clamp-2">{n.body}</p>
-                        <p className="text-[10px] text-[#9a9aa5] mt-1">
-                          {relativeTime(n.createdAt)}
-                        </p>
+                items.map((n) => {
+                  const badge = BADGE_BY_TYPE[n.type]
+                  const BadgeIcon = badge.icon
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleOpenItem(n)}
+                      className={`w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors ${
+                        n.read ? '' : 'bg-[#f3f9fd]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${badge.className}`}
+                        >
+                          <BadgeIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold text-black truncate">{n.title}</p>
+                            <span className="text-[10px] text-[#9a9aa5] shrink-0 whitespace-nowrap mt-0.5">
+                              {relativeTime(n.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#717182] mt-0.5 line-clamp-2">{n.body}</p>
+                        </div>
+                        {!n.read && (
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-50 shrink-0" />
+                        )}
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
             </div>
           </div>
         </>

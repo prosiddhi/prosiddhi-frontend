@@ -96,6 +96,7 @@
     "notFound": "ಕೆಲಸ ಸಿಗಲಿಲ್ಲ.",
     "backToFeed": "ಕೆಲಸಗಳ ಪಟ್ಟಿಗೆ ಹಿಂದಿರುಗಿ",
     "backToHome": "ಹೋಮ್‌ಗೆ ಹಿಂದಿರುಗಿ",
+    "backToSavedJobs": "ಉಳಿಸಿದ ಕೆಲಸಗಳಿಗೆ ಹಿಂದಿರುಗಿ",
     "views_one": "{{count}} ವೀಕ್ಷಣೆ",
     "views_other": "{{count}} ವೀಕ್ಷಣೆಗಳು",
     "applicants_one": "{{count}} ಅರ್ಜಿದಾರ",

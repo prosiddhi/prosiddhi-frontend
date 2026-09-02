@@ -127,6 +127,7 @@ function SavedJobsPageContent() {
                   isSaved
                   saving={removing.has(jobId)}
                   onToggleSave={handleUnsave}
+                  from="saved-jobs"
                 />
               ))}
             </div>

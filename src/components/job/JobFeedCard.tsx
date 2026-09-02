@@ -13,7 +13,7 @@ interface JobFeedCardProps {
   onToggleSave: (jobId: string) => void
   /** Where this card is rendered — carried into the Job Details URL as `?from=`
       so its Back link can return here instead of a generic browser-back. */
-  from?: 'home' | 'job-feed'
+  from?: 'home' | 'job-feed' | 'saved-jobs'
 }
 
 // Skills render as chips (no label) so a long list never needs a 10-language
