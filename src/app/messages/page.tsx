@@ -368,7 +368,7 @@ function MessagesListContent() {
       )}
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('chat:list.title')}</h1>
 
           {loading && (
@@ -395,8 +395,8 @@ function MessagesListContent() {
           )}
 
           {!loading && !error && conversations.length > 0 && (
-            <div className="flex border border-[#eee] rounded-[10px] overflow-hidden bg-white h-[min(70vh,640px)] min-h-[480px]">
-              <div className={`${selectedId ? 'hidden sm:block' : 'block'} w-full sm:w-[360px] sm:flex-shrink-0 sm:border-r border-gray-200 overflow-y-auto`}>
+            <div className="flex gap-5 h-[min(70vh,640px)] min-h-[480px]">
+              <div className={`${selectedId ? 'hidden sm:block' : 'block'} w-full sm:w-[360px] sm:flex-shrink-0 border border-[#eee] rounded-[10px] bg-white overflow-y-auto`}>
                 <div className="divide-y divide-gray-100">
                   {conversations.map((c) => {
                     const name = otherPartyName(c, isSeeker, t)
@@ -434,7 +434,7 @@ function MessagesListContent() {
                 </div>
               </div>
 
-              <div className={`${selectedId ? 'flex' : 'hidden sm:flex'} flex-1 flex-col overflow-hidden`}>
+              <div className={`${selectedId ? 'flex' : 'hidden sm:flex'} flex-1 flex-col border border-[#eee] rounded-[10px] bg-white overflow-hidden`}>
                 {selectedConversation && (
                   <ConversationThread
                     key={selectedConversation.id}
