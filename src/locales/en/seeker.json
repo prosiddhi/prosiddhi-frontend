@@ -97,6 +97,7 @@
     "backToFeed": "Back to Job Feed",
     "backToHome": "Back to Home",
     "backToSavedJobs": "Back to Saved Jobs",
+    "backToApplicationDetails": "Back to Application Details",
     "views_one": "{{count}} view",
     "views_other": "{{count}} views",
     "applicants_one": "{{count}} applicant",
@@ -147,7 +148,7 @@
     "job": "Job"
   },
   "applicationDetail": {
-    "back": "Back",
+    "back": "Back to My Applications",
     "loading": "Loading application...",
     "loadError": "Failed to load this application.",
     "appliedRelative": "Applied {{time}}",

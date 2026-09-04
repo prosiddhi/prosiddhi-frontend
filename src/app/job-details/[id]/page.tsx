@@ -68,11 +68,16 @@ function JobDetailsContent() {
   const searchParams = useSearchParams()
   const jobId = String(params?.id ?? '')
 
-  // Home, Job Feed, and Saved Jobs all link here with `?from=` so the Back link
-  // returns to whichever one the seeker actually came from, instead of a generic
-  // browser-back that breaks for any other entry point (my applications,
-  // employer's own job list) — those keep the old router.back().
+  // Home, Job Feed, Saved Jobs, and Application Details all link here with
+  // `?from=` so the Back link returns to whichever one the seeker actually
+  // came from, instead of a generic browser-back that breaks for any other
+  // entry point (employer's own job list) — that keeps the old router.back().
   const from = searchParams.get('from')
+  // Application Details also passes the applicationId it came from, so Back
+  // is a deterministic push to that exact application — not browser history,
+  // which would break if the seeker navigated elsewhere in a new tab or the
+  // history stack got dropped.
+  const applicationId = searchParams.get('applicationId')
   const activeNavTab = from === 'home' ? 'home' : from === 'job-feed' ? 'jobFeed' : from === 'saved-jobs' ? 'savedJobs' : undefined
   const backLabel =
     from === 'home'
@@ -81,11 +86,14 @@ function JobDetailsContent() {
         ? t('seeker:jobDetails.backToFeed')
         : from === 'saved-jobs'
           ? t('seeker:jobDetails.backToSavedJobs')
-          : t('seeker:jobDetails.back')
+          : from === 'application-details'
+            ? t('seeker:jobDetails.backToApplicationDetails')
+            : t('seeker:jobDetails.back')
   const goBack = () => {
     if (from === 'home') router.push('/home')
     else if (from === 'job-feed') router.push('/job-feed')
     else if (from === 'saved-jobs') router.push('/saved-jobs')
+    else if (from === 'application-details') router.push(applicationId ? `/my-applications/${applicationId}` : '/my-applications')
     else router.back()
   }
 

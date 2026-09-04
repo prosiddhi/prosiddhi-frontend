@@ -97,6 +97,7 @@
     "backToFeed": "જોબ ફીડ પર પાછા જાઓ",
     "backToHome": "હોમ પર પાછા જાઓ",
     "backToSavedJobs": "સાચવેલી નોકરીઓ પર પાછા જાઓ",
+    "backToApplicationDetails": "અરજીનું વર્ણન પર પાછા જાઓ",
     "views_one": "{{count}} વાર જોવાઈ",
     "views_other": "{{count}} વાર જોવાઈ",
     "applicants_one": "{{count}} અરજદાર",
@@ -147,7 +148,7 @@
     "job": "નોકરી"
   },
   "applicationDetail": {
-    "back": "પાછા",
+    "back": "મારી અરજીઓ પર પાછા જાઓ",
     "loading": "અરજી લોડ થઈ રહી છે...",
     "loadError": "આ અરજી લોડ થઈ શકી નથી.",
     "appliedRelative": "{{time}} અરજી કરી",

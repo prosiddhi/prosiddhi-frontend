@@ -97,6 +97,7 @@
     "backToFeed": "চাকরির ফিডে ফিরে যান",
     "backToHome": "হোমে ফিরে যান",
     "backToSavedJobs": "সেভ করা চাকরিতে ফিরে যান",
+    "backToApplicationDetails": "আবেদনের বিবরণে ফিরে যান",
     "views_one": "{{count}} বার দেখা হয়েছে",
     "views_other": "{{count}} বার দেখা হয়েছে",
     "applicants_one": "{{count}} জন আবেদনকারী",
@@ -147,7 +148,7 @@
     "job": "চাকরি"
   },
   "applicationDetail": {
-    "back": "পেছনে",
+    "back": "আমার আবেদনে ফিরে যান",
     "loading": "আবেদন লোড হচ্ছে...",
     "loadError": "এই আবেদনটি লোড করা যায়নি।",
     "appliedRelative": "{{time}} আবেদন করেছেন",
