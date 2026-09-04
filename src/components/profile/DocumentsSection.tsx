@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react'
 
 export interface DocTypeOption {
@@ -124,18 +125,25 @@ export function DocumentsSection({
             button — so the name has to come from aria-label, and a <select> has
             no placeholder to fall back on. Until this, a screen reader on either
             profile page reached it and said only "combo box". */}
-        <select
-          aria-label={t('profile:documents.typeLabel')}
-          value={uploadType}
-          onChange={(e) => setUploadType(e.target.value as DocumentType)}
-          className="h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-primary-50"
-        >
-          {allowedTypes.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {typeLabel(opt.value)}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          {/* `appearance-none` + the ChevronDown below replace the browser's
+              own arrow, which hugs the right edge on Windows Chrome/Edge —
+              `pr-10`/`right-3` matches the chevron spacing used by the other
+              selects in the app (home, employee, job-feed pages). */}
+          <select
+            aria-label={t('profile:documents.typeLabel')}
+            value={uploadType}
+            onChange={(e) => setUploadType(e.target.value as DocumentType)}
+            className="h-11 pl-3 pr-10 border border-[#b5b5b5] rounded-lg text-sm text-black appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-50"
+          >
+            {allowedTypes.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {typeLabel(opt.value)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
         <input ref={fileRef} type="file" accept={accept} onChange={handleFile} className="hidden" />
         <button
           type="button"

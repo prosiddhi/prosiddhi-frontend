@@ -516,11 +516,14 @@ export interface ProfileWorkExperience {
 // here so it can never be read/stored on the FE.
 export interface SeekerProfile {
   id: string
-  email: string
+  /** NULL for a phone-only seeker — email is optional at registration. */
+  email: string | null
   phoneNumber?: string | null
   role: UserRole
   accountStatus?: string
   emailVerified?: boolean
+  /** Phone is mandatory at registration, so this is true for every self-registered seeker. */
+  phoneVerified?: boolean
   preferredLanguage?: string
   jobSeeker?: {
     id: string
@@ -533,6 +536,8 @@ export interface SeekerProfile {
     preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
+    /** Admin-reviewed rollup across the seeker's uploaded documents (not per-document). */
+    documentVerificationStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED' | null
     skills?: JobSeekerSkillLink[]
     workExperience?: ProfileWorkExperience[]
     documents?: UserDocument[]

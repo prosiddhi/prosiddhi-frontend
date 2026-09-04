@@ -1,11 +1,14 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useRef, useCallback, useMemo, ChangeEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
+import { Footer } from '@/components/home/Footer'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
+import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
+import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   jobSeekerAPI,
@@ -22,8 +25,10 @@ import { canonicalLocation } from '@/lib/jobFormat'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
+import { Tooltip } from '@/components/ui/Tooltip'
 import {
   Camera,
+  Pencil,
   Plus,
   Trash2,
   Loader2,
@@ -31,6 +36,13 @@ import {
   CheckCircle2,
   X,
   Search,
+  User,
+  Briefcase,
+  FileWarning,
+  Phone,
+  Mail,
+  FileText,
+  Sparkles,
 } from 'lucide-react'
 import { nameProblem } from '@/lib/nameValidation'
 import { Field } from '@/components/form/Field'
@@ -59,6 +71,14 @@ function toDateInput(iso?: string | null): string {
 let rowSeq = 0
 const newKey = () => `row-${rowSeq++}`
 
+// yyyy-mm-dd → "Jan 2023", for the read-only work-experience list.
+function monthYear(dateInput?: string | null): string {
+  if (!dateInput) return ''
+  const d = new Date(dateInput)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+}
+
 function SeekerProfileContent() {
   const { t } = useTranslation()
   const { user, updateUser } = useAuth()
@@ -68,8 +88,24 @@ function SeekerProfileContent() {
   const [saveError, setSaveError] = useState('')
   const [saved, setSaved] = useState(false)
 
+  // View/edit mode. Only Basic Details + Work Experience are gated by this — they
+  // already share one Save action (see handleSave). Photo, Documents and Skills
+  // persist immediately per-action and stay interactive in both modes.
+  const [editing, setEditing] = useState(false)
+  // Last profile fetched from the server, so Cancel can revert to it via hydrate()
+  // without a second copy of every field's state.
+  const lastProfileRef = useRef<SeekerProfile | null>(null)
+
   // Profile fields
   const [jobSeekerId, setJobSeekerId] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  // Which email flow the modal is running, or null when the modal is closed.
+  const [emailModalMode, setEmailModalMode] = useState<EmailVerifyMode | null>(null)
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false)
+  const [documentVerificationStatus, setDocumentVerificationStatus] = useState<string | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [fullName, setFullName] = useState('')
@@ -92,6 +128,11 @@ function SeekerProfileContent() {
   const hydrate = useCallback((p: SeekerProfile) => {
     const js = p.jobSeeker
     setJobSeekerId(js?.id ?? null)
+    setEmail(p.email ?? '')
+    setEmailVerified(p.emailVerified ?? false)
+    setPhoneNumber(p.phoneNumber ?? '')
+    setPhoneVerified(p.phoneVerified ?? false)
+    setDocumentVerificationStatus(js?.documentVerificationStatus ?? null)
     setPhoto(js?.profilePhoto ?? null)
     setFullName(js?.fullName ?? '')
     originalFullName.current = (js?.fullName ?? '').trim()
@@ -131,7 +172,10 @@ function SeekerProfileContent() {
       setLoadError('')
       try {
         const p = await jobSeekerAPI.getProfile()
-        if (!ignore) hydrate(p)
+        if (!ignore) {
+          lastProfileRef.current = p
+          hydrate(p)
+        }
       } catch (err) {
         if (!ignore) setLoadError(err instanceof Error ? err.message : t('profile:seeker.loadError'))
       } finally {
@@ -173,6 +217,22 @@ function SeekerProfileContent() {
       { key: newKey(), position: '', companyName: '', startDate: '', endDate: '', currentlyWorking: false, description: '' },
     ])
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
+
+  const handleCancel = () => {
+    if (lastProfileRef.current) hydrate(lastProfileRef.current)
+    setEditing(false)
+    setSaveError('')
+    setSaved(false)
+  }
+
+  // Called by EmailVerifyModal / PhoneVerifyModal after a successful change. The
+  // BE call that got us here does not return the full profile shape, so refetch
+  // rather than patch local state — same pattern handleSave already uses.
+  const refreshProfile = async () => {
+    const fresh = await jobSeekerAPI.getProfile()
+    lastProfileRef.current = fresh
+    hydrate(fresh)
+  }
 
   // The coordinate this save would write, if any (TD-02). The rule itself lives
   // in @/lib/cities because the employer job form needs exactly the same one —
@@ -293,6 +353,7 @@ function SeekerProfileContent() {
       })
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
       const fresh = await jobSeekerAPI.getProfile()
+      lastProfileRef.current = fresh
       hydrate(fresh)
       // The header reads the name from the session user, so a rename here has to
       // land there too — otherwise the old name sticks until the next login.
@@ -303,6 +364,7 @@ function SeekerProfileContent() {
           profilePhoto: fresh.jobSeeker?.profilePhoto,
         },
       })
+      setEditing(false)
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {
@@ -313,12 +375,26 @@ function SeekerProfileContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader />
 
-      <main className="flex-1 py-8 sm:py-10 lg:py-12">
-        <div className="max-w-[900px] mx-auto px-4 sm:px-6">
-          <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('profile:seeker.heading')}</h1>
+      <main className="flex-1 pt-[clamp(16px,5.33px_+_1.67vw,32px)] pb-[clamp(24px,8px_+_2.5vw,48px)]">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-[clamp(16px,8px_+_1.25vw,28px)]">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black">{t('profile:seeker.heading')}</h1>
+              <p className="text-sm text-[#717182] mt-1">{t('profile:seeker.subtitle')}</p>
+            </div>
+            {!loading && !loadError && !editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
+              >
+                <Pencil className="w-4 h-4" /> {t('profile:seeker.editProfile')}
+              </button>
+            )}
+          </div>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
@@ -335,129 +411,206 @@ function SeekerProfileContent() {
           )}
 
           {!loading && !loadError && (
-            <div className="space-y-6">
-              {/* Basic details */}
-              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative w-20 h-20 rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center flex-shrink-0">
+            <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6 sm:gap-8 items-start">
+              {/* Profile summary sidebar — avatar, name, phone, email, document-verification status. */}
+              <aside className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6 flex flex-col items-center text-center">
+                <div className="relative w-32 h-32 flex-shrink-0">
+                  <div className="w-32 h-32 rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center">
                     {photo ? (
                       <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill className="object-cover" />
                     ) : (
-                      <span className="text-2xl font-semibold text-[#236987]">
+                      <span className="text-4xl font-semibold text-[#236987]">
                         {(fullName || '?').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <div>
-                    <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhoto} className="hidden" />
-                    <button
-                      type="button"
-                      onClick={() => photoRef.current?.click()}
-                      disabled={photoUploading}
-                      className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
-                    >
-                      {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                      {photoUploading ? t('profile:seeker.uploading') : t('profile:seeker.changePhoto')}
-                    </button>
-                    <p className="text-xs text-[#717182] mt-1">{t('profile:seeker.photoHint')}</p>
-                  </div>
+                  <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhoto} className="hidden" />
+                  <button
+                    type="button"
+                    onClick={() => photoRef.current?.click()}
+                    disabled={photoUploading}
+                    aria-label={t('profile:seeker.changePhoto')}
+                    title={t('profile:seeker.changePhoto')}
+                    className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white text-primary-50 flex items-center justify-center border border-[#dddddd] shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  >
+                    {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xl font-semibold text-black mt-5 break-words">
+                  {fullName || t('profile:seeker.fullNamePlaceholder')}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
+                  {phoneNumber && (
+                    <span className="inline-flex items-center gap-1.5 flex-shrink-0">
+                      <Phone className="w-3.5 h-3.5" /> {phoneNumber}
+                    </span>
+                  )}
+                  {phoneNumber && email && <span className="text-[#dddddd]">|</span>}
+                  {email && (
+                    <Tooltip content={email}>
+                      <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate min-w-0">{email}</span>
+                      </span>
+                    </Tooltip>
+                  )}
+                </div>
+                <div className="w-full mt-6 pt-5 border-t border-[#eee]">
+                  <DocStatusBadge status={documentVerificationStatus} />
+                </div>
+              </aside>
+
+              <div className="space-y-6 sm:space-y-8 min-w-0">
+              {/* Basic details */}
+              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
+                {/* Personal Information */}
+                <div className="pb-6 mb-6 border-b border-[#eee]">
+                  <h2 className={sectionHeadingCls + ' mb-4'}>
+                    <User className={sectionHeadingIconCls} /> {t('profile:seeker.personalInformation')}
+                  </h2>
+                  {editing ? (
+                    <>
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
+                      <Field label={t('profile:seeker.fullName')}>
+                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
+                      </Field>
+                      <EmailStatusField email={email || null} verified={emailVerified} editing onAction={setEmailModalMode} />
+                      <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing onChangeClick={() => setPhoneModalOpen(true)} />
+                      <Field label={t('profile:seeker.location')}>
+                        {/* Typing must NOT discard a fix already taken: pressing the
+                            button and then naming your area is the ordinary way to
+                            use this, and clearing here threw the good coordinate
+                            away and saved nothing. */}
+                        {/* Same datalist as the job form, and it is not cosmetic.
+                            The backend's cold-start recommendation runs
+                            `job.location CONTAINS seeker.location` — the SEEKER's
+                            text is the needle. Jobs now store canonical English, so
+                            a Kannada seeker who types "ಬೆಂಗಳೂರು" matches nothing and
+                            gets an EMPTY recommendation list, not a shorter one.
+                            `value` is English, `label` their own script: they read
+                            ಬೆಂಗಳೂರು, we store "Bangalore", both sides of the match
+                            line up. Free text still works for anywhere else. */}
+                        <input
+                          value={location}
+                          onChange={(e) => {
+                            setLocation(e.target.value)
+                            setTextIsNewer(true)
+                          }}
+                          placeholder={t('profile:seeker.locationPlaceholder')}
+                          list="seeker-location-cities"
+                          className={inputCls}
+                        />
+                        <datalist id="seeker-location-cities">
+                          {CITY_KEYS.map((key) => (
+                            <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
+                          ))}
+                        </datalist>
+                        <UseMyLocation
+                          onLocated={(c) => {
+                            setGpsFix(c)
+                            setTextIsNewer(false)
+                          }}
+                          className="mt-2"
+                        />
+                        {/* Three states, and the difference matters: the coordinate
+                            is invisible, so this line is the only feedback there is.
+                            It must never call an unsaved change saved. */}
+                        {/* TD-44. The green "You will see jobs near you" used to
+                            show whenever a coordinate was STORED, whatever the box
+                            said. So a seeker who moved and typed "Nagpur" over their
+                            Bangalore pin was told, in green, that they would see
+                            jobs near them — and went on seeing Bangalore jobs. It is
+                            the same lie TD-41 fixed on the employer side, on the
+                            half with more people behind it.
+
+                            `reason` comes from the same `coordsToWrite` the save
+                            uses, so the line cannot disagree with what is written —
+                            that was the whole point of returning it. */}
+                        <p className={`text-xs mt-1.5 ${locationTone}`} role="status">
+                          {t(locationKey, { city: locationCity })}
+                        </p>
+                      </Field>
+                    </div>
+                    {/* About You gets its own full-width row, set off from the fields
+                        above — it reads as a paragraph, not one more grid cell. */}
+                    <div className="mt-6 pt-6 border-t border-[#eee]">
+                      <Field label={t('profile:seeker.aboutYou')}>
+                        <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
+                      </Field>
+                    </div>
+                    </>
+                  ) : (
+                    <>
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
+                      <ReadOnlyField label={t('profile:seeker.fullName')} value={fullName} />
+                      <EmailStatusField email={email || null} verified={emailVerified} editing={false} onAction={setEmailModalMode} />
+                      <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing={false} onChangeClick={() => setPhoneModalOpen(true)} />
+                      <ReadOnlyField label={t('profile:seeker.location')} value={location} />
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-[#eee]">
+                      <ReadOnlyField label={t('profile:seeker.aboutYou')} value={bio} />
+                    </div>
+                    </>
+                  )}
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label={t('profile:seeker.fullName')}>
-                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
-                  </Field>
-                  <Field label={t('profile:seeker.location')}>
-                    {/* Typing must NOT discard a fix already taken: pressing the
-                        button and then naming your area is the ordinary way to
-                        use this, and clearing here threw the good coordinate
-                        away and saved nothing. */}
-                    {/* Same datalist as the job form, and it is not cosmetic.
-                        The backend's cold-start recommendation runs
-                        `job.location CONTAINS seeker.location` — the SEEKER's
-                        text is the needle. Jobs now store canonical English, so
-                        a Kannada seeker who types "ಬೆಂಗಳೂರು" matches nothing and
-                        gets an EMPTY recommendation list, not a shorter one.
-                        `value` is English, `label` their own script: they read
-                        ಬೆಂಗಳೂರು, we store "Bangalore", both sides of the match
-                        line up. Free text still works for anywhere else. */}
-                    <input
-                      value={location}
-                      onChange={(e) => {
-                        setLocation(e.target.value)
-                        setTextIsNewer(true)
-                      }}
-                      placeholder={t('profile:seeker.locationPlaceholder')}
-                      list="seeker-location-cities"
-                      className={inputCls}
-                    />
-                    <datalist id="seeker-location-cities">
-                      {CITY_KEYS.map((key) => (
-                        <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
-                      ))}
-                    </datalist>
-                    <UseMyLocation
-                      onLocated={(c) => {
-                        setGpsFix(c)
-                        setTextIsNewer(false)
-                      }}
-                      className="mt-2"
-                    />
-                    {/* Three states, and the difference matters: the coordinate
-                        is invisible, so this line is the only feedback there is.
-                        It must never call an unsaved change saved. */}
-                    {/* TD-44. The green "You will see jobs near you" used to
-                        show whenever a coordinate was STORED, whatever the box
-                        said. So a seeker who moved and typed "Nagpur" over their
-                        Bangalore pin was told, in green, that they would see
-                        jobs near them — and went on seeing Bangalore jobs. It is
-                        the same lie TD-41 fixed on the employer side, on the
-                        half with more people behind it.
-
-                        `reason` comes from the same `coordsToWrite` the save
-                        uses, so the line cannot disagree with what is written —
-                        that was the whole point of returning it. */}
-                    <p className={`text-xs mt-1.5 ${locationTone}`} role="status">
-                      {t(locationKey, { city: locationCity })}
-                    </p>
-                  </Field>
-                  {/* Preferred Category → Sector → JobTitle (PJP-112). */}
-                  <TaxonomyPicker
-                    value={triple}
-                    onChange={setTriple}
-                    className="sm:col-span-2 grid sm:grid-cols-3 gap-4"
-                    selectClassName={inputCls}
-                    labelClassName="text-sm font-medium text-black mb-1.5 block"
-                  />
-                  <Field label={t('profile:seeker.preferredLanguage')}>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
-                      {LANGUAGES.map((l) => (
-                        <option key={l.value} value={l.value}>
-                          {l.label}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label={t('profile:seeker.aboutYou')} full>
-                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
-                  </Field>
+                {/* Job Preferences */}
+                <div>
+                  <h2 className={sectionHeadingCls + ' mb-4'}>
+                    <Briefcase className={sectionHeadingIconCls} /> {t('profile:seeker.jobPreferences')}
+                  </h2>
+                  {editing ? (
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
+                      {/* Preferred Category → Sector → JobTitle (PJP-112).
+                          `contents` drops the picker's own wrapper from layout so its
+                          three fields fall into THIS grid directly, alongside Preferred
+                          Language — Category/Sector on row one, JobTitle/Language on
+                          row two, instead of the picker claiming a full-width row of
+                          its own. The cascade logic inside TaxonomyPicker is untouched. */}
+                      <TaxonomyPicker
+                        value={triple}
+                        onChange={setTriple}
+                        className="contents"
+                        selectClassName={inputCls}
+                        labelClassName="text-sm font-medium text-black mb-1.5 block"
+                      />
+                      <Field label={t('profile:seeker.preferredLanguage')}>
+                        <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
+                          {LANGUAGES.map((l) => (
+                            <option key={l.value} value={l.value}>
+                              {l.label}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    </div>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
+                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category} />
+                      <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} />
+                      <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} />
+                      <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} />
+                    </div>
+                  )}
                 </div>
               </section>
 
               {/* Work experience */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg sm:text-xl font-semibold text-black flex items-center gap-2">
-                    {t('profile:seeker.workExperience')}
+                  <h2 className={sectionHeadingCls}>
+                    <Briefcase className={sectionHeadingIconCls} /> {t('profile:seeker.workExperience')}
                     <VoiceButton label={t('profile:seeker.workExperienceVoiceLabel')} iconClassName="w-4 h-4 text-gray-500" className="p-1" />
                   </h2>
-                  <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-50 hover:text-primary-60">
-                    <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
-                  </button>
+                  {editing && (
+                    <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-50 hover:text-primary-60">
+                      <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
+                    </button>
+                  )}
                 </div>
                 {experiences.length === 0 ? (
                   <p className="text-sm text-[#717182]">{t('profile:seeker.noExperience')}</p>
-                ) : (
+                ) : editing ? (
                   <div className="space-y-5">
                     {experiences.map((exp) => (
                       <div key={exp.key} className="border border-[#eee] rounded-lg p-4 relative">
@@ -501,35 +654,61 @@ function SeekerProfileContent() {
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    {experiences.map((exp) => (
+                      <div key={exp.key} className="bg-[#eaf6fd] rounded-lg p-4">
+                        <p className="text-sm sm:text-base font-medium text-black">
+                          {exp.position}
+                          {exp.companyName ? ` — ${exp.companyName}` : ''}
+                        </p>
+                        <p className="text-xs text-[#3386a9] mt-0.5">
+                          {monthYear(exp.startDate)} – {exp.currentlyWorking ? t('profile:seeker.present') : monthYear(exp.endDate) || t('profile:seeker.present')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                <p className="text-xs text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>
+                {editing && <p className="text-xs text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>}
               </section>
 
               {/* Save bar for profile + experience */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
-                >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {saving ? t('profile:seeker.saving') : t('buttons.saveChanges')}
-                </button>
-                {saved && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-                    <CheckCircle2 className="w-4 h-4" /> {t('profile:seeker.saved')}
-                  </span>
-                )}
-                {saveError && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
-                    <AlertCircle className="w-4 h-4" /> {saveError}
-                  </span>
-                )}
-              </div>
+              {editing && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
+                  >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {saving ? t('profile:seeker.saving') : t('buttons.saveChanges')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  >
+                    {t('profile:seeker.cancel')}
+                  </button>
+                  {saved && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
+                      <CheckCircle2 className="w-4 h-4" /> {t('profile:seeker.saved')}
+                    </span>
+                  )}
+                  {saveError && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
+                      <AlertCircle className="w-4 h-4" /> {saveError}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Documents */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('profile:seeker.documents')}</h2>
+                <h2 className={sectionHeadingCls + ' mb-4'}>
+                  <FileText className={sectionHeadingIconCls} /> {t('profile:seeker.documents')}
+                </h2>
                 <DocumentsSection
                   allowedTypes={[...SEEKER_DOC_TYPES]}
                   accept=".pdf,.jpg,.jpeg,.png"
@@ -541,17 +720,37 @@ function SeekerProfileContent() {
 
               {/* Skills */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('profile:seeker.skills')}</h2>
+                <h2 className={sectionHeadingCls + ' mb-4'}>
+                  <Sparkles className={sectionHeadingIconCls} /> {t('profile:seeker.skills')}
+                </h2>
                 {jobSeekerId === null ? (
                   <p className="text-sm text-[#717182]">{t('profile:seeker.skillsLocked')}</p>
                 ) : (
                   <SkillsSection />
                 )}
               </section>
+              </div>
             </div>
           )}
         </div>
       </main>
+
+      <Footer />
+
+      <EmailVerifyModal
+        isOpen={emailModalMode !== null}
+        onClose={() => setEmailModalMode(null)}
+        mode={emailModalMode ?? 'add'}
+        currentEmail={email || null}
+        onSuccess={refreshProfile}
+      />
+
+      <PhoneVerifyModal
+        isOpen={phoneModalOpen}
+        onClose={() => setPhoneModalOpen(false)}
+        currentPhoneNumber={phoneNumber}
+        onSuccess={refreshProfile}
+      />
     </div>
   )
 }
@@ -723,6 +922,132 @@ function SkillsSection() {
 // ---- small presentational helpers -----------------------------------------
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
+
+// One heading style shared by every Profile section (Personal Information, Job
+// Preferences, Work Experience, Documents, Skills) so they read as one hierarchy
+// instead of two — the sub-sections inside the top card used to be a full size
+// smaller than Work Experience/Documents/Skills.
+const sectionHeadingCls = 'flex items-center gap-2 text-lg sm:text-xl font-semibold text-black'
+const sectionHeadingIconCls = 'w-5 h-5 text-[#3386a9] flex-shrink-0'
+
+// A label + value pair for view mode, matching the read-only pattern already
+// established on Application Details (src/app/my-applications/[id]/page.tsx).
+function ReadOnlyField({ label, value, full }: { label: string; value?: ReactNode; full?: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <div className={full ? 'sm:col-span-2' : ''}>
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-sm sm:text-base font-medium text-black whitespace-pre-line">
+        {value || t('profile:seeker.notProvided')}
+      </p>
+    </div>
+  )
+}
+
+// Email is never a plain editable field (has its own Add/Change/Verify action),
+// so it gets its own field instead of ReadOnlyField in both view and edit mode.
+// States are derived from the API's `email` + `emailVerified` only — never
+// hardcoded, so a state this component doesn't handle simply cannot render.
+//
+// Label → value → status is the same three-line rhythm as every other field on
+// this card; status sits on its own small, muted line rather than crowding the
+// value so a long email address doesn't wrap around a badge. The Add/Change/
+// Verify action only renders in edit mode — view mode is read-only, full stop.
+function EmailStatusField({
+  email,
+  verified,
+  editing,
+  onAction,
+}: {
+  email: string | null
+  verified: boolean
+  editing: boolean
+  onAction: (mode: EmailVerifyMode) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">{t('profile:seeker.emailAddress')}</p>
+      <p className="text-sm sm:text-base font-medium text-black break-all">
+        {email || t('profile:seeker.notProvided')}
+      </p>
+      {email && (
+        <p className={`text-xs mt-0.5 ${verified ? 'text-green-600' : 'text-amber-600'}`}>
+          {verified ? t('profile:seeker.emailStatusVerified') : t('profile:seeker.emailStatusUnverified')}
+        </p>
+      )}
+      {editing && (
+        <button
+          type="button"
+          onClick={() => onAction(!email ? 'add' : verified ? 'change' : 'verify')}
+          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
+        >
+          {t(!email ? 'profile:seeker.addEmail' : verified ? 'profile:seeker.changeEmail' : 'profile:seeker.verifyEmail')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Phone is mandatory and never a plain editable field — same label → value →
+// status rhythm as EmailStatusField, with a Change Phone action that only
+// renders in edit mode (view mode is status-only, same rule as email).
+function PhoneStatusField({
+  phoneNumber,
+  verified,
+  editing,
+  onChangeClick,
+}: {
+  phoneNumber: string
+  verified: boolean
+  editing: boolean
+  onChangeClick: () => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">{t('profile:seeker.phoneNumber')}</p>
+      <p className="text-sm sm:text-base font-medium text-black">
+        {phoneNumber || t('profile:seeker.notProvided')}
+      </p>
+      {phoneNumber && verified && (
+        <p className="text-xs mt-0.5 text-green-600">{t('profile:seeker.phoneStatusVerified')}</p>
+      )}
+      {editing && (
+        <button
+          type="button"
+          onClick={onChangeClick}
+          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
+        >
+          {t('profile:seeker.changePhone')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// The seeker's document-verification rollup (jobSeeker.documentVerificationStatus —
+// distinct from a single document's own verificationStatus, shown per-row in
+// DocumentsSection). Always renders a pill, including the not-submitted state, so
+// the badge never silently disappears and never claims a status the account
+// doesn't have.
+const DOC_STATUS_STYLE: Record<string, string> = {
+  NOT_SUBMITTED: 'bg-gray-100 text-gray-600',
+  PENDING: 'bg-amber-50 text-amber-700',
+  VERIFIED: 'bg-green-50 text-green-700',
+  REJECTED: 'bg-red-50 text-red-700',
+}
+
+function DocStatusBadge({ status }: { status: string | null }) {
+  const { t } = useTranslation()
+  const key = status && status in DOC_STATUS_STYLE ? status : 'NOT_SUBMITTED'
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${DOC_STATUS_STYLE[key]}`}>
+      {key === 'VERIFIED' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <FileWarning className="w-3.5 h-3.5" />}
+      {t(`profile:seeker.documentStatus.${key}`)}
+    </span>
+  )
+}
 
 export default function SeekerProfilePage() {
   return (

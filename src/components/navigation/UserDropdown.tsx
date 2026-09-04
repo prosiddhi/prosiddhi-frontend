@@ -8,6 +8,7 @@ import { User, Briefcase, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 /**
  * UserDropdown — the account menu in the global header on every authed screen.
@@ -84,112 +85,103 @@ export function UserDropdown() {
     // lets ONLY the name give up space; the avatar and the icons next to it
     // never do (see `shrink-0` below and their own fixed/margin-box sizing).
     //
-    // `group`: lets the hover/focus tooltip below react to this whole
-    // control (button + name), not just the text itself — so it also shows
-    // when the button is reached by Tab, not just on mouse hover.
-    <div className="relative min-w-0 group" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label={t('nav.accountMenu')}
-        aria-describedby={name ? 'user-dropdown-name-tooltip' : undefined}
-        // 44px target around a 32-38px avatar (TD-20). `w-full`: a <button>
-        // does not reliably block-fill its parent's width the way a <div>
-        // does — even with `display: flex` applied, browsers size a form
-        // control to its shrink-to-fit content by default. This component's
-        // OWN root div is no longer stretched by an ancestor (that's what
-        // used to make `w-full` matter for truncation) — it's still kept so
-        // the button always matches whatever width its root div naturally
-        // resolves to, rather than occasionally drifting from it.
-        //
-        // `items-center`: with the avatar and the single-line name span as
-        // the only two children, this centers the avatar against the name's
-        // line height for free. Avatar sits at this box's own left edge
-        // (right after Bell); the name span (its own fixed width, see below)
-        // follows it — matching the required "[Mail] [Notification] [Avatar]
-        // Name" left-to-right order.
-        className="flex items-center gap-2 w-full min-w-[44px] min-h-[44px] hover:opacity-80 transition-opacity"
+    <div className="relative min-w-0" ref={dropdownRef}>
+      {/* Full-name tooltip via the shared Tooltip component — right-aligned
+          under the button, and hidden while the dropdown menu is open so
+          the two floating panels never stack. `focusable={false}`: the
+          button is already a tab stop, so Tooltip skips adding its own and
+          links `aria-describedby` onto the button directly instead. */}
+      <Tooltip
+        content={name}
+        position="bottom"
+        align="end"
+        focusable={false}
+        disabled={isOpen}
+        className="w-full"
       >
-        {/* `shrink-0`: a flex item's default flex-shrink is 1, so without this
-            the avatar would give up some of its own 32/38px under the same
-            squeeze that truncates the name — the browser has no reason to
-            prefer shrinking text over shrinking an image otherwise. */}
-        <div className="w-8 h-8 sm:w-[38px] sm:h-[38px] rounded-full bg-primary-50 overflow-hidden flex items-center justify-center shrink-0">
-          {photo ? (
-            <Image
-              src={photo}
-              alt=""
-              width={38}
-              height={38}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User className="w-5 h-5 text-white" />
-          )}
-        </div>
-        {/* `truncate` (Tailwind core — `overflow: hidden; text-overflow:
-            ellipsis; white-space: nowrap`): the name stays on ONE line and
-            ellipsizes instead of wrapping. A 2-line version was tried first,
-            but at narrow/zoomed layouts (e.g. 80% zoom with a long Malayalam
-            name) it wrapped into an awkward "Bhare" / "Ku…" split — a single
-            truncated line ("Bhare…") reads far better than a broken 2-line one.
-            The width is a fixed `clamp(4.5rem, 5vw, 9rem)`, NOT `max-w-[9rem]`
-            and NOT `flex-1`: a max-width is a CEILING, not a fixed size — it
-            still lets the box shrink to fit shorter content, so short names
-            render narrower than long ones and Mail's X drifts with whichever
-            name is loaded (measured up to 44px). `flex-1` has the opposite
-            problem: constant size, but that size is "whatever's left in the
-            row", which stretches the whole Mail/Bell/avatar/name cluster
-            across the entire right rail (measured: Mail landed 2px from the
-            nav). A literal fixed width is what keeps this span's contribution
-            to the row's layout constant regardless of the TEXT, which is
-            what lets HeaderActions.tsx use a single leading spacer to push
-            the compact cluster flush against the right edge.
-            `clamp(4.5rem, 5vw, 9rem)` instead of one flat number: a single
-            guessed width (e.g. "9rem, about what 'Venkata Subramaniam' needs") only
-            happens to look right at the viewport it was eyeballed on — the
-            `5vw` middle term scales the box with the actual viewport instead,
-            growing from 1280px up to the page's own `max-w-[1920px]` cap (vw
-            growth beyond that is meaningless, hence the `9rem` ceiling) and
-            scaling correctly under browser zoom too, since zoom scales `vw`
-            and root font-size together.
-            Bounds are `rem`, NOT `ch`: measured directly in Chromium,
-            `clamp(9ch, 5vw, 16ch)` — mixing a font-relative `ch` bound with a
-            viewport-relative `vw` middle term — resolves to the `ch` MAXIMUM
-            at every viewport width, ignoring the `vw` term entirely (a real
-            engine bug, not a typo: an isolated `clamp(50px, 5vw, 200px)`
-            probe on the same page tracked `vw` correctly). `rem` bounds with
-            the same `vw` middle term measured correctly at every tested width
-            (1280/1366/1440/1920/2560). `min-w-0` still lets the box shrink
-            below the clamp's floor on a truly narrow viewport rather than
-            forcing an overflow.
-            `title` gives every browser a free native hover tooltip; the
-            `role="tooltip"` element below is what also appears on keyboard
-            focus, since native `title` does not. */}
-        {name && (
-          <span
-            className="hidden sm:block truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base"
-            title={name}
-          >
-            {name}
-          </span>
-        )}
-      </button>
-
-      {/* Full-name tooltip — only useful once the name is actually
-          truncated, and hidden while the dropdown menu is open so the two
-          floating panels never stack. `pointer-events-none` keeps it from
-          intercepting the hover that would otherwise reach the button. */}
-      {name && !isOpen && (
-        <div
-          id="user-dropdown-name-tooltip"
-          role="tooltip"
-          className="pointer-events-none absolute right-0 top-full mt-1.5 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:block group-hover:opacity-100 group-focus-within:block group-focus-within:opacity-100 z-50"
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label={t('nav.accountMenu')}
+          // 44px target around a 32-38px avatar (TD-20). `w-full`: a <button>
+          // does not reliably block-fill its parent's width the way a <div>
+          // does — even with `display: flex` applied, browsers size a form
+          // control to its shrink-to-fit content by default. This component's
+          // OWN root div is no longer stretched by an ancestor (that's what
+          // used to make `w-full` matter for truncation) — it's still kept so
+          // the button always matches whatever width its root div naturally
+          // resolves to, rather than occasionally drifting from it.
+          //
+          // `items-center`: with the avatar and the single-line name span as
+          // the only two children, this centers the avatar against the name's
+          // line height for free. Avatar sits at this box's own left edge
+          // (right after Bell); the name span (its own fixed width, see below)
+          // follows it — matching the required "[Mail] [Notification] [Avatar]
+          // Name" left-to-right order.
+          className="flex items-center gap-2 w-full min-w-[44px] min-h-[44px] hover:opacity-80 transition-opacity"
         >
-          {name}
-        </div>
-      )}
+          {/* `shrink-0`: a flex item's default flex-shrink is 1, so without this
+              the avatar would give up some of its own 32/38px under the same
+              squeeze that truncates the name — the browser has no reason to
+              prefer shrinking text over shrinking an image otherwise. */}
+          <div className="w-8 h-8 sm:w-[38px] sm:h-[38px] rounded-full bg-primary-50 overflow-hidden flex items-center justify-center shrink-0">
+            {photo ? (
+              <Image
+                src={photo}
+                alt=""
+                width={38}
+                height={38}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-5 h-5 text-white" />
+            )}
+          </div>
+          {/* `truncate` (Tailwind core — `overflow: hidden; text-overflow:
+              ellipsis; white-space: nowrap`): the name stays on ONE line and
+              ellipsizes instead of wrapping. A 2-line version was tried first,
+              but at narrow/zoomed layouts (e.g. 80% zoom with a long Malayalam
+              name) it wrapped into an awkward "Bhare" / "Ku…" split — a single
+              truncated line ("Bhare…") reads far better than a broken 2-line one.
+              The width is a fixed `clamp(4.5rem, 5vw, 9rem)`, NOT `max-w-[9rem]`
+              and NOT `flex-1`: a max-width is a CEILING, not a fixed size — it
+              still lets the box shrink to fit shorter content, so short names
+              render narrower than long ones and Mail's X drifts with whichever
+              name is loaded (measured up to 44px). `flex-1` has the opposite
+              problem: constant size, but that size is "whatever's left in the
+              row", which stretches the whole Mail/Bell/avatar/name cluster
+              across the entire right rail (measured: Mail landed 2px from the
+              nav). A literal fixed width is what keeps this span's contribution
+              to the row's layout constant regardless of the TEXT, which is
+              what lets HeaderActions.tsx use a single leading spacer to push
+              the compact cluster flush against the right edge.
+              `clamp(4.5rem, 5vw, 9rem)` instead of one flat number: a single
+              guessed width (e.g. "9rem, about what 'Venkata Subramaniam' needs") only
+              happens to look right at the viewport it was eyeballed on — the
+              `5vw` middle term scales the box with the actual viewport instead,
+              growing from 1280px up to the page's own `max-w-[1920px]` cap (vw
+              growth beyond that is meaningless, hence the `9rem` ceiling) and
+              scaling correctly under browser zoom too, since zoom scales `vw`
+              and root font-size together.
+              Bounds are `rem`, NOT `ch`: measured directly in Chromium,
+              `clamp(9ch, 5vw, 16ch)` — mixing a font-relative `ch` bound with a
+              viewport-relative `vw` middle term — resolves to the `ch` MAXIMUM
+              at every viewport width, ignoring the `vw` term entirely (a real
+              engine bug, not a typo: an isolated `clamp(50px, 5vw, 200px)`
+              probe on the same page tracked `vw` correctly). `rem` bounds with
+              the same `vw` middle term measured correctly at every tested width
+              (1280/1366/1440/1920/2560). `min-w-0` still lets the box shrink
+              below the clamp's floor on a truly narrow viewport rather than
+              forcing an overflow. No native `title` here — the Tooltip above
+              is the only hover/focus tooltip, so the two never stack. */}
+          {name && (
+            <span className="hidden sm:block truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base">
+              {name}
+            </span>
+          )}
+        </button>
+      </Tooltip>
 
       {/* Dropdown Menu */}
       {isOpen && (
