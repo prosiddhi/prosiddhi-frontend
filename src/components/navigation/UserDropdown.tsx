@@ -36,6 +36,7 @@ export function UserDropdown() {
   const profileHref = isEmployer ? '/employer/profile' : '/profile'
   const workHref = isEmployer ? '/employer/jobs' : '/my-applications'
   const workLabel = isEmployer ? t('nav.myJobs') : t('nav.myApplications')
+  const settingsHref = isEmployer ? '/employer/settings' : '/settings'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -219,7 +220,7 @@ export function UserDropdown() {
             </Link>
 
             <Link
-              href="/settings"
+              href={settingsHref}
               role="menuitem"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
