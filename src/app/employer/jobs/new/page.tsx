@@ -10,7 +10,6 @@ import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
 import { employerAPI, type PostJobData } from '@/lib/api'
 import { ChevronLeft, Loader2 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 // The BE 402 message when a publish is attempted at zero POST credits
@@ -61,11 +60,6 @@ function NewJobContent() {
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       <EmployerHeader logoHref="/employer/jobs" />
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
