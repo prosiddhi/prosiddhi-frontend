@@ -79,6 +79,54 @@ function monthYear(dateInput?: string | null): string {
   return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
 }
 
+// Fixed 3-letter abbreviations rather than toLocaleDateString's locale-driven
+// short month — the browser's Intl data renders September as "Sept" in some
+// locales/engines, which drifts from the exact format this ticket specifies.
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// jobSeeker.updatedAt (ISO timestamp) → "4 Sep, 2026", for the subtle
+// "last updated" caption below the page heading.
+function formatUpdatedAt(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}, ${d.getFullYear()}`
+}
+
+// jobSeeker.dateOfBirth (date-only, e.g. "1997-03-04") → "04 Mar 1997". Read
+// with the UTC getters — same reasoning as toDateInput above — so a value with
+// no time-of-day component never drifts a day.
+function formatDateOfBirth(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return ''
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${day} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+}
+
+const GENDER_LABEL_KEY: Record<string, string> = {
+  MALE: 'auth:profile.genderMale',
+  FEMALE: 'auth:profile.genderFemale',
+  OTHER: 'auth:profile.genderOther',
+}
+
+// Reuses the registration form's gender strings (auth:profile.gender*) rather
+// than duplicating a MALE/FEMALE/OTHER translation set that already exists
+// and is already translated into all 10 shipped languages.
+function genderLabel(t: (key: string) => string, gender: string | null): string | undefined {
+  if (!gender) return undefined
+  const key = GENDER_LABEL_KEY[gender]
+  return key ? t(key) : gender
+}
+
+// SUSPENDED is the only other state a seeker who can reach this page could
+// realistically be in — every PENDING_* status blocks login before this point.
+// A value outside both is shown verbatim rather than guessed at.
+const ACCOUNT_STATUS_LABEL_KEY: Record<string, string> = {
+  ACTIVE: 'profile:seeker.accountStatus.ACTIVE',
+  SUSPENDED: 'profile:seeker.accountStatus.SUSPENDED',
+}
+
 function SeekerProfileContent() {
   const { t } = useTranslation()
   const { user, updateUser } = useAuth()
@@ -111,6 +159,14 @@ function SeekerProfileContent() {
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [location, setLocation] = useState('')
+  // BR-1 — editable here (PUT /jobseekers/profile accepts both), same as at
+  // registration. `dateOfBirth` is kept in <input type="date">'s own
+  // yyyy-mm-dd format (via toDateInput) rather than the API's ISO timestamp,
+  // same convention as the work-experience dates below.
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [gender, setGender] = useState<'' | 'MALE' | 'FEMALE' | 'OTHER'>('')
+  const [profileUpdatedAt, setProfileUpdatedAt] = useState<string | null>(null)
+  const [accountStatus, setAccountStatus] = useState<string | null>(null)
   // TD-02. `savedCoords` is what the server holds; `gpsFix` is a precise fix
   // taken during THIS edit and not yet saved.
   const [savedCoords, setSavedCoords] = useState<Coords | null>(null)
@@ -138,6 +194,10 @@ function SeekerProfileContent() {
     originalFullName.current = (js?.fullName ?? '').trim()
     setBio(js?.bio ?? '')
     setLocation(js?.location ?? '')
+    setDateOfBirth(toDateInput(js?.dateOfBirth))
+    setGender(js?.gender ?? '')
+    setProfileUpdatedAt(js?.updatedAt ?? null)
+    setAccountStatus(p.accountStatus ?? null)
     // Stored coordinates are all-or-nothing — the backend writes both or neither.
     const lat = js?.latitude
     const lon = js?.longitude
@@ -349,6 +409,11 @@ function SeekerProfileContent() {
         preferredSector: triple.sector || undefined,
         preferredJobTitle: triple.jobTitle || undefined,
         preferredLanguage: language || undefined,
+        // Already yyyy-mm-dd (the <input type="date"> format), which is exactly
+        // what dateOfBirthSchema expects — sent as undefined, never '', so
+        // clearing the field doesn't 400 against a value the BE requires.
+        dateOfBirth: dateOfBirth || undefined,
+        gender: gender || undefined,
         workExperiences,
       })
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
@@ -384,6 +449,11 @@ function SeekerProfileContent() {
             <div>
               <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black">{t('profile:seeker.heading')}</h1>
               <p className="text-sm text-[#717182] mt-1">{t('profile:seeker.subtitle')}</p>
+              {profileUpdatedAt && (
+                <p className="text-xs text-[#a3a3a3] mt-1">
+                  {t('profile:seeker.lastUpdated', { date: formatUpdatedAt(profileUpdatedAt) })}
+                </p>
+              )}
             </div>
             {!loading && !loadError && !editing && (
               <button
@@ -439,6 +509,7 @@ function SeekerProfileContent() {
                 <p className="text-xl font-semibold text-black mt-5 break-words">
                   {fullName || t('profile:seeker.fullNamePlaceholder')}
                 </p>
+                <AccountStatusIndicator status={accountStatus} />
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
                   {phoneNumber && (
                     <span className="inline-flex items-center gap-1.5 flex-shrink-0">
@@ -471,12 +542,12 @@ function SeekerProfileContent() {
                   {editing ? (
                     <>
                     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <Field label={t('profile:seeker.fullName')}>
+                      <Field label={t('profile:seeker.fullName')} className={fieldLabelCls}>
                         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
                       </Field>
                       <EmailStatusField email={email || null} verified={emailVerified} editing onAction={setEmailModalMode} />
                       <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing onChangeClick={() => setPhoneModalOpen(true)} />
-                      <Field label={t('profile:seeker.location')}>
+                      <Field label={t('profile:seeker.location')} className={fieldLabelCls}>
                         {/* Typing must NOT discard a fix already taken: pressing the
                             button and then naming your area is the ordinary way to
                             use this, and clearing here threw the good coordinate
@@ -530,11 +601,31 @@ function SeekerProfileContent() {
                           {t(locationKey, { city: locationCity })}
                         </p>
                       </Field>
+                      <Field label={t('profile:seeker.dateOfBirth')} className={fieldLabelCls}>
+                        <input
+                          type="date"
+                          value={dateOfBirth}
+                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          className={inputCls}
+                        />
+                      </Field>
+                      <Field label={t('profile:seeker.gender')} className={fieldLabelCls}>
+                        <select
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value as typeof gender)}
+                          className={inputCls}
+                        >
+                          <option value="">{t('auth:profile.genderSelect')}</option>
+                          <option value="MALE">{t('auth:profile.genderMale')}</option>
+                          <option value="FEMALE">{t('auth:profile.genderFemale')}</option>
+                          <option value="OTHER">{t('auth:profile.genderOther')}</option>
+                        </select>
+                      </Field>
                     </div>
                     {/* About You gets its own full-width row, set off from the fields
                         above — it reads as a paragraph, not one more grid cell. */}
                     <div className="mt-6 pt-6 border-t border-[#eee]">
-                      <Field label={t('profile:seeker.aboutYou')}>
+                      <Field label={t('profile:seeker.aboutYou')} className={fieldLabelCls}>
                         <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
                       </Field>
                     </div>
@@ -546,6 +637,8 @@ function SeekerProfileContent() {
                       <EmailStatusField email={email || null} verified={emailVerified} editing={false} onAction={setEmailModalMode} />
                       <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing={false} onChangeClick={() => setPhoneModalOpen(true)} />
                       <ReadOnlyField label={t('profile:seeker.location')} value={location} />
+                      <ReadOnlyField label={t('profile:seeker.dateOfBirth')} value={formatDateOfBirth(dateOfBirth)} />
+                      <ReadOnlyField label={t('profile:seeker.gender')} value={genderLabel(t, gender)} />
                     </div>
                     <div className="mt-6 pt-6 border-t border-[#eee]">
                       <ReadOnlyField label={t('profile:seeker.aboutYou')} value={bio} />
@@ -572,9 +665,9 @@ function SeekerProfileContent() {
                         onChange={setTriple}
                         className="contents"
                         selectClassName={inputCls}
-                        labelClassName="text-sm font-medium text-black mb-1.5 block"
+                        labelClassName={fieldLabelCls}
                       />
-                      <Field label={t('profile:seeker.preferredLanguage')}>
+                      <Field label={t('profile:seeker.preferredLanguage')} className={fieldLabelCls}>
                         <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
                           {LANGUAGES.map((l) => (
                             <option key={l.value} value={l.value}>
@@ -623,16 +716,16 @@ function SeekerProfileContent() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <Field label={t('profile:seeker.position')}>
+                          <Field label={t('profile:seeker.position')} className={fieldLabelCls}>
                             <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} placeholder={t('profile:seeker.positionPlaceholder')} className={inputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.company')}>
+                          <Field label={t('profile:seeker.company')} className={fieldLabelCls}>
                             <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.startDate')}>
+                          <Field label={t('profile:seeker.startDate')} className={fieldLabelCls}>
                             <input type="date" value={exp.startDate ?? ''} onChange={(e) => setExp(exp.key, 'startDate', e.target.value)} className={inputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.endDate')}>
+                          <Field label={t('profile:seeker.endDate')} className={fieldLabelCls}>
                             <input
                               type="date"
                               value={exp.endDate ?? ''}
@@ -923,6 +1016,12 @@ function SkillsSection() {
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
 
+// Every field label on this page — editable (Field) and read-only
+// (ReadOnlyField / EmailStatusField / PhoneStatusField) alike — uses this one
+// style, matching view mode, so Edit Mode doesn't mix a bold-black label style
+// for editable fields with the gray one already used for read-only fields.
+const fieldLabelCls = 'text-xs text-gray-500 mb-1 block'
+
 // One heading style shared by every Profile section (Personal Information, Job
 // Preferences, Work Experience, Documents, Skills) so they read as one hierarchy
 // instead of two — the sub-sections inside the top card used to be a full size
@@ -1036,6 +1135,29 @@ const DOC_STATUS_STYLE: Record<string, string> = {
   PENDING: 'bg-amber-50 text-amber-700',
   VERIFIED: 'bg-green-50 text-green-700',
   REJECTED: 'bg-red-50 text-red-700',
+}
+
+// The account-level status (root `accountStatus`, distinct from the document
+// rollup below). Deliberately subtler than DocStatusBadge's pill — a dot plus
+// text, sitting under the name rather than fighting the doc-status badge for
+// attention — since a seeker who can reach this page is active the vast
+// majority of the time and this is background information, not a call to act.
+const ACCOUNT_STATUS_DOT: Record<string, string> = {
+  ACTIVE: 'bg-green-500',
+  SUSPENDED: 'bg-red-500',
+}
+
+function AccountStatusIndicator({ status }: { status: string | null }) {
+  const { t } = useTranslation()
+  if (!status) return null
+  const labelKey = ACCOUNT_STATUS_LABEL_KEY[status]
+  const label = labelKey ? t(labelKey) : status
+  return (
+    <p className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-[#717182]">
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ACCOUNT_STATUS_DOT[status] ?? 'bg-gray-400'}`} />
+      {label}
+    </p>
+  )
 }
 
 function DocStatusBadge({ status }: { status: string | null }) {

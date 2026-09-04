@@ -10,6 +10,13 @@
     "present": "Present",
     "personalInformation": "Personal Information",
     "jobPreferences": "Job Preferences",
+    "lastUpdated": "Profile last updated — {{date}}",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "accountStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended"
+    },
     "emailStatusVerified": "✓ Verified",
     "emailStatusUnverified": "⚠ Not verified",
     "phoneStatusVerified": "✓ Verified",

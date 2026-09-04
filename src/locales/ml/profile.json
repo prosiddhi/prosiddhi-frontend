@@ -10,6 +10,13 @@
     "present": "നിലവിൽ",
     "personalInformation": "വ്യക്തിഗത വിവരങ്ങൾ",
     "jobPreferences": "ജോലി മുൻഗണനകൾ",
+    "lastUpdated": "പ്രൊഫൈൽ അവസാനം അപ്ഡേറ്റ് ചെയ്തത് — {{date}}",
+    "dateOfBirth": "ജനനത്തീയതി",
+    "gender": "ലിംഗം",
+    "accountStatus": {
+      "ACTIVE": "സജീവം",
+      "SUSPENDED": "നിർത്തിവച്ചു"
+    },
     "emailStatusVerified": "✓ സ്ഥിരീകരിച്ചു",
     "emailStatusUnverified": "⚠ സ്ഥിരീകരിച്ചിട്ടില്ല",
     "phoneStatusVerified": "✓ സ്ഥിരീകരിച്ചു",

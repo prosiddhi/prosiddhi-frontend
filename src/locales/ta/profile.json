@@ -10,6 +10,13 @@
     "present": "தற்போது",
     "personalInformation": "தனிப்பட்ட தகவல்",
     "jobPreferences": "வேலை விருப்பங்கள்",
+    "lastUpdated": "சுயவிவரம் கடைசியாகப் புதுப்பிக்கப்பட்டது — {{date}}",
+    "dateOfBirth": "பிறந்த தேதி",
+    "gender": "பாலினம்",
+    "accountStatus": {
+      "ACTIVE": "செயலில்",
+      "SUSPENDED": "இடைநிறுத்தப்பட்டது"
+    },
     "emailStatusVerified": "✓ சரிபார்க்கப்பட்டது",
     "emailStatusUnverified": "⚠ சரிபார்க்கப்படவில்லை",
     "phoneStatusVerified": "✓ சரிபார்க்கப்பட்டது",

@@ -533,6 +533,9 @@ export interface SeekerProfile {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    /** BR-1 — captured at registration; not editable from the profile form. */
+    dateOfBirth?: string | null
+    gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
     preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
@@ -541,6 +544,7 @@ export interface SeekerProfile {
     skills?: JobSeekerSkillLink[]
     workExperience?: ProfileWorkExperience[]
     documents?: UserDocument[]
+    updatedAt?: string
   } | null
 }
 
@@ -586,6 +590,10 @@ export interface SeekerProfileUpdate {
   preferredJobTitle?: string
   preferredLanguage?: string
   profilePhoto?: string
+  // BR-1 — also editable post-registration via PUT /profile (updateJobSeekerProfileSchema).
+  // dateOfBirth must be a YYYY-MM-DD date string; the BE rejects anything under 18.
+  dateOfBirth?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
   workExperiences?: ProfileWorkExperience[]
 }
 
