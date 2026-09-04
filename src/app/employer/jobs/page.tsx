@@ -23,8 +23,7 @@ import {
   Briefcase,
   CheckCircle2,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { EmployerHeader, employerHeaderCtaCls } from '@/components/employer/EmployerHeader'
+import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 type Tab = 'active' | 'expired'
 
@@ -113,17 +112,7 @@ function MyJobsContent() {
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
-      <EmployerHeader>
-        <Link href="/employer/jobs/new" className={employerHeaderCtaCls}>
-          <Plus className="w-4 h-4" />
-          {t('employer:jobs.postJob')}
-        </Link>
-      </EmployerHeader>
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
+      <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
@@ -215,7 +204,7 @@ function MyJobsContent() {
                         <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                           <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
                         </Link>
-                        <Link href={`/job-details/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                        <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                           <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
                         </Link>
                         <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { Mail } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { NotificationBell } from './NotificationBell'
 import { UserDropdown } from './UserDropdown'
 
@@ -15,11 +16,14 @@ import { UserDropdown } from './UserDropdown'
  * did nothing at all, on every page. /messages had no entry point anywhere in the
  * seeker UI either, which left the whole chat feature unreachable for a seeker.
  *
- * Now it lives in ONE component: Mail is a real link to /messages, and the bell
- * is a real notifications dropdown (PJP-111).
+ * Now it lives in ONE component: Mail is a real link to /messages (or
+ * /employer/messages, this component sits inside both EmployeeHeader and
+ * EmployerHeader), and the bell is a real notifications dropdown (PJP-111).
  */
 export function HeaderActions() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const messagesHref = user?.role === 'JOB_SEEKER' ? '/messages' : '/employer/messages'
 
   // Both icons used to be `hidden sm:block`, so on a phone a seeker had no way to
   // reach messages OR notifications at all. This is a mobile-first product for
@@ -55,7 +59,7 @@ export function HeaderActions() {
       <div aria-hidden="true" className="flex-1 min-w-0" />
 
       <Link
-        href="/messages"
+        href={messagesHref}
         aria-label={t('nav.messages')}
         title={t('nav.messages')}
         // The icon stays 20-24px; the TARGET is 44 (TD-20). -m-2.5 keeps the

@@ -15,7 +15,6 @@ import {
   type UrgencyLevelValue,
 } from '@/lib/api'
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 function EditJobContent() {
@@ -93,11 +92,6 @@ function EditJobContent() {
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       <EmployerHeader logoHref="/employer/jobs" />
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
