@@ -10,6 +10,13 @@
     "present": "বর্তমান",
     "personalInformation": "ব্যক্তিগত তথ্য",
     "jobPreferences": "চাকরির পছন্দ",
+    "lastUpdated": "প্রোফাইল সবশেষ আপডেট হয়েছে — {{date}}",
+    "dateOfBirth": "জন্ম তারিখ",
+    "gender": "লিঙ্গ",
+    "accountStatus": {
+      "ACTIVE": "সক্রিয়",
+      "SUSPENDED": "স্থগিত"
+    },
     "emailStatusVerified": "✓ যাচাই করা হয়েছে",
     "emailStatusUnverified": "⚠ যাচাই করা হয়নি",
     "phoneStatusVerified": "✓ যাচাই করা হয়েছে",

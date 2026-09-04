@@ -10,6 +10,13 @@
     "present": "ప్రస్తుతం",
     "personalInformation": "వ్యక్తిగత సమాచారం",
     "jobPreferences": "ఉద్యోగ ప్రాధాన్యతలు",
+    "lastUpdated": "ప్రొఫైల్ చివరిసారి అప్‌డేట్ చేయబడింది — {{date}}",
+    "dateOfBirth": "పుట్టిన తేదీ",
+    "gender": "లింగం",
+    "accountStatus": {
+      "ACTIVE": "సక్రియం",
+      "SUSPENDED": "సస్పెండ్ చేయబడింది"
+    },
     "emailStatusVerified": "✓ ధృవీకరించబడింది",
     "emailStatusUnverified": "⚠ ధృవీకరించలేదు",
     "phoneStatusVerified": "✓ ధృవీకరించబడింది",

@@ -10,6 +10,13 @@
     "present": "ବର୍ତ୍ତମାନ",
     "personalInformation": "ବ୍ୟକ୍ତିଗତ ସୂଚନା",
     "jobPreferences": "ଚାକିରି ପସନ୍ଦ",
+    "lastUpdated": "ପ୍ରୋଫାଇଲ୍ ଶେଷ ଥର ଅପଡେଟ୍ ହୋଇଛି — {{date}}",
+    "dateOfBirth": "ଜନ୍ମ ତାରିଖ",
+    "gender": "ଲିଙ୍ଗ",
+    "accountStatus": {
+      "ACTIVE": "ସକ୍ରିୟ",
+      "SUSPENDED": "ନିଲମ୍ବିତ"
+    },
     "emailStatusVerified": "✓ ଯାଞ୍ଚ ହୋଇଛି",
     "emailStatusUnverified": "⚠ ଯାଞ୍ଚ ହୋଇନାହିଁ",
     "phoneStatusVerified": "✓ ଯାଞ୍ଚ ହୋଇଛି",

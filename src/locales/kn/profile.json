@@ -10,6 +10,13 @@
     "present": "ಪ್ರಸ್ತುತ",
     "personalInformation": "ವೈಯಕ್ತಿಕ ಮಾಹಿತಿ",
     "jobPreferences": "ಕೆಲಸದ ಆದ್ಯತೆಗಳು",
+    "lastUpdated": "ಪ್ರೊಫೈಲ್ ಕೊನೆಯದಾಗಿ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ — {{date}}",
+    "dateOfBirth": "ಹುಟ್ಟಿದ ದಿನಾಂಕ",
+    "gender": "ಲಿಂಗ",
+    "accountStatus": {
+      "ACTIVE": "ಸಕ್ರಿಯ",
+      "SUSPENDED": "ಅಮಾನತುಗೊಳಿಸಲಾಗಿದೆ"
+    },
     "emailStatusVerified": "✓ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
     "emailStatusUnverified": "⚠ ಪರಿಶೀಲಿಸಿಲ್ಲ",
     "phoneStatusVerified": "✓ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",

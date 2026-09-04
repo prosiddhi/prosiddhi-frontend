@@ -10,6 +10,13 @@
     "present": "सध्या",
     "personalInformation": "वैयक्तिक माहिती",
     "jobPreferences": "नोकरीच्या आवडीनिवडी",
+    "lastUpdated": "प्रोफाइल शेवटचे अपडेट केले — {{date}}",
+    "dateOfBirth": "जन्मतारीख",
+    "gender": "लिंग",
+    "accountStatus": {
+      "ACTIVE": "सक्रिय",
+      "SUSPENDED": "निलंबित"
+    },
     "emailStatusVerified": "✓ पडताळणी पूर्ण",
     "emailStatusUnverified": "⚠ पडताळणी झालेली नाही",
     "phoneStatusVerified": "✓ पडताळणी पूर्ण",
