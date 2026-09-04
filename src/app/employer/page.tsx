@@ -16,7 +16,6 @@ import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
   Plus,
-  Search,
   Briefcase,
   Users,
   Clock,
@@ -28,8 +27,7 @@ import {
   Unlock,
   ChevronRight,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { EmployerHeader, employerHeaderLinkCls, employerHeaderCtaCls } from '@/components/employer/EmployerHeader'
+import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 // One tile: icon, big number, label. `href` turns it into a link and `action`
 // adds a trailing affordance — the unlocked-candidates shortcut is the same
@@ -120,28 +118,7 @@ function EmployerDashboardContent() {
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       {/* Header */}
-      <EmployerHeader>
-        {/* `hidden sm:`/`hidden md:` kept from the original: three actions plus
-            the account controls do not fit a phone, and the same destinations
-            are in the dashboard body below. */}
-        <Link href="/employer/workers" className={`hidden sm:inline-flex ${employerHeaderLinkCls}`}>
-          <Search className="w-4 h-4" />
-          {t('employer:dashboard.findWorkers')}
-        </Link>
-        <Link href="/employer/team" className={`hidden md:inline-flex ${employerHeaderLinkCls}`}>
-          <Users className="w-4 h-4" />
-          {t('employer:dashboard.team')}
-        </Link>
-        <Link href="/employer/jobs/new" className={employerHeaderCtaCls}>
-          <Plus className="w-4 h-4" />
-          {t('employer:dashboard.postJob')}
-        </Link>
-      </EmployerHeader>
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
+      <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
