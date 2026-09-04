@@ -97,6 +97,7 @@
     "backToFeed": "ଚାକିରି ଫିଡ୍‌କୁ ଫେରନ୍ତୁ",
     "backToHome": "ହୋମ୍‌କୁ ଫେରନ୍ତୁ",
     "backToSavedJobs": "ସେଭ୍ କରିଥିବା ଚାକିରିକୁ ଫେରନ୍ତୁ",
+    "backToApplicationDetails": "ଆବେଦନର ବିବରଣୀକୁ ଫେରନ୍ତୁ",
     "views_one": "{{count}} ଥର ଦେଖାଯାଇଛି",
     "views_other": "{{count}} ଥର ଦେଖାଯାଇଛି",
     "applicants_one": "{{count}} ଆବେଦନକାରୀ",
@@ -147,7 +148,7 @@
     "job": "ଚାକିରି"
   },
   "applicationDetail": {
-    "back": "ପଛକୁ",
+    "back": "ମୋର ଆବେଦନକୁ ଫେରନ୍ତୁ",
     "loading": "ଆବେଦନ ଲୋଡ୍ ହେଉଛି...",
     "loadError": "ଏହି ଆବେଦନ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।",
     "appliedRelative": "{{time}} ଆବେଦନ କରାଯାଇଥିଲା",

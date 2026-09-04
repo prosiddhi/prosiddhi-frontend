@@ -97,6 +97,7 @@
     "backToFeed": "जॉब फ़ीड पर वापस जाएँ",
     "backToHome": "होम पर वापस जाएँ",
     "backToSavedJobs": "सहेजी गई नौकरियों पर वापस जाएँ",
+    "backToApplicationDetails": "आवेदन का विवरण पर वापस जाएँ",
     "views_one": "{{count}} बार देखा गया",
     "views_other": "{{count}} बार देखा गया",
     "applicants_one": "{{count}} आवेदक",
@@ -147,7 +148,7 @@
     "job": "नौकरी"
   },
   "applicationDetail": {
-    "back": "वापस",
+    "back": "मेरे आवेदनों पर वापस जाएं",
     "loading": "आवेदन लोड हो रहा है...",
     "loadError": "यह आवेदन लोड नहीं हो सका।",
     "appliedRelative": "{{time}} आवेदन किया",

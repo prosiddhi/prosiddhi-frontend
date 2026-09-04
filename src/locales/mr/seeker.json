@@ -97,6 +97,7 @@
     "backToFeed": "जॉब फीडवर परत जा",
     "backToHome": "होमवर परत जा",
     "backToSavedJobs": "जतन केलेल्या नोकऱ्यांवर परत जा",
+    "backToApplicationDetails": "अर्जाचा तपशीलावर परत जा",
     "views_one": "{{count}} वेळा पाहिले",
     "views_other": "{{count}} वेळा पाहिले",
     "applicants_one": "{{count}} अर्जदार",
@@ -147,7 +148,7 @@
     "job": "नोकरी"
   },
   "applicationDetail": {
-    "back": "मागे",
+    "back": "माझ्या अर्जांवर परत जा",
     "loading": "अर्ज लोड होत आहे...",
     "loadError": "हा अर्ज लोड होऊ शकला नाही.",
     "appliedRelative": "{{time}} अर्ज केला",

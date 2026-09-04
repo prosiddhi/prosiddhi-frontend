@@ -144,9 +144,16 @@ export function formatSalary(min?: number | null, max?: number | null): string {
  * appends the suffix unconditionally — so an unknown salary read "₹ Negotiable
  * / Month", a per-month rate for a figure that does not exist. The suffix
  * belongs to the amount, so the rule lives here rather than in each caller.
+ *
+ * `paymentType`, when given, spells out the pay period (e.g. "₹15,000 -
+ * 20,000 · Hourly") instead of the generic "/ Month" suffix — used by the My
+ * Applications card and detail screens, where a real job can be HOURLY/
+ * DAILY/WEEKLY/FIXED, not just monthly.
  */
-export function formatSalaryLine(min?: number | null, max?: number | null): string {
+export function formatSalaryLine(min?: number | null, max?: number | null, paymentType?: string): string {
   if (min == null && max == null) return i18n.t('salary.notDisclosed')
+  const paymentTypeLabel = humanizePaymentType(paymentType)
+  if (paymentTypeLabel) return `${formatSalary(min, max)} · ${paymentTypeLabel}`
   return i18n.t('seeker:jobCard.perMonth', { salary: formatSalary(min, max) })
 }
 

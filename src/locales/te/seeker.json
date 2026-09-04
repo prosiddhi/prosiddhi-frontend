@@ -97,6 +97,7 @@
     "backToFeed": "ఉద్యోగాల ఫీడ్‌కి వెనక్కి",
     "backToHome": "హోమ్‌కి వెనక్కి",
     "backToSavedJobs": "సేవ్ చేసిన ఉద్యోగాలకి వెనక్కి",
+    "backToApplicationDetails": "దరఖాస్తు వివరాలకి వెనక్కి",
     "views_one": "{{count}} సారి చూశారు",
     "views_other": "{{count}} సార్లు చూశారు",
     "applicants_one": "{{count}} దరఖాస్తుదారు",
@@ -147,7 +148,7 @@
     "job": "ఉద్యోగం"
   },
   "applicationDetail": {
-    "back": "వెనక్కి",
+    "back": "నా దరఖాస్తులకు తిరిగి వెళ్లండి",
     "loading": "దరఖాస్తు లోడ్ అవుతోంది...",
     "loadError": "ఈ దరఖాస్తు లోడ్ కాలేదు.",
     "appliedRelative": "{{time}} దరఖాస్తు చేశారు",

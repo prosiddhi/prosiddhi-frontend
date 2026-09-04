@@ -97,6 +97,7 @@
     "backToFeed": "ಕೆಲಸಗಳ ಪಟ್ಟಿಗೆ ಹಿಂದಿರುಗಿ",
     "backToHome": "ಹೋಮ್‌ಗೆ ಹಿಂದಿರುಗಿ",
     "backToSavedJobs": "ಉಳಿಸಿದ ಕೆಲಸಗಳಿಗೆ ಹಿಂದಿರುಗಿ",
+    "backToApplicationDetails": "ಅರ್ಜಿಯ ವಿವರಗಳಿಗೆ ಹಿಂದಿರುಗಿ",
     "views_one": "{{count}} ವೀಕ್ಷಣೆ",
     "views_other": "{{count}} ವೀಕ್ಷಣೆಗಳು",
     "applicants_one": "{{count}} ಅರ್ಜಿದಾರ",
@@ -147,7 +148,7 @@
     "job": "ಕೆಲಸ"
   },
   "applicationDetail": {
-    "back": "ಹಿಂದೆ",
+    "back": "ನನ್ನ ಅರ್ಜಿಗಳಿಗೆ ಹಿಂತಿರುಗಿ",
     "loading": "ಅರ್ಜಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     "loadError": "ಈ ಅರ್ಜಿಯನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ.",
     "appliedRelative": "{{time}} ಅರ್ಜಿ ಹಾಕಲಾಗಿದೆ",

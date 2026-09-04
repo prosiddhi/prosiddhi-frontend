@@ -97,6 +97,7 @@
     "backToFeed": "ജോലി ഫീഡിലേക്ക് തിരികെ",
     "backToHome": "ഹോമിലേക്ക് തിരികെ",
     "backToSavedJobs": "സേവ് ചെയ്ത ജോലികളിലേക്ക് തിരികെ",
+    "backToApplicationDetails": "അപേക്ഷയുടെ വിവരങ്ങളിലേക്ക് തിരികെ",
     "views_one": "{{count}} തവണ കണ്ടു",
     "views_other": "{{count}} തവണ കണ്ടു",
     "applicants_one": "{{count}} അപേക്ഷകർ",
@@ -147,7 +148,7 @@
     "job": "ജോലി"
   },
   "applicationDetail": {
-    "back": "തിരികെ",
+    "back": "എന്റെ അപേക്ഷകളിലേക്ക് തിരികെ",
     "loading": "അപേക്ഷ ലോഡ് ചെയ്യുന്നു...",
     "loadError": "ഈ അപേക്ഷ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
     "appliedRelative": "{{time}} അപേക്ഷിച്ചു",
