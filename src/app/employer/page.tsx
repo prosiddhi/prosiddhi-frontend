@@ -26,6 +26,8 @@ import {
   MapPin,
   Unlock,
   ChevronRight,
+  Eye,
+  XCircle,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
@@ -46,16 +48,16 @@ function StatTile({
   action?: React.ReactNode
 }) {
   const shell =
-    'bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center justify-between gap-4'
+    'bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center justify-between gap-3'
   const body = (
     <>
-      <div className="flex items-center gap-4 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
           {icon}
         </div>
         <div className="min-w-0">
           <p className="text-2xl font-bold text-black leading-tight">{value}</p>
-          <p className="text-xs sm:text-sm text-[#717182] truncate">{label}</p>
+          <p className="text-xs sm:text-sm text-[#717182] leading-snug break-words">{label}</p>
         </div>
       </div>
       {action}
@@ -150,16 +152,44 @@ function EmployerDashboardContent() {
 
           {!loading && !error && (
             <>
-              {/* Stats */}
+              {/* Job Overview — job-level counts, kept separate from the
+                  application-lifecycle metrics below so the two don't read as
+                  one flat, undifferentiated row of six unrelated numbers.
+                  Capped to sm:max-w-md so two cards don't stretch across the
+                  full dashboard width. */}
               {stats && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8 sm:mb-10">
-                  <StatTile label={t('employer:dashboard.stats.totalJobs')} value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
-                  <StatTile label={t('employer:dashboard.stats.activeJobs')} value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
-                  <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
-                  <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
-                  <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
-                  <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
-                </div>
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
+                    {t('employer:dashboard.jobOverviewTitle')}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 sm:max-w-md">
+                    <StatTile label={t('employer:dashboard.stats.totalJobs')} value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.activeJobs')} value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
+                  </div>
+                </section>
+              )}
+
+              {/* Application Overview — every application-lifecycle metric in
+                  one group, in pipeline order. The BE computes
+                  reviewedApplications = accepted + rejected + shortlisted
+                  (employer.controller.ts): it is a decided-vs-pending count,
+                  not a funnel stage before Shortlisted, so it is shown as a
+                  plain metric alongside the others rather than as an arrow
+                  chain that would imply a sequential workflow. */}
+              {stats && (
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
+                    {t('employer:dashboard.overviewTitle')}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4">
+                    <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.reviewed')} value={stats.reviewedApplications} icon={<Eye className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
+                    <StatTile label={t('employer:candidates.tabs.rejected')} value={stats.rejectedApplications} icon={<XCircle className="w-5 h-5" />} />
+                  </div>
+                </section>
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -184,11 +214,14 @@ function EmployerDashboardContent() {
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
-                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> {t('employer:dashboard.applicants')}</span>
+                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> {t('employer:dashboard.applicants', { count: job.applicationCount ?? 0 })}</span>
                             <span><span className="font-semibold text-black">{job.pendingCount}</span> {t('employer:dashboard.pendingCount')}</span>
                             <span><span className="font-semibold text-black">{job.shortlistedCount}</span> {t('employer:dashboard.shortlistedCount')}</span>
                             <span><span className="font-semibold text-black">{job.acceptedCount}</span> {t('employer:dashboard.acceptedCount')}</span>
                           </div>
+                          {job.postedAt && (
+                            <p className="mt-2 text-xs text-[#717182]">{t('employer:dashboard.posted', { time: relativeTime(job.postedAt) })}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -214,7 +247,7 @@ function EmployerDashboardContent() {
                       {recent.map((app) => {
                         const meta = statusMeta(app.status)
                         return (
-                          <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 hover:shadow-lg transition-shadow">
+                          <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
                             <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant.name)}</span>
                             </div>
