@@ -1,14 +1,20 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useRef, useCallback, ChangeEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
 import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
 import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
+import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
+import { EmailStatusField } from '@/components/profile/EmailStatusField'
+import { PhoneStatusField } from '@/components/profile/PhoneStatusField'
+import { AccountStatusIndicator } from '@/components/profile/AccountStatusIndicator'
+import { inputCls, fieldLabelCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
 import { verificationStatusPill, verificationStatusIcon } from '@/lib/applicationStatus'
+import { toDateInput } from '@/lib/dateInput'
 import {
   employerAPI,
   resolveMediaUrl,
@@ -49,23 +55,6 @@ const COMPANY_SIZES: { value: CompanySize; label: string }[] = [
   { value: 'SIZE_501_1000', label: '501–1000 employees' },
   { value: 'SIZE_1000_PLUS', label: '1000+ employees' },
 ]
-
-const inputCls =
-  'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
-
-// Same label style used by the seeker profile for BOTH editable (Field) and
-// read-only fields, so Edit Mode and View Mode read as one hierarchy.
-const fieldLabelCls = 'text-xs text-gray-500 mb-1 block'
-const sectionHeadingCls = 'flex items-center gap-2 text-lg sm:text-xl font-semibold text-black'
-const sectionHeadingIconCls = 'w-5 h-5 text-[#3386a9] flex-shrink-0'
-
-// ISO datetime → yyyy-mm-dd for <input type="date">.
-function toDateInput(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toISOString().slice(0, 10)
-}
 
 const DATE_DISPLAY_FORMAT = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
@@ -424,7 +413,10 @@ function EmployerProfileContent() {
                     {isBusiness ? t('profile:employer.typeBusiness') : t('profile:employer.typeIndividual')}
                   </p>
                 )}
-                <EmployerAccountStatusIndicator status={accountStatus} />
+                <AccountStatusIndicator
+                  label={accountStatus ? (ACCOUNT_STATUS_LABEL_KEY[accountStatus] ? t(ACCOUNT_STATUS_LABEL_KEY[accountStatus]) : accountStatus) : null}
+                  dotClassName={ACCOUNT_STATUS_DOT[accountStatus] ?? 'bg-gray-400'}
+                />
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
                   {phoneNumber && (
                     <span className="inline-flex items-center gap-1.5 flex-shrink-0">
@@ -455,14 +447,37 @@ function EmployerProfileContent() {
                     <User className={sectionHeadingIconCls} /> {t('profile:employer.accountInfo')}
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                    <EmployerEmailField email={email || null} verified={emailVerified} editing={editing} onAction={setEmailModalMode} />
-                    <EmployerPhoneField phoneNumber={phoneNumber} verified={phoneVerified} editing={editing} onChangeClick={() => setPhoneModalOpen(true)} />
+                    <EmailStatusField
+                      label={t('profile:employer.accountEmail')}
+                      email={email || null}
+                      verified={emailVerified}
+                      editing={editing}
+                      notProvided={t('profile:employer.notProvided')}
+                      verifiedText={t('profile:employer.emailStatusVerified')}
+                      unverifiedText={t('profile:employer.emailStatusUnverified')}
+                      addLabel={t('profile:employer.addEmail')}
+                      changeLabel={t('profile:employer.changeEmail')}
+                      verifyLabel={t('profile:employer.verifyEmail')}
+                      onAction={setEmailModalMode}
+                    />
+                    <PhoneStatusField
+                      label={t('profile:employer.accountPhone')}
+                      phoneNumber={phoneNumber}
+                      verified={phoneVerified}
+                      editing={editing}
+                      notProvided={t('profile:employer.notProvided')}
+                      verifiedText={t('profile:employer.phoneStatusVerified')}
+                      changeLabel={t('profile:employer.changePhone')}
+                      onChangeClick={() => setPhoneModalOpen(true)}
+                    />
                     {/* Not editable here — PUT /employers/profile does not accept
                         preferredLanguage (confirmed against updateEmployerProfileSchema
                         on the BE), so it stays display-only in both view and edit mode. */}
-                    <EmployerReadOnlyField
+                    <ReadOnlyField
                       label={t('profile:employer.preferredLanguage')}
                       value={LANGUAGES.find((l) => l.value === preferredLanguage)?.label || preferredLanguage}
+                      notProvided={t('profile:employer.notProvided')}
+                      breakWords
                     />
                   </div>
                 </section>
@@ -486,8 +501,8 @@ function EmployerProfileContent() {
                       </div>
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                        <EmployerReadOnlyField label={t('profile:employer.fullName')} value={fullName} />
-                        <EmployerReadOnlyField label={t('profile:employer.designation')} value={designation} />
+                        <ReadOnlyField label={t('profile:employer.fullName')} value={fullName} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.designation')} value={designation} notProvided={t('profile:employer.notProvided')} breakWords />
                       </div>
                     )}
                   </div>
@@ -529,13 +544,13 @@ function EmployerProfileContent() {
                       </div>
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                        <EmployerReadOnlyField label={t('profile:employer.companyName')} value={companyName} />
-                        <EmployerReadOnlyField label={t('profile:employer.companyEmail')} value={companyEmail} />
-                        <EmployerReadOnlyField label={t('profile:employer.companyAddress')} value={companyAddress} full />
-                        <EmployerReadOnlyField label={t('profile:employer.foundedDate')} value={formatDate(companyFoundedDate)} />
-                        <EmployerReadOnlyField label={t('profile:employer.companySize')} value={companySize ? t(SIZE_KEYS[companySize]) : ''} />
-                        <EmployerReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} />
-                        <EmployerReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} />
+                        <ReadOnlyField label={t('profile:employer.companyName')} value={companyName} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.companyEmail')} value={companyEmail} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.companyAddress')} value={companyAddress} full notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.foundedDate')} value={formatDate(companyFoundedDate)} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.companySize')} value={companySize ? t(SIZE_KEYS[companySize]) : ''} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                        <ReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} notProvided={t('profile:employer.notProvided')} breakWords />
                       </div>
                     )}
                   </div>
@@ -624,109 +639,6 @@ function EmployerProfileContent() {
 }
 
 // ---- small presentational helpers, mirroring src/app/profile/page.tsx -----
-
-function EmployerReadOnlyField({ label, value, full }: { label: string; value?: ReactNode; full?: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <div className={full ? 'sm:col-span-2' : ''}>
-      <p className={fieldLabelCls}>{label}</p>
-      <p className="text-sm sm:text-base font-medium text-black whitespace-pre-line break-words">
-        {value || t('profile:employer.notProvided')}
-      </p>
-    </div>
-  )
-}
-
-// Email is never a plain editable field (has its own Add/Change/Verify action
-// via the shared EmailVerifyModal), so it gets its own field in both view and
-// edit mode. The Add/Change/Verify action only renders in edit mode.
-function EmployerEmailField({
-  email,
-  verified,
-  editing,
-  onAction,
-}: {
-  email: string | null
-  verified: boolean
-  editing: boolean
-  onAction: (mode: EmailVerifyMode) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <p className={fieldLabelCls}>{t('profile:employer.accountEmail')}</p>
-      <p className="text-sm sm:text-base font-medium text-black break-all">
-        {email || t('profile:employer.notProvided')}
-      </p>
-      {email && (
-        <p className={`text-xs mt-0.5 ${verified ? 'text-green-600' : 'text-amber-600'}`}>
-          {verified ? t('profile:employer.emailStatusVerified') : t('profile:employer.emailStatusUnverified')}
-        </p>
-      )}
-      {editing && (
-        <button
-          type="button"
-          onClick={() => onAction(!email ? 'add' : verified ? 'change' : 'verify')}
-          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
-        >
-          {t(!email ? 'profile:employer.addEmail' : verified ? 'profile:employer.changeEmail' : 'profile:employer.verifyEmail')}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// Same rhythm as EmployerEmailField — phone is mandatory at registration, so
-// it is never blank, and its Change action only renders in edit mode.
-function EmployerPhoneField({
-  phoneNumber,
-  verified,
-  editing,
-  onChangeClick,
-}: {
-  phoneNumber: string
-  verified: boolean
-  editing: boolean
-  onChangeClick: () => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <p className={fieldLabelCls}>{t('profile:employer.accountPhone')}</p>
-      <p className="text-sm sm:text-base font-medium text-black">
-        {phoneNumber || t('profile:employer.notProvided')}
-      </p>
-      {phoneNumber && verified && (
-        <p className="text-xs mt-0.5 text-green-600">{t('profile:employer.phoneStatusVerified')}</p>
-      )}
-      {editing && (
-        <button
-          type="button"
-          onClick={onChangeClick}
-          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
-        >
-          {t('profile:employer.changePhone')}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// The root account status (dot + text), same subtle treatment as the seeker
-// profile's AccountStatusIndicator — a caption under the name, not a pill,
-// since this is background information rather than a call to act.
-function EmployerAccountStatusIndicator({ status }: { status: string }) {
-  const { t } = useTranslation()
-  if (!status) return null
-  const labelKey = ACCOUNT_STATUS_LABEL_KEY[status]
-  const label = labelKey ? t(labelKey) : status
-  return (
-    <p className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-[#717182]">
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ACCOUNT_STATUS_DOT[status] ?? 'bg-gray-400'}`} />
-      {label}
-    </p>
-  )
-}
 
 // The employer's own verification pill, in the same slot and pill treatment
 // as the seeker profile's DocStatusBadge at the foot of the identity card.
