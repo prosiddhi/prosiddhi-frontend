@@ -473,6 +473,8 @@ export interface UserDocument {
   mimeType: string
   verified: boolean
   verificationStatus?: string
+  /** Set by admin only when verificationStatus is REJECTED. */
+  rejectionReason?: string | null
   createdAt?: string
 }
 
@@ -556,6 +558,10 @@ export interface EmployerProfile {
   role: UserRole
   accountStatus?: string
   emailVerified?: boolean
+  phoneVerified?: boolean
+  preferredLanguage?: string
+  createdAt?: string
+  updatedAt?: string
   employer?: {
     id: string
     employerType?: string
