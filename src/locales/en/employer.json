@@ -177,6 +177,35 @@
     "downloadFailed": "Couldn't download this invoice. Please try again.",
     "pageOf": "Page {{page}} of {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "Plans & pricing",
     "subheading": "Buy Job Posts and Candidate Unlocks. Choose a plan that fits how much you hire.",

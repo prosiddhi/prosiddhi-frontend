@@ -1907,6 +1907,53 @@ export const subscriptionAPI = {
     }
     return res.blob()
   },
+
+  // The org's credit statement — every POST/DOWNLOAD movement, newest first.
+  // GET /api/employers/me/credits/history (auth: employer, OWNER seat only —
+  // a MEMBER seat gets 403 ApiError with code 'NOT_OWNER'; every seat can still
+  // see the balance via getCredits above).
+  getCreditHistory: async (params: CreditHistoryParams = {}) => {
+    const qs = new URLSearchParams()
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 20))
+    if (params.kind) qs.set('kind', params.kind)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return apiRequest<CreditHistoryPage>(`/employers/me/credits/history?${qs.toString()}`)
+  },
+}
+
+export interface CreditHistoryParams {
+  page?: number
+  limit?: number
+  kind?: 'POST' | 'DOWNLOAD'
+  from?: string // yyyy-mm-dd
+  to?: string // yyyy-mm-dd
+}
+
+// One credit-ledger row. `label` is a server-built, human-readable description
+// ("Posted Delivery Executive") — render it, don't try to derive one from
+// `reason` yourself. `ref`/`actor` are null wherever the entry has neither (a
+// purchase, a trial grant, an expiry all carry no job/candidate and no actor).
+export interface CreditHistoryEntry {
+  at: string
+  kind: 'POST' | 'DOWNLOAD'
+  delta: number
+  reason: string
+  label: string
+  ref: { type: 'job' | 'candidate'; id: string; name: string | null } | null
+  actor: { userId: string; name: string | null } | null
+}
+export interface CreditHistoryPage {
+  entries: CreditHistoryEntry[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }
 
 // GST invoice (list row). Amounts are floats; cgst+sgst (intra-state) OR igst
