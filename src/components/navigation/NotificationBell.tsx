@@ -12,6 +12,7 @@ import {
   Calendar,
   Briefcase,
   CreditCard,
+  Clock,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { notificationAPI, type AppNotification, type NotificationType } from '@/lib/api'
@@ -35,6 +36,9 @@ const BADGE_BY_TYPE: Record<NotificationType, { icon: typeof Bell; className: st
   INTERVIEW_SCHEDULED: { icon: Calendar, className: 'bg-primary-50' },
   APPLICATION_SUBMITTED: { icon: Briefcase, className: 'bg-primary-50' },
   ADMIN_PAYMENT_REMINDER: { icon: CreditCard, className: 'bg-warning-500' },
+  JOB_APPROVED: { icon: Check, className: 'bg-success-500' },
+  JOB_REJECTED: { icon: X, className: 'bg-error-500' },
+  JOB_PENDING_REVIEW: { icon: Clock, className: 'bg-warning-500' },
   SYSTEM: { icon: Bell, className: 'bg-grey-500' },
 }
 
@@ -150,6 +154,11 @@ export function NotificationBell() {
 
       case 'INTERVIEW_SCHEDULED':
         return isEmployer ? `/employer/candidates/${n.entityId}` : '/my-interviews'
+
+      case 'JOB_APPROVED':
+      case 'JOB_REJECTED':
+        // Employer-only: the outcome of the moderation review on THEIR post.
+        return isEmployer ? `/employer/jobs/${n.entityId}` : null
 
       case 'DOCUMENT_VERIFIED':
       case 'DOCUMENT_REJECTED':
