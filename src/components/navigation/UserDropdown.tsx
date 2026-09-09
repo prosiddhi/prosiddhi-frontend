@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -120,7 +120,13 @@ export function UserDropdown() {
           // (right after Bell); the name span (its own fixed width, see below)
           // follows it — matching the required "[Mail] [Notification] [Avatar]
           // Name" left-to-right order.
-          className="flex items-center gap-2 w-full min-w-[44px] min-h-[44px] hover:opacity-80 transition-opacity"
+          // `hover:bg-gray-50` mirrors the dropdown items' own hover fill below —
+          // reusing that instead of the old opacity-dim makes the trigger read
+          // as "the same kind of clickable row" as the menu it opens. No border,
+          // no filled/solid background: `rounded-lg` + a light gray tint on
+          // hover/focus is deliberately quiet next to Mail and the bell, which
+          // only ever get a color change on hover.
+          className="flex items-center gap-2 w-full min-w-[44px] min-h-[44px] rounded-lg hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 transition-colors"
         >
           {/* `shrink-0`: a flex item's default flex-shrink is 1, so without this
               the avatar would give up some of its own 32/38px under the same
@@ -177,8 +183,19 @@ export function UserDropdown() {
               forcing an overflow. No native `title` here — the Tooltip above
               is the only hover/focus tooltip, so the two never stack. */}
           {name && (
-            <span className="hidden sm:block truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base">
-              {name}
+            // Wrapping row for name + chevron; the fixed-width truncating span
+            // inside is unchanged from before, so it still contributes the same
+            // constant width to this button regardless of viewport (see the
+            // width comment above) — the chevron just adds its own fixed 14-16px
+            // on top, so HeaderActions' "cluster never moves" math still holds.
+            <span className="hidden sm:flex items-center gap-1 min-w-0">
+              <span className="truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base">
+                {name}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={`w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+              />
             </span>
           )}
         </button>
