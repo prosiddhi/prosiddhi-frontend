@@ -177,6 +177,35 @@
     "downloadFailed": "இந்த இன்வாய்ஸைப் பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",
     "pageOf": "பக்கம் {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "திட்டங்களும் விலைகளும்",
     "subheading": "வேலை விளம்பரங்களும் விண்ணப்பதாரர் அன்லாக்குகளும் வாங்குங்கள். நீங்கள் எவ்வளவு ஆள் எடுக்கிறீர்களோ அதற்கு ஏற்ற திட்டத்தைத் தேர்ந்தெடுங்கள்.",

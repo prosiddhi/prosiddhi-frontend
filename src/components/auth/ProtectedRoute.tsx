@@ -43,7 +43,7 @@ export default function ProtectedRoute({
   requiredRole,
 }: ProtectedRouteProps) {
   const router = useRouter()
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, isLoading, user, isLoggingOut } = useAuth()
 
   const wrongRole =
     isAuthenticated &&
@@ -53,6 +53,21 @@ export default function ProtectedRoute({
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
+      if (isLoggingOut()) {
+        // A session that was live somewhere in this tab just ended (explicit
+        // logout, or a 401). `AuthContext.logout()`/its `auth:unauthorized`
+        // handler already push to /login themselves. That push is async, so a
+        // still-mounted protected page can re-render with `isAuthenticated:
+        // false` before the URL has actually changed — building a returnUrl
+        // here would read the OUTGOING user's path off `window.location` and
+        // race the owning redirect, occasionally winning and sending the NEXT
+        // person who logs in on this browser to the previous user's last page
+        // instead of their own dashboard. Redirect to plain /login (matching
+        // where the owning redirect is already headed) rather than nothing, so
+        // this still recovers if that push is ever lost.
+        router.replace('/login')
+        return
+      }
       // Remember where they were going. A shared job link used to bounce a
       // logged-out user to /login and then dump them on the role home, silently
       // losing the job they clicked — the single most likely way someone arrives
@@ -76,7 +91,7 @@ export default function ProtectedRoute({
     if (wrongRole) {
       router.replace(homeForRole(user?.role))
     }
-  }, [isLoading, isAuthenticated, wrongRole, user?.role, router])
+  }, [isLoading, isAuthenticated, wrongRole, user?.role, router, isLoggingOut])
 
   if (isLoading || !isAuthenticated || wrongRole) {
     return (

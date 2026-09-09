@@ -177,6 +177,35 @@
     "downloadFailed": "ഈ ഇൻവോയ്സ് ഡൗൺലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.",
     "pageOf": "പേജ് {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "പ്ലാനുകളും വിലയും",
     "subheading": "ജോലി പോസ്റ്റുകളും ഉദ്യോഗാർത്ഥി അൺലോക്കുകളും വാങ്ങുക. നിങ്ങൾ എത്ര ആളുകളെ എടുക്കുന്നു എന്നതിന് അനുയോജ്യമായ പ്ലാൻ തിരഞ്ഞെടുക്കുക.",

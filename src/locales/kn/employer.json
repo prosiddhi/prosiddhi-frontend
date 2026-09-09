@@ -177,6 +177,35 @@
     "downloadFailed": "ಈ ಇನ್‌ವಾಯ್ಸ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     "pageOf": "ಪುಟ {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "ಪ್ಲಾನ್‌ಗಳು ಮತ್ತು ಬೆಲೆ",
     "subheading": "ಕೆಲಸ ಪೋಸ್ಟ್‌ಗಳು ಮತ್ತು ಅಭ್ಯರ್ಥಿ ಅನ್‌ಲಾಕ್‌ಗಳನ್ನು ಖರೀದಿಸಿ. ನೀವು ಎಷ್ಟು ನೇಮಕ ಮಾಡುತ್ತೀರೋ ಅದಕ್ಕೆ ಸರಿಹೊಂದುವ ಪ್ಲಾನ್ ಆಯ್ಕೆ ಮಾಡಿ.",

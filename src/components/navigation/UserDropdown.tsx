@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Settings, LogOut } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -218,6 +218,19 @@ export function UserDropdown() {
               <Briefcase className="w-4 h-4 text-gray-700" />
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
+
+            {/* Ledger (employer only) — the credit transaction history. */}
+            {isEmployer && (
+              <Link
+                href="/employer/ledger"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <Receipt className="w-4 h-4 text-gray-700" />
+                <span className="text-sm text-gray-900">{t('employer:ledger.navLabel')}</span>
+              </Link>
+            )}
 
             <Link
               href={settingsHref}
