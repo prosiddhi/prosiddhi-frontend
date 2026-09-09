@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
@@ -9,7 +9,13 @@ import { Footer } from '@/components/home/Footer'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
 import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
 import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
+import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
+import { EmailStatusField } from '@/components/profile/EmailStatusField'
+import { PhoneStatusField } from '@/components/profile/PhoneStatusField'
+import { AccountStatusIndicator } from '@/components/profile/AccountStatusIndicator'
+import { inputCls, fieldLabelCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
+import { toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
   resolveMediaUrl,
@@ -59,14 +65,6 @@ const SEEKER_DOC_TYPES = [
   { value: 'SKILL_CERTIFICATE', label: 'Skill Certificate' },
   { value: 'OTHER', label: 'Other' },
 ] as const
-
-// ISO datetime → yyyy-mm-dd for <input type="date">.
-function toDateInput(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toISOString().slice(0, 10)
-}
 
 let rowSeq = 0
 const newKey = () => `row-${rowSeq++}`
@@ -509,7 +507,10 @@ function SeekerProfileContent() {
                 <p className="text-xl font-semibold text-black mt-5 break-words">
                   {fullName || t('profile:seeker.fullNamePlaceholder')}
                 </p>
-                <AccountStatusIndicator status={accountStatus} />
+                <AccountStatusIndicator
+                  label={accountStatus ? (ACCOUNT_STATUS_LABEL_KEY[accountStatus] ? t(ACCOUNT_STATUS_LABEL_KEY[accountStatus]) : accountStatus) : null}
+                  dotClassName={accountStatus ? (ACCOUNT_STATUS_DOT[accountStatus] ?? 'bg-gray-400') : 'bg-gray-400'}
+                />
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
                   {phoneNumber && (
                     <span className="inline-flex items-center gap-1.5 flex-shrink-0">
@@ -545,8 +546,29 @@ function SeekerProfileContent() {
                       <Field label={t('profile:seeker.fullName')} className={fieldLabelCls}>
                         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
                       </Field>
-                      <EmailStatusField email={email || null} verified={emailVerified} editing onAction={setEmailModalMode} />
-                      <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing onChangeClick={() => setPhoneModalOpen(true)} />
+                      <EmailStatusField
+                        label={t('profile:seeker.emailAddress')}
+                        email={email || null}
+                        verified={emailVerified}
+                        editing
+                        notProvided={t('profile:seeker.notProvided')}
+                        verifiedText={t('profile:seeker.emailStatusVerified')}
+                        unverifiedText={t('profile:seeker.emailStatusUnverified')}
+                        addLabel={t('profile:seeker.addEmail')}
+                        changeLabel={t('profile:seeker.changeEmail')}
+                        verifyLabel={t('profile:seeker.verifyEmail')}
+                        onAction={setEmailModalMode}
+                      />
+                      <PhoneStatusField
+                        label={t('profile:seeker.phoneNumber')}
+                        phoneNumber={phoneNumber}
+                        verified={phoneVerified}
+                        editing
+                        notProvided={t('profile:seeker.notProvided')}
+                        verifiedText={t('profile:seeker.phoneStatusVerified')}
+                        changeLabel={t('profile:seeker.changePhone')}
+                        onChangeClick={() => setPhoneModalOpen(true)}
+                      />
                       <Field label={t('profile:seeker.location')} className={fieldLabelCls}>
                         {/* Typing must NOT discard a fix already taken: pressing the
                             button and then naming your area is the ordinary way to
@@ -633,15 +655,36 @@ function SeekerProfileContent() {
                   ) : (
                     <>
                     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <ReadOnlyField label={t('profile:seeker.fullName')} value={fullName} />
-                      <EmailStatusField email={email || null} verified={emailVerified} editing={false} onAction={setEmailModalMode} />
-                      <PhoneStatusField phoneNumber={phoneNumber} verified={phoneVerified} editing={false} onChangeClick={() => setPhoneModalOpen(true)} />
-                      <ReadOnlyField label={t('profile:seeker.location')} value={location} />
-                      <ReadOnlyField label={t('profile:seeker.dateOfBirth')} value={formatDateOfBirth(dateOfBirth)} />
-                      <ReadOnlyField label={t('profile:seeker.gender')} value={genderLabel(t, gender)} />
+                      <ReadOnlyField label={t('profile:seeker.fullName')} value={fullName} notProvided={t('profile:seeker.notProvided')} />
+                      <EmailStatusField
+                        label={t('profile:seeker.emailAddress')}
+                        email={email || null}
+                        verified={emailVerified}
+                        editing={false}
+                        notProvided={t('profile:seeker.notProvided')}
+                        verifiedText={t('profile:seeker.emailStatusVerified')}
+                        unverifiedText={t('profile:seeker.emailStatusUnverified')}
+                        addLabel={t('profile:seeker.addEmail')}
+                        changeLabel={t('profile:seeker.changeEmail')}
+                        verifyLabel={t('profile:seeker.verifyEmail')}
+                        onAction={setEmailModalMode}
+                      />
+                      <PhoneStatusField
+                        label={t('profile:seeker.phoneNumber')}
+                        phoneNumber={phoneNumber}
+                        verified={phoneVerified}
+                        editing={false}
+                        notProvided={t('profile:seeker.notProvided')}
+                        verifiedText={t('profile:seeker.phoneStatusVerified')}
+                        changeLabel={t('profile:seeker.changePhone')}
+                        onChangeClick={() => setPhoneModalOpen(true)}
+                      />
+                      <ReadOnlyField label={t('profile:seeker.location')} value={location} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('profile:seeker.dateOfBirth')} value={formatDateOfBirth(dateOfBirth)} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('profile:seeker.gender')} value={genderLabel(t, gender)} notProvided={t('profile:seeker.notProvided')} />
                     </div>
                     <div className="mt-6 pt-6 border-t border-[#eee]">
-                      <ReadOnlyField label={t('profile:seeker.aboutYou')} value={bio} />
+                      <ReadOnlyField label={t('profile:seeker.aboutYou')} value={bio} notProvided={t('profile:seeker.notProvided')} />
                     </div>
                     </>
                   )}
@@ -679,10 +722,10 @@ function SeekerProfileContent() {
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category} />
-                      <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} />
-                      <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} />
-                      <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} />
+                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} notProvided={t('profile:seeker.notProvided')} />
                     </div>
                   )}
                 </div>
@@ -1013,117 +1056,6 @@ function SkillsSection() {
 }
 
 // ---- small presentational helpers -----------------------------------------
-const inputCls =
-  'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
-
-// Every field label on this page — editable (Field) and read-only
-// (ReadOnlyField / EmailStatusField / PhoneStatusField) alike — uses this one
-// style, matching view mode, so Edit Mode doesn't mix a bold-black label style
-// for editable fields with the gray one already used for read-only fields.
-const fieldLabelCls = 'text-xs text-gray-500 mb-1 block'
-
-// One heading style shared by every Profile section (Personal Information, Job
-// Preferences, Work Experience, Documents, Skills) so they read as one hierarchy
-// instead of two — the sub-sections inside the top card used to be a full size
-// smaller than Work Experience/Documents/Skills.
-const sectionHeadingCls = 'flex items-center gap-2 text-lg sm:text-xl font-semibold text-black'
-const sectionHeadingIconCls = 'w-5 h-5 text-[#3386a9] flex-shrink-0'
-
-// A label + value pair for view mode, matching the read-only pattern already
-// established on Application Details (src/app/my-applications/[id]/page.tsx).
-function ReadOnlyField({ label, value, full }: { label: string; value?: ReactNode; full?: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <div className={full ? 'sm:col-span-2' : ''}>
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="text-sm sm:text-base font-medium text-black whitespace-pre-line">
-        {value || t('profile:seeker.notProvided')}
-      </p>
-    </div>
-  )
-}
-
-// Email is never a plain editable field (has its own Add/Change/Verify action),
-// so it gets its own field instead of ReadOnlyField in both view and edit mode.
-// States are derived from the API's `email` + `emailVerified` only — never
-// hardcoded, so a state this component doesn't handle simply cannot render.
-//
-// Label → value → status is the same three-line rhythm as every other field on
-// this card; status sits on its own small, muted line rather than crowding the
-// value so a long email address doesn't wrap around a badge. The Add/Change/
-// Verify action only renders in edit mode — view mode is read-only, full stop.
-function EmailStatusField({
-  email,
-  verified,
-  editing,
-  onAction,
-}: {
-  email: string | null
-  verified: boolean
-  editing: boolean
-  onAction: (mode: EmailVerifyMode) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <p className="text-xs text-gray-500 mb-1">{t('profile:seeker.emailAddress')}</p>
-      <p className="text-sm sm:text-base font-medium text-black break-all">
-        {email || t('profile:seeker.notProvided')}
-      </p>
-      {email && (
-        <p className={`text-xs mt-0.5 ${verified ? 'text-green-600' : 'text-amber-600'}`}>
-          {verified ? t('profile:seeker.emailStatusVerified') : t('profile:seeker.emailStatusUnverified')}
-        </p>
-      )}
-      {editing && (
-        <button
-          type="button"
-          onClick={() => onAction(!email ? 'add' : verified ? 'change' : 'verify')}
-          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
-        >
-          {t(!email ? 'profile:seeker.addEmail' : verified ? 'profile:seeker.changeEmail' : 'profile:seeker.verifyEmail')}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// Phone is mandatory and never a plain editable field — same label → value →
-// status rhythm as EmailStatusField, with a Change Phone action that only
-// renders in edit mode (view mode is status-only, same rule as email).
-function PhoneStatusField({
-  phoneNumber,
-  verified,
-  editing,
-  onChangeClick,
-}: {
-  phoneNumber: string
-  verified: boolean
-  editing: boolean
-  onChangeClick: () => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <p className="text-xs text-gray-500 mb-1">{t('profile:seeker.phoneNumber')}</p>
-      <p className="text-sm sm:text-base font-medium text-black">
-        {phoneNumber || t('profile:seeker.notProvided')}
-      </p>
-      {phoneNumber && verified && (
-        <p className="text-xs mt-0.5 text-green-600">{t('profile:seeker.phoneStatusVerified')}</p>
-      )}
-      {editing && (
-        <button
-          type="button"
-          onClick={onChangeClick}
-          className="mt-1.5 text-sm font-medium text-primary-50 hover:text-primary-60"
-        >
-          {t('profile:seeker.changePhone')}
-        </button>
-      )}
-    </div>
-  )
-}
 
 // The seeker's document-verification rollup (jobSeeker.documentVerificationStatus —
 // distinct from a single document's own verificationStatus, shown per-row in
@@ -1145,19 +1077,6 @@ const DOC_STATUS_STYLE: Record<string, string> = {
 const ACCOUNT_STATUS_DOT: Record<string, string> = {
   ACTIVE: 'bg-green-500',
   SUSPENDED: 'bg-red-500',
-}
-
-function AccountStatusIndicator({ status }: { status: string | null }) {
-  const { t } = useTranslation()
-  if (!status) return null
-  const labelKey = ACCOUNT_STATUS_LABEL_KEY[status]
-  const label = labelKey ? t(labelKey) : status
-  return (
-    <p className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-[#717182]">
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ACCOUNT_STATUS_DOT[status] ?? 'bg-gray-400'}`} />
-      {label}
-    </p>
-  )
 }
 
 function DocStatusBadge({ status }: { status: string | null }) {
