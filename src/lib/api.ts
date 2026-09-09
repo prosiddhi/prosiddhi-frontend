@@ -2316,6 +2316,9 @@ export type NotificationType =
   | 'PROFILE_REJECTED'
   | 'ADMIN_WARNING'
   | 'ADMIN_PAYMENT_REMINDER'
+  | 'JOB_APPROVED'
+  | 'JOB_REJECTED'
+  | 'JOB_PENDING_REVIEW'
   | 'SYSTEM'
 
 export interface AppNotification {
