@@ -11,6 +11,7 @@
 // threading `t` through each of them.
 
 import i18n from '@/i18n/config'
+import { CheckCircle2, XCircle, Clock, type LucideIcon } from 'lucide-react'
 
 export interface StatusMeta {
   label: string
@@ -61,8 +62,35 @@ export function jobStatusLabel(status?: string): string {
  * It used to render as a raw token — "PENDING" / "APPROVED" — sitting next to a
  * translated label, which read as a bug even in English.
  */
+const VERIFICATION_STATUS_KNOWN = ['PENDING', 'APPROVED', 'REJECTED']
+
 export function verificationStatusLabel(status?: string): string {
-  const KNOWN = ['PENDING', 'APPROVED', 'REJECTED']
-  if (!status || !KNOWN.includes(status)) return i18n.t('profile:verificationStatus.unknown')
+  if (!status || !VERIFICATION_STATUS_KNOWN.includes(status)) return i18n.t('profile:verificationStatus.unknown')
   return i18n.t(`profile:verificationStatus.${status}`)
+}
+
+/** Pill colours for the same BE VerificationStatus enum (employer profile + documents). */
+const VERIFICATION_PILL: Record<string, string> = {
+  PENDING: 'bg-amber-50 text-amber-700',
+  APPROVED: 'bg-green-50 text-green-700',
+  REJECTED: 'bg-red-50 text-red-700',
+}
+
+/** Icon per VerificationStatus, shared by the employer profile badge + document rows. */
+const VERIFICATION_ICON: Record<string, LucideIcon> = {
+  PENDING: Clock,
+  APPROVED: CheckCircle2,
+  REJECTED: XCircle,
+}
+
+/** Badge version of verificationStatusLabel — label + pill classes together. */
+export function verificationStatusPill(status?: string): StatusMeta {
+  return {
+    label: verificationStatusLabel(status),
+    pill: VERIFICATION_PILL[status ?? ''] ?? FALLBACK_PILL,
+  }
+}
+
+export function verificationStatusIcon(status?: string): LucideIcon {
+  return VERIFICATION_ICON[status ?? ''] ?? Clock
 }
