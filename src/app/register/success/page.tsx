@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle, X } from 'lucide-react'
 import Image from 'next/image'
@@ -11,14 +10,10 @@ import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 export default function RegisterSuccessPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const [showTutorial, setShowTutorial] = useState(true)
 
   const handleStartExplore = () => {
-    // Remember the tutorial preference (non-sensitive UI flag).
-    localStorage.setItem('showTutorial', showTutorial.toString())
     // The seeker is authenticated by now — the password step registered the
     // account and logged straight in. Land on the seeker home.
-    // (/tutorial is a v2 backlog screen.)
     router.push(SEEKER_HOME_ROUTE)
   }
 
@@ -81,44 +76,12 @@ export default function RegisterSuccessPage() {
                 <CheckCircle className="w-[213px] h-[213px] text-primary-50" strokeWidth={1.5} />
               </div>
 
-              <div className="flex items-center justify-center gap-6 mb-12">
-                <label htmlFor="tutorial" className="text-[28px] font-medium text-black">
-                  {t('auth:success.showTutorial')}
-                </label>
-
-                <button
-                  id="tutorial"
-                  onClick={() => setShowTutorial(!showTutorial)}
-                  className={`relative w-[59px] h-[33px] rounded-full transition-colors ${
-                    showTutorial ? 'bg-primary-50' : 'bg-[#d9d9d9]'
-                  }`}
-                >
-                  <div
-                    className={`absolute top-[2px] w-[29px] h-[29px] rounded-full bg-white shadow-md transition-transform ${
-                      showTutorial ? 'translate-x-[28px]' : 'translate-x-[2px]'
-                    }`}
-                  />
-                </button>
-              </div>
-
               <button
                 onClick={handleStartExplore}
                 className="bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg transition-colors"
               >
                 <span className="text-[20px]">{t('auth:success.startExplore')}</span>
               </button>
-            </div>
-
-            <div className="text-center mt-16">
-              <p className="text-[20px]">
-                <span className="text-black">{t('auth:success.alreadyHaveAccount')}</span>
-                <Link
-                  href="/login"
-                  className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
-                >
-                  {t('auth:success.signInHere')}
-                </Link>
-              </p>
             </div>
           </div>
         </div>
@@ -155,43 +118,12 @@ export default function RegisterSuccessPage() {
             <CheckCircle className="w-32 h-32 sm:w-40 sm:h-40 text-primary-50" strokeWidth={1.5} />
           </div>
 
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <label className="text-lg sm:text-xl font-medium text-black">
-              {t('auth:success.showTutorialMobile')}
-            </label>
-
-            <button
-              onClick={() => setShowTutorial(!showTutorial)}
-              className={`relative w-12 h-7 rounded-full transition-colors ${
-                showTutorial ? 'bg-primary-50' : 'bg-[#d9d9d9]'
-              }`}
-            >
-              <div
-                className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform ${
-                  showTutorial ? 'translate-x-[22px]' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-
           <button
             onClick={handleStartExplore}
-            className="w-full max-w-xs bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg transition-colors mb-8"
+            className="w-full max-w-xs bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg transition-colors"
           >
             <span className="text-lg">{t('auth:success.startExplore')}</span>
           </button>
-
-          <div className="text-center">
-            <p className="text-base">
-              <span className="text-black">{t('auth:success.alreadyHaveAccount')}</span>
-              <Link
-                href="/login"
-                className="text-primary-70 font-semibold hover:text-primary-80 transition-colors"
-              >
-                {t('auth:success.signInHere')}
-              </Link>
-            </p>
-          </div>
         </div>
 
         <div className="bg-primary-50 py-8 px-4">
