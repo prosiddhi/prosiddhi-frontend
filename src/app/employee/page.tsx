@@ -507,6 +507,10 @@ export default function EmployeeLandingPage() {
               figure the Figma shows here, and it is 688×459 against this slot's
               `h-[459px]`. It was previously showing `171.svg`, the CTA's
               magnifying glass, so the same picture appeared twice on the page. */}
+          {/* Commented out, not deleted: this card's copy tells job seekers
+              they pay a subscription, which contradicts PRODUCT.md's locked
+              rule that seekers are free forever (see docs/i18n/GLOSSARY.md,
+              seeker.landing.feature3Title).
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 max-w-[1600px] mx-auto">
             <div className="w-full lg:flex-1 relative h-[260px] sm:h-[360px] lg:h-[459px]">
               <Image
@@ -524,6 +528,7 @@ export default function EmployeeLandingPage() {
               </h3>
             </div>
           </div>
+          */}
         </div>
       </section>
 
