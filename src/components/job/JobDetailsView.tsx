@@ -70,8 +70,8 @@ interface JobDetailsViewProps {
 
 /**
  * One job posting, in full — hero, description, skills, the "Job Details" +
- * "About the Company" sidebar, related jobs, and the seeker-only action row
- * (Apply / Contact / Save / Report). Shared by both role routes (`/job-details/
+ * "About the Company" sidebar, and the seeker-only action row (Apply /
+ * Contact / Save / Report) and Related Jobs list. Shared by both role routes (`/job-details/
  * [id]` for a seeker, `/employer/jobs/[id]` for an employer previewing their
  * own posting): same job, same facts, only the surrounding chrome and the back
  * button differ, and each page supplies those.
@@ -121,10 +121,10 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
         const j = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
         setJob(j)
-        // Related is public; saved/applied are seeker-only and 403 for an employer,
-        // so they are simply not requested when the viewer is not a seeker.
+        // Related Jobs is seeker-only UI; saved/applied are seeker-only and 403 for
+        // an employer — none of the three are requested when the viewer isn't a seeker.
         const [rel, saved, applied] = await Promise.allSettled([
-          jobSeekerAPI.getRelatedJobs(jobId),
+          isSeeker ? jobSeekerAPI.getRelatedJobs(jobId) : Promise.resolve({ relatedJobs: [] }),
           isSeeker ? jobSeekerAPI.isJobSaved(jobId) : Promise.resolve({ isSaved: false }),
           isSeeker ? jobSeekerAPI.checkIfApplied(jobId) : Promise.resolve({ hasApplied: false, jobId }),
         ])
@@ -487,8 +487,9 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
                 </div>
               </div>
 
-              {/* Related Jobs */}
-              {related.length > 0 && (
+              {/* Related Jobs — seeker-only; an employer previewing their own
+                  posting has no use for other companies' openings here. */}
+              {isSeeker && related.length > 0 && (
                 <section className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-100">
                   <h2 className="text-[clamp(20px,17.33px_+_0.42vw,24px)] font-semibold mb-5 sm:mb-6">{t('seeker:jobDetails.relatedJobs')}</h2>
                   {/* Capped at 2 columns, not 3 — on medium viewports (roughly
