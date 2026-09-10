@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -44,6 +44,39 @@ function CandidatesContent() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const activeStatus = TABS.find((t) => t.key === tabKey)?.status
+
+  // The results area swaps between the spinner, an error, "no candidates",
+  // and the list in one React commit (e.g. a tab with results -> an empty
+  // tab). CSS can't transition to/from `auto` height, so measure the box
+  // before and after that commit and animate between the two pixel heights
+  // instead of letting it snap — that snap is what forces the browser to
+  // clamp scroll position.
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const previousResultsHeightRef = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    const el = resultsRef.current
+    if (!el) return
+    const newHeight = el.scrollHeight
+    const oldHeight = previousResultsHeightRef.current
+    previousResultsHeightRef.current = newHeight
+
+    if (oldHeight === null || oldHeight === newHeight) return
+
+    el.style.overflow = 'hidden'
+    el.style.height = `${oldHeight}px`
+    el.getBoundingClientRect()
+    el.style.transition = 'height 200ms ease'
+    el.style.height = `${newHeight}px`
+
+    const clear = () => {
+      el.style.transition = ''
+      el.style.height = ''
+      el.style.overflow = ''
+    }
+    el.addEventListener('transitionend', clear, { once: true })
+    return () => el.removeEventListener('transitionend', clear)
+  }, [loading, error, items])
 
   useEffect(() => {
     let ignore = false
@@ -130,62 +163,64 @@ function CandidatesContent() {
             ))}
           </div>
 
-          {loading && items.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
-              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
-              <p>{t('employer:candidates.loading')}</p>
-            </div>
-          )}
+          <div ref={resultsRef}>
+            {loading && items.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
+                <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
+                <p>{t('employer:candidates.loading')}</p>
+              </div>
+            )}
 
-          {!loading && error && items.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-              <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
-            </div>
-          )}
+            {!loading && error && items.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+                <p className="text-red-600 mb-4 max-w-md">{error}</p>
+                <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
+              </div>
+            )}
 
-          {!loading && !error && items.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
-              <Users className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">{t('employer:candidates.noneTitle')}</p>
-              <p className="max-w-md">{search ? t('employer:candidates.noneSearch') : t('employer:candidates.noneDefault')}</p>
-            </div>
-          )}
+            {!loading && !error && items.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
+                <Users className="w-12 h-12 mb-4 text-gray-300" />
+                <p className="text-lg font-medium text-black mb-1">{t('employer:candidates.noneTitle')}</p>
+                <p className="max-w-md">{search ? t('employer:candidates.noneSearch') : t('employer:candidates.noneDefault')}</p>
+              </div>
+            )}
 
-          {items.length > 0 && (
-            <div className={`space-y-3 sm:space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-              {items.map((app) => {
-                const meta = statusMeta(app.status)
-                const seeker = app.jobSeeker
-                return (
-                  <Link
-                    key={app.id}
-                    href={`/employer/candidates/${app.id}`}
-                    className="block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-semibold text-[#236987]">{initials(seeker?.fullName)}</span>
+            {items.length > 0 && (
+              <div className={`space-y-3 sm:space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+                {items.map((app) => {
+                  const meta = statusMeta(app.status)
+                  const seeker = app.jobSeeker
+                  return (
+                    <Link
+                      key={app.id}
+                      href={`/employer/candidates/${app.id}`}
+                      className="block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-[#236987]">{initials(seeker?.fullName)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
+                          <p className="text-sm text-[#717182] truncate">{app.job?.title}</p>
+                          {seeker?.location && (
+                            <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {seeker.location}</p>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
+                          <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
-                        <p className="text-sm text-[#717182] truncate">{app.job?.title}</p>
-                        {seeker?.location && (
-                          <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {seeker.location}</p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
-                        <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
