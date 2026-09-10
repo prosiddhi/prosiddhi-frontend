@@ -12,6 +12,8 @@ import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
 import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import { showToast } from '@/lib/toast'
+import { displayName } from '@/lib/userDisplay'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -213,6 +215,7 @@ function LoginContent() {
 
   const onLoginSuccess = (result: { token: string; user: AuthUser }) => {
     login(result.token, result.user)
+    showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
     router.push(destinationAfterLogin(result.user, returnUrl))
   }
 
@@ -481,6 +484,7 @@ function LoginContent() {
         setOtp(['', '', '', '', '', ''])
         setOtpSent(false)
       } else {
+        showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
         router.push(destinationAfterLogin(result.user, returnUrl))
       }
     } catch (err) {
@@ -538,6 +542,7 @@ function LoginContent() {
         return
       }
       await authAPI.changePhone(e164, code)
+      if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
       router.push(bindUser ? homeForUser(bindUser) : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
