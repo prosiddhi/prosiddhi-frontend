@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { humanizeJobType, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
 import type { Job } from '@/lib/api'
@@ -40,9 +41,11 @@ const MAX_SKILL_CHIPS = 6
  */
 export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFeedCardProps) {
   const { t } = useTranslation()
+  const router = useRouter()
   const classification = [job.jobTitle, job.sector].filter(Boolean).join(' · ')
   const skills = job.skillsRequired ?? []
   const posted = relativeTime(job.createdAt)
+  const detailsHref = from ? `/job-details/${job.id}?from=${from}` : `/job-details/${job.id}`
 
   // Pulled out only so the JSX below reads as one action row rather than
   // three buttons' worth of markup inline.
@@ -52,7 +55,10 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
           styling (light gray) next to View Job's primary blue, same height
           and text scale as that button so the pair reads as one row. */}
       <button
-        onClick={() => onToggleSave(job.id)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleSave(job.id)
+        }}
         disabled={saving}
         className="shrink-0 min-h-[44px] px-4 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
       >
@@ -66,7 +72,8 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
         {isSaved ? t('seeker:jobCard.saved') : t('seeker:jobCard.saveJob')}
       </button>
       <Link
-        href={from ? `/job-details/${job.id}?from=${from}` : `/job-details/${job.id}`}
+        href={detailsHref}
+        onClick={(e) => e.stopPropagation()}
         className="min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base flex items-center justify-center whitespace-nowrap"
       >
         {t('seeker:jobCard.viewJob')}
@@ -75,7 +82,18 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
   )
 
   return (
-    <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow">
+    <div
+      onClick={() => router.push(detailsHref)}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          router.push(detailsHref)
+        }
+      }}
+      className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+    >
       <div className="flex items-start gap-3">
         <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-[20px] font-semibold text-[#236987]">{initials(job.companyName || job.title)}</span>

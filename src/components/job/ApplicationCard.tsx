@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import {
   humanizeJobType,
@@ -27,13 +28,26 @@ interface ApplicationCardProps {
  */
 export function ApplicationCard({ application }: ApplicationCardProps) {
   const { t } = useTranslation()
+  const router = useRouter()
   const job = application.job
   const meta = statusMeta(application.status)
+  const detailsHref = `/my-applications/${application.id}`
 
   const salaryLine = formatSalaryLine(job?.salaryMin, job?.salaryMax, job?.paymentType)
 
   return (
-    <div className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow">
+    <div
+      onClick={() => router.push(detailsHref)}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          router.push(detailsHref)
+        }
+      }}
+      className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 lg:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+    >
       <div className="flex items-start gap-3">
         <div className="w-[52px] h-[51px] bg-[#a9e5ff] rounded-lg flex items-center justify-center flex-shrink-0">
           <span className="text-[20px] font-semibold text-[#236987]">
@@ -90,7 +104,8 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
           {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
         </span>
         <Link
-          href={`/my-applications/${application.id}`}
+          href={detailsHref}
+          onClick={(e) => e.stopPropagation()}
           className="px-4 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors min-w-[140px] text-sm sm:text-base text-center whitespace-nowrap"
         >
           {t('buttons.viewDetails')}
