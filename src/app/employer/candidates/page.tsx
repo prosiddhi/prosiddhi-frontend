@@ -41,6 +41,7 @@ function CandidatesContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const activeStatus = TABS.find((t) => t.key === tabKey)?.status
 
@@ -67,7 +68,10 @@ function CandidatesContent() {
           setItems([])
         }
       } finally {
-        if (!ignore) setLoading(false)
+        if (!ignore) {
+          setLoading(false)
+          setHasLoadedOnce(true)
+        }
       }
     }
     run()
@@ -83,9 +87,16 @@ function CandidatesContent() {
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">{t('employer:candidates.title')}</h1>
-          {!loading && !error && (
-            <p className="text-sm sm:text-base text-[#717182] mb-6">{jobId ? t('employer:candidates.countForJob', { count: total }) : t('employer:candidates.count', { count: total })}</p>
-          )}
+          {/* Fixed-height slot: the count text must never unmount during a
+              tab/search refetch, or its height collapses and the page jumps. */}
+          <div className="h-5 sm:h-6 mb-6">
+            {hasLoadedOnce && !error && (
+              <p className="text-sm sm:text-base text-[#717182]">{jobId ? t('employer:candidates.countForJob', { count: total }) : t('employer:candidates.count', { count: total })}</p>
+            )}
+            {!hasLoadedOnce && (
+              <div className="h-4 sm:h-[18px] w-40 bg-gray-200 rounded animate-pulse" aria-hidden="true" />
+            )}
+          </div>
 
           {/* Search */}
           <div className="flex gap-3 mb-6 max-w-xl">
@@ -105,7 +116,7 @@ function CandidatesContent() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 sm:gap-3 mb-6 border-b border-gray-200 overflow-x-auto">
+          <div className="flex gap-1 sm:gap-3 mb-6 border-b border-gray-200 overflow-x-auto overflow-y-hidden">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -119,14 +130,14 @@ function CandidatesContent() {
             ))}
           </div>
 
-          {loading && (
+          {loading && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
               <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary-50" />
               <p>{t('employer:candidates.loading')}</p>
             </div>
           )}
 
-          {!loading && error && (
+          {!loading && error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
               <p className="text-red-600 mb-4 max-w-md">{error}</p>
@@ -142,8 +153,8 @@ function CandidatesContent() {
             </div>
           )}
 
-          {!loading && !error && items.length > 0 && (
-            <div className="space-y-3 sm:space-y-4">
+          {items.length > 0 && (
+            <div className={`space-y-3 sm:space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
               {items.map((app) => {
                 const meta = statusMeta(app.status)
                 const seeker = app.jobSeeker
