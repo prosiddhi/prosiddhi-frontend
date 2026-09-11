@@ -344,6 +344,9 @@ export interface Job {
     [key: string]: unknown
   } | null
   createdAt?: string
+  // Whether the CURRENT seeker has already reported this job — Job Details
+  // hides "Report this job" once true so a seeker can't file duplicate reports.
+  hasReported?: boolean
   [key: string]: unknown
 }
 
