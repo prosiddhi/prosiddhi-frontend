@@ -24,6 +24,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { showToast } from '@/lib/toast'
 
 type Tab = 'active' | 'expired'
 
@@ -86,7 +87,7 @@ function MyJobsContent() {
       await fn()
       setReloadKey((k) => k + 1)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employer:jobs.actionFailed'))
+      showToast(err instanceof Error ? err.message : t('employer:jobs.actionFailed'), 'error')
     } finally {
       setActioningId(null)
     }
@@ -96,7 +97,6 @@ function MyJobsContent() {
     if (!window.confirm(t('employer:jobs.confirmDelete'))) return
     if (actioningId) return
     setActioningId(id)
-    setError('')
     setNotice('')
     try {
       const res = await employerAPI.deleteJob(id)
@@ -104,7 +104,7 @@ function MyJobsContent() {
       if (res?.refunded) setNotice(t('employer:jobs.creditRefunded'))
       setReloadKey((k) => k + 1)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employer:jobs.actionFailed'))
+      showToast(err instanceof Error ? err.message : t('employer:jobs.actionFailed'), 'error')
     } finally {
       setActioningId(null)
     }
@@ -201,15 +201,20 @@ function MyJobsContent() {
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
-                        </Link>
-                        <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
-                        </Link>
-                        <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
-                        </Link>
+                        {/* Expired tab shows Activate only for now; other actions hidden until re-enabled */}
+                        {tab === 'active' && (
+                          <>
+                            <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                              <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
+                            </Link>
+                            <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                              <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
+                            </Link>
+                            <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                              <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
+                            </Link>
+                          </>
+                        )}
                         {isActive ? (
                           <button
                             onClick={() => runAction(() => employerAPI.deactivateJob(job.id), job.id)}
@@ -227,13 +232,15 @@ function MyJobsContent() {
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} {t('employer:jobs.activate')}
                           </button>
                         )}
-                        <button
-                          onClick={() => handleDelete(job.id)}
-                          disabled={busy}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-60"
-                        >
-                          <Trash2 className="w-4 h-4" /> {t('employer:jobs.delete')}
-                        </button>
+                        {tab === 'active' && (
+                          <button
+                            onClick={() => handleDelete(job.id)}
+                            disabled={busy}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-60"
+                          >
+                            <Trash2 className="w-4 h-4" /> {t('employer:jobs.delete')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
