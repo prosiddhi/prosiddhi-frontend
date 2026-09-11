@@ -2,12 +2,17 @@
 
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useForm, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { emailOtpAPI, authAPI } from '@/lib/api'
+import { authAPI } from '@/lib/api'
+import { toIdentifier } from '@/lib/identifier'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import { forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/validation/authSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
+import { IdentifierField } from '@/components/auth/IdentifierField'
 
 const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
@@ -31,13 +36,21 @@ const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
  */
 const IS_DEV_BUILD = process.env.NODE_ENV !== 'production'
 
-type Stage = 'email' | 'otp' | 'reset' | 'done'
+type Stage = 'identifier' | 'otp' | 'reset' | 'done'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
-  const [stage, setStage] = useState<Stage>('email')
-  const [email, setEmail] = useState('')
+  const [stage, setStage] = useState<Stage>('identifier')
+  // The raw field value (email OR phone) lives in RHF below; this is the
+  // NORMALIZED value — lowercased email or E.164 phone — that toIdentifier(raw)
+  // produced, kept for the OTP subtitle and the final reset-password call. Same
+  // split /login uses between its form field and its own `identifier` const.
+  const [identifier, setIdentifier] = useState('')
+  const identifierForm = useForm<ForgotIdentifierValues>({
+    resolver: zodResolver(forgotIdentifierSchema),
+    defaultValues: { identifier: '' },
+  })
   // Six slots rather than one string, so a cleared middle box stays a hole
   // instead of shifting every digit after it left. Joined back to a plain string
   // at the two places that consume it, so the code sent to the API and the
@@ -56,23 +69,23 @@ export default function ForgotPasswordPage() {
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
 
-  // Stage 1 — request the reset OTP (email-OTP, FORGOT_PASSWORD purpose).
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim() || !email.includes('@')) {
-      setError(t('auth:forgot.errorEmail'))
-      return
-    }
+  // Stage 1 — request the reset OTP. POST /auth/forgot-password { identifier }
+  // dispatches to email-OTP or SMS-OTP server-side by identifier shape, so this
+  // page never has to know or choose which channel the account actually uses.
+  const onSendCode: SubmitHandler<ForgotIdentifierValues> = async ({ identifier: raw }) => {
+    // The resolver already confirmed `raw` parses via toIdentifier; this only
+    // narrows the type.
+    const id = toIdentifier(raw)
+    if (!id) return
     try {
       setLoading(true)
       setError('')
-      const res = (await emailOtpAPI.send(email.trim(), 'FORGOT_PASSWORD')) as
-        | { otp?: string }
-        | undefined
+      const res = await authAPI.forgotPassword(id)
       // Never even hold the value in state in a production build — the render
       // guard alone would be enough, but this way the code cannot reach the
       // client component's state to be read out of a React devtools dump either.
       if (IS_DEV_BUILD) setDevOtp(res?.otp)
+      setIdentifier(id)
       setStage('otp')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth:forgot.errorSendFailed'))
@@ -165,7 +178,7 @@ export default function ForgotPasswordPage() {
     try {
       setLoading(true)
       setError('')
-      await authAPI.resetPassword(email.trim(), code, newPassword)
+      await authAPI.resetPassword(identifier, code, newPassword)
       setStage('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth:forgot.errorResetFailed'))
@@ -173,6 +186,15 @@ export default function ForgotPasswordPage() {
       setLoading(false)
     }
   }
+
+  // The one banner shown across every stage — a server-side failure (`error`)
+  // always wins; otherwise the identifier form's own validation message is
+  // shown, translated from the i18n key zodResolver attached to it. Same
+  // pattern /login uses for its single error banner.
+  const bannerMessage =
+    error || (stage === 'identifier' && identifierForm.formState.errors.identifier?.message
+      ? t(identifierForm.formState.errors.identifier.message)
+      : '')
 
   const inputCls =
     'w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50'
@@ -244,17 +266,17 @@ export default function ForgotPasswordPage() {
           {stage !== 'done' && (
             <div className="text-center mb-5">
               <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
-                {stage === 'email'
+                {stage === 'identifier'
                   ? t('auth:forgot.titleEmail')
                   : stage === 'otp'
                   ? t('auth:forgot.titleOtp')
                   : t('auth:forgot.titleReset')}
               </h1>
               <p className="text-base sm:text-lg text-[#777776]">
-                {stage === 'email'
-                  ? t('auth:forgot.subtitleEmail')
+                {stage === 'identifier'
+                  ? t('auth:forgot.subtitleIdentifier')
                   : stage === 'otp'
-                  ? t('auth:forgot.subtitleOtp', { email })
+                  ? t('auth:forgot.subtitleOtp', { identifier })
                   : t('auth:forgot.subtitleReset')}
               </p>
             </div>
@@ -267,29 +289,27 @@ export default function ForgotPasswordPage() {
           )}
 
           {/* role="alert" so a validation failure is announced instead of only
-              appearing — it was a silent <div> before. */}
-          {error && (
+              appearing — it was a silent <div> before. A server-side `error`
+              always wins; otherwise the identifier form's own zod message is
+              shown, translated from the i18n key the resolver attached to it —
+              same single-banner pattern /login uses. */}
+          {bannerMessage && (
             <div role="alert" className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm whitespace-pre-line">{error}</p>
+              <p className="text-red-600 text-sm whitespace-pre-line">{bannerMessage}</p>
             </div>
           )}
 
-          {/* Stage 1 — email */}
-          {stage === 'email' && (
-            <form onSubmit={handleSendOtp} className="space-y-5">
+          {/* Stage 1 — identifier (email or mobile number) */}
+          {stage === 'identifier' && (
+            <form onSubmit={identifierForm.handleSubmit(onSendCode)} className="space-y-5">
               <div>
-                <label htmlFor="email" className="block text-base font-medium text-black mb-2">{t('auth:forgot.emailLabel')}</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
-                  placeholder={t('auth:forgot.emailPlaceholder')}
-                  disabled={loading}
-                  className={inputCls}
-                  required
+                <IdentifierField
+                  id="identifier"
+                  label={t('auth:forgot.identifierLabel')}
+                  placeholder={t('auth:forgot.identifierPlaceholder')}
+                  register={identifierForm.register('identifier')}
                 />
-                <p className="mt-2 text-sm text-gray-600">{t('auth:forgot.emailHint')}</p>
+                <p className="mt-2 text-sm text-gray-600">{t('auth:forgot.identifierHint')}</p>
               </div>
               {/* Primary action and its way out, grouped. As a third child of the
                   form's `space-y` the back link sat a full field-gap below the
@@ -357,8 +377,8 @@ export default function ForgotPasswordPage() {
                 <button type="submit" disabled={loading || code.length !== OTP_LENGTH} className={primaryBtnCls}>
                   {loading ? t('auth:forgot.verifying') : t('auth:forgot.verifyCode')}
                 </button>
-                <button type="button" onClick={() => { setStage('email'); setOtp(EMPTY_OTP); setError('') }} className={backBtnCls}>
-                  <ArrowLeft className="w-4 h-4 shrink-0" /> {t('auth:forgot.useDifferentEmail')}
+                <button type="button" onClick={() => { setStage('identifier'); setOtp(EMPTY_OTP); setError('') }} className={backBtnCls}>
+                  <ArrowLeft className="w-4 h-4 shrink-0" /> {t('auth:forgot.useDifferentIdentifier')}
                 </button>
               </div>
             </form>

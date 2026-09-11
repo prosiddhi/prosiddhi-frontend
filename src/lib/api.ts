@@ -639,6 +639,14 @@ function loginEndpoint(role: LoginRole): string {
   return role === 'employer' ? '/employers/login' : '/jobseekers/login'
 }
 
+// `otp` is echoed in non-production only; absent in production. Never make a
+// flow depend on it.
+export interface ForgotPasswordResult {
+  identifier: string
+  expiresIn: string
+  otp?: string
+}
+
 export const authAPI = {
   // Email+password OR phone+otp login. Role selects the endpoint.
   login: async (role: LoginRole, credentials: LoginCredentials) => {
@@ -813,12 +821,27 @@ export const authAPI = {
     })
   },
 
-  // Reset password with the FORGOT_PASSWORD email OTP. POST /api/auth/reset-password.
-  // Pair with emailOtpAPI.send(email, 'FORGOT_PASSWORD') then verify.
-  resetPassword: async (email: string, otp: string, newPassword: string) => {
+  // Unified forgot-password (email OR phone). POST /api/auth/forgot-password
+  // { identifier }. The BE picks the channel by shape — a verified email sends
+  // an email-OTP (FORGOT_PASSWORD), a verified phone sends an SMS-OTP — and
+  // always returns the same generic response so the reply cannot be used to
+  // enumerate which identifiers have accounts.
+  forgotPassword: async (identifier: string) => {
+    return apiRequest<ForgotPasswordResult>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    })
+  },
+
+  // Reset password with the FORGOT_PASSWORD OTP (email or phone — same
+  // dispatch as forgotPassword above). POST /api/auth/reset-password.
+  // `identifier` MUST be the exact value forgotPassword was called with: the
+  // code is stored against it, so asking by phone and resetting by email
+  // looks up a row that was never written.
+  resetPassword: async (identifier: string, otp: string, newPassword: string) => {
     return apiRequest('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, newPassword }),
+      body: JSON.stringify({ identifier, otp, newPassword }),
     })
   },
 
