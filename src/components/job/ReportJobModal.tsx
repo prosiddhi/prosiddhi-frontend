@@ -8,6 +8,9 @@ import { jobSeekerAPI } from '@/lib/api'
 interface ReportJobModalProps {
   isOpen: boolean
   onClose: () => void
+  // Fired once the report is submitted successfully, so Job Details can hide
+  // "Report this job" immediately without waiting on a refetch.
+  onReported?: () => void
   jobId: string
   jobTitle: string
 }
@@ -15,7 +18,7 @@ interface ReportJobModalProps {
 const MIN_REASON = 5
 const MAX_REASON = 1000
 
-export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobModalProps) {
+export function ReportJobModal({ isOpen, onClose, onReported, jobId, jobTitle }: ReportJobModalProps) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -47,6 +50,7 @@ export function ReportJobModal({ isOpen, onClose, jobId, jobTitle }: ReportJobMo
     try {
       await jobSeekerAPI.reportJob(jobId, reason.trim())
       setSuccess(true)
+      onReported?.()
     } catch (err) {
       // Surfaces the BE message, including the 429 rate-limit / duplicate text.
       setError(err instanceof Error ? err.message : t('seeker:reportModal.submitError'))

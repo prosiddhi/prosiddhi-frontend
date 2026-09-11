@@ -92,6 +92,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [hasApplied, setHasApplied] = useState(false)
+  const [hasReported, setHasReported] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
@@ -117,10 +118,12 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
       setRelated([])
       setIsSaved(false)
       setHasApplied(false)
+      setHasReported(false)
       try {
         const j = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
         setJob(j)
+        setHasReported(!!j.hasReported)
         // Related Jobs is seeker-only UI; saved/applied are seeker-only and 403 for
         // an employer — none of the three are requested when the viewer isn't a seeker.
         const [rel, saved, applied] = await Promise.allSettled([
@@ -443,7 +446,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
                   {/* Report this job (PJP-152) — trust affordance for scam/abusive
                       posts. Seeker-only, and deliberately the last, quietest thing
                       in the main column. */}
-                  {isSeeker && (
+                  {isSeeker && !hasReported && (
                     <button
                       onClick={() => setIsReportModalOpen(true)}
                       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors pt-2"
@@ -575,6 +578,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
         <ReportJobModal
           isOpen={isReportModalOpen}
           onClose={() => setIsReportModalOpen(false)}
+          onReported={() => setHasReported(true)}
           jobId={job.id}
           jobTitle={job.title}
         />
