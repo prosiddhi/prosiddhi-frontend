@@ -37,6 +37,23 @@ interface AuthContextValue {
    * back to /login and then straight back to the invite they were holding.
    */
   logout: (redirectTo?: string) => void
+  /**
+   * True while a logout- or 401-driven redirect to /login is in flight.
+   *
+   * `logout()` and the `auth:unauthorized` handler both clear the session and
+   * `router.push` away, but that push is async — a page still mounted at that
+   * instant (whatever the outgoing user was looking at) re-renders with
+   * `isAuthenticated: false` before the URL has actually changed. `ProtectedRoute`
+   * reads this to tell "the session that was live on me just ended" (its own
+   * redirect must not fire — AuthContext already owns one) apart from "I mounted
+   * on a URL nobody was ever signed in on" (its own redirect to /login should
+   * still happen). See ProtectedRoute.tsx.
+   *
+   * A plain function reading a ref, not a boolean field: it must reflect the
+   * flag's value at the instant each caller's effect actually runs, not the
+   * value captured when this context object was built.
+   */
+  isLoggingOut: () => boolean
 }
 
 // `safeInternalPath` is the single arbiter of whether a redirect target is ours, so
@@ -81,7 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Set synchronously (not state) at the top of logout()/onUnauthorized, before
+  // either clears the session — so it is already true for any component whose
+  // effect happens to run before the router.push they trigger has taken effect.
+  // Cleared once the transition it announces has been observed (see the identity
+  // effect below) so a later, genuinely-cold unauthenticated visit is unaffected.
+  const isLoggingOutRef = useRef(false)
+  const isLoggingOut = useCallback(() => isLoggingOutRef.current, [])
+
   const login = useCallback((newToken: string, newUser: AuthUser) => {
+    isLoggingOutRef.current = false
     window.localStorage.setItem(AUTH_TOKEN_KEY, newToken)
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser))
     setToken(newToken)
@@ -104,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(
     (redirectTo?: string) => {
+      isLoggingOutRef.current = true
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
       setToken(null)
@@ -148,11 +175,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // belongs to this same session, so there is nothing to purge.
     if (previous === undefined || previous === current) return
     router.refresh()
+    // The transition this render announces has now been observed — by every
+    // consumer, since effects fire child-before-parent and ProtectedRoute sits
+    // below this provider. Safe to clear so the NEXT unauthenticated visit (e.g.
+    // a back-navigation into a stale protected tab, well after this logout) is
+    // treated as genuinely cold again rather than still "mid-redirect".
+    isLoggingOutRef.current = false
   }, [isLoading, user?.id, router])
 
   // React to 401s surfaced by the API client.
   useEffect(() => {
     const onUnauthorized = () => {
+      isLoggingOutRef.current = true
       // Storage was already cleared by lib/api.ts; sync state + redirect.
       setToken(null)
       setUser(null)
@@ -171,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     updateUser,
     logout,
+    isLoggingOut,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

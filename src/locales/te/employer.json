@@ -177,6 +177,35 @@
     "downloadFailed": "ఈ ఇన్‌వాయిస్ డౌన్‌లోడ్ కాలేదు. దయచేసి మళ్లీ ప్రయత్నించండి.",
     "pageOf": "పేజీ {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "ప్లాన్లు, ధరలు",
     "subheading": "ఉద్యోగ పోస్ట్‌లు, అభ్యర్థి అన్‌లాక్‌లు కొనండి. మీరు ఎంత మందిని నియమించుకుంటారో దానికి సరిపోయే ప్లాన్ ఎంచుకోండి.",
@@ -255,20 +284,25 @@
       "applications": "దరఖాస్తులు",
       "pending": "దరఖాస్తు చేశారు",
       "shortlisted": "షార్ట్‌లిస్ట్",
-      "accepted": "ఆమోదించారు"
+      "accepted": "ఆమోదించారు",
+      "reviewed": "పరిశీలించారు"
     },
+    "jobOverviewTitle": "ఉద్యోగ అవలోకనం",
+    "overviewTitle": "దరఖాస్తు అవలోకనం",
     "yourJobs": "మీ ఉద్యోగాలు",
     "manageAll": "అన్నీ నిర్వహించండి",
     "unlockedCandidates": "అన్‌లాక్ చేసిన అభ్యర్థులు",
     "viewAll": "అన్నీ చూడండి",
     "statusActive": "యాక్టివ్",
     "statusInactive": "ఇన్‌యాక్టివ్",
-    "applicants": "దరఖాస్తుదారులు",
+    "applicants_one": "దరఖాస్తుదారులు",
+    "applicants_other": "దరఖాస్తుదారులు",
     "pendingCount": "దరఖాస్తు చేశారు",
     "shortlistedCount": "షార్ట్‌లిస్ట్",
     "acceptedCount": "ఆమోదించారు",
     "noJobsTitle": "మీరు ఇంకా ఏ ఉద్యోగమూ పోస్ట్ చేయలేదు.",
     "postFirstJob": "మీ మొదటి ఉద్యోగం పోస్ట్ చేయండి",
+    "posted": "{{time}} పోస్ట్ చేశారు",
     "recentApplications": "ఇటీవలి దరఖాస్తులు",
     "applicantFallback": "దరఖాస్తుదారు",
     "noApplications": "ఇంకా దరఖాస్తులు లేవు. అభ్యర్థులు దరఖాస్తు చేసినప్పుడు ఇక్కడ కనిపిస్తాయి."

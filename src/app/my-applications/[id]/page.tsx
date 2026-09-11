@@ -3,18 +3,14 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
-import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import { jobSeekerAPI, type Application } from '@/lib/api'
-import { humanizeJobType, formatSalary, formatSalaryLine, relativeTime, initials, formatDate, localizeLocation } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalaryLine, relativeTime, initials, formatDate, localizeLocation } from '@/lib/jobFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
-  Home,
   Briefcase,
-  Bookmark,
   Clock,
   MapPin,
   IndianRupee,
@@ -24,12 +20,10 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react'
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs'
-import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 function ApplicationDetailsContent() {
   const { t } = useTranslation()
-  const router = useRouter()
   const params = useParams()
   const applicationId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
 
@@ -85,54 +79,20 @@ function ApplicationDetailsContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header/Navbar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center min-h-[44px]">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image src="/assets/prosiddhi-logo-horizontal.png" alt={t('app.name')} fill className="object-contain" priority />
-            </div>
-          </Link>
-
-          {/* Navigation */}
-          <nav className="hidden lg:flex items-center gap-8 xl:gap-11">
-            <Link href="/" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Home className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.home')}</span>
-            </Link>
-            <Link href="/job-feed" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Briefcase className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.jobFeed')}</span>
-            </Link>
-            <Link href="/saved-jobs" className="flex items-center gap-1 text-black hover:text-primary-50 transition-colors">
-              <Bookmark className="w-[18px] h-[18px]" />
-              <span className="text-[18px]">{t('seeker:nav.savedJobs')}</span>
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-
-          {/* Right side - User profile */}
-          <HeaderActions />
-        </div>
-      </header>
-
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px] pt-4">
-        <Breadcrumbs />
-      </div>
-
+      <EmployeeHeader />
 
       {/* Main Content */}
-      <main className="flex-1 py-6 sm:py-8 lg:py-12">
+      <main className="flex-1 pt-[clamp(16px,5.33px_+_1.67vw,32px)] pb-[clamp(24px,8px_+_2.5vw,48px)]">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          {/* Back Button */}
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6 sm:mb-8 lg:mb-10"
+          {/* Back Button — always returns to the applications list, not a generic
+              browser-back, since this page is only ever reached from there. */}
+          <Link
+            href="/my-applications"
+            className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-[clamp(16px,8px_+_1.25vw,28px)]"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="text-base sm:text-lg">{t('seeker:applicationDetail.back')}</span>
-          </button>
+          </Link>
 
           {/* Loading */}
           {loading && (
@@ -159,7 +119,7 @@ function ApplicationDetailsContent() {
           {!loading && !error && application && (
             <>
               {/* Job Header Card */}
-              <div className="bg-white rounded-[10px] mb-8 sm:mb-10 lg:mb-12">
+              <div className="bg-white rounded-[10px] mb-6 sm:mb-8">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
                   {/* Left Side - Job Info */}
                   <div className="flex items-start gap-4 flex-1">
@@ -181,7 +141,7 @@ function ApplicationDetailsContent() {
                       <div className="flex items-center gap-1 mb-4 sm:mb-5">
                         <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="text-base sm:text-lg lg:text-[18px] font-medium">
-                          {formatSalaryLine(job?.salaryMin, job?.salaryMax)}
+                          {formatSalaryLine(job?.salaryMin, job?.salaryMax, job?.paymentType)}
                         </span>
                       </div>
 
@@ -214,7 +174,9 @@ function ApplicationDetailsContent() {
                     <span className="text-sm sm:text-base text-black">
                       {t('seeker:applicationDetail.appliedRelative', { time: relativeTime(application.appliedAt) })}
                     </span>
-                    <span className={`px-6 py-3 rounded-lg flex items-center justify-center min-w-[140px] text-sm sm:text-base font-medium ${meta.pill}`}>
+                    {/* Success-style chip, matching the My Applications card —
+                        independent of statusMeta's per-status pill color. */}
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-50 text-green-700 whitespace-nowrap">
                       {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
                     </span>
                   </div>
@@ -224,7 +186,7 @@ function ApplicationDetailsContent() {
               {/* Interview Details (PJP-153) — shown once an employer schedules.
                   Reads application.interview (populated by BR-4; see docs/be-requests.md#br-4). */}
               {application.interview && (
-                <section className="mb-8 sm:mb-10 lg:mb-12">
+                <section className="mb-6 sm:mb-8">
                   <div className="border border-[#d0e8f0] bg-[#f0f9fc] rounded-[10px] p-5 sm:p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <CalendarClock className="w-5 h-5 text-[#236987]" />
@@ -257,7 +219,7 @@ function ApplicationDetailsContent() {
               )}
 
               {/* Your Application */}
-              <section className="mb-8 sm:mb-10 lg:mb-12">
+              <section className="mb-6 sm:mb-8">
                 <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
                   {t('seeker:applicationDetail.yourApplication')}
                 </h2>
@@ -272,13 +234,30 @@ function ApplicationDetailsContent() {
 
               {/* Job Description (real data) */}
               {job?.description && (
-                <section className="mb-8 sm:mb-10 lg:mb-12">
+                <section className="mb-6 sm:mb-8">
                   <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
                     {t('seeker:applicationDetail.jobDescription')}
                   </h2>
                   <p className="text-sm sm:text-base lg:text-[16px] leading-relaxed text-black whitespace-pre-line">
                     {job.description}
                   </p>
+                </section>
+              )}
+
+              {/* Skills & Qualifications (real data) — same heading + chip
+                  styling as Job Details (src/app/job-details/[id]/page.tsx). */}
+              {(job?.skillsRequired?.length ?? 0) > 0 && (
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="text-xl sm:text-2xl lg:text-[32px] font-semibold mb-4 sm:mb-6">
+                    {t('seeker:jobDetails.skillsTitle')}
+                  </h2>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {job?.skillsRequired?.map((skill) => (
+                      <span key={skill} className="bg-[#e3f5ff] text-[#236987] px-3 py-1.5 rounded-full text-xs sm:text-sm">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </section>
               )}
 
@@ -293,7 +272,7 @@ function ApplicationDetailsContent() {
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 lg:mb-20">
                 <Link
-                  href={`/job-details/${application.jobId}`}
+                  href={`/job-details/${application.jobId}?from=application-details&applicationId=${application.id}`}
                   className="px-6 sm:px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <Briefcase className="w-5 h-5" />

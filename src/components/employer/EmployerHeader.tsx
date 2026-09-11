@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Plus, Search, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
 
@@ -35,10 +35,15 @@ import { HeaderActions } from '@/components/navigation/HeaderActions'
  * across all 106 call sites rather than here — an earlier draft of this comment
  * claimed a fill "is a different measurement and passes", which is simply false,
  * and `scripts/smoke/smoke-td28.js` measures it on every run.
+ *
+ * **Find workers / Team / Post a Job live here, not per-page.** They used to be
+ * passed in as `children`, which only the dashboard and My Jobs actually did —
+ * the other ten employer pages rendered a bare `<EmployerHeader />` and silently
+ * shipped without them. Same TD-28 failure mode, one level down: the fix is the
+ * same one, stop letting each page opt in to shared chrome.
  */
 export function EmployerHeader({
   logoHref = '/employer',
-  children,
 }: {
   /**
    * Where the logo goes. Defaults to the dashboard; the post- and edit-job
@@ -46,8 +51,6 @@ export function EmployerHeader({
    * dashboard is two steps away rather than one.
    */
   logoHref?: string
-  /** Page-specific calls to action, rendered before the account controls. */
-  children?: ReactNode
 }) {
   const { t } = useTranslation()
   return (
@@ -65,7 +68,20 @@ export function EmployerHeader({
           </div>
         </Link>
         <div className="flex items-center gap-3 sm:gap-5">
-          {children}
+          {/* `hidden sm:`/`hidden md:`: three actions plus the account controls
+              do not fit a phone width. */}
+          <Link href="/employer/workers" className={`hidden sm:inline-flex ${employerHeaderLinkCls}`}>
+            <Search className="w-4 h-4" />
+            {t('employer:dashboard.findWorkers')}
+          </Link>
+          <Link href="/employer/team" className={`hidden md:inline-flex ${employerHeaderLinkCls}`}>
+            <Users className="w-4 h-4" />
+            {t('employer:dashboard.team')}
+          </Link>
+          <Link href="/employer/jobs/new" className={employerHeaderCtaCls}>
+            <Plus className="w-4 h-4" />
+            {t('employer:dashboard.postJob')}
+          </Link>
           <HeaderActions />
         </div>
       </div>

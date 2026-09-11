@@ -326,13 +326,13 @@ export interface Job {
   longitude?: number | null
   radius?: number | null
   viewCount?: number
-  // `duration`, `expiresAt` and the showEmail/showPhone reveal toggles were DROPPED
-  // from Job by the backend in fe246f1 (2026-08-06) and are deliberately not
-  // declared here. Three of them governed nothing; the toggles did work but employer
-  // contact is now always shown, because the seeker side is free. Leaving them on
-  // this type is what let the Contact button keep gating on fields that no longer
-  // arrive — it rendered on no job at all. A job's life is `liveUntil` (30 days per
-  // POST credit), never a date the employer picked.
+  applicationCount?: number
+  // The job's actual life is `liveUntil` (30 days per POST credit), never a date
+  // the employer picked — shown on Job Details as the "apply by" date.
+  liveUntil?: string
+  // Distinct from `createdAt` when a job is renewed/reposted; Job Details prefers
+  // this for "posted X ago" and falls back to `createdAt` for older responses.
+  postedAt?: string
   employerId?: string
   employer?: {
     id?: string
@@ -340,6 +340,7 @@ export interface Job {
     companyName?: string | null
     fullName?: string | null
     companyEmail?: string | null
+    companySize?: CompanySize | null
     [key: string]: unknown
   } | null
   createdAt?: string
@@ -413,6 +414,7 @@ export interface JobFeedFilters {
   longitude?: number
   maxDistance?: number
   skills?: string // comma-separated
+  urgencyLevel?: string
   sortBy?: 'postedAt' | 'salaryMin' | 'salaryMax' | 'urgencyLevel' | 'title'
   sortOrder?: 'asc' | 'desc'
   page?: number
@@ -471,6 +473,8 @@ export interface UserDocument {
   mimeType: string
   verified: boolean
   verificationStatus?: string
+  /** Set by admin only when verificationStatus is REJECTED. */
+  rejectionReason?: string | null
   createdAt?: string
 }
 
@@ -514,11 +518,14 @@ export interface ProfileWorkExperience {
 // here so it can never be read/stored on the FE.
 export interface SeekerProfile {
   id: string
-  email: string
+  /** NULL for a phone-only seeker — email is optional at registration. */
+  email: string | null
   phoneNumber?: string | null
   role: UserRole
   accountStatus?: string
   emailVerified?: boolean
+  /** Phone is mandatory at registration, so this is true for every self-registered seeker. */
+  phoneVerified?: boolean
   preferredLanguage?: string
   jobSeeker?: {
     id: string
@@ -528,12 +535,18 @@ export interface SeekerProfile {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    /** BR-1 — captured at registration; not editable from the profile form. */
+    dateOfBirth?: string | null
+    gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
     preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
+    /** Admin-reviewed rollup across the seeker's uploaded documents (not per-document). */
+    documentVerificationStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED' | null
     skills?: JobSeekerSkillLink[]
     workExperience?: ProfileWorkExperience[]
     documents?: UserDocument[]
+    updatedAt?: string
   } | null
 }
 
@@ -545,6 +558,10 @@ export interface EmployerProfile {
   role: UserRole
   accountStatus?: string
   emailVerified?: boolean
+  phoneVerified?: boolean
+  preferredLanguage?: string
+  createdAt?: string
+  updatedAt?: string
   employer?: {
     id: string
     employerType?: string
@@ -579,6 +596,10 @@ export interface SeekerProfileUpdate {
   preferredJobTitle?: string
   preferredLanguage?: string
   profilePhoto?: string
+  // BR-1 — also editable post-registration via PUT /profile (updateJobSeekerProfileSchema).
+  // dateOfBirth must be a YYYY-MM-DD date string; the BE rejects anything under 18.
+  dateOfBirth?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
   workExperiences?: ProfileWorkExperience[]
 }
 
@@ -616,6 +637,14 @@ interface LoginCredentials {
 
 function loginEndpoint(role: LoginRole): string {
   return role === 'employer' ? '/employers/login' : '/jobseekers/login'
+}
+
+// `otp` is echoed in non-production only; absent in production. Never make a
+// flow depend on it.
+export interface ForgotPasswordResult {
+  identifier: string
+  expiresIn: string
+  otp?: string
 }
 
 export const authAPI = {
@@ -792,12 +821,27 @@ export const authAPI = {
     })
   },
 
-  // Reset password with the FORGOT_PASSWORD email OTP. POST /api/auth/reset-password.
-  // Pair with emailOtpAPI.send(email, 'FORGOT_PASSWORD') then verify.
-  resetPassword: async (email: string, otp: string, newPassword: string) => {
+  // Unified forgot-password (email OR phone). POST /api/auth/forgot-password
+  // { identifier }. The BE picks the channel by shape — a verified email sends
+  // an email-OTP (FORGOT_PASSWORD), a verified phone sends an SMS-OTP — and
+  // always returns the same generic response so the reply cannot be used to
+  // enumerate which identifiers have accounts.
+  forgotPassword: async (identifier: string) => {
+    return apiRequest<ForgotPasswordResult>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    })
+  },
+
+  // Reset password with the FORGOT_PASSWORD OTP (email or phone — same
+  // dispatch as forgotPassword above). POST /api/auth/reset-password.
+  // `identifier` MUST be the exact value forgotPassword was called with: the
+  // code is stored against it, so asking by phone and resetting by email
+  // looks up a row that was never written.
+  resetPassword: async (identifier: string, otp: string, newPassword: string) => {
     return apiRequest('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, newPassword }),
+      body: JSON.stringify({ identifier, otp, newPassword }),
     })
   },
 
@@ -1892,6 +1936,53 @@ export const subscriptionAPI = {
     }
     return res.blob()
   },
+
+  // The org's credit statement — every POST/DOWNLOAD movement, newest first.
+  // GET /api/employers/me/credits/history (auth: employer, OWNER seat only —
+  // a MEMBER seat gets 403 ApiError with code 'NOT_OWNER'; every seat can still
+  // see the balance via getCredits above).
+  getCreditHistory: async (params: CreditHistoryParams = {}) => {
+    const qs = new URLSearchParams()
+    qs.set('page', String(params.page ?? 1))
+    qs.set('limit', String(params.limit ?? 20))
+    if (params.kind) qs.set('kind', params.kind)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return apiRequest<CreditHistoryPage>(`/employers/me/credits/history?${qs.toString()}`)
+  },
+}
+
+export interface CreditHistoryParams {
+  page?: number
+  limit?: number
+  kind?: 'POST' | 'DOWNLOAD'
+  from?: string // yyyy-mm-dd
+  to?: string // yyyy-mm-dd
+}
+
+// One credit-ledger row. `label` is a server-built, human-readable description
+// ("Posted Delivery Executive") — render it, don't try to derive one from
+// `reason` yourself. `ref`/`actor` are null wherever the entry has neither (a
+// purchase, a trial grant, an expiry all carry no job/candidate and no actor).
+export interface CreditHistoryEntry {
+  at: string
+  kind: 'POST' | 'DOWNLOAD'
+  delta: number
+  reason: string
+  label: string
+  ref: { type: 'job' | 'candidate'; id: string; name: string | null } | null
+  actor: { userId: string; name: string | null } | null
+}
+export interface CreditHistoryPage {
+  entries: CreditHistoryEntry[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }
 
 // GST invoice (list row). Amounts are floats; cgst+sgst (intra-state) OR igst
@@ -2301,6 +2392,9 @@ export type NotificationType =
   | 'PROFILE_REJECTED'
   | 'ADMIN_WARNING'
   | 'ADMIN_PAYMENT_REMINDER'
+  | 'JOB_APPROVED'
+  | 'JOB_REJECTED'
+  | 'JOB_PENDING_REVIEW'
   | 'SYSTEM'
 
 export interface AppNotification {

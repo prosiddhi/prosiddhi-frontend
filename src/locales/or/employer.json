@@ -177,6 +177,35 @@
     "downloadFailed": "ଏହି ଇନଭଏସ୍ ଡାଉନଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",
     "pageOf": "ପୃଷ୍ଠା {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "ପ୍ଲାନ୍ ଓ ଦାମ୍",
     "subheading": "ଚାକିରି ପୋଷ୍ଟ ଓ ପ୍ରାର୍ଥୀ ଅନଲକ୍ କିଣନ୍ତୁ। ଆପଣ ଯେତିକି ଲୋକ ରଖନ୍ତି, ସେହି ଅନୁସାରେ ଗୋଟିଏ ପ୍ଲାନ୍ ବାଛନ୍ତୁ।",
@@ -255,20 +284,25 @@
       "applications": "ଆବେଦନ",
       "pending": "ଅପେକ୍ଷାରେ",
       "shortlisted": "ଶର୍ଟଲିଷ୍ଟ ହୋଇଛି",
-      "accepted": "ଗ୍ରହଣ କରାଯାଇଛି"
+      "accepted": "ଗ୍ରହଣ କରାଯାଇଛି",
+      "reviewed": "ସମୀକ୍ଷା ହୋଇଛି"
     },
+    "jobOverviewTitle": "ଚାକିରି ସାରାଂଶ",
+    "overviewTitle": "ଆବେଦନ ସାରାଂଶ",
     "yourJobs": "ଆପଣଙ୍କ ଚାକିରି",
     "manageAll": "ସବୁ ପରିଚାଳନା କରନ୍ତୁ",
     "unlockedCandidates": "ଅନଲକ୍ ହୋଇଥିବା ପ୍ରାର୍ଥୀ",
     "viewAll": "ସବୁ ଦେଖନ୍ତୁ",
     "statusActive": "ସକ୍ରିୟ",
     "statusInactive": "ନିଷ୍କ୍ରିୟ",
-    "applicants": "ଆବେଦନକାରୀ",
+    "applicants_one": "ଆବେଦନକାରୀ",
+    "applicants_other": "ଆବେଦନକାରୀ",
     "pendingCount": "ଅପେକ୍ଷାରେ",
     "shortlistedCount": "ଶର୍ଟଲିଷ୍ଟ ହୋଇଛି",
     "acceptedCount": "ଗ୍ରହଣ କରାଯାଇଛି",
     "noJobsTitle": "ଆପଣ ଏବେ ସୁଦ୍ଧା କୌଣସି ଚାକିରି ପୋଷ୍ଟ କରିନାହାନ୍ତି।",
     "postFirstJob": "ଆପଣଙ୍କ ପ୍ରଥମ ଚାକିରି ପୋଷ୍ଟ କରନ୍ତୁ",
+    "posted": "{{time}} ପୋଷ୍ଟ ହୋଇଥିଲା",
     "recentApplications": "ନିକଟର ଆବେଦନ",
     "applicantFallback": "ଆବେଦନକାରୀ",
     "noApplications": "ଏବେ ସୁଦ୍ଧା କୌଣସି ଆବେଦନ ନାହିଁ। ପ୍ରାର୍ଥୀମାନେ ଆବେଦନ କଲେ ସେଗୁଡ଼ିକ ଏଠାରେ ଦେଖାଯିବ।"

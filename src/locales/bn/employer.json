@@ -177,6 +177,35 @@
     "downloadFailed": "এই ইনভয়েস ডাউনলোড করা যায়নি। আবার চেষ্টা করুন।",
     "pageOf": "পেজ {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "প্ল্যান আর দাম",
     "subheading": "চাকরি পোস্ট আর প্রার্থী আনলক কিনুন। আপনি যত লোক নেন, তার সঙ্গে মানানসই একটি প্ল্যান বেছে নিন।",
@@ -255,20 +284,25 @@
       "applications": "আবেদন",
       "pending": "অপেক্ষায়",
       "shortlisted": "শর্টলিস্ট করা",
-      "accepted": "গ্রহণ করা"
+      "accepted": "গ্রহণ করা",
+      "reviewed": "পর্যালোচনা করা"
     },
+    "jobOverviewTitle": "চাকরির সারসংক্ষেপ",
+    "overviewTitle": "আবেদনের সারসংক্ষেপ",
     "yourJobs": "আপনার চাকরিগুলো",
     "manageAll": "সব দেখাশোনা করুন",
     "unlockedCandidates": "আনলক করা প্রার্থীরা",
     "viewAll": "সব দেখুন",
     "statusActive": "চালু",
     "statusInactive": "বন্ধ",
-    "applicants": "আবেদনকারী",
+    "applicants_one": "আবেদনকারী",
+    "applicants_other": "আবেদনকারী",
     "pendingCount": "অপেক্ষায়",
     "shortlistedCount": "শর্টলিস্ট করা",
     "acceptedCount": "গ্রহণ করা",
     "noJobsTitle": "আপনি এখনও কোনও চাকরি পোস্ট করেননি।",
     "postFirstJob": "আপনার প্রথম চাকরিটি পোস্ট করুন",
+    "posted": "{{time}} পোস্ট করা হয়েছে",
     "recentApplications": "সাম্প্রতিক আবেদন",
     "applicantFallback": "আবেদনকারী",
     "noApplications": "এখনও কোনও আবেদন নেই। প্রার্থীরা আবেদন করলে সেগুলো এখানে দেখা যাবে।"

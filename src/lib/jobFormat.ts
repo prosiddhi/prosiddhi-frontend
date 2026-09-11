@@ -87,6 +87,40 @@ export function humanizeJobType(t?: string): string {
     .join(' ')
 }
 
+const PAYMENT_TYPE_KEYS: Record<string, string> = {
+  HOURLY: 'employer:jobForm.paymentType.HOURLY',
+  DAILY: 'employer:jobForm.paymentType.DAILY',
+  WEEKLY: 'employer:jobForm.paymentType.WEEKLY',
+  MONTHLY: 'employer:jobForm.paymentType.MONTHLY',
+  FIXED: 'employer:jobForm.paymentType.FIXED',
+}
+
+// Reuses the employer job-form's own payment-type labels (Hourly/Daily/Weekly/
+// Monthly/Fixed) instead of re-translating the same five words for the
+// seeker-facing Job Details page.
+export function humanizePaymentType(t?: string): string {
+  if (!t) return ''
+  const key = PAYMENT_TYPE_KEYS[t]
+  return key ? i18n.t(key) : t
+}
+
+const COMPANY_SIZE_KEYS: Record<string, string> = {
+  SIZE_1_10: 'profile:employer.size_1_10',
+  SIZE_11_50: 'profile:employer.size_11_50',
+  SIZE_51_200: 'profile:employer.size_51_200',
+  SIZE_201_500: 'profile:employer.size_201_500',
+  SIZE_501_1000: 'profile:employer.size_501_1000',
+  SIZE_1000_PLUS: 'profile:employer.size_1000_plus',
+}
+
+// Reuses the employer profile page's own company-size labels ("1-10
+// employees", ...) rather than re-translating them for Job Details.
+export function humanizeCompanySize(size?: string | null): string {
+  if (!size) return ''
+  const key = COMPANY_SIZE_KEYS[size]
+  return key ? i18n.t(key) : ''
+}
+
 export function formatSalary(min?: number | null, max?: number | null): string {
   const fmt = (n: number) => n.toLocaleString(intlLocale())
   if (min != null && max != null) {
@@ -110,9 +144,16 @@ export function formatSalary(min?: number | null, max?: number | null): string {
  * appends the suffix unconditionally — so an unknown salary read "₹ Negotiable
  * / Month", a per-month rate for a figure that does not exist. The suffix
  * belongs to the amount, so the rule lives here rather than in each caller.
+ *
+ * `paymentType`, when given, spells out the pay period (e.g. "₹15,000 -
+ * 20,000 · Hourly") instead of the generic "/ Month" suffix — used by the My
+ * Applications card and detail screens, where a real job can be HOURLY/
+ * DAILY/WEEKLY/FIXED, not just monthly.
  */
-export function formatSalaryLine(min?: number | null, max?: number | null): string {
+export function formatSalaryLine(min?: number | null, max?: number | null, paymentType?: string): string {
   if (min == null && max == null) return i18n.t('salary.notDisclosed')
+  const paymentTypeLabel = humanizePaymentType(paymentType)
+  if (paymentTypeLabel) return `${formatSalary(min, max)} · ${paymentTypeLabel}`
   return i18n.t('seeker:jobCard.perMonth', { salary: formatSalary(min, max) })
 }
 

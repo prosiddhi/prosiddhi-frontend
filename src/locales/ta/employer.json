@@ -177,6 +177,35 @@
     "downloadFailed": "இந்த இன்வாய்ஸைப் பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.",
     "pageOf": "பக்கம் {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "திட்டங்களும் விலைகளும்",
     "subheading": "வேலை விளம்பரங்களும் விண்ணப்பதாரர் அன்லாக்குகளும் வாங்குங்கள். நீங்கள் எவ்வளவு ஆள் எடுக்கிறீர்களோ அதற்கு ஏற்ற திட்டத்தைத் தேர்ந்தெடுங்கள்.",
@@ -255,20 +284,25 @@
       "applications": "விண்ணப்பங்கள்",
       "pending": "நிலுவையில்",
       "shortlisted": "தேர்வுப் பட்டியலில்",
-      "accepted": "ஏற்கப்பட்டது"
+      "accepted": "ஏற்கப்பட்டது",
+      "reviewed": "பரிசீலிக்கப்பட்டது"
     },
+    "jobOverviewTitle": "வேலை மேலோட்டம்",
+    "overviewTitle": "விண்ணப்ப மேலோட்டம்",
     "yourJobs": "உங்கள் வேலை விளம்பரங்கள்",
     "manageAll": "அனைத்தையும் நிர்வகியுங்கள்",
     "unlockedCandidates": "அன்லாக் செய்யப்பட்ட விண்ணப்பதாரர்கள்",
     "viewAll": "அனைத்தையும் பாருங்கள்",
     "statusActive": "செயலில்",
     "statusInactive": "செயலில் இல்லை",
-    "applicants": "விண்ணப்பதாரர்கள்",
+    "applicants_one": "விண்ணப்பதாரர்கள்",
+    "applicants_other": "விண்ணப்பதாரர்கள்",
     "pendingCount": "நிலுவையில்",
     "shortlistedCount": "தேர்வுப் பட்டியலில்",
     "acceptedCount": "ஏற்கப்பட்டது",
     "noJobsTitle": "நீங்கள் இதுவரை எந்த வேலை விளம்பரமும் இடவில்லை.",
     "postFirstJob": "உங்கள் முதல் வேலை விளம்பரத்தை இடுங்கள்",
+    "posted": "{{time}} இடப்பட்டது",
     "recentApplications": "சமீபத்திய விண்ணப்பங்கள்",
     "applicantFallback": "விண்ணப்பதாரர்",
     "noApplications": "இதுவரை விண்ணப்பங்கள் இல்லை. விண்ணப்பதாரர்கள் விண்ணப்பிக்கும்போது அவை இங்கே தோன்றும்."

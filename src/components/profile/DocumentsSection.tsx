@@ -3,15 +3,22 @@
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { resolveMediaUrl, type UserDocument, type DocumentType } from '@/lib/api'
+import { verificationStatusPill, verificationStatusIcon } from '@/lib/applicationStatus'
 import {
   FileText,
   Upload,
   Trash2,
   Loader2,
-  CheckCircle2,
-  Clock,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react'
+
+// Per-document verification is APPROVED/PENDING/REJECTED (BE `verificationStatus`).
+// Older/partial responses may carry only the boolean `verified` — this derives a
+// status from it so the badge always has a value to render.
+function docStatus(doc: UserDocument): string {
+  return doc.verificationStatus ?? (doc.verified ? 'APPROVED' : 'PENDING')
+}
 
 export interface DocTypeOption {
   value: DocumentType
@@ -124,18 +131,25 @@ export function DocumentsSection({
             button — so the name has to come from aria-label, and a <select> has
             no placeholder to fall back on. Until this, a screen reader on either
             profile page reached it and said only "combo box". */}
-        <select
-          aria-label={t('profile:documents.typeLabel')}
-          value={uploadType}
-          onChange={(e) => setUploadType(e.target.value as DocumentType)}
-          className="h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-primary-50"
-        >
-          {allowedTypes.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {typeLabel(opt.value)}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          {/* `appearance-none` + the ChevronDown below replace the browser's
+              own arrow, which hugs the right edge on Windows Chrome/Edge —
+              `pr-10`/`right-3` matches the chevron spacing used by the other
+              selects in the app (home, employee, job-feed pages). */}
+          <select
+            aria-label={t('profile:documents.typeLabel')}
+            value={uploadType}
+            onChange={(e) => setUploadType(e.target.value as DocumentType)}
+            className="h-11 pl-3 pr-10 border border-[#b5b5b5] rounded-lg text-sm text-black appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-50"
+          >
+            {allowedTypes.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {typeLabel(opt.value)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
         <input ref={fileRef} type="file" accept={accept} onChange={handleFile} className="hidden" />
         <button
           type="button"
@@ -163,52 +177,56 @@ export function DocumentsSection({
         <p className="text-sm text-[#717182] py-4">{t('profile:documents.empty')}</p>
       ) : (
         <ul className="space-y-3">
-          {docs.map((doc) => (
-            <li
-              key={doc.id}
-              className="flex items-center gap-3 border border-[#dddddd] rounded-[10px] p-3 sm:p-4"
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#eaf6fd] flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-primary-50" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <a
-                  href={resolveMediaUrl(doc.fileUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-black hover:text-primary-50 truncate block"
-                >
-                  {doc.fileName}
-                </a>
-                <p className="text-xs text-[#717182] flex items-center gap-2 flex-wrap">
-                  <span>{typeLabel(doc.type)}</span>
-                  {fmtSize(doc.fileSize) && <span>· {fmtSize(doc.fileSize)}</span>}
-                  {doc.verified ? (
-                    <span className="inline-flex items-center gap-1 text-green-700">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {t('profile:documents.verified')}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-amber-600">
-                      <Clock className="w-3.5 h-3.5" /> {t('profile:documents.pending')}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(doc)}
-                disabled={deletingId === doc.id || atMin}
-                title={atMin ? t('profile:documents.minOneTitle') : t('profile:documents.removeTitle')}
-                className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          {docs.map((doc) => {
+            const status = docStatus(doc)
+            const { label, pill } = verificationStatusPill(status)
+            const StatusIcon = verificationStatusIcon(status)
+            return (
+              <li
+                key={doc.id}
+                className="flex items-center gap-3 border border-[#dddddd] rounded-[10px] p-3 sm:p-4"
               >
-                {deletingId === doc.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </button>
-            </li>
-          ))}
+                <div className="w-10 h-10 rounded-lg bg-[#eaf6fd] flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-primary-50" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={resolveMediaUrl(doc.fileUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-black hover:text-primary-50 truncate block"
+                  >
+                    {doc.fileName}
+                  </a>
+                  <p className="text-xs text-[#717182] flex items-center gap-2 flex-wrap mt-0.5">
+                    <span>{typeLabel(doc.type)}</span>
+                    {fmtSize(doc.fileSize) && <span>· {fmtSize(doc.fileSize)}</span>}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${pill}`}>
+                      <StatusIcon className="w-3 h-3" /> {label}
+                    </span>
+                  </p>
+                  {status === 'REJECTED' && doc.rejectionReason && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {t('profile:documents.rejectionReason')}: {doc.rejectionReason}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(doc)}
+                  disabled={deletingId === doc.id || atMin}
+                  title={atMin ? t('profile:documents.minOneTitle') : t('profile:documents.removeTitle')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deletingId === doc.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
       {atMin && (

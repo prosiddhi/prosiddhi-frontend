@@ -23,6 +23,7 @@
     "loadError": "Failed to load this conversation.",
     "emptyHello": "No messages yet. Say hello 👋",
     "typePlaceholder": "Type a message...",
-    "sendTextError": "Message failed to send."
+    "sendTextError": "Message failed to send.",
+    "selectPrompt": "Select a conversation to start chatting"
   }
 }

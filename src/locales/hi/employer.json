@@ -177,6 +177,35 @@
     "downloadFailed": "यह इनवॉइस डाउनलोड नहीं हो सका। कृपया पुनः प्रयास करें।",
     "pageOf": "पेज {{page}} / {{total}}"
   },
+  "ledger": {
+    "navLabel": "Ledger",
+    "title": "Ledger",
+    "subtitle": "Every credit you've earned or spent, in order.",
+    "back": "Back to dashboard",
+    "loading": "Loading your credit history…",
+    "loadFailed": "Couldn't load your credit history.",
+    "notOwner": "Only the account owner can view the credit ledger.",
+    "empty": "No credit activity yet.",
+    "filters": {
+      "kindLabel": "Type",
+      "kindAll": "All",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "date": "Date & time",
+      "kind": "Kind",
+      "delta": "Credit change",
+      "reason": "Reason",
+      "label": "Description",
+      "ref": "Reference",
+      "actor": "Actor"
+    },
+    "noRef": "—",
+    "noActor": "—",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
   "plans": {
     "heading": "प्लान और कीमतें",
     "subheading": "जॉब पोस्ट और उम्मीदवार अनलॉक खरीदें। आप जितनी भर्ती करते हैं, उसके हिसाब से प्लान चुनें।",
@@ -255,20 +284,25 @@
       "applications": "आवेदन",
       "pending": "लंबित",
       "shortlisted": "शॉर्टलिस्ट किए गए",
-      "accepted": "स्वीकृत"
+      "accepted": "स्वीकृत",
+      "reviewed": "समीक्षित"
     },
+    "jobOverviewTitle": "नौकरियों का अवलोकन",
+    "overviewTitle": "आवेदनों का अवलोकन",
     "yourJobs": "आपकी नौकरियां",
     "manageAll": "सभी प्रबंधित करें",
     "unlockedCandidates": "अनलॉक किए गए उम्मीदवार",
     "viewAll": "सभी देखें",
     "statusActive": "सक्रिय",
     "statusInactive": "निष्क्रिय",
-    "applicants": "आवेदक",
+    "applicants_one": "आवेदक",
+    "applicants_other": "आवेदक",
     "pendingCount": "लंबित",
     "shortlistedCount": "शॉर्टलिस्ट किए गए",
     "acceptedCount": "स्वीकृत",
     "noJobsTitle": "आपने अभी तक कोई नौकरी पोस्ट नहीं की है।",
     "postFirstJob": "अपनी पहली नौकरी पोस्ट करें",
+    "posted": "{{time}} पोस्ट किया गया",
     "recentApplications": "हाल के आवेदन",
     "applicantFallback": "आवेदक",
     "noApplications": "अभी तक कोई आवेदन नहीं। जैसे ही उम्मीदवार आवेदन करेंगे, वे यहां दिखाई देंगे।"

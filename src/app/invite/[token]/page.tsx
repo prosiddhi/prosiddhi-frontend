@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { formatShortDate } from '@/lib/jobFormat'
 import { teamAPI, type InvitePeek } from '@/lib/api'
 import { inviteErrorKey, isTerminalInviteError } from '@/lib/inviteErrors'
+import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 import {
   clearInviteToken,
   invitePath,
@@ -143,7 +144,7 @@ export default function InviteLandingPage() {
     logout(`/login?returnUrl=${encodeURIComponent(invitePath(token))}`)
   }
 
-  const homeHref = isAuthenticated ? (isEmployer ? '/employer' : '/job-feed') : '/login'
+  const homeHref = isAuthenticated ? (isEmployer ? '/employer' : SEEKER_HOME_ROUTE) : '/login'
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -165,7 +166,6 @@ export default function InviteLandingPage() {
               <span className="text-sm">{t('employer:invite.loading')}</span>
             </div>
           ) : accepted ? (
-            /* Joined. */
             <div className="text-center">
               <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
               <h1 className="text-xl font-semibold mb-2">{t('employer:invite.successTitle')}</h1>
@@ -197,7 +197,6 @@ export default function InviteLandingPage() {
             </div>
           ) : (
             <>
-              {/* The invitation itself. */}
               <div className="text-center mb-6">
                 <div className="w-14 h-14 rounded-full bg-[#e3f5ff] flex items-center justify-center mx-auto mb-4 text-[#236987]">
                   <Users className="w-7 h-7" />

@@ -30,25 +30,20 @@ type CrumbDef = { labelKey: string; href?: string }
 // parents. `:seg` matches exactly one path segment.
 const ROUTES: Array<{ pattern: string; trail: CrumbDef[] }> = [
   // ---- Seeker ----
-  { pattern: '/job-feed', trail: [{ labelKey: 'nav.jobFeed' }] },
   { pattern: '/job-details/:seg', trail: [
     { labelKey: 'nav.jobFeed', href: '/job-feed' },
     { labelKey: 'breadcrumbs.jobDetails' },
   ] },
-  { pattern: '/saved-jobs', trail: [{ labelKey: 'nav.savedJobs' }] },
   { pattern: '/my-applications/:seg', trail: [
     { labelKey: 'nav.myApplications', href: '/my-applications' },
     { labelKey: 'breadcrumbs.application' },
   ] },
-  { pattern: '/my-applications', trail: [{ labelKey: 'nav.myApplications' }] },
   { pattern: '/my-interviews', trail: [{ labelKey: 'nav.myInterviews' }] },
   { pattern: '/messages/:seg', trail: [
     { labelKey: 'nav.messages', href: '/messages' },
     { labelKey: 'breadcrumbs.conversation' },
   ] },
   { pattern: '/messages', trail: [{ labelKey: 'nav.messages' }] },
-  { pattern: '/profile', trail: [{ labelKey: 'nav.profile' }] },
-  { pattern: '/settings', trail: [{ labelKey: 'nav.settings' }] },
 
   // ---- Employer ----
   // Every employer crumb hangs off /employer, so the dashboard is always one

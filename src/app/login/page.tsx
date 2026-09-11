@@ -2,8 +2,9 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, X } from 'lucide-react'
-import { VoiceButton } from '@/components/feedback/VoiceButton'
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowLeft, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -12,12 +13,58 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
+import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import { showToast } from '@/lib/toast'
+import { displayName } from '@/lib/userDisplay'
+import {
+  phonePasswordSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  bindVerifyOtpSchema,
+  EMPTY_OTP,
+  type PhonePasswordValues,
+  type SendOtpValues,
+  type VerifyOtpValues,
+} from '@/lib/validation/authSchemas'
+import { IdentifierField } from '@/components/auth/IdentifierField'
+import { PasswordField } from '@/components/auth/PasswordField'
+import { PhoneNumberField } from '@/components/auth/PhoneNumberField'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 
-// `phoneOtp` and `phonePassword` are BOTH phone-identified; they differ only in
-// the credential. Arm 3 (phone + password) exists because a seeker who
-// registered without an email has no other password login — the phone IS their
-// identity.
-type Tab = 'email' | 'phoneOtp' | 'phonePassword' | 'google'
+// `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
+// is misnamed by history: since TD-37 its field takes a phone number OR an
+// email, which is why there is no separate email arm. There was one, and it
+// called the same endpoint with the same payload — `toIdentifier` lowercases and
+// shape-checks an email exactly as that form did, and `authService.login`
+// detects the identifier type server-side either way. Two screens for one
+// capability, so the second was removed rather than kept in step.
+type Tab = 'phoneOtp' | 'phonePassword' | 'google'
+
+// Shared by the primary actions on this card so they cannot drift apart.
+// Matched to /forgot-password's button, which is the same control in the same
+// flow.
+//
+// The disabled state is a real pair of tokens, NOT `disabled:opacity-60`.
+// Opacity fades the label and the fill together toward white, so the dark
+// primary-100 label ended up rendering as #6d858e on #9ddaf4 — 2.55:1, which is
+// not readable. "Send OTP" is disabled until a number is typed, so that
+// unreadable label was the FIRST thing on the phone-OTP screen. primary-20 on
+// primary-80 is 5.08:1: obviously inactive next to the sky-blue enabled state,
+// but still legible.
+const PRIMARY_BTN_CLS =
+  'w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 px-4 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-colors text-base font-medium disabled:bg-primary-20 disabled:text-primary-80 disabled:cursor-not-allowed'
+
+// The brand sky blue, and a DELIBERATE choice — confirmed 2026-08-26 after it
+// was measured. #5cc2ed on white is 2.02:1, against WCAG AA's 4.5:1 for normal
+// text; that is the same figure TD-48 recorded before it darkened the primary
+// BUTTON's label, and it applies to every text link on this card. Darkening to
+// primary-80 (#236987, 6.10:1) was proposed and declined in favour of the brand
+// colour, on both auth pages.
+//
+// Recorded here so it is not silently "fixed" in a later styling pass — reopen
+// it with the brand owner, not in a cleanup. The same decision was taken for the
+// sign-up links (secondary-50) further down.
+const TEXT_LINK_CLS = 'text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors'
 
 // New Google sign-ups land in PENDING_OTP_VERIFICATION; we hold them on /login
 // in a phone-bind view before sending them to their dashboard.
@@ -27,9 +74,48 @@ type Mode = 'login' | 'bindPhone'
 // to JOB_SEEKER; the employer tab additionally picks an individual/business subtype.
 type EmployerSubtype = 'individual' | 'business'
 
-// Seeker → /job-feed, Employer (individual/business) → /employer.
+/**
+ * The official four-colour Google "G", inline.
+ *
+ * Inline rather than an import because there is nothing in the project to reuse:
+ * no mark in `public/`, no `react-icons`, and `lucide-react` ships only `Chrome`
+ * — a BROWSER icon, not Google's identity. Using it would put the wrong mark on
+ * a sign-in button, which is worse than shipping no mark at all.
+ *
+ * `@react-oauth/google` does render a branded button, but that is the OAuth
+ * widget on the Google tab; this is the entry control that switches to it.
+ *
+ * The paths are Google's own artwork and must not be recoloured or redrawn —
+ * their branding terms require the mark be used as issued. `aria-hidden` because
+ * the button's own text already says "Continue with Google"; announcing the logo
+ * too would read the word twice.
+ */
+function GoogleG({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
+  )
+}
+
+// Seeker → the seeker home page, Employer (individual/business) → /employer.
 function homeForUser(user: AuthUser): string {
-  return user.role === 'JOB_SEEKER' ? '/job-feed' : '/employer'
+  return user.role === 'JOB_SEEKER' ? SEEKER_HOME_ROUTE : '/employer'
 }
 
 // Employer-only areas. A seeker who lands on a /employer/* returnUrl would just be
@@ -105,10 +191,10 @@ function LoginContent() {
   // initializer captures null and the Employer tab never preselects. Verified —
   // the SSR markup came back with Job Seeker active for an /employer returnUrl.
   const [roleTouched, setRoleTouched] = useState(false)
-  // TD-37: phone + password is THE login. Email and phone-OTP still work and are
-  // reachable by a text link; they are no longer choices you must make before
-  // you can start typing. `role` survives only for the Google arm — see the
-  // note on the role block in the render.
+  // TD-37: phone-or-email + password is THE login. Google and phone-OTP are
+  // still here, reachable by a text link below the form rather than a choice you
+  // must make before you can start typing. `role` survives only for the Google
+  // arm — see the note on the role block in the render.
   const [tab, setTab] = useState<Tab>('phonePassword')
 
   useEffect(() => {
@@ -120,31 +206,64 @@ function LoginContent() {
 
   // Google
   const [employerSubtype, setEmployerSubtype] = useState<EmployerSubtype>('individual')
-  // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp state
+  // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp forms
   // below; `bindUser` is the just-authenticated user, kept for the post-bind redirect.
   const [mode, setMode] = useState<Mode>('login')
   const [bindUser, setBindUser] = useState<AuthUser | null>(null)
 
-  // Email/password
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  // One RHF form per validation SHAPE, not per screen — the phone-OTP tab and
+  // the Google phone-bind step both send-then-verify a phone number, so they
+  // share `sendOtpSchema`/`verifyOtpSchema`'s shape even though they are two
+  // separate `useForm` instances (different submit actions, different OTP
+  // API). RHF is the single source of truth for every field below; `phone` is
+  // no longer a page-level `useState` — see the tab-switch handlers for how a
+  // value now moves from one form to another when the user changes tabs,
+  // which is what the old shared `phone` state did implicitly.
+  const phonePasswordForm = useForm<PhonePasswordValues>({
+    resolver: zodResolver(phonePasswordSchema),
+    defaultValues: { identifier: '', password: '' },
+  })
+  const phoneOtpSendForm = useForm<SendOtpValues>({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { phone: '' },
+  })
+  const phoneOtpVerifyForm = useForm<VerifyOtpValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: { otp: EMPTY_OTP },
+  })
+  const bindSendForm = useForm<SendOtpValues>({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { phone: '' },
+  })
+  const bindVerifyForm = useForm<VerifyOtpValues>({
+    resolver: zodResolver(bindVerifyOtpSchema),
+    defaultValues: { otp: EMPTY_OTP },
+  })
 
-  // Phone/OTP
-  const [phone, setPhone] = useState('')
+  // Phone/OTP step (shared between the phone-OTP tab and the bind-phone flow —
+  // both are a "send, then verify" pair, so which form is on screen is a
+  // single boolean either way).
   const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([])
+  const otpInputRef = useRef<OtpInputHandle>(null)
+  const bindOtpInputRef = useRef<OtpInputHandle>(null)
 
   const handleClose = () => router.push('/')
 
   const onLoginSuccess = (result: { token: string; user: AuthUser }) => {
     login(result.token, result.user)
+    showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
     router.push(destinationAfterLogin(result.user, returnUrl))
   }
 
   const switchTab = (next: Tab) => {
+    // Carry the identifier back into the password form when returning from
+    // the phone-OTP tab — the two fields were one shared `phone` state before
+    // this refactor, and a value typed on either tab survived switching both
+    // ways.
+    if (next === 'phonePassword' && tab === 'phoneOtp') {
+      const currentPhone = phoneOtpSendForm.getValues('phone')
+      if (currentPhone) phonePasswordForm.setValue('identifier', currentPhone)
+    }
     setTab(next)
     setError('')
   }
@@ -224,39 +343,11 @@ function LoginContent() {
     return false
   }
 
-  // --- Email/password ---
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email || !password) return
-    try {
-      setLoading(true)
-      setError('')
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email)
-      }
-      // Also role-blind (TD-37). It is a password, so the retry is safe — and
-      // it MUST be, because the role toggle no longer renders on this arm.
-      // Leaving `authAPI.login(role, …)` here would have pinned every email
-      // login to whichever role happened to be inferred, with nothing on screen
-      // to correct it.
-      const result = await authAPI.loginAnyRole(
-        { identifier: email.trim().toLowerCase(), password },
-        role
-      )
-      onLoginSuccess(result)
-    } catch (err) {
-      handleLoginError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // --- Phone + password (arm 3) ---
-  // The only password login available to a seeker who registered without an
-  // email. Same endpoint as the email arm; only the identifier differs.
-  const handlePhonePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone || !password) return
+  // --- Phone or email + password ---
+  // THE password login, for everybody. A seeker who registered phone-only has no
+  // other one — their phone IS their identity — and an employer with no phone
+  // signs in here with their email. `toIdentifier` decides which was typed.
+  const onPhonePasswordSubmit: SubmitHandler<PhonePasswordValues> = async ({ identifier: raw, password }) => {
     try {
       setLoading(true)
       setError('')
@@ -264,16 +355,10 @@ function LoginContent() {
       // if the backend answers ROLE_MISMATCH with the account's real role, uses
       // that. Right credentials can no longer fail because you were looking at
       // the wrong tab, which was the most common way to fail to log in.
-      // null = phone-shaped but not a plausible number. Sending it anyway would
-      // come back "invalid credentials", blaming the password for a typo in the
-      // number — and  used to do exactly that, silently.
-      const identifier = toIdentifier(phone)
-      if (!identifier) {
-        // NOT auth:phone.errorInvalid — this field takes either, so phone-only
-        // instructions are wrong half the time.
-        setError(t('auth:login.errorIdentifierInvalid'))
-        return
-      }
+      // The resolver already confirmed `raw` parses via toIdentifier, so this
+      // narrows the type rather than re-validating it.
+      const identifier = toIdentifier(raw)
+      if (!identifier) return
       const result = await authAPI.loginAnyRole({ identifier, password }, role)
       onLoginSuccess(result)
     } catch (err) {
@@ -286,36 +371,32 @@ function LoginContent() {
     }
   }
 
-  // "Forgot password?" is email-based, so it is a dead end for a phone-only
-  // seeker — the exact user arm 3 exists for. Offer the phone-OTP route as the
-  // way back in instead.
+  // "Forgot password?" now takes either identifier (/forgot-password was
+  // email-only until this was fixed to match /login's TD-37 concept). This
+  // button stays regardless — it's the faster route back in for someone who
+  // just wants a fresh OTP, not a workaround for a channel forgot-password
+  // couldn't reach.
   const switchToPhoneOtp = () => {
-    // The two screens share `phone`, and the primary field now accepts an email.
-    // Carrying "boss@acme.com" into a box labelled Phone Number prefills a
-    // dead end: Send OTP cannot do anything with it.
-    if (phone.includes('@')) setPhone('')
+    // The two screens share a value, and the primary field now accepts an
+    // email. Carrying "boss@acme.com" into a box labelled Phone Number
+    // prefills a dead end: Send OTP cannot do anything with it.
+    const currentIdentifier = phonePasswordForm.getValues('identifier')
+    phoneOtpSendForm.setValue('phone', currentIdentifier.includes('@') ? '' : currentIdentifier)
     setTab('phoneOtp')
     setError('')
     setOtpSent(false)
   }
 
   // --- Phone/OTP step 1: send ---
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone) return
+  const onSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
       setError('')
       const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      if (!e164) return
       await authAPI.loginPhoneSend(e164)
       setOtpSent(true)
-      setOtp(['', '', '', '', '', ''])
-      // focus first OTP box on next paint
-      setTimeout(() => otpRefs.current[0]?.focus(), 0)
+      phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth:login.errorSendOtp'))
     } finally {
@@ -323,38 +404,14 @@ function LoginContent() {
     }
   }
 
-  const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
-    const next = [...otp]
-    next[index] = digit
-    setOtp(next)
-    if (digit && index < 5) {
-      otpRefs.current[index + 1]?.focus()
-    }
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus()
-    }
-  }
-
   // --- Phone/OTP step 2: verify (login with identifier=phone, otp) ---
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onVerifyOtp: SubmitHandler<VerifyOtpValues> = async ({ otp }) => {
     const code = otp.join('')
-    if (code.length !== 6) {
-      setError(t('auth:login.errorOtpIncomplete'))
-      return
-    }
     try {
       setLoading(true)
       setError('')
-      const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      const e164 = toE164(phoneOtpSendForm.getValues('phone'))
+      if (!e164) return
       // Role-agnostic, like both password arms. `loginSchema` arm 2 accepts
       // `{identifier, otp}` on /auth/login, so nothing here needs to know or
       // guess which kind of account this is.
@@ -366,12 +423,12 @@ function LoginContent() {
       // the "send OTP" step — otherwise the six boxes clear, `otpSent` stays
       // true, and there is no Send button on screen to get a fresh code with.
       const wrongRole = handleLoginError(err, () => setOtpSent(false))
-      setOtp(['', '', '', '', '', ''])
+      phoneOtpVerifyForm.setValue('otp', EMPTY_OTP)
       // Don't chase focus into boxes that are about to unmount: on the
       // wrong-role path `otpSent` just went false, so focus would land on a
       // destroyed input and fall back to <body> — on a phone that opens the
       // keyboard and immediately closes it.
-      if (!wrongRole) otpRefs.current[0]?.focus()
+      if (!wrongRole) otpInputRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
@@ -400,10 +457,11 @@ function LoginContent() {
       if (result.needsPhoneVerification) {
         setBindUser(result.user)
         setMode('bindPhone')
-        setPhone('')
-        setOtp(['', '', '', '', '', ''])
+        bindSendForm.reset({ phone: '' })
+        bindVerifyForm.reset({ otp: EMPTY_OTP })
         setOtpSent(false)
       } else {
+        showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
         router.push(destinationAfterLogin(result.user, returnUrl))
       }
     } catch (err) {
@@ -422,21 +480,15 @@ function LoginContent() {
   }
 
   // --- Phone-bind step 1: send OTP to the new phone ---
-  const handleBindSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone) return
+  const onBindSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
       setError('')
       const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      if (!e164) return
       await otpAPI.send(e164)
       setOtpSent(true)
-      setOtp(['', '', '', '', '', ''])
-      setTimeout(() => otpRefs.current[0]?.focus(), 0)
+      bindVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
     } finally {
@@ -445,35 +497,62 @@ function LoginContent() {
   }
 
   // --- Phone-bind step 2: verify OTP + bind phone, then go to dashboard ---
-  const handleBindVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onBindVerify: SubmitHandler<VerifyOtpValues> = async ({ otp }) => {
     const code = otp.join('')
-    if (code.length !== 6) {
-      setError(t('auth:bindPhone.otpIncomplete'))
-      return
-    }
     try {
       setLoading(true)
       setError('')
-      const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      const e164 = toE164(bindSendForm.getValues('phone'))
+      if (!e164) return
       await authAPI.changePhone(e164, code)
+      if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
       router.push(bindUser ? homeForUser(bindUser) : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
-      setOtp(['', '', '', '', '', ''])
-      otpRefs.current[0]?.focus()
+      bindVerifyForm.setValue('otp', EMPTY_OTP)
+      bindOtpInputRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
   }
 
+  // The one banner shown across every tab/step — a server-side failure
+  // (`error`) always wins; otherwise the active form/step's own validation
+  // message is shown, translated from the i18n key zodResolver attached to
+  // it. Same single position and styling the page has always used.
+  const activeValidationKey =
+    mode === 'bindPhone'
+      ? !otpSent
+        ? bindSendForm.formState.errors.phone?.message
+        : bindVerifyForm.formState.errors.otp?.message
+      : tab === 'phonePassword'
+      ? phonePasswordForm.formState.errors.identifier?.message ?? phonePasswordForm.formState.errors.password?.message
+      : tab === 'phoneOtp'
+      ? !otpSent
+        ? phoneOtpSendForm.formState.errors.phone?.message
+        : phoneOtpVerifyForm.formState.errors.otp?.message
+      : undefined
+  const bannerMessage = error || (activeValidationKey ? t(activeValidationKey) : '')
+
+  const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
-      <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl">
+    /* `items-start` + `my-auto` on the card, NOT `items-center`.
+       They look identical while the card fits: auto margins absorb the free
+       space evenly, so the card is centred. They differ when it does NOT fit —
+       with `items-center` a flex item taller than its container overflows
+       EQUALLY in both directions, and the top overflow sits before the scroll
+       origin, so the logo and heading cannot be scrolled to at all. Auto margins
+       collapse to 0 instead, so the card starts at the top and every pixel is
+       reachable. That is the "no content clipped" case at 390px and on a short
+       laptop window.
+
+       min-h-dvh, not min-h-screen: `100vh` on a phone is the viewport with the
+       URL bar RETRACTED, so while the bar is showing the wrapper is taller than
+       what you can see and the page scrolls even when the card fits. `dvh`
+       tracks the visible viewport. On desktop the two are identical. */
+    <div className="min-h-dvh flex items-start justify-center bg-gradient-to-br from-blue-50 to-white p-4">
+      <div className="relative my-auto bg-white border border-[#dedede] rounded-[10px] w-full max-w-[600px] px-6 sm:px-10 py-6 sm:py-8 shadow-xl">
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
@@ -485,7 +564,7 @@ function LoginContent() {
         <div className="w-full">
           {/* Logo — this was a bare modal asking for credentials with nothing
               identifying the site. Matches the registration screens. */}
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-4">
             <div className="relative w-[180px] sm:w-[210px] h-[50px] sm:h-[58px]">
               <Image
                 src="/assets/prosiddhi-logo-horizontal.png"
@@ -498,7 +577,7 @@ function LoginContent() {
           </div>
 
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-5">
             <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
               {t('auth:login.title')}
             </h1>
@@ -506,6 +585,34 @@ function LoginContent() {
               {t('auth:login.subtitle')}
             </p>
           </div>
+
+          {/* Back navigation — ABOVE the role choice, not between it and the
+              Google content.
+              It used to sit after the role toggle, which put a navigation
+              control in the middle of the form's own steps: "which are you?" →
+              toggle → "go back" → employer type → Google. Read top to bottom it
+              looked like a third step of the same question rather than a way out
+              of the screen.
+              At the top of the content it reads as what it is: the header says
+              where you are, this says how to leave, and everything below it is
+              the task. Left-aligned against a centred header, which is what
+              separates navigation from content here — and it keeps the same
+              `ArrowLeft` + `text-sm font-medium text-primary-50` treatment the
+              back links on /forgot-password already use (page.tsx:152), rather
+              than inventing a second back-link style.
+              The literal "←" it used to print is now that icon: the glyph came
+              from whichever Noto face was serving the current locale, so its
+              weight and baseline shifted between languages. */}
+          {mode === 'login' && tab !== 'phonePassword' && (
+            <button
+              type="button"
+              onClick={() => switchTab('phonePassword')}
+              className={`inline-flex items-center gap-2 min-h-[44px] mb-2 ${TEXT_LINK_CLS}`}
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              {t('auth:login.backToMain')}
+            </button>
+          )}
 
           {/* Role choice — now ONE arm, and it is the only one that genuinely
               cannot do without it (TD-37). It used to sit above every method, so
@@ -519,11 +626,11 @@ function LoginContent() {
 
               PHONE + OTP lost it. The old reason was sound for the two-gate
               retry — `authService` verifies and CONSUMES the code before the
-              role gate, so a second attempt fails on a correct code — but it
-              stopped applying when TD-43 landed a single role-agnostic endpoint,
-              because there is no second attempt to make. `loginSchema` arm 2 is
-              exactly `{identifier, otp}`, so it goes to /auth/login like the
-              rest. Caught by the mobile session, which had already moved. */}
+              role gate runs — but it stopped applying when TD-43 landed a
+              single role-agnostic endpoint, because there is no second attempt
+              to make. `loginSchema` arm 2 is exactly `{identifier, otp}`, so it
+              goes to /auth/login like the rest. Caught by the mobile session,
+              which had already moved. */}
           {mode === 'login' && tab === 'google' && (
           <>
           <p className="text-sm text-[#777776] mb-2">{t('auth:login.roleQuestion')}</p>
@@ -557,265 +664,156 @@ function LoginContent() {
           </>
           )}
 
-          {/* No method tabs. Eight combinations behind eleven buttons was the
-              screen's real defect: you had to make two decisions before you
-              could type anything. The other methods are still here, one text
-              link below the form away — see the alternatives block. */}
-          {mode === 'login' && tab !== 'phonePassword' && (
-            <button
-              type="button"
-              onClick={() => switchTab('phonePassword')}
-              className="inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors mb-2"
-            >
-              ← {t('auth:login.backToMain')}
-            </button>
-          )}
-
           {/* Inline error */}
-          {error && (
+          {bannerMessage && (
             <div
               role="alert"
               className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
             >
-              {error}
+              {bannerMessage}
             </div>
-          )}
-
-          {/* --- Email + Password tab --- */}
-          {mode === 'login' && tab === 'email' && (
-            <form onSubmit={handleEmailSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.emailLabel')}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth:login.emailPlaceholder')}
-                    className="flex-1 h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                    required
-                  />
-                  <VoiceButton label={t('auth:login.emailVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.passwordLabel')}
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t('auth:login.passwordPlaceholder')}
-                      className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
-                      aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
-                    </button>
-                  </div>
-                  <VoiceButton label={t('auth:login.passwordVoice')} iconClassName="w-6 h-6 text-gray-600" className="p-2" />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                {/* min-h-[44px] on the LABEL, not the box (TD-20). The checkbox
-                    stays 16px, as checkboxes are, but the whole row is now the
-                    tap target. */}
-                <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 border border-[#aaaaaa] rounded cursor-pointer accent-primary-50"
-                  />
-                  <span className="text-sm text-black">{t('auth:login.rememberMe')}</span>
-                </label>
-                <Link href="/forgot-password" className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
-                  {t('auth:login.forgotPassword')}
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-              >
-                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
-              </button>
-            </form>
           )}
 
           {/* --- Phone + OTP tab --- */}
           {mode === 'login' && tab === 'phoneOtp' && (
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.phoneLabel')}
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={otpSent}
-                  placeholder={t('auth:login.phonePlaceholder')}
-                  className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-50"
-                />
-              </div>
+            <div className="space-y-5">
+              <PhoneNumberField
+                id="phone"
+                label={t('auth:login.phoneLabel')}
+                placeholder={t('auth:login.phonePlaceholder')}
+                disabled={otpSent}
+                register={phoneOtpSendForm.register('phone')}
+              />
 
               {!otpSent ? (
-                <form onSubmit={handleSendOtp}>
-                  <button
-                    type="submit"
-                    disabled={loading || !phone}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                <form onSubmit={phoneOtpSendForm.handleSubmit(onSendOtp)}>
+                  <button type="submit" disabled={loading || !sendOtpPhoneValue} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <form onSubmit={phoneOtpVerifyForm.handleSubmit(onVerifyOtp)} className="space-y-5">
                   <div>
-                    <label className="block text-base font-medium text-black mb-2">{t('auth:login.otpLabel')}</label>
-                    <div className="flex justify-between gap-2">
-                      {otp.map((digit, i) => (
-                        <input
-                          key={i}
-                          ref={(el) => {
-                            otpRefs.current[i] = el
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
+                      {t('auth:login.otpLabel')}
+                    </label>
+                    <Controller
+                      control={phoneOtpVerifyForm.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <OtpInput
+                          ref={otpInputRef}
+                          value={field.value}
+                          onChange={field.onChange}
+                          idPrefix="otp"
+                          labelledBy="otp-label"
+                          ariaLabel={t('auth:login.otpLabel')}
+                          autoFocus
                         />
-                      ))}
-                    </div>
+                      )}
+                    />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
-                    {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false)
-                      setError('')
-                    }}
-                    className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                  >
-                    {t('auth:login.changePhone')}
-                  </button>
+                  {/* Primary action and its way out, grouped — same shape as the
+                      password form above and as /forgot-password. As a third
+                      child of the form's `space-y` the secondary link sat a full
+                      field-gap below the button AND carried its own 44px of tap
+                      padding on top of that. */}
+                  <div>
+                    <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                      {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false)
+                        setError('')
+                      }}
+                      className={`mt-2 w-full inline-flex items-center justify-center min-h-[44px] ${TEXT_LINK_CLS}`}
+                    >
+                      {t('auth:login.changePhone')}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
           )}
 
-          {/* --- Phone + Password tab (login arm 3) --- */}
+          {/* --- Phone or email + password: the one password form --- */}
           {mode === 'login' && tab === 'phonePassword' && (
-            <form onSubmit={handlePhonePasswordSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="pp-phone" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.identifierLabel')}
-                </label>
-                {/* type="text", not "tel" — this field now takes an email too,
-                    and a tel keypad cannot produce an "@".
-                    No inputMode either: "email" opens QWERTY, and most people
-                    here type a 10-digit number, so it would put the majority one
-                    layer away from their own keys. The default keyboard shows
-                    both, and the placeholder says both are accepted.
-                    autoCapitalize/spellCheck off because Android otherwise
-                    renders an email as "You@example.com" while it is being
-                    typed — toLowerCase fixes it on submit, but the user sees a
-                    field that looks wrong and retypes it. */}
-                <input
-                  id="pp-phone"
-                  type="text"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t('auth:login.identifierPlaceholder')}
-                  className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
+            <form onSubmit={phonePasswordForm.handleSubmit(onPhonePasswordSubmit)} className="space-y-5">
+              <IdentifierField
+                id="pp-phone"
+                label={t('auth:login.identifierLabel')}
+                placeholder={t('auth:login.identifierPlaceholder')}
+                register={phonePasswordForm.register('identifier')}
+              />
 
+              <PasswordField
+                id="pp-password"
+                label={t('auth:login.passwordLabel')}
+                placeholder={t('auth:login.passwordPlaceholder')}
+                register={phonePasswordForm.register('password')}
+                showLabel={t('auth:login.showPassword')}
+                hideLabel={t('auth:login.hidePassword')}
+              />
+
+              {/* The primary action and the two ways past it, as ONE group.
+                  Previously the recovery links were a separate child of the
+                  form's `space-y`, so they sat a full field-gap (24px) below the
+                  button AND carried their own 44px tap padding on top of it —
+                  roughly 37px of visual gap where a field-to-field gap is 20px.
+                  Grouping them lets the links sit close to the button they
+                  relate to without touching either tap target. */}
               <div>
-                <label htmlFor="pp-password" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.passwordLabel')}
-                </label>
-                <div className="relative">
-                  <input
-                    id="pp-password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth:login.passwordPlaceholder')}
-                    className="w-full h-12 sm:h-14 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                    required
-                  />
+                {/* focus-visible matches the Google button below. A keyboard ring
+                    on one of two adjacent buttons and not the other is worse than
+                    having it on neither — the pair has to behave alike. */}
+                <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                  {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
+                </button>
+
+                {/* BOTH recovery routes, because this one form now serves both
+                    kinds of user. "Forgot password?" resets via EMAIL — a dead
+                    end for a phone-only seeker, which is why the OTP route is
+                    offered too. But the reverse is just as true and was the gap:
+                    after TD-37 this field accepts an email, and an email-only
+                    employer with no phone had ONLY the OTP link, which cannot
+                    help them.
+
+                    flex-col, NOT `text-center space-y-*`: both children are
+                    inline-level (the Link is inline-flex, the button
+                    inline-block), so in a block container they would render on
+                    ONE line and wrap mid-phrase on a handset.
+
+                    No `gap` while stacked: each child is a 44px tap target
+                    (TD-20), and two stacked 44px boxes already put ~30px between
+                    the two labels. Adding gap on top of that was spacing the
+                    padding, not the text.
+
+                    Side by side from sm up. Stacked, the pair costs 88px of card
+                    height; inline it costs 44px, and the two labels together run
+                    ~370px inside a 520px content box, so they fit with room to
+                    spare. `flex-wrap` is there for the long Indic translations,
+                    which drop to a second line rather than overflowing. */}
+                <div className="mt-2 flex flex-col items-center sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-4">
+                  {/* Recovery, not a sign-in method — normal weight, so it reads
+                      quieter than the OTP link below it. Both were `font-medium`
+                      and therefore indistinguishable. */}
+                  <Link
+                    href="/forgot-password"
+                    className="inline-flex items-center min-h-[44px] px-2 text-sm text-primary-50 hover:text-primary-60 transition-colors"
+                  >
+                    {t('auth:login.forgotPassword')}
+                  </Link>
+                  {/* An alternative way to sign in — keeps the medium weight. */}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
-                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                    onClick={switchToPhoneOtp}
+                    className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
+                    {t('auth:login.useOtpInstead')}
                   </button>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-              >
-                {loading ? t('auth:login.signingIn') : t('buttons.signIn')}
-              </button>
-
-              {/* BOTH recovery routes, because this one form now serves both
-                  kinds of user. "Forgot password?" resets via EMAIL — a dead end
-                  for a phone-only seeker, which is why the OTP route is offered
-                  too. But the reverse is just as true and was the gap: after
-                  TD-37 this field accepts an email, and an email-only employer
-                  with no phone had ONLY the OTP link, which cannot help them. */}
-              <div className="text-center space-y-1">
-                <Link
-                  href="/forgot-password"
-                  className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                >
-                  {t('auth:login.forgotPassword')}
-                </Link>
-                <p className="text-sm text-[#777776]">{t('auth:login.forgotPasswordPhone')}</p>
-                <button
-                  type="button"
-                  onClick={switchToPhoneOtp}
-                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                >
-                  {t('auth:login.useOtpInstead')}
-                </button>
               </div>
             </form>
           )}
@@ -824,34 +822,37 @@ function LoginContent() {
               text link is an offer, a tab row is a question you must answer
               before you can start. Every method still works. */}
           {mode === 'login' && tab === 'phonePassword' && (
-            <div className="mt-6">
+            /* The divider belongs to the section BELOW it, so the gaps are
+               deliberately uneven: 24px above (mt-3 + the OTP link's own 12px of
+               tap padding) and 16px below. That binds "or" to the Google button
+               as one alternative-sign-in group, instead of leaving it floating
+               equidistant between two groups it does not belong to. The 24px
+               above matches the 24px down to the sign-up section, so the card
+               reads as three blocks at one rhythm. */
+            <div className="mt-3">
               <div className="flex items-center gap-3 mb-4">
                 <span className="h-px flex-1 bg-[#e5e5e5]" />
                 <span className="text-xs text-[#777776]">{t('auth:login.or')}</span>
                 <span className="h-px flex-1 bg-[#e5e5e5]" />
               </div>
+              {/* Same height, radius, padding and type scale as the Sign In
+                  button above — only the fill differs, which is what makes this
+                  read as the secondary of a matched pair rather than a different
+                  species of button.
+
+                  `justify-center` on the flex row centres the icon and the label
+                  AS A GROUP, so the text is not nudged off the button's centre
+                  by the icon's width. `shrink-0` keeps the mark circular if a
+                  longer translation ever pushes the row (Malayalam and Odia are
+                  the long ones). */}
               <button
                 type="button"
                 onClick={() => switchTab('google')}
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 border border-[#b5b5b5] rounded-lg py-3 text-base font-medium text-black hover:bg-gray-50 transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-3 border border-[#b5b5b5] rounded-lg px-4 py-3 text-base font-medium text-black hover:bg-gray-50 hover:border-grey-600 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 transition-all"
               >
+                <GoogleG className="h-5 w-5 shrink-0" />
                 {t('auth:login.continueWithGoogle')}
               </button>
-              <div className="flex items-center justify-center gap-4 mt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Carry what they already typed. switchToPhoneOtp handles the
-                    // mirror case; dropping it here made the link punish the
-                    // user for using it.
-                    if (phone.includes('@') && !email) setEmail(phone)
-                    switchTab('email')
-                  }}
-                  className="min-h-[44px] text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
-                >
-                  {t('auth:login.useEmailInstead')}
-                </button>
-              </div>
             </div>
           )}
 
@@ -910,58 +911,43 @@ function LoginContent() {
                 {t('auth:bindPhone.intro')}
               </p>
               {!otpSent ? (
-                <form onSubmit={handleBindSendOtp} className="space-y-5">
-                  <div>
-                    <label htmlFor="bind-phone" className="block text-base font-medium text-black mb-2">
-                      {t('auth:bindPhone.phoneLabel')}
-                    </label>
-                    <input
-                      id="bind-phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={t('auth:bindPhone.phonePlaceholder')}
-                      className="w-full h-12 sm:h-14 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                <form onSubmit={bindSendForm.handleSubmit(onBindSendOtp)} className="space-y-5">
+                  <PhoneNumberField
+                    id="bind-phone"
+                    label={t('auth:bindPhone.phoneLabel')}
+                    placeholder={t('auth:bindPhone.phonePlaceholder')}
+                    required
+                    register={bindSendForm.register('phone')}
+                  />
+                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleBindVerify} className="space-y-5">
+                <form onSubmit={bindVerifyForm.handleSubmit(onBindVerify)} className="space-y-5">
                   <div>
-                    <label className="block text-base font-medium text-black mb-2">
+                    <label id="bind-otp-label" htmlFor="bind-otp-0" className="block text-base font-medium text-black mb-2">
                       {t('auth:bindPhone.otpLabel')}
                     </label>
-                    <div className="flex justify-between gap-2">
-                      {otp.map((d, i) => (
-                        <input
-                          key={i}
-                          ref={(el) => {
-                            otpRefs.current[i] = el
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={d}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    {/* Same six-box treatment as the sign-in OTP row above —
+                        both are the shared OtpInput component now, so giving
+                        one paste/autofill and not the other cannot happen. */}
+                    <Controller
+                      control={bindVerifyForm.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <OtpInput
+                          ref={bindOtpInputRef}
+                          value={field.value}
+                          onChange={field.onChange}
+                          idPrefix="bind-otp"
+                          labelledBy="bind-otp-label"
+                          ariaLabel={t('auth:bindPhone.otpLabel')}
                         />
-                      ))}
-                    </div>
+                      )}
+                    />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full min-h-[44px] bg-primary-50 hover:bg-primary-60 text-primary-100 py-3 rounded-lg transition-colors text-base font-medium disabled:opacity-60"
-                  >
+                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>
                   <button
@@ -970,7 +956,7 @@ function LoginContent() {
                       setOtpSent(false)
                       setError('')
                     }}
-                    className="w-full text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                    className={`w-full min-h-[44px] ${TEXT_LINK_CLS}`}
                   >
                     {t('auth:bindPhone.changePhone')}
                   </button>
@@ -993,17 +979,31 @@ function LoginContent() {
                 Registration already asks "I want a job / I want to hire" as its
                 first question, so naming both here costs nothing and guesses
                 nothing. */}
-            <div className="flex items-center justify-center gap-3 mt-1">
+            {/* Stacked on a handset, side by side from sm up. Inline at 390px
+                the pair plus the separator runs to ~295px inside a ~310px card
+                in ENGLISH alone — the longer Tamil and Malayalam labels wrap
+                mid-phrase. Stacking keeps each label on one line and each tap
+                target a full row wide.
+                The separator is decorative, so it is hidden rather than left
+                floating between two stacked rows.
+
+                secondary-50 is the brand sky blue and is a DELIBERATE choice,
+                confirmed 2026-08-25 after it was measured: #88d9fc on white is
+                1.57:1, against WCAG AA's 4.5:1 for normal text. Darkening it to
+                secondary-80 (4.77:1) was proposed and declined in favour of the
+                brand colour. Recorded here so it is not silently "fixed" later —
+                reopen it with the brand owner, not in a styling pass. */}
+            <div className="flex flex-col sm:flex-row items-center justify-center sm:gap-3 mt-1">
               <Link
                 href="/register"
-                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+                className="inline-flex items-center min-h-[44px] font-medium text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpSeeker')}
               </Link>
-              <span className="text-[#b5b5b5]" aria-hidden="true">·</span>
+              <span className="hidden sm:inline text-[#b5b5b5]" aria-hidden="true">·</span>
               <Link
                 href="/employer/register"
-                className="inline-flex items-center min-h-[44px] font-semibold text-secondary-50 hover:text-secondary-60 transition-colors"
+                className="inline-flex items-center min-h-[44px] font-medium text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpEmployer')}
               </Link>

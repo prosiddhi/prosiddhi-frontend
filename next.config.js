@@ -103,17 +103,6 @@ const nextConfig = {
     ]
   },
   
-  // Redirects
-  async redirects() {
-    return [
-      {
-        source: '/home',
-        destination: '/',
-        permanent: true,
-      },
-    ]
-  },
-  
   // Webpack configuration
   webpack: (config, { isServer }) => {
     if (!isServer) {
