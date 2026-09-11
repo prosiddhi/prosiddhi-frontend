@@ -371,9 +371,11 @@ function LoginContent() {
     }
   }
 
-  // "Forgot password?" is email-based, so it is a dead end for a phone-only
-  // seeker — the exact user the password form's phone identifier exists for.
-  // Offer the phone-OTP route as the way back in instead.
+  // "Forgot password?" now takes either identifier (/forgot-password was
+  // email-only until this was fixed to match /login's TD-37 concept). This
+  // button stays regardless — it's the faster route back in for someone who
+  // just wants a fresh OTP, not a workaround for a channel forgot-password
+  // couldn't reach.
   const switchToPhoneOtp = () => {
     // The two screens share a value, and the primary field now accepts an
     // email. Carrying "boss@acme.com" into a box labelled Phone Number

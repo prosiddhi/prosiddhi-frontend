@@ -47,6 +47,14 @@ export const phonePasswordSchema = z.object({
 })
 export type PhonePasswordValues = z.infer<typeof phonePasswordSchema>
 
+// /forgot-password stage 1 — same identifier concept as login (TD-37): email
+// or phone, one field. Reuses identifierSchema rather than re-deriving the
+// email/phone shape, so this stays in step with login and never drifts.
+export const forgotIdentifierSchema = z.object({
+  identifier: identifierSchema,
+})
+export type ForgotIdentifierValues = z.infer<typeof forgotIdentifierSchema>
+
 export const sendOtpSchema = z.object({
   phone: phoneNumberSchema,
 })
