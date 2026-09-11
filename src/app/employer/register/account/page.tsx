@@ -10,9 +10,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
-
-// Mirrors the BE passwordRule (min 8 + upper + lower + digit).
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 
 /**
  * Account details.
@@ -33,6 +32,7 @@ export default function AccountSetupPage() {
   const [fullName, setFullName] = useState(data.fullName)
   const [designation, setDesignation] = useState(data.designation)
   const [password, setPassword] = useState('')
+  const [passwordTouched, setPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -82,7 +82,7 @@ export default function AccountSetupPage() {
       )
       return
     }
-    if (!PASSWORD_RULE.test(password)) {
+    if (!isStrongPassword(password)) {
       setError(t('employerRegister:account.passwordWeak'))
       return
     }
@@ -198,7 +198,7 @@ export default function AccountSetupPage() {
 
           {error && (
             <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
+              <p className="text-red-600 text-sm whitespace-pre-line">{error}</p>
               {needsReverify && (
                 <button
                   type="button"
@@ -273,14 +273,21 @@ export default function AccountSetupPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
+                  onBlur={() => setPasswordTouched(true)}
                   disabled={loading}
-                  className="w-full h-12 sm:h-14 px-4 pr-12 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
+                  className={`w-full h-12 sm:h-14 px-4 pr-12 border rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
+                    passwordTouched && !isStrongPassword(password)
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-primary-50'
+                  }`}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="mt-2 text-xs sm:text-sm text-gray-500">{t('employerRegister:account.passwordHint')}</p>
+              <div className="mt-2">
+                <PasswordRequirementsChecklist password={password} />
+              </div>
               {/* Every rule the BE rejected — a weak password usually fails both
                   the length and the composition rule at once. */}
               {fieldErrors.length > 0 && (

@@ -2,6 +2,14 @@
   "app": {
     "name": "ProSiddhi Job Portal"
   },
+  "passwordRequirements": {
+    "intro": "Password must include:",
+    "length": "8–128 characters",
+    "lowercase": "One lowercase letter",
+    "uppercase": "One uppercase letter",
+    "number": "One number",
+    "special": "At least one special character"
+  },
   "nav": {
     "home": "Home",
     "findJobs": "Find Jobs",
@@ -43,13 +51,12 @@
       "current": "Current password",
       "new": "New password",
       "confirm": "Confirm new password",
-      "rule": "Password requirements: 8+ characters, 1 uppercase, 1 lowercase, 1 number.",
       "show": "Show passwords",
       "hide": "Hide passwords",
       "submit": "Update password",
       "success": "Password updated.",
       "failed": "We couldn't update your password. Please try again.",
-      "weak": "At least 8 characters, with one uppercase letter, one lowercase letter and one number.",
+      "weak": "Password must include:\n- 8–128 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",
       "mismatch": "Passwords do not match.",
       "sameAsCurrent": "Your new password must be different from your current one."
     },

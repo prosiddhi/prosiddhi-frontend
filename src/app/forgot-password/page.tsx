@@ -6,9 +6,8 @@ import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI, authAPI } from '@/lib/api'
-
-// Mirrors the BE resetPasswordSchema (min 8 + upper + lower + digit).
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 
 const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
@@ -48,6 +47,7 @@ export default function ForgotPasswordPage() {
   const otpRefs = useRef<Array<HTMLInputElement | null>>([])
   const [devOtp, setDevOtp] = useState<string | undefined>()
   const [newPassword, setNewPassword] = useState('')
+  const [newPasswordTouched, setNewPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -154,7 +154,7 @@ export default function ForgotPasswordPage() {
   // Stage 3 — set the new password (BE verifies the OTP, then consumes it).
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PASSWORD_RULE.test(newPassword)) {
+    if (!isStrongPassword(newPassword)) {
       setError(t('auth:forgot.errorRule'))
       return
     }
@@ -270,7 +270,7 @@ export default function ForgotPasswordPage() {
               appearing — it was a silent <div> before. */}
           {error && (
             <div role="alert" className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
+              <p className="text-red-600 text-sm whitespace-pre-line">{error}</p>
             </div>
           )}
 
@@ -375,9 +375,14 @@ export default function ForgotPasswordPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => { setNewPassword(e.target.value); if (error) setError('') }}
+                    onBlur={() => setNewPasswordTouched(true)}
                     placeholder={t('auth:forgot.newPasswordPlaceholder')}
                     disabled={loading}
-                    className={`${inputCls} pr-12`}
+                    className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
+                      newPasswordTouched && !isStrongPassword(newPassword)
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-[#b5b5b5] focus:ring-primary-50'
+                    }`}
                     required
                   />
                   {/* Was a bare icon with no accessible name and no tap target —
@@ -394,11 +399,9 @@ export default function ForgotPasswordPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                {/* text-sm/gray-600, matching the email hint. The two hints play
-                    the same role and were styled differently (text-xs/gray-500
-                    here), which read as two levels of importance where there is
-                    only one. */}
-                <p className="mt-2 text-sm text-gray-600">{t('auth:forgot.passwordHint')}</p>
+                <div className="mt-2">
+                  <PasswordRequirementsChecklist password={newPassword} />
+                </div>
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
