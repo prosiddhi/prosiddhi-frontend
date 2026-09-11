@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,8 +12,6 @@ import {
   Instagram,
   Github,
   Linkedin,
-  Eye,
-  EyeOff,
   ArrowRight,
   PhoneCall,
   MessageCircle
@@ -23,9 +20,6 @@ import {
 function EmployerLandingPageContent() {
   const { t } = useTranslation()
   const { isAuthenticated, user } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
 
   // This is a PUBLIC marketing page, so the hero CTA has to work for both a
   // signed-in employer (take them to the form) and an anonymous visitor (take them
@@ -158,11 +152,15 @@ function EmployerLandingPageContent() {
             <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-primary-100 rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
               {t('employer:landing.signUp')}
             </Link>
+
+            <Link href="/login" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-primary-100 rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
+              {t('employer:landing.signIn')}
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section with Sign-In. `id="hero"` + `scroll-mt-20`, matching the
+      {/* Hero Section. `id="hero"` + `scroll-mt-20`, matching the
           `#offer`/`#pricing` sections below, so "Find Workers" in the header
           nav can anchor here — `scroll-margin-top` only affects where an
           anchor jump lands, it doesn't add visible padding or move anything. */}
@@ -177,45 +175,15 @@ function EmployerLandingPageContent() {
             wrap while still keeping the boundary itself pinned to the
             Header's. */}
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 xl:gap-[114px]">
+          <div className="flex flex-col items-center justify-center">
             {/* Left Content */}
-            <div className="flex-1 w-full min-w-0 lg:max-w-[1028px]">
+            <div className="w-full min-w-0">
               {/* Badge */}
               <div className="inline-flex items-center justify-center px-4 sm:px-5 py-1.5 sm:py-2 bg-white border border-[#f2f2f2] rounded-full mb-4 sm:mb-6 lg:mb-8">
                 <span className="text-xs text-primary-50">{t('employer:landing.badge')}</span>
               </div>
 
-              {/* ⚠️ The 60px/72px bumps are NOT at `lg`/`xl` (1024/1280) on
-                  purpose. `lg:flex-row` (a few lines down) turns this into a
-                  two-column row at exactly 1024, and `xl:` below hands the
-                  sign-in panel more width at exactly 1280 — either one alone
-                  shrinks this column right as the font would otherwise grow.
-                  Stacking both at once was worse: at 1280 (a common laptop's
-                  100%-zoom width) the column measured 391px against a 72px
-                  font and wrapped the heading across SIX lines. Landing the
-                  size jumps at 1120/1536 instead — past where the two-column
-                  layout has actually widened this column back out — keeps it
-                  to 2-3 lines at every width in between. `leading-tight`
-                  (not the old fixed `lg:leading-[86px]`) so line-height scales
-                  with whichever size is active instead of taxing a wrapped
-                  48px/60px line for space sized for a 2-line 72px heading.
-
-                  ⚠️ `min-[1120px]:max-[1279px]:text-6xl` + `min-[1370px]:text-6xl`,
-                  not one plain `min-[1120px]:text-6xl` — a SECOND, narrower
-                  collision the container fix above couldn't reach. The Hero's
-                  outer container/gap/sign-in-form width has to switch at `xl`
-                  (1280) to stay aligned with the Header (a fixed reference,
-                  never moves), and that alone re-squeezes this column at
-                  1280–~1355 even with the font already deferred — 60px in
-                  that narrower band wrapped to 5 fragmented lines. 1164px and
-                  1422px (the widths immediately either side of that band) were
-                  already fine at 60px, so the fix could only be this band,
-                  not a threshold shift — a single `min-width` cannot carve out
-                  a dip between two widths that already look right. Dropping to
-                  48px (the `md` size, one step down) ONLY inside the gap
-                  restores a clean 3-line wrap there without touching anything
-                  outside it. */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl min-[1120px]:max-[1279px]:text-6xl min-[1370px]:text-6xl min-[1536px]:text-[72px] font-bold text-black leading-tight mb-4 sm:mb-6 [overflow-wrap:anywhere]">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-[72px] font-bold text-black leading-tight mb-4 sm:mb-6 [overflow-wrap:anywhere]">
                 {t('employer:landing.heroTitle')}
               </h1>
 
@@ -253,68 +221,6 @@ function EmployerLandingPageContent() {
                 >
                   {t('employer:landing.contactUs')}
                 </Link>
-              </div>
-            </div>
-
-            {/* Sign-In Form */}
-            <div className="bg-white border border-[#dfdfdf] rounded-[10px] p-6 sm:p-8 lg:p-10 xl:p-12 w-full lg:w-auto lg:min-w-[450px] xl:min-w-[535px]">
-              <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                {/* Email */}
-                <div>
-                  <label className="block text-lg sm:text-xl font-medium text-black mb-2 sm:mb-3 lg:mb-4">
-                    {t('employer:landing.emailLabel')}
-                  </label>
-                  <input
-                    type="email"
-                    placeholder={t('employer:landing.emailPlaceholder')}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 sm:h-14 px-3 sm:px-4 border border-[#b5b5b5] rounded-lg text-sm sm:text-base placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50"
-                  />
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="block text-lg sm:text-xl font-medium text-black mb-2 sm:mb-3 lg:mb-4">
-                    {t('employer:landing.passwordLabel')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder={t('employer:landing.passwordPlaceholder')}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-14 px-3 pr-12 border border-[#b5b5b5] rounded-lg text-base placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50"
-                    />
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    >
-                      {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Forgot Password */}
-                <div className="text-right">
-                  <Link href="/forgot-password" className="text-base font-medium text-[#aaaaaa] hover:text-primary-50">
-                    {t('employer:landing.forgotPassword')}
-                  </Link>
-                </div>
-
-                {/* Sign In — routes to the real login (this landing's inline form is
-                    presentational; /login owns the actual auth + role toggle). */}
-                <Link href="/login" className="block w-full py-3 bg-primary-50 text-primary-100 rounded-lg text-xl text-center hover:bg-primary-60 transition-colors">
-                  {t('employer:landing.signIn')}
-                </Link>
-
-                {/* Sign Up Link */}
-                <div className="text-center text-xl">
-                  <span className="text-black">{t('employer:landing.noAccount')}</span>
-                  <Link href="/employer/register" className="font-semibold text-[#1e5166] hover:underline">
-                    {t('employer:landing.signUpHere')}
-                  </Link>
-                </div>
               </div>
             </div>
           </div>
