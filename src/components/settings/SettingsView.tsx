@@ -3,18 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, Check, Eye, EyeOff, Globe, Info, Loader2, Lock, LogOut, User } from 'lucide-react'
+import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, User } from 'lucide-react'
 import { Footer } from '@/components/home/Footer'
 import { LANGUAGE_OPTIONS } from '@/components/navigation/LanguageSwitcher'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { useAuth } from '@/contexts/AuthContext'
 import { authAPI, employerAPI, jobSeekerAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
-
-// Mirrors the BE rule (auth.validator changePasswordSchema): 8+ chars with at
-// least one lowercase, one uppercase and one digit. Checked client-side so the
-// user gets the rule before a round-trip; the BE remains the authority.
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 
 /**
  * Account / language / password / sign-out — everything below the header.
@@ -52,6 +49,7 @@ export function SettingsView() {
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [newPasswordTouched, setNewPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -68,7 +66,7 @@ export function SettingsView() {
     e.preventDefault()
     setError('')
 
-    if (!PASSWORD_RULE.test(newPassword)) {
+    if (!isStrongPassword(newPassword)) {
       setError(t('settings.password.weak'))
       return
     }
@@ -254,8 +252,13 @@ export function SettingsView() {
                         required
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        onBlur={() => setNewPasswordTouched(true)}
                         aria-describedby="passwordRule"
-                        className={inputClass}
+                        className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                          newPasswordTouched && !isStrongPassword(newPassword)
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-[#b5b5b5] focus:ring-primary-50'
+                        }`}
                       />
                       <button
                         type="button"
@@ -300,15 +303,14 @@ export function SettingsView() {
                     under just New Password, which made it read as scoped to
                     that one field instead of the new-password pair as a
                     whole. */}
-                <p id="passwordRule" className="flex items-start gap-1.5 text-xs text-[#717182]">
-                  <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span>{t('settings.password.rule')}</span>
-                </p>
+                <div id="passwordRule">
+                  <PasswordRequirementsChecklist password={newPassword} />
+                </div>
 
                 {error && (
                   <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span className="whitespace-pre-line">{error}</span>
                   </p>
                 )}
 

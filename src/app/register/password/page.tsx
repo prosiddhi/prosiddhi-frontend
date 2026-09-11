@@ -11,9 +11,8 @@ import { authAPI, classifyRegisterError, jobSeekerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
-
-// Mirrors the BE passwordRule (min 8 + upper + lower + digit).
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 
 /**
  * The account-creation step.
@@ -30,6 +29,7 @@ export default function RegisterPasswordPage() {
   // context here; it goes straight from local state into register() + login().
   const { data, reset, hydrated } = useSeekerRegistration()
   const [password, setPassword] = useState('')
+  const [passwordTouched, setPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -88,7 +88,7 @@ export default function RegisterPasswordPage() {
     // check to a `disabled` attribute alone puts it one markup edit away from
     // being gone, and this is the call that creates the account.
     if (nameIssue) return
-    if (!PASSWORD_RULE.test(password)) {
+    if (!isStrongPassword(password)) {
       setError(t('auth:password.errorRule'))
       return
     }
@@ -269,7 +269,7 @@ export default function RegisterPasswordPage() {
 
               {error && (
                 <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600">{error}</p>
+                  <p className="text-red-600 whitespace-pre-line">{error}</p>
                   {needsPhoneReverify && (
                     <button
                       type="button"
@@ -290,15 +290,22 @@ export default function RegisterPasswordPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
+                      onBlur={() => setPasswordTouched(true)}
                       placeholder={t('auth:password.passwordPlaceholder')}
                       disabled={loading}
-                      className="w-full h-14 lg:h-[69px] px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
+                      className={`w-full h-14 lg:h-[69px] px-3 pr-16 border rounded-[10px] text-base lg:text-[20px] ${
+                        passwordTouched && !isStrongPassword(password)
+                          ? 'border-red-500'
+                          : 'border-[#b5b5b5]'
+                      }`}
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2">
                       {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">{t('auth:password.passwordHint')}</p>
+                  <div className="mt-2">
+                    <PasswordRequirementsChecklist password={password} />
+                  </div>
                   {/* Every rule the BE rejected, not just the first — a weak
                       password commonly fails both the length and the
                       composition rule, and fixing one at a time is miserable. */}

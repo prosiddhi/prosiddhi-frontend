@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Eye, EyeOff, X } from 'lucide-react'
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowLeft, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -14,6 +16,20 @@ import { toIdentifier, toE164 } from '@/lib/identifier'
 import { SEEKER_HOME_ROUTE } from '@/lib/routes'
 import { showToast } from '@/lib/toast'
 import { displayName } from '@/lib/userDisplay'
+import {
+  phonePasswordSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  bindVerifyOtpSchema,
+  EMPTY_OTP,
+  type PhonePasswordValues,
+  type SendOtpValues,
+  type VerifyOtpValues,
+} from '@/lib/validation/authSchemas'
+import { IdentifierField } from '@/components/auth/IdentifierField'
+import { PasswordField } from '@/components/auth/PasswordField'
+import { PhoneNumberField } from '@/components/auth/PhoneNumberField'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -23,8 +39,6 @@ import { displayName } from '@/lib/userDisplay'
 // detects the identifier type server-side either way. Two screens for one
 // capability, so the second was removed rather than kept in step.
 type Tab = 'phoneOtp' | 'phonePassword' | 'google'
-
-const OTP_LENGTH = 6
 
 // Shared by the primary actions on this card so they cannot drift apart.
 // Matched to /forgot-password's button, which is the same control in the same
@@ -192,24 +206,46 @@ function LoginContent() {
 
   // Google
   const [employerSubtype, setEmployerSubtype] = useState<EmployerSubtype>('individual')
-  // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp state
+  // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp forms
   // below; `bindUser` is the just-authenticated user, kept for the post-bind redirect.
   const [mode, setMode] = useState<Mode>('login')
   const [bindUser, setBindUser] = useState<AuthUser | null>(null)
 
-  // Password, for the one password form. There is no `rememberMe` any more: the
-  // checkbox only ever wrote a `rememberedEmail` key that nothing in the app
-  // read, so it promised a convenience it never delivered — and it was one of
-  // the six localStorage writes the Privacy Policy under-declares
-  // (docs/i18n/COPY-DEFECTS.md A1).
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  // One RHF form per validation SHAPE, not per screen — the phone-OTP tab and
+  // the Google phone-bind step both send-then-verify a phone number, so they
+  // share `sendOtpSchema`/`verifyOtpSchema`'s shape even though they are two
+  // separate `useForm` instances (different submit actions, different OTP
+  // API). RHF is the single source of truth for every field below; `phone` is
+  // no longer a page-level `useState` — see the tab-switch handlers for how a
+  // value now moves from one form to another when the user changes tabs,
+  // which is what the old shared `phone` state did implicitly.
+  const phonePasswordForm = useForm<PhonePasswordValues>({
+    resolver: zodResolver(phonePasswordSchema),
+    defaultValues: { identifier: '', password: '' },
+  })
+  const phoneOtpSendForm = useForm<SendOtpValues>({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { phone: '' },
+  })
+  const phoneOtpVerifyForm = useForm<VerifyOtpValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: { otp: EMPTY_OTP },
+  })
+  const bindSendForm = useForm<SendOtpValues>({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { phone: '' },
+  })
+  const bindVerifyForm = useForm<VerifyOtpValues>({
+    resolver: zodResolver(bindVerifyOtpSchema),
+    defaultValues: { otp: EMPTY_OTP },
+  })
 
-  // Phone/OTP
-  const [phone, setPhone] = useState('')
+  // Phone/OTP step (shared between the phone-OTP tab and the bind-phone flow —
+  // both are a "send, then verify" pair, so which form is on screen is a
+  // single boolean either way).
   const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([])
+  const otpInputRef = useRef<OtpInputHandle>(null)
+  const bindOtpInputRef = useRef<OtpInputHandle>(null)
 
   const handleClose = () => router.push('/')
 
@@ -220,6 +256,14 @@ function LoginContent() {
   }
 
   const switchTab = (next: Tab) => {
+    // Carry the identifier back into the password form when returning from
+    // the phone-OTP tab — the two fields were one shared `phone` state before
+    // this refactor, and a value typed on either tab survived switching both
+    // ways.
+    if (next === 'phonePassword' && tab === 'phoneOtp') {
+      const currentPhone = phoneOtpSendForm.getValues('phone')
+      if (currentPhone) phonePasswordForm.setValue('identifier', currentPhone)
+    }
     setTab(next)
     setError('')
   }
@@ -303,9 +347,7 @@ function LoginContent() {
   // THE password login, for everybody. A seeker who registered phone-only has no
   // other one — their phone IS their identity — and an employer with no phone
   // signs in here with their email. `toIdentifier` decides which was typed.
-  const handlePhonePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone || !password) return
+  const onPhonePasswordSubmit: SubmitHandler<PhonePasswordValues> = async ({ identifier: raw, password }) => {
     try {
       setLoading(true)
       setError('')
@@ -313,16 +355,10 @@ function LoginContent() {
       // if the backend answers ROLE_MISMATCH with the account's real role, uses
       // that. Right credentials can no longer fail because you were looking at
       // the wrong tab, which was the most common way to fail to log in.
-      // null = phone-shaped but not a plausible number. Sending it anyway would
-      // come back "invalid credentials", blaming the password for a typo in the
-      // number — and  used to do exactly that, silently.
-      const identifier = toIdentifier(phone)
-      if (!identifier) {
-        // NOT auth:phone.errorInvalid — this field takes either, so phone-only
-        // instructions are wrong half the time.
-        setError(t('auth:login.errorIdentifierInvalid'))
-        return
-      }
+      // The resolver already confirmed `raw` parses via toIdentifier, so this
+      // narrows the type rather than re-validating it.
+      const identifier = toIdentifier(raw)
+      if (!identifier) return
       const result = await authAPI.loginAnyRole({ identifier, password }, role)
       onLoginSuccess(result)
     } catch (err) {
@@ -339,32 +375,26 @@ function LoginContent() {
   // seeker — the exact user the password form's phone identifier exists for.
   // Offer the phone-OTP route as the way back in instead.
   const switchToPhoneOtp = () => {
-    // The two screens share `phone`, and the primary field now accepts an email.
-    // Carrying "boss@acme.com" into a box labelled Phone Number prefills a
-    // dead end: Send OTP cannot do anything with it.
-    if (phone.includes('@')) setPhone('')
+    // The two screens share a value, and the primary field now accepts an
+    // email. Carrying "boss@acme.com" into a box labelled Phone Number
+    // prefills a dead end: Send OTP cannot do anything with it.
+    const currentIdentifier = phonePasswordForm.getValues('identifier')
+    phoneOtpSendForm.setValue('phone', currentIdentifier.includes('@') ? '' : currentIdentifier)
     setTab('phoneOtp')
     setError('')
     setOtpSent(false)
   }
 
   // --- Phone/OTP step 1: send ---
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone) return
+  const onSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
       setError('')
       const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      if (!e164) return
       await authAPI.loginPhoneSend(e164)
       setOtpSent(true)
-      setOtp(['', '', '', '', '', ''])
-      // focus first OTP box on next paint
-      setTimeout(() => otpRefs.current[0]?.focus(), 0)
+      phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth:login.errorSendOtp'))
     } finally {
@@ -372,69 +402,14 @@ function LoginContent() {
     }
   }
 
-  const focusOtpBox = (index: number) => {
-    otpRefs.current[Math.min(Math.max(index, 0), OTP_LENGTH - 1)]?.focus()
-  }
-
-  // `slice(-1)` so typing into a box that already holds a digit REPLACES it
-  // rather than being swallowed by maxLength.
-  const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
-    const next = [...otp]
-    next[index] = digit
-    setOtp(next)
-    if (digit && index < OTP_LENGTH - 1) focusOtpBox(index + 1)
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      // Clear the previous digit as well as moving to it. Moving alone meant
-      // two presses to delete one digit, and /forgot-password already behaves
-      // this way — one OTP field should not have two rules.
-      e.preventDefault()
-      const next = [...otp]
-      next[index - 1] = ''
-      setOtp(next)
-      focusOtpBox(index - 1)
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      e.preventDefault()
-      focusOtpBox(index - 1)
-    } else if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
-      e.preventDefault()
-      focusOtpBox(index + 1)
-    }
-  }
-
-  // Paste needs its own handler: the change handler only ever sees ONE
-  // character, so a pasted "502109" was landing as a single "9" in whichever
-  // box had focus. Pasting is how most people enter a code they were just sent,
-  // so this was the primary path failing, not an edge case.
-  const handleOtpPaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH - index)
-    if (!digits) return
-    e.preventDefault()
-    const next = [...otp]
-    for (let i = 0; i < digits.length; i++) next[index + i] = digits[i]
-    setOtp(next)
-    focusOtpBox(index + digits.length)
-  }
-
   // --- Phone/OTP step 2: verify (login with identifier=phone, otp) ---
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onVerifyOtp: SubmitHandler<VerifyOtpValues> = async ({ otp }) => {
     const code = otp.join('')
-    if (code.length !== 6) {
-      setError(t('auth:login.errorOtpIncomplete'))
-      return
-    }
     try {
       setLoading(true)
       setError('')
-      const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      const e164 = toE164(phoneOtpSendForm.getValues('phone'))
+      if (!e164) return
       // Role-agnostic, like both password arms. `loginSchema` arm 2 accepts
       // `{identifier, otp}` on /auth/login, so nothing here needs to know or
       // guess which kind of account this is.
@@ -446,12 +421,12 @@ function LoginContent() {
       // the "send OTP" step — otherwise the six boxes clear, `otpSent` stays
       // true, and there is no Send button on screen to get a fresh code with.
       const wrongRole = handleLoginError(err, () => setOtpSent(false))
-      setOtp(['', '', '', '', '', ''])
+      phoneOtpVerifyForm.setValue('otp', EMPTY_OTP)
       // Don't chase focus into boxes that are about to unmount: on the
       // wrong-role path `otpSent` just went false, so focus would land on a
       // destroyed input and fall back to <body> — on a phone that opens the
       // keyboard and immediately closes it.
-      if (!wrongRole) otpRefs.current[0]?.focus()
+      if (!wrongRole) otpInputRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
@@ -480,8 +455,8 @@ function LoginContent() {
       if (result.needsPhoneVerification) {
         setBindUser(result.user)
         setMode('bindPhone')
-        setPhone('')
-        setOtp(['', '', '', '', '', ''])
+        bindSendForm.reset({ phone: '' })
+        bindVerifyForm.reset({ otp: EMPTY_OTP })
         setOtpSent(false)
       } else {
         showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
@@ -503,21 +478,15 @@ function LoginContent() {
   }
 
   // --- Phone-bind step 1: send OTP to the new phone ---
-  const handleBindSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!phone) return
+  const onBindSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
       setError('')
       const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      if (!e164) return
       await otpAPI.send(e164)
       setOtpSent(true)
-      setOtp(['', '', '', '', '', ''])
-      setTimeout(() => otpRefs.current[0]?.focus(), 0)
+      bindVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
     } finally {
@@ -526,32 +495,44 @@ function LoginContent() {
   }
 
   // --- Phone-bind step 2: verify OTP + bind phone, then go to dashboard ---
-  const handleBindVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onBindVerify: SubmitHandler<VerifyOtpValues> = async ({ otp }) => {
     const code = otp.join('')
-    if (code.length !== 6) {
-      setError(t('auth:bindPhone.otpIncomplete'))
-      return
-    }
     try {
       setLoading(true)
       setError('')
-      const e164 = toE164(phone)
-      if (!e164) {
-        setError(t('auth:phone.errorInvalid'))
-        return
-      }
+      const e164 = toE164(bindSendForm.getValues('phone'))
+      if (!e164) return
       await authAPI.changePhone(e164, code)
       if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
       router.push(bindUser ? homeForUser(bindUser) : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
-      setOtp(['', '', '', '', '', ''])
-      otpRefs.current[0]?.focus()
+      bindVerifyForm.setValue('otp', EMPTY_OTP)
+      bindOtpInputRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
   }
+
+  // The one banner shown across every tab/step — a server-side failure
+  // (`error`) always wins; otherwise the active form/step's own validation
+  // message is shown, translated from the i18n key zodResolver attached to
+  // it. Same single position and styling the page has always used.
+  const activeValidationKey =
+    mode === 'bindPhone'
+      ? !otpSent
+        ? bindSendForm.formState.errors.phone?.message
+        : bindVerifyForm.formState.errors.otp?.message
+      : tab === 'phonePassword'
+      ? phonePasswordForm.formState.errors.identifier?.message ?? phonePasswordForm.formState.errors.password?.message
+      : tab === 'phoneOtp'
+      ? !otpSent
+        ? phoneOtpSendForm.formState.errors.phone?.message
+        : phoneOtpVerifyForm.formState.errors.otp?.message
+      : undefined
+  const bannerMessage = error || (activeValidationKey ? t(activeValidationKey) : '')
+
+  const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
 
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
@@ -643,11 +624,11 @@ function LoginContent() {
 
               PHONE + OTP lost it. The old reason was sound for the two-gate
               retry — `authService` verifies and CONSUMES the code before the
-              role gate, so a second attempt fails on a correct code — but it
-              stopped applying when TD-43 landed a single role-agnostic endpoint,
-              because there is no second attempt to make. `loginSchema` arm 2 is
-              exactly `{identifier, otp}`, so it goes to /auth/login like the
-              rest. Caught by the mobile session, which had already moved. */}
+              role gate runs — but it stopped applying when TD-43 landed a
+              single role-agnostic endpoint, because there is no second attempt
+              to make. `loginSchema` arm 2 is exactly `{identifier, otp}`, so it
+              goes to /auth/login like the rest. Caught by the mobile session,
+              which had already moved. */}
           {mode === 'login' && tab === 'google' && (
           <>
           <p className="text-sm text-[#777776] mb-2">{t('auth:login.roleQuestion')}</p>
@@ -682,83 +663,53 @@ function LoginContent() {
           )}
 
           {/* Inline error */}
-          {error && (
+          {bannerMessage && (
             <div
               role="alert"
               className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
             >
-              {error}
+              {bannerMessage}
             </div>
           )}
 
           {/* --- Phone + OTP tab --- */}
           {mode === 'login' && tab === 'phoneOtp' && (
             <div className="space-y-5">
-              <div>
-                <label htmlFor="phone" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.phoneLabel')}
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={otpSent}
-                  placeholder={t('auth:login.phonePlaceholder')}
-                  className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-50"
-                />
-              </div>
+              <PhoneNumberField
+                id="phone"
+                label={t('auth:login.phoneLabel')}
+                placeholder={t('auth:login.phonePlaceholder')}
+                disabled={otpSent}
+                register={phoneOtpSendForm.register('phone')}
+              />
 
               {!otpSent ? (
-                <form onSubmit={handleSendOtp}>
-                  <button type="submit" disabled={loading || !phone} className={PRIMARY_BTN_CLS}>
+                <form onSubmit={phoneOtpSendForm.handleSubmit(onSendOtp)}>
+                  <button type="submit" disabled={loading || !sendOtpPhoneValue} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-5">
+                <form onSubmit={phoneOtpVerifyForm.handleSubmit(onVerifyOtp)} className="space-y-5">
                   <div>
                     <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
                       {t('auth:login.otpLabel')}
                     </label>
-                    {/* One field made of six boxes, not six fields. `role="group"`
-                        + `aria-labelledby` is what ties them together for a screen
-                        reader — it announces the label once on entry instead of
-                        treating each box as an unrelated control. The <label>
-                        points at the FIRST box, so clicking it starts you there.
-
-                        grid, not `flex justify-between` with fixed w-12 boxes:
-                        six 48px boxes plus five 8px gaps is 328px, and the card's
-                        content box at 390px is ~310px — the row overflowed its
-                        own card. A 6-column grid divides whatever width there is,
-                        so the boxes shrink to fit instead. */}
-                    <div role="group" aria-labelledby="otp-label" className="grid grid-cols-6 gap-2 sm:gap-3">
-                      {otp.map((digit, i) => (
-                        <input
-                          key={i}
-                          id={`otp-${i}`}
-                          ref={(el) => {
-                            otpRefs.current[i] = el
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          /* First box only — that is where the platform offers
-                             the SMS autofill chip, and repeating it across all
-                             six makes some keyboards offer it six times. */
-                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          onPaste={(e) => handleOtpPaste(i, e)}
-                          /* Select on focus so tapping a filled box overtypes it
-                             rather than parking the caret beside the digit. */
-                          onFocus={(e) => e.target.select()}
-                          aria-label={`${t('auth:login.otpLabel')} ${i + 1}`}
-                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    <Controller
+                      control={phoneOtpVerifyForm.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <OtpInput
+                          ref={otpInputRef}
+                          value={field.value}
+                          onChange={field.onChange}
+                          idPrefix="otp"
+                          labelledBy="otp-label"
+                          ariaLabel={t('auth:login.otpLabel')}
+                          autoFocus
                         />
-                      ))}
-                    </div>
+                      )}
+                    />
                   </div>
                   {/* Primary action and its way out, grouped — same shape as the
                       password form above and as /forgot-password. As a third
@@ -787,60 +738,22 @@ function LoginContent() {
 
           {/* --- Phone or email + password: the one password form --- */}
           {mode === 'login' && tab === 'phonePassword' && (
-            <form onSubmit={handlePhonePasswordSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="pp-phone" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.identifierLabel')}
-                </label>
-                {/* type="text", not "tel" — this field now takes an email too,
-                    and a tel keypad cannot produce an "@".
-                    No inputMode either: "email" opens QWERTY, and most people
-                    here type a 10-digit number, so it would put the majority one
-                    layer away from their own keys. The default keyboard shows
-                    both, and the placeholder says both are accepted.
-                    autoCapitalize/spellCheck off because Android otherwise
-                    renders an email as "You@example.com" while it is being
-                    typed — toLowerCase fixes it on submit, but the user sees a
-                    field that looks wrong and retypes it. */}
-                <input
-                  id="pp-phone"
-                  type="text"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t('auth:login.identifierPlaceholder')}
-                  className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
+            <form onSubmit={phonePasswordForm.handleSubmit(onPhonePasswordSubmit)} className="space-y-5">
+              <IdentifierField
+                id="pp-phone"
+                label={t('auth:login.identifierLabel')}
+                placeholder={t('auth:login.identifierPlaceholder')}
+                register={phonePasswordForm.register('identifier')}
+              />
 
-              <div>
-                <label htmlFor="pp-password" className="block text-base font-medium text-black mb-2">
-                  {t('auth:login.passwordLabel')}
-                </label>
-                <div className="relative">
-                  <input
-                    id="pp-password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth:login.passwordPlaceholder')}
-                    className="w-full h-12 px-4 pr-12 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] hover:bg-gray-100 rounded transition-colors"
-                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
-                  </button>
-                </div>
-              </div>
+              <PasswordField
+                id="pp-password"
+                label={t('auth:login.passwordLabel')}
+                placeholder={t('auth:login.passwordPlaceholder')}
+                register={phonePasswordForm.register('password')}
+                showLabel={t('auth:login.showPassword')}
+                hideLabel={t('auth:login.hidePassword')}
+              />
 
               {/* The primary action and the two ways past it, as ONE group.
                   Previously the recovery links were a separate child of the
@@ -996,57 +909,41 @@ function LoginContent() {
                 {t('auth:bindPhone.intro')}
               </p>
               {!otpSent ? (
-                <form onSubmit={handleBindSendOtp} className="space-y-5">
-                  <div>
-                    <label htmlFor="bind-phone" className="block text-base font-medium text-black mb-2">
-                      {t('auth:bindPhone.phoneLabel')}
-                    </label>
-                    <input
-                      id="bind-phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={t('auth:bindPhone.phonePlaceholder')}
-                      className="w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
+                <form onSubmit={bindSendForm.handleSubmit(onBindSendOtp)} className="space-y-5">
+                  <PhoneNumberField
+                    id="bind-phone"
+                    label={t('auth:bindPhone.phoneLabel')}
+                    placeholder={t('auth:bindPhone.phonePlaceholder')}
+                    required
+                    register={bindSendForm.register('phone')}
+                  />
                   <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleBindVerify} className="space-y-5">
+                <form onSubmit={bindVerifyForm.handleSubmit(onBindVerify)} className="space-y-5">
                   <div>
                     <label id="bind-otp-label" htmlFor="bind-otp-0" className="block text-base font-medium text-black mb-2">
                       {t('auth:bindPhone.otpLabel')}
                     </label>
-                    {/* Same six-box treatment as the sign-in OTP row above. These
-                        two rows share `handleOtpChange` / `handleOtpKeyDown`, so
-                        giving one of them paste and autofill and not the other
-                        would be a difference with no reason behind it. */}
-                    <div role="group" aria-labelledby="bind-otp-label" className="grid grid-cols-6 gap-2 sm:gap-3">
-                      {otp.map((d, i) => (
-                        <input
-                          key={i}
-                          id={`bind-otp-${i}`}
-                          ref={(el) => {
-                            otpRefs.current[i] = el
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                          maxLength={1}
-                          value={d}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          onPaste={(e) => handleOtpPaste(i, e)}
-                          onFocus={(e) => e.target.select()}
-                          aria-label={`${t('auth:bindPhone.otpLabel')} ${i + 1}`}
-                          className="w-full h-12 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                    {/* Same six-box treatment as the sign-in OTP row above —
+                        both are the shared OtpInput component now, so giving
+                        one paste/autofill and not the other cannot happen. */}
+                    <Controller
+                      control={bindVerifyForm.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <OtpInput
+                          ref={bindOtpInputRef}
+                          value={field.value}
+                          onChange={field.onChange}
+                          idPrefix="bind-otp"
+                          labelledBy="bind-otp-label"
+                          ariaLabel={t('auth:bindPhone.otpLabel')}
                         />
-                      ))}
-                    </div>
+                      )}
+                    />
                   </div>
                   <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
