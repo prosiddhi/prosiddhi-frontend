@@ -16,14 +16,15 @@ is theoretical. Where a claim comes from code, the file and line are named.
 
 ## 📋 STATUS INDEX — every TD item, one glance
 
-**Updated 2026-08-20.** Keep this current when you close something. Closures used
+**Updated 2026-09-15.** Keep this current when you close something. Closures used
 to be recorded only as prose inside three separate session sections, which meant
 working out what was left required cross-referencing them by hand — and three
 items (TD-09, TD-11, TD-24) sat looking open for a day when they were already
 done.
 
-**49 items: 25 ✅ done · 15 🔴 open · 4 🟠 WEB-done/MOBILE-pending · 3 ⛔ superseded ·
-1 🟡 written-but-not-run (TD-40) · 1 ⚠️ not possible here (TD-32).**
+**49 items: 37 ✅ done · 6 🔴 open · 4 ⛔ superseded · 1 🟡 written-but-not-run
+(TD-40) · 1 ⚠️ not possible here (TD-32).** *(Counted 2026-09-15 from the Status
+column. TD-00 closed and TD-15 reopened, so the totals did not move.)*
 
 *Recounted 2026-08-20 from the table with the loop below, after TD-04, TD-39 and
 TD-41 closed and TD-44/45/46 were added. **The hand-written total has now been
@@ -58,8 +59,8 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 
 | # | Item | Status | Where |
 |---|---|---|---|
-| TD-00 | Deploy `main` to production | 🔴 **OPEN — blocks 19 retests** | Nayan / Asrar |
-| TD-01 | Re-run the retest table | 🔴 open — after TD-00 | |
+| TD-00 | Deploy `main` to production | ✅ **done in effect, ~2026-09-11** — prod serves `/home` and `/employer/ledger`; a made-up URL is 404. The last two 09-11 merges (`51ec9a9`, `04a93aa`) are not live yet. Probed 2026-09-15 | Nayan / Asrar |
+| TD-01 | Re-run the retest table | 🔴 open — **now unblocked**. Fix the DEF-023 selector in `retest-register.js:168` first (STATUS §4 bug 42) | |
 | TD-02 | Seeker coordinates | ✅ done | `aa1abb3` |
 | TD-03 | **Job coordinates** | ✅ **done — DEF-035 closed end to end** | `6fd606c` `da49122` |
 | TD-04 | Surface `noLocation` | ✅ **done both surfaces** — web `0d6b4d8`, mobile `724b120` | |
@@ -73,14 +74,14 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 | TD-12 | Trust signals | ✅ **done both** | `767c163` |
 | TD-13 | Copy / format inconsistencies | ✅ **done both** — MOB: the job preview now says what the seeker will read | `4de0b23` · MOB `3f5dc34` |
 | TD-14 | "App is on the way" footer | ✅ done | `4457fd1` |
-| TD-15 | Job feed first screen | ✅ done | `f9b5f3b` |
+| TD-15 | Job feed first screen | 🔴 **REGRESSED** by the 09-01/02 redesign (`8372387`, `37a46ed`) — the heading and subtitle TD-15 deleted are back (`job-feed/page.tsx:343-344`), and on a phone the filter sidebar sits above the results. The 300 px target was not re-measured | was `f9b5f3b` |
 | TD-16 | Rebuild the web login | ⛔ **SUPERSEDED by TD-37** | |
 | TD-17 | Mirror login on mobile | ⛔ **SUPERSEDED by TD-37** | |
 | TD-18 | Employer dashboard order | ✅ done | `de79a36` `f8caf5b` |
 | TD-19 | One Apply button | ✅ done | `e67564a` |
-| TD-20 | Tap targets under 44 px | ✅ done | `8630d7d` |
+| TD-20 | Tap targets under 44 px | ✅ done — ⚠️ the redesign added new small ones: 16 px job-feed filter checkboxes and the employer landing nav links (not measured) | `8630d7d` |
 | TD-21 | Remove voice icons | ✅ done | `5755d6e` |
-| TD-22 | Untangle the filter cascade | ✅ done — 32/32, `smoke-td22.js` | |
+| TD-22 | Untangle the filter cascade | ✅ done — 32/32, `smoke-td22.js`. ⚠️ the 09-02 job feed replaced the cascade with two independent pickers (STATUS §4 bug 40); `smoke-td22.js` not re-run | |
 | TD-23 | Show candidates before typing | ✅ **WEB done** — 14/14, mobile pending | |
 | TD-24 | Stale "Applied" badge | ✅ done in code — ships with deploy | |
 | TD-25 | "Recommended" returns 1 in 10 | 🔴 open — partly TD-05 | |
@@ -110,12 +111,41 @@ grep -c '^| TD-.* 🔴' docs/teardown-fix-list.md   # open
 
 ### The register — `docs/qa/defect-log.csv`, 35 rows
 
-**11 resolved · 19 awaiting retest · 5 open** *(re-counted 2026-08-20, after TD-03 closed DEF-035)*.
+**19 closed · 10 awaiting retest · 6 open** *(counted from the Status column
+2026-09-15. "Closed" includes the 4 not-a-defect / by-design rows — DEF-009, 027,
+028, 029 — and 12 of the closures are local-verified only)*.
 
-The 19 cannot be judged until TD-00. The 5 genuinely open are DEF-006
-(deferred), DEF-018 (Asrar), DEF-032 plus one more that is Shaik's call, and one
-landing-page item. **DEF-035 closed 2026-08-20** — the first register row this
-workstream closes outright.
+**Moved 2026-09-15:** DEF-023 went back to awaiting retest, because its fix
+changed (View now opens `/employer/jobs/<id>`). DEF-032 and DEF-034 went to
+awaiting retest, because the redesign fixed them in code. DEF-018 went to
+awaiting retest, because the backend now rejects a duplicate GSTIN (its migration
+must run on prod first). **Open:** DEF-006 (maybe fixed by `996a6a6`, needs a
+browser), DEF-010, DEF-016 (a decision), DEF-017, DEF-026, DEF-033.
+
+---
+
+## 🔵 STATUS SYNC — 2026-09-15 (no fix session, docs only)
+
+**Read this first.** Between 2026-08-25 and 09-11 the portal got 40 commits
+(Bharath Kumar) — a Figma redesign of most screens. This entry records what they
+did to this list. Detail is in `STATUS.md` → *Latest* and §4 rows 29–47.
+
+- **TD-00 is done in effect.** Production serves the 09-11 build: `/home` and
+  `/employer/ledger` return 200, and a made-up URL returns 404. **TD-01 is
+  unblocked** — but fix the DEF-023 selector in `retest-register.js` first.
+- **TD-15 regressed.** The job-feed heading and subtitle are back.
+- **Held through the redesign:** TD-02/03/04/06 (the city filter still sends
+  coordinates and a radius), TD-19, TD-21, TD-24, and TD-28 (extended — one
+  header on every employer page).
+- **Not re-run:** none of the smoke suites. The redesign moved routes and
+  markup, so expect some selectors to be stale, as DEF-023's is.
+- **Backend (71 commits, from its sync report):** pre-moderation, paid re-listing
+  and bookmark-as-flag put the portal out of step in 5 places (STATUS §4 rows
+  43–47). DEF-018 is fixed on the backend (unique GSTINs) — awaiting retest once
+  its migration runs on prod. ⚠️ The release is 19 hand-run SQL folders; never
+  `prisma db push`.
+- **Process:** 8 of the 40 commits carry a `Co-Authored-By` trailer, which
+  `.claude/CLAUDE.md` forbids.
 
 ---
 

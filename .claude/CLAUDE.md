@@ -10,16 +10,16 @@ Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API �
 3. **`docs/MONETIZATION.md`** — the employer billing system: pricing rules, what's built, what's broken.
 4. **`docs/DEPLOY.md`** — deploy + go-live.
 
-**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` and the admin's `functional-audit-admin.md` were both resolved and deleted; don't look for them.)* **Admin has no open defects** — its one remaining task is wiring the invoice-PDF download, recorded in `docs/STATUS.md` §0.
+**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` and the admin's `functional-audit-admin.md` were both resolved and deleted; don't look for them.)* **Admin** — the invoice-PDF download is wired (2026-08-27), but the 2026-09-15 sync found new flags, one of them security. See `docs/STATUS.md` §0.
 
-## Where the product stands *(2026-08-18)*
+## Where the product stands *(2026-09-15 — all four surfaces re-checked)*
 
-**Live in production on HTTPS:** portal `https://prosiddhi.com` · API `https://api.prosiddhi.com` · admin `https://admin.prosiddhi.com`. Ports 3000/5000/3001 on the old IP are closed.
+**Live in production on HTTPS:** portal `https://prosiddhi.com` · API `https://api.prosiddhi.com` · admin `https://admin.prosiddhi.com`. Ports 3000/5000/3001 on the old IP are closed. **Production runs the portal as of about 2026-09-11 14:49.** Checked 2026-09-15 by probing pages only newer code has: `/employer/ledger` is live, but the 09-11 16:20 employer sign-in change is not.
 
-- **Backend** — feature-complete, incl. billing, SUPER_ADMIN + audit log, outbound email.
-- **Portal** — feature-complete. All seeker + employer flows, chat, monetization, candidate database, team seats.
-- **Admin console** — feature-complete. Nothing open but wiring up the invoice-PDF download.
-- **Mobile (Flutter)** — **~85%**. Missing: checkout (blocked on decision **D2**), invoices, and **it has never run on a real device**.
+- **Backend** — feature-complete *(HEAD `c413dc0`, 2026-09-11)*. New since 08-21: job pre-moderation, paid re-listing of expired jobs, bookmark-as-a-flag, a SALES role, an editable plan catalogue. ⚠️ **The release is 19 hand-run SQL folders in order — never `prisma db push`** (it drops 5 unique indexes). 🔴 Phone OTPs have no SMS code, so prod keeps `EXPOSE_OTP_IN_RESPONSE` on — an account-takeover path (`STATUS.md` §4 bug 3).
+- **Portal** — feature-complete, and **redesigned 2026-08-25 → 09-11** (40 commits, Bharath Kumar). Example: a seeker now lands on a new `/home` page after login, and employers got a credit ledger at `/employer/ledger`. Login, forgot-password, both profiles, settings, the job feed, job details and messages were all rebuilt. There are **19 new portal bugs** — `STATUS.md` §4 rows 29–47: 14 from the redesign, 5 from backend contract changes.
+- **Admin console** — feature-complete. The invoice-PDF download is wired. New since 08-18: a SALES role, Plans, account restore, post Approve / Reject. **Open:** an admin-takeover risk through forgot-password (backend + config), the content scan lost its UI, and three broken flows — `STATUS.md` §0.
+- **Mobile (Flutter)** — **~85%**. It has now run on Android, but has no recorded smoke test and no iOS run. Missing: invoices. **Forgot password is broken on mobile** (backend drift) — `STATUS.md` §0. *(Checkout is not being built: D2 was resolved 2026-08-20, web-only.)*
 - **10 languages ship on both clients** — en · hi · ta · kn · ml · mr · gu · or · te · bn.
 
 What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the register), **outbound notification config**, **mobile completion**, and **go-live config**.
@@ -60,6 +60,8 @@ What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the reg
 ## Team
 
 Shaik (owner/product) · **Nazir** (frontend + acting PM) · Asrar (backend) · Najeeb + Farhana (QA) · Nayan (infra) · Sailaja (mobile).
+
+**New names in the commit history since 2026-08-21 — roles not yet recorded, ask Nazir before writing one:** Bharath Kumar Srimanthula (all 40 portal commits, 2026-08-25 → 09-11) · prabhazkashine (admin commits) · Krishna Kumar (mobile commits).
 
 ## Working style
 
