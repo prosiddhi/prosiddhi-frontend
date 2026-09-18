@@ -17,10 +17,10 @@ import { z } from 'zod'
 export const PASSWORD_MIN_LENGTH = 8
 
 /**
- * Matches the backend's PASSWORD_MAX_LENGTH — see that file for why 128 (an
- * upper bound for hashing hygiene, not a "real" limit anyone should hit).
+ * Matches the backend's PASSWORD_MAX_LENGTH (validators/password.ts) — an
+ * upper bound for hashing hygiene, not a "real" limit anyone should hit.
  */
-export const PASSWORD_MAX_LENGTH = 128
+export const PASSWORD_MAX_LENGTH = 64
 
 /**
  * Anything that is not a letter and not a digit — NOT a fixed list like

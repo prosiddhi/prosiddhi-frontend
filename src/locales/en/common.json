@@ -4,7 +4,7 @@
   },
   "passwordRequirements": {
     "intro": "Password must include:",
-    "length": "8–128 characters",
+    "length": "8–64 characters",
     "lowercase": "One lowercase letter",
     "uppercase": "One uppercase letter",
     "number": "One number",
@@ -56,7 +56,7 @@
       "submit": "Update password",
       "success": "Password updated.",
       "failed": "We couldn't update your password. Please try again.",
-      "weak": "Password must include:\n- 8–128 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",
+      "weak": "Password must include:\n- 8–64 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",
       "mismatch": "Passwords do not match.",
       "sameAsCurrent": "Your new password must be different from your current one."
     },
