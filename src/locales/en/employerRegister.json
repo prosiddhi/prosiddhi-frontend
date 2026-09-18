@@ -54,7 +54,7 @@
     "confirmPassword": "Confirm Password",
     "nameTooShort": "Please enter your full name (at least 2 characters)",
     "nameLetters": "Please enter your full name (letters only, no numbers)",
-    "passwordWeak": "Password must include:\n- 8–128 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",
+    "passwordWeak": "Password must include:\n- 8–64 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",
     "passwordMismatch": "Passwords do not match",
     "createFailed": "Could not create your account. Please try again.",
     "creating": "Creating...",
