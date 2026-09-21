@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, User } from 'lucide-react'
+import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, RefreshCw, Trash2, User } from 'lucide-react'
 import { Footer } from '@/components/home/Footer'
 import { LANGUAGE_OPTIONS } from '@/components/navigation/LanguageSwitcher'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
@@ -12,6 +12,8 @@ import { authAPI, employerAPI, jobSeekerAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
+import { DeleteAccountModal } from '@/components/settings/DeleteAccountModal'
+import { passwordInputCls, eyeToggleCls, outlineBtnBaseCls } from '@/components/settings/formClasses'
 
 /**
  * Account / language / password / sign-out — everything below the header.
@@ -28,24 +30,53 @@ export function SettingsView() {
   // account contact details from the profile endpoint instead of the session.
   const isEmployer = !!user?.role?.startsWith('EMPLOYER')
   const [phone, setPhone] = useState<string | null>(null)
+  // null while loading — distinct from "loaded and both false" (see canDeleteAccount).
+  const [signInMethods, setSignInMethods] = useState<{
+    hasPassword: boolean
+    hasGoogleLogin: boolean
+  } | null>(null)
+  const [profileFailed, setProfileFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   useEffect(() => {
     let ignore = false
+    // A retry, or a role change, starts from "loading" — never from the last result.
+    setPhone(null)
+    setSignInMethods(null)
+    setProfileFailed(false)
     const run = async () => {
       try {
         const p = isEmployer
           ? await employerAPI.getProfile()
           : await jobSeekerAPI.getProfile()
-        if (!ignore) setPhone(p.phoneNumber ?? null)
+        if (!ignore) {
+          setPhone(p.phoneNumber ?? null)
+          setSignInMethods({
+            hasPassword: !!p.hasPassword,
+            hasGoogleLogin: !!p.hasGoogleLogin,
+          })
+        }
       } catch {
-        // Non-critical: the phone row is simply omitted if we can't load it.
+        // The phone row is simply omitted; Delete Account shows a retry instead.
+        if (!ignore) setProfileFailed(true)
       }
     }
     run()
     return () => {
       ignore = true
     }
-  }, [isEmployer])
+  }, [isEmployer, reloadKey])
+
+  // Both false is an anomaly (every ACTIVE account holds at least one), so no
+  // fallback that offers both methods — see the "unavailable" copy below.
+  const canDeleteAccount = !!signInMethods && (signInMethods.hasPassword || signInMethods.hasGoogleLogin)
+  const noSignInMethod = !!signInMethods && !canDeleteAccount
+  const deleteAccountCopy = profileFailed
+    ? t('settings.deleteAccount.loadFailed')
+    : noSignInMethod
+      ? t('settings.deleteAccount.unavailable')
+      : t('settings.deleteAccount.description')
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -93,19 +124,8 @@ export function SettingsView() {
     }
   }
 
-  // Same input recipe Profile uses for its bordered fields (`#b5b5b5` border,
-  // `#aaaaaa` placeholder) — the settings inputs used to be off-palette
-  // (`gray-300`/`gray-200`), which is what made this page look like a
-  // different app next to Profile/Job Feed/My Applications.
-  // `pr-10` clears room for the in-field visibility-toggle icon (all three
-  // password fields share one — see `showPasswords`).
-  const inputClass =
-    'w-full h-11 px-3 pr-10 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all'
-
   const toggleShowPasswords = () => setShowPasswords((v) => !v)
   const showPasswordsLabel = showPasswords ? t('settings.password.hide') : t('settings.password.show')
-  const eyeToggleCls =
-    'absolute inset-y-0 right-0 flex items-center px-3 text-[#717182] hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 rounded-r-lg'
 
   // The card/heading recipe every other seeker page's sections already use
   // (Profile's Personal Information / Job Preferences / Documents cards).
@@ -221,7 +241,7 @@ export function SettingsView() {
                       required
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className={inputClass}
+                      className={passwordInputCls}
                     />
                     <button
                       type="button"
@@ -284,7 +304,7 @@ export function SettingsView() {
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={inputClass}
+                        className={passwordInputCls}
                       />
                       <button
                         type="button"
@@ -350,9 +370,55 @@ export function SettingsView() {
                 </button>
               </div>
             </section>
+
+            {/* Delete account — the button is withheld (not disabled) when the
+                account has no method to re-auth with. */}
+            <section className={cardCls}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className={sectionHeadingCls}>
+                    <Trash2 className={sectionHeadingIconCls} /> {t('settings.deleteAccount.title')}
+                  </h2>
+                  <p className="text-sm text-[#717182] mt-1">{deleteAccountCopy}</p>
+                </div>
+                {profileFailed && (
+                  <button
+                    type="button"
+                    onClick={() => setReloadKey((k) => k + 1)}
+                    className={`${outlineBtnBaseCls} border border-primary-50 text-primary-50 hover:bg-primary-50 hover:text-primary-100 focus-visible:ring-primary-50`}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    {t('buttons.retry')}
+                  </button>
+                )}
+                {canDeleteAccount && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className={`${outlineBtnBaseCls} border border-error-500 text-error-600 hover:bg-error-500 hover:text-white active:bg-error-700 active:border-error-700 focus-visible:ring-error-500`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {t('settings.deleteAccount.deleteButton')}
+                  </button>
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </main>
+
+      {showDeleteModal && signInMethods && (
+        <DeleteAccountModal
+          onClose={() => setShowDeleteModal(false)}
+          hasPassword={signInMethods.hasPassword}
+          hasGoogleLogin={signInMethods.hasGoogleLogin}
+          onDeleted={() => {
+            setShowDeleteModal(false)
+            showToast(t('settings.deleteAccount.success'), 'success')
+            logout()
+          }}
+        />
+      )}
 
       <Footer />
     </>

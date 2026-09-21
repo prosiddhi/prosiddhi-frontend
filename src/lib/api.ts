@@ -139,7 +139,18 @@ export function fieldErrorsByPath(err: unknown): Record<string, string[]> {
 // Helper function for API requests. Returns the unwrapped `.data` payload.
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  {
+    preserveSessionOnCode,
+    ...options
+  }: RequestInit & {
+    /**
+     * A 401 whose body `code` equals this keeps the session (no clear-storage,
+     * no logout). Any OTHER 401 from the call — an expired or invalid token —
+     * still logs out. For a 401 that means "wrong re-auth proof", not "session
+     * expired": self-delete's REAUTH_FAILED.
+     */
+    preserveSessionOnCode?: string
+  } = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
@@ -192,15 +203,6 @@ async function apiRequest<T>(
     window.dispatchEvent(new CustomEvent('api:network-recovered'))
   }
 
-  if (response.status === 401) {
-    // Centralized auth-expiry handling. Clear storage and let AuthContext react.
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(AUTH_TOKEN_KEY)
-      window.localStorage.removeItem(AUTH_USER_KEY)
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
-    }
-  }
-
   if (!response.ok) {
     const body = await response.json().catch(() => ({
       message: response.statusText,
@@ -225,6 +227,13 @@ async function apiRequest<T>(
     // it is plain data (not a serialised Error), which is what carries the
     // metadata belonging to `code`.
     const code = typeof body?.code === 'string' ? body.code : undefined
+    // Centralized auth-expiry handling. Clear storage and let AuthContext react.
+    const keepSession = preserveSessionOnCode !== undefined && code === preserveSessionOnCode
+    if (response.status === 401 && !keepSession && typeof window !== 'undefined') {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    }
     const details =
       body?.error && typeof body.error === 'object' && !Array.isArray(body.error)
         ? (body.error as Record<string, unknown>)
@@ -516,10 +525,18 @@ export interface ProfileWorkExperience {
   description?: string | null
 }
 
-// GET /jobseekers/profile — full user + nested jobSeeker. NOTE: the BE also
-// returns `user.password` (the hash — filed as BR-8) — intentionally omitted
-// here so it can never be read/stored on the FE.
-export interface SeekerProfile {
+// The two derived booleans every profile response carries in place of the
+// password hash and googleSub, which the BE never returns (BR-8) — from
+// auth.service.ts's signInMethods().
+interface SignInMethodFlags {
+  /** Email + password sign-in is set up. */
+  hasPassword?: boolean
+  /** A Google account is linked. */
+  hasGoogleLogin?: boolean
+}
+
+// GET /jobseekers/profile — full user + nested jobSeeker.
+export interface SeekerProfile extends SignInMethodFlags {
   id: string
   /** NULL for a phone-only seeker — email is optional at registration. */
   email: string | null
@@ -554,7 +571,7 @@ export interface SeekerProfile {
 }
 
 // GET /employers/profile — full user + nested employer.
-export interface EmployerProfile {
+export interface EmployerProfile extends SignInMethodFlags {
   id: string
   email: string
   phoneNumber?: string | null
@@ -859,6 +876,24 @@ export const authAPI = {
   },
 }
 
+// DELETE /me body — exactly one of password/idToken proves it is the account
+// holder (me.validator.ts's deleteAccountSchema `.refine`); never both.
+// `confirmDeleteOrganisation` is only sent on the retry after a 409
+// ORG_DELETE_CONFIRM_REQUIRED (an org OWNER with live teammates).
+export interface DeleteAccountInput {
+  password?: string
+  idToken?: string
+  confirmDeleteOrganisation?: boolean
+}
+
+export interface DeleteAccountResult {
+  deletedAt: string
+  /** Teammates whose access ended with this delete. 0 for everyone but an org OWNER. */
+  teammatesRemoved: number
+  /** Always null today — the backend has not set a retention period (me.service.ts). */
+  retentionDays: number | null
+}
+
 // Current-user (role-agnostic) endpoints — /api/me/*
 // Imported from i18n/languages (plain data, no side effects) rather than i18n/config,
 // which would boot react-i18next just by being imported here.
@@ -877,6 +912,16 @@ export const meAPI = {
     return apiRequest('/me/language', {
       method: 'PATCH',
       body: JSON.stringify({ language }),
+    })
+  },
+
+  // DELETE /api/me — self-service account deletion (BE-A08, Google Play
+  // requirement). Role-agnostic. See `preserveSessionOnCode` on apiRequest.
+  deleteAccount: async (input: DeleteAccountInput) => {
+    return apiRequest<DeleteAccountResult>('/me', {
+      method: 'DELETE',
+      body: JSON.stringify(input),
+      preserveSessionOnCode: 'REAUTH_FAILED',
     })
   },
 }
