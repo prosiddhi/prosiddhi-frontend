@@ -604,6 +604,63 @@ function LoginContent() {
   // button label below can't disagree about which behavior is active.
   const skipOtpBind = !authConfigLoading && !requirePhoneVerification
 
+  // C:PR-04 — same condition as `skipOtpBind` above (both mean "the server
+  // has confirmed REQUIRE_PHONE_VERIFICATION is off"), kept as its own named
+  // binding because the two gate different features that only coincide
+  // today: this one hides phone-OTP as a LOGIN method — BE-A06 refuses
+  // `POST /auth/login-phone-send` and the verify call (`POST /auth/login`
+  // with `{identifier, otp}`, TD-43) with `503 PHONE_OTP_LOGIN_DISABLED` once
+  // the flag is off — while `skipOtpBind` skips the OTP round-trip on a
+  // first phone BIND. Derived from `skipOtpBind` rather than re-reading the
+  // two hook fields a second time, so the two can't drift apart on what the
+  // flag itself says; only a real product split between "login" and "bind"
+  // should ever make them differ.
+  const phoneOtpLoginDisabled = skipOtpBind
+
+  // Whether the phoneOtp tab has anything on it worth keeping visible: a
+  // code already sent, a send/verify request in flight, or an unread error
+  // from either. Reading `error` with no tab check of its own is safe here —
+  // every way onto this tab (`switchToPhoneOtp`) and both its submit
+  // handlers clear `error` first, so a non-empty `error` while
+  // `tab === 'phoneOtp'` can only be a message THIS tab's own last attempt
+  // produced, never a leftover from elsewhere. Shared by the render guard
+  // below and the auto-redirect effect so the two can't disagree about what
+  // counts as "the user has started" — see both use sites for why that
+  // agreement matters.
+  const phoneOtpTabActive = otpSent || loading || !!error
+
+  // A user can only reach the phoneOtp tab through the link this same flag
+  // hides below, so once it's confirmed off nothing can send them there
+  // again — except someone already on it from the loading window, where the
+  // link was still showing (`skipOtpBind`'s comment above covers why loading
+  // defaults to not-disabled).
+  //
+  // Gated on `!phoneOtpTabActive`, not just `tab === 'phoneOtp'`, so this can
+  // only auto-correct the UNSTARTED phone-number-entry step: never a code
+  // the user already sent, never while a request for this tab is in flight,
+  // and never right after one settles into a failure the user hasn't read
+  // yet. That last case is the one worth spelling out — without it, this
+  // sequence loses the user's result silently: config resolves "disabled"
+  // while Send is in flight (deferred by `loading`); the request settles
+  // with the backend's own 503 `PHONE_OTP_LOGIN_DISABLED`; `onSendOtp`'s
+  // catch sets `error` to that message and `otpSent` stays `false`; on the
+  // very next render this effect would otherwise see `!otpSent && !loading`
+  // satisfied and fire, calling `setError('')` and switching tabs before the
+  // message the user was just shown ever painted. Once `phoneOtpTabActive`
+  // includes `error`, that render leaves this effect a no-op instead.
+  //
+  // Mirrors what `switchTab` does for the tab's own "back" control, inlined
+  // so every dependency here is real and none needs suppressing. Settles
+  // after one run once it does fire: the next render sees
+  // `tab === 'phonePassword'`, the condition is false, and the effect no-ops.
+  useEffect(() => {
+    if (tab !== 'phoneOtp' || mode !== 'login' || !phoneOtpLoginDisabled || phoneOtpTabActive) return
+    const currentPhone = phoneOtpSendForm.getValues('phone')
+    if (currentPhone) phonePasswordForm.setValue('identifier', currentPhone)
+    setTab('phonePassword')
+    setError('')
+  }, [tab, mode, phoneOtpLoginDisabled, phoneOtpTabActive, phoneOtpSendForm, phonePasswordForm])
+
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
        They look identical while the card fits: auto margins absorb the free
@@ -743,7 +800,21 @@ function LoginContent() {
           )}
 
           {/* --- Phone + OTP tab --- */}
-          {mode === 'login' && tab === 'phoneOtp' && (
+          {/* C:PR-04: also gated on `!phoneOtpLoginDisabled || phoneOtpTabActive`,
+              not just the effect above — and on the SAME `phoneOtpTabActive`
+              the effect uses, deliberately, so the two can't disagree about
+              when the user has "started". A fresh, unstarted entry into this
+              tab is fully blocked the instant the flag is confirmed off
+              (closes a future direct-tab-entry path even before the effect
+              gets a chance to run); a request in flight, a code already
+              sent, or an unread error from either keeps rendering — hiding
+              any of those would tear the screen (or the in-flight submit's
+              own form) away just as forcibly as the redirect the effect was
+              written to avoid. Worst case if the flag really did flip:
+              Verify is submitted and the backend answers its own 503 on
+              this same screen, same as before this ticket — not a forced
+              tab switch. */}
+          {mode === 'login' && tab === 'phoneOtp' && (!phoneOtpLoginDisabled || phoneOtpTabActive) && (
             <div className="space-y-5">
               <PhoneNumberField
                 id="phone"
@@ -873,14 +944,21 @@ function LoginContent() {
                   >
                     {t('auth:login.forgotPassword')}
                   </Link>
-                  {/* An alternative way to sign in — keeps the medium weight. */}
-                  <button
-                    type="button"
-                    onClick={switchToPhoneOtp}
-                    className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
-                  >
-                    {t('auth:login.useOtpInstead')}
-                  </button>
+                  {/* An alternative way to sign in — keeps the medium weight.
+                      C:PR-04: hidden while phone-OTP login is disabled
+                      server-side (BE-A06) — offering it would be a guaranteed
+                      503, not an alternative. The tab and its send/verify
+                      forms are untouched, so this reappears with no rebuild
+                      once REQUIRE_PHONE_VERIFICATION goes back on. */}
+                  {!phoneOtpLoginDisabled && (
+                    <button
+                      type="button"
+                      onClick={switchToPhoneOtp}
+                      className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
+                    >
+                      {t('auth:login.useOtpInstead')}
+                    </button>
+                  )}
                 </div>
               </div>
             </form>
