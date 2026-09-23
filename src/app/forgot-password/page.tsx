@@ -7,12 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { authAPI } from '@/lib/api'
+import { ApiError, authAPI } from '@/lib/api'
 import { toIdentifier } from '@/lib/identifier'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/validation/authSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { IdentifierField } from '@/components/auth/IdentifierField'
+import { SUPPORT_EMAIL } from '@/lib/legal'
 
 const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
@@ -69,9 +70,32 @@ export default function ForgotPasswordPage() {
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
 
+  // C:PR-05 — BE-A06 refuses every phone identifier, for BOTH forgot-password
+  // and reset-password, with this same code — before any account lookup — so
+  // its own message ("...Use your email address instead") is potentially
+  // WRONG advice: a phone-only seeker (the normal shape of a Release 1
+  // account) has no email to use, and the backend deliberately refuses
+  // before checking whether one exists, to keep this from becoming an
+  // account-enumeration oracle. Route to support instead of repeating advice
+  // the client can't verify is even possible to follow. Matched on `code`,
+  // not `err.message` — `code` is the BE's stable, production-safe
+  // discriminator; the message string is not a contract. One function for
+  // both stages (`onSendCode` and `handleReset` below) so they can't
+  // disagree on how this specific error is shown — only the fallback for
+  // every OTHER error differs between them, which is why that part stays a
+  // parameter rather than being folded in too.
+  const phoneResetErrorMessage = (err: unknown, fallbackKey: string): string => {
+    if (err instanceof ApiError && err.code === 'PHONE_PASSWORD_RESET_DISABLED') {
+      return t('auth:forgot.errorPhoneResetDisabled', { email: SUPPORT_EMAIL })
+    }
+    return err instanceof Error ? err.message : t(fallbackKey)
+  }
+
   // Stage 1 — request the reset OTP. POST /auth/forgot-password { identifier }
   // dispatches to email-OTP or SMS-OTP server-side by identifier shape, so this
-  // page never has to know or choose which channel the account actually uses.
+  // page never has to know or choose which channel the account actually uses —
+  // except that the phone half is currently refused outright (BE-A06, see
+  // phoneResetErrorMessage above): no SMS channel exists for Release 1.
   const onSendCode: SubmitHandler<ForgotIdentifierValues> = async ({ identifier: raw }) => {
     // The resolver already confirmed `raw` parses via toIdentifier; this only
     // narrows the type.
@@ -88,7 +112,7 @@ export default function ForgotPasswordPage() {
       setIdentifier(id)
       setStage('otp')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:forgot.errorSendFailed'))
+      setError(phoneResetErrorMessage(err, 'auth:forgot.errorSendFailed'))
     } finally {
       setLoading(false)
     }
@@ -181,7 +205,15 @@ export default function ForgotPasswordPage() {
       await authAPI.resetPassword(identifier, code, newPassword)
       setStage('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:forgot.errorResetFailed'))
+      // The same BE-A06 gate applies here, not just at stage 1 — `resetPassword`
+      // has the identical phone branch. Normally unreachable with a phone
+      // identifier, since onSendCode's own catch would already have caught it
+      // before this stage was ever reached — but the flag is a live server
+      // setting, not a one-time check: if it flips off between this user's
+      // stage-1 success and their stage-3 submit, this is the code that
+      // arrives here. `phoneResetErrorMessage` is what keeps the two stages
+      // from disagreeing about it.
+      setError(phoneResetErrorMessage(err, 'auth:forgot.errorResetFailed'))
     } finally {
       setLoading(false)
     }
