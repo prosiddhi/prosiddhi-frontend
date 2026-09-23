@@ -12,7 +12,7 @@ import type { SupportedLanguage } from '@/i18n/languages'
 // dispatches a `auth:unauthorized` window event — AuthContext listens for this
 // and performs logout + redirect, keeping this module framework-free.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
 // localStorage keys — single source of truth, shared with AuthContext.
 export const AUTH_TOKEN_KEY = 'auth_token'
@@ -30,17 +30,49 @@ export function getAuthToken(): string | null {
   return window.localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
+// The bare origin behind API_BASE_URL (protocol+host+port, no path) — computed
+// once at module load, the same way next.config.js derives `apiOrigin` from
+// this same env var, rather than re-parsing an unchanging constant on every
+// resolveMediaUrl() call (some pages call it once per document/photo in a
+// render loop).
+//
+// A scheme-less value (`localhost:5000/api/v1`, missing the `http://`) does
+// NOT throw here — the WHATWG URL parser treats it as an opaque URL and
+// `.origin` comes back as the literal string "null", which would otherwise
+// silently become the media prefix for every profile photo and document.
+// Guarded explicitly below, alongside the genuinely-throwing case (no scheme
+// at all, e.g. `api.prosiddhi.com/api/v1`), so a misconfigured
+// NEXT_PUBLIC_API_URL fails loudly in the console instead of quietly
+// rendering broken images with no pointer back to the cause.
+const MEDIA_ORIGIN = (() => {
+  try {
+    const origin = new URL(API_BASE_URL).origin
+    if (origin === 'null') throw new Error('no scheme')
+    return origin
+  } catch {
+    console.error(
+      `[resolveMediaUrl] NEXT_PUBLIC_API_URL ("${API_BASE_URL}") is missing its ` +
+        `http:// or https:// scheme, so no media origin could be determined. ` +
+        `Falling back to http://localhost:5000 — profile photos and documents ` +
+        `will not load until this is fixed.`
+    )
+    return 'http://localhost:5000'
+  }
+})()
+
 /**
  * Resolve a BE-relative upload path (e.g. `/uploads/applications/x.webm`) to an
- * absolute URL. Static uploads are served off the server ORIGIN, not under the
- * `/api` base, so we strip a trailing `/api` from API_BASE_URL. Absolute URLs
- * (http...) and empty values pass through unchanged.
+ * absolute URL. Static uploads are served off the server ORIGIN — not under
+ * `/api` or `/api/v1` — so we take the origin straight from API_BASE_URL via
+ * the URL API rather than pattern-matching its path. That way this keeps
+ * working the next time the API path changes (v2, a different mount, …) with
+ * no edit needed here. Absolute URLs (http...) and empty values pass through
+ * unchanged.
  */
 export function resolveMediaUrl(path?: string | null): string {
   if (!path) return ''
   if (/^https?:\/\//i.test(path)) return path
-  const origin = API_BASE_URL.replace(/\/api\/?$/, '')
-  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`
+  return `${MEDIA_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
 /** Standard backend response envelope. */
@@ -667,7 +699,20 @@ export interface ForgotPasswordResult {
   otp?: string
 }
 
+// GET /auth/config's payload (R1-BE-01) — public server switches the sign-in
+// and registration screens need. Today one field; more may join it later.
+export interface AuthConfig {
+  requirePhoneVerification: boolean
+}
+
 export const authAPI = {
+  // GET /auth/config — public, no auth. Backend caches 60s; useAuthConfig adds
+  // a session cache on top for pages that mount this more than once (register,
+  // login).
+  getConfig: async () => {
+    return apiRequest<AuthConfig>('/auth/config')
+  },
+
   // Email+password OR phone+otp login. Role selects the endpoint.
   login: async (role: LoginRole, credentials: LoginCredentials) => {
     return apiRequest<LoginResult>(loginEndpoint(role), {

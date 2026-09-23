@@ -29,10 +29,10 @@ npm run dev                     # http://localhost:3000
 The app talks to the backend API. Point it at your backend:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
 ```
 
-If `NEXT_PUBLIC_API_URL` is unset, the app falls back to `http://localhost:5000/api`.
+If `NEXT_PUBLIC_API_URL` is unset, the app falls back to `http://localhost:5000/api/v1`.
 
 ### Running against the hosted dev backend
 
@@ -41,7 +41,7 @@ dev backend instead of `localhost`:
 
 ```
 # .env.local  (git-ignored — never commit)
-NEXT_PUBLIC_API_URL=https://<current-tunnel>.trycloudflare.com/api
+NEXT_PUBLIC_API_URL=https://<current-tunnel>.trycloudflare.com/api/v1
 ```
 
 The hosted tunnel is **ephemeral** — the URL rotates whenever the tunnel
@@ -55,7 +55,7 @@ Only the `NEXT_PUBLIC_*` variables are consumed by this frontend (they are inlin
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL of the backend API (e.g. `https://api.<domain>/api`) |
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend API (e.g. `https://api.<domain>/api/v1`) |
 | `NEXT_PUBLIC_APP_URL` | Public URL of this web app |
 | `NEXT_PUBLIC_ENABLE_VOICE_SEARCH` | Feature flag |
 | `NEXT_PUBLIC_ENABLE_SKILL_VERIFICATION` | Feature flag |
@@ -76,7 +76,7 @@ Only the `NEXT_PUBLIC_*` variables are consumed by this frontend (they are inlin
 
 ```bash
 npm ci
-NEXT_PUBLIC_API_URL=https://api.<domain>/api npm run build
+NEXT_PUBLIC_API_URL=https://api.<domain>/api/v1 npm run build
 npm start            # serves on PORT (default 3000)
 ```
 
@@ -86,7 +86,7 @@ The included `Dockerfile` builds the standalone server (`output: 'standalone'` i
 
 ```bash
 docker build \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.<domain>/api \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.<domain>/api/v1 \
   -t prosiddhi-web .
 
 docker run -p 3000:3000 prosiddhi-web

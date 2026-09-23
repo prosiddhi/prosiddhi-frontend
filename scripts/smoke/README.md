@@ -18,7 +18,7 @@ npm run dev
 
 # 2. Portal, pointed at the LOCAL api — not production
 cd prosiddhi-frontend
-NEXT_PUBLIC_API_URL=http://localhost:5000/api npx next dev -p 3000
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1 npx next dev -p 3000
 
 # 3. The checks
 cd scripts/smoke
@@ -40,7 +40,7 @@ machine that got Playwright via `npx` usually has no bundled Chromium.
 | Variable | Default |
 |---|---|
 | `SMOKE_FE` | `http://localhost:3000` |
-| `SMOKE_BE` | `http://localhost:5000/api` |
+| `SMOKE_BE` | `http://localhost:5000/api/v1` |
 | `SMOKE_OUT` | the OS temp dir — where screenshots land |
 | `PLAYWRIGHT_PATH` | — |
 | `SMOKE_BROWSER` | `chrome` |

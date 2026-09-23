@@ -7,6 +7,7 @@ import { X } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
+import { useAuthConfig } from '@/hooks/useAuthConfig'
 
 // Bare 10-digit numbers are assumed Indian (+91); an explicit +<country> is kept.
 function toE164(raw: string): string | null {
@@ -34,6 +35,7 @@ export default function EmployerContactsPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { data, update, hydrated } = useEmployerRegistration()
+  const { requirePhoneVerification, loading: authConfigLoading } = useAuthConfig()
   const [phoneNumber, setPhoneNumber] = useState(data.phoneNumber.replace(/^\+91/, ''))
   const [email, setEmail] = useState(data.email)
   const [loading, setLoading] = useState(false)
@@ -74,11 +76,27 @@ export default function EmployerContactsPage() {
       // Send both codes together. allSettled rather than Promise.all: if one
       // send fails we still want to know which, and a code that DID go out is
       // not wasted — the next screen verifies the two fields independently.
+      //
+      // R1-BE-01 / D-1: while the server says a phone code isn't required,
+      // never call otpAPI.send for it — the email path (mandatory for every
+      // employer, unaffected by this flag) works exactly as before.
+      //
+      // Gate on authConfigLoading too: the hook's default is `false` for the
+      // brief window before /auth/config resolves, and this screen is the
+      // very first one in the employer flow to mount the hook, so the cache
+      // is always cold here. Acting on the transient default would skip a
+      // genuinely-required OTP send on a fast submit. While still loading,
+      // treat it the same as "verification required" — the existing,
+      // already-safe behavior.
+      const skipPhoneVerification = !authConfigLoading && !requirePhoneVerification
       const [phoneResult, emailResult] = await Promise.allSettled([
-        otpAPI.send(e164),
+        skipPhoneVerification ? Promise.resolve(null) : otpAPI.send(e164),
         emailOtpAPI.send(trimmedEmail, 'REGISTRATION'),
       ])
 
+      // No `requirePhoneVerification &&` guard needed here: when it's false,
+      // phoneResult is always the `Promise.resolve(null)` above, which never
+      // rejects — the settled shape already makes this false on its own.
       const phoneFailed = phoneResult.status === 'rejected'
       const emailFailed = emailResult.status === 'rejected'
 
@@ -94,12 +112,19 @@ export default function EmployerContactsPage() {
           : ''
 
       // Changing either contact invalidates whatever was verified before, so
-      // the flags are recomputed from what the user just entered.
+      // the flags are recomputed from what the user just entered. When a phone
+      // code isn't required, `phoneVerified: true` means "this step is
+      // complete", not "the number was confirmed by OTP" — see the phone
+      // registration step's own comment; the backend re-checks regardless.
       update({
         phoneNumber: e164,
-        phoneVerified: data.phoneVerified && data.phoneNumber === e164,
+        phoneVerified: skipPhoneVerification
+          ? true
+          : data.phoneVerified && data.phoneNumber === e164,
         email: trimmedEmail,
         emailVerified: data.emailVerified && data.email === trimmedEmail,
+        // Same reasoning: when skipped, phoneResult.value is already null,
+        // so the optional chain already yields undefined on its own.
         devPhoneOtp:
           phoneResult.status === 'fulfilled' ? phoneResult.value?.otp : undefined,
         devEmailOtp:

@@ -33,7 +33,7 @@ const { chromium } = loadPlaywright()
 
 // Override with SMOKE_FE / SMOKE_BE when your ports differ.
 const FE = process.env.SMOKE_FE || 'http://localhost:3000'
-const BE = process.env.SMOKE_BE || 'http://localhost:5000/api'
+const BE = process.env.SMOKE_BE || 'http://localhost:5000/api/v1'
 const OUT = process.env.SMOKE_OUT || require('os').tmpdir()
 
 // Seeded on the LOCAL database — see README. Registered without an email, so
