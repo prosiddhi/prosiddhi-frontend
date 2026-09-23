@@ -667,7 +667,20 @@ export interface ForgotPasswordResult {
   otp?: string
 }
 
+// GET /auth/config's payload (R1-BE-01) — public server switches the sign-in
+// and registration screens need. Today one field; more may join it later.
+export interface AuthConfig {
+  requirePhoneVerification: boolean
+}
+
 export const authAPI = {
+  // GET /auth/config — public, no auth. Backend caches 60s; useAuthConfig adds
+  // a session cache on top for pages that mount this more than once (register,
+  // login).
+  getConfig: async () => {
+    return apiRequest<AuthConfig>('/auth/config')
+  },
+
   // Email+password OR phone+otp login. Role selects the endpoint.
   login: async (role: LoginRole, credentials: LoginCredentials) => {
     return apiRequest<LoginResult>(loginEndpoint(role), {
