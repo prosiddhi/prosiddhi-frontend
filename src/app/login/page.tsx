@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
+import { useAuthConfig } from '@/hooks/useAuthConfig'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
 import { SEEKER_HOME_ROUTE } from '@/lib/routes'
@@ -182,7 +183,8 @@ function LoginContent() {
   // Set by ProtectedRoute when it bounces a logged-out user off a deep link.
   const returnUrl = searchParams.get('returnUrl')
   const { t } = useTranslation()
-  const { login } = useAuth()
+  const { login, updateUser } = useAuth()
+  const { requirePhoneVerification, loading: authConfigLoading } = useAuthConfig()
 
   const [role, setRole] = useState<LoginRole>('seeker')
   // Set once the destination is known, unless the user has already picked. A
@@ -479,16 +481,76 @@ function LoginContent() {
     }
   }
 
-  // --- Phone-bind step 1: send OTP to the new phone ---
+  // Shared tail for both bind-phone paths (with or without an OTP). The
+  // session's user was stamped PENDING_OTP_VERIFICATION / phoneNumber: null at
+  // Google sign-up; a successful changePhone() call — either branch — always
+  // flips PENDING_OTP_VERIFICATION -> ACTIVE server-side for a first bind
+  // (auth.service.ts changePhone, `shouldActivate`). That fact isn't in the
+  // response body (it returns only `{ phoneNumber }`), but it's true by
+  // construction of having reached this line, so patching it locally isn't a
+  // manufactured claim. `phoneVerified` is deliberately NOT patched here: the
+  // backend doesn't return it, AuthUser has no such field, and its real value
+  // (true only when the OTP branch actually verified one) belongs to the
+  // backend alone.
+  const completeBind = (e164: string) => {
+    updateUser({ phoneNumber: e164, accountStatus: 'ACTIVE' })
+    if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
+    router.push(bindUser ? homeForUser(bindUser) : '/')
+  }
+
+  // Sends the real code and primes the verify form — the normal path below,
+  // and the stale-cache fallback inside the skip branch, both need it.
+  const startOtpVerify = async (e164: string) => {
+    await otpAPI.send(e164)
+    setOtpSent(true)
+    bindVerifyForm.reset({ otp: EMPTY_OTP })
+  }
+
+  // --- Phone-bind step 1: send OTP to the new phone (or, R1-BE-01 / D-1,
+  // bind it directly when the server says no code is required) ---
   const onBindSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
       setError('')
       const e164 = toE164(phone)
       if (!e164) return
-      await otpAPI.send(e164)
-      setOtpSent(true)
-      bindVerifyForm.reset({ otp: EMPTY_OTP })
+
+      // A Google sign-up's account has no phone at all yet, so this is always
+      // changePhone's isFirstBind case — no code is required while the flag
+      // is off, and none could arrive anyway (no SMS channel exists).
+      if (skipOtpBind) {
+        try {
+          await authAPI.changePhone(e164)
+          completeBind(e164)
+        } catch (bindErr) {
+          // Stale-cache guard: useAuthConfig's cache is fetched once per tab
+          // and is never refreshed except by a reload, so it can lag a real
+          // config flip (e.g. the documented flip back to true once SMS
+          // delivery ships). Re-check the LIVE value directly — not by
+          // matching bindErr's message, which is just "OTP is required to
+          // change your phone number" either way — before deciding what
+          // this failure means.
+          const liveRequiresVerification = await authAPI
+            .getConfig()
+            .then((c) => c.requirePhoneVerification)
+            .catch(() => false) // Couldn't confirm either way — treat bindErr as real, below.
+          if (liveRequiresVerification) {
+            // The flag really did flip since our cached read: a code IS
+            // required now. Send one and drop into the normal verify step
+            // instead of leaving the user stuck with no way to continue.
+            await startOtpVerify(e164)
+            return
+          }
+          // Still false: this is a real changePhone rejection (e.g. the
+          // number is already in use), not staleness. No OTP was ever
+          // involved in this branch, so show that failure itself rather
+          // than the OTP-send fallback below.
+          setError(bindErr instanceof Error ? bindErr.message : t('auth:login.errorLogin'))
+        }
+        return
+      }
+
+      await startOtpVerify(e164)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
     } finally {
@@ -505,8 +567,7 @@ function LoginContent() {
       const e164 = toE164(bindSendForm.getValues('phone'))
       if (!e164) return
       await authAPI.changePhone(e164, code)
-      if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
-      router.push(bindUser ? homeForUser(bindUser) : '/')
+      completeBind(e164)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
       bindVerifyForm.setValue('otp', EMPTY_OTP)
@@ -535,6 +596,13 @@ function LoginContent() {
   const bannerMessage = error || (activeValidationKey ? t(activeValidationKey) : '')
 
   const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
+
+  // R1-BE-01 / D-1: whether the Google phone-bind step can skip the OTP
+  // round-trip entirely. Gated on authConfigLoading, not just
+  // requirePhoneVerification — see useAuthConfig's own doc comment for why
+  // its loading-default is false. Hoisted once so the submit handler and the
+  // button label below can't disagree about which behavior is active.
+  const skipOtpBind = !authConfigLoading && !requirePhoneVerification
 
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
@@ -919,8 +987,15 @@ function LoginContent() {
                     required
                     register={bindSendForm.register('phone')}
                   />
+                  {/* R1-BE-01 / D-1: while a code isn't required, this button
+                      binds the phone directly — reusing the generic Continue/
+                      Loading copy rather than "Send OTP"/"Sending…", which
+                      would describe a code that never goes out. No new locale
+                      keys: both are existing, already-shared strings. */}
                   <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
-                    {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
+                    {skipOtpBind
+                      ? loading ? t('status.loading') : t('buttons.continue')
+                      : loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (
