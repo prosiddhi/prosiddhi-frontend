@@ -1,15 +1,31 @@
 // User-uploaded media (profile photos, documents) is served off the BACKEND
-// origin — `lib/api.ts#resolveMediaUrl` builds those URLs by stripping `/api`
-// off NEXT_PUBLIC_API_URL. next/image refuses any host that isn't allowlisted
-// here and throws "Invalid src prop", which breaks the whole page, so the
-// allowlist is DERIVED from the same env var rather than hardcoded. A static
-// list silently drifts the moment the backend moves (localhost → hosted IP →
-// prod domain) and every user with a profile photo hits a blank screen.
+// origin — `lib/api.ts#resolveMediaUrl` builds those URLs from the origin of
+// NEXT_PUBLIC_API_URL (protocol+host+port only, via the URL API), whatever
+// path that base carries (`/api`, `/api/v1`, …). next/image refuses any host
+// that isn't allowlisted here and throws "Invalid src prop", which breaks the
+// whole page, so the allowlist is DERIVED from the same env var rather than
+// hardcoded. A static list silently drifts the moment the backend moves
+// (localhost → hosted IP → prod domain) and every user with a profile photo
+// hits a blank screen.
+// A scheme-less value (`localhost:5000/api/v1`, missing the `http://`) does
+// NOT throw here — the WHATWG URL parser treats it as an opaque URL with an
+// empty hostname, which would otherwise silently allowlist nothing (every
+// profile photo then fails next/image's host check) with no build-time
+// warning. Guarded explicitly below, alongside the genuinely-throwing case,
+// so a misconfigured NEXT_PUBLIC_API_URL is loud in the build log.
 const apiOrigin = (() => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
   try {
-    return new URL(raw)
+    const parsed = new URL(raw)
+    if (!parsed.hostname) throw new Error('no scheme')
+    return parsed
   } catch {
+    console.error(
+      `[next.config.js] NEXT_PUBLIC_API_URL ("${raw}") is missing its http:// ` +
+        `or https:// scheme, so no media host could be determined. Falling ` +
+        `back to http://localhost:5000 — profile photos and documents will ` +
+        `not load until this is fixed.`
+    )
     return new URL('http://localhost:5000')
   }
 })()
