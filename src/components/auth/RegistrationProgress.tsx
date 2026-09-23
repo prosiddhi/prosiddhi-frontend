@@ -2,6 +2,7 @@
 
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft } from 'lucide-react'
+import { useAuthConfig } from '@/hooks/useAuthConfig'
 
 /**
  * RegistrationProgress — the ONE progress indicator for seeker registration.
@@ -44,10 +45,20 @@ export type RegistrationStep = (typeof REGISTRATION_STEPS)[number]
  * optional, so a seeker who gives none never sees that screen. Counting a step
  * the user will never reach is exactly the lie this component exists to
  * prevent — they would sit on "step 7 of 8" and then be finished.
+ *
+ * `phone`/`otp` are conditional the same way (R1-BE-01 / D-1): while the
+ * server says a phone code isn't required, the registration flow skips both
+ * screens entirely, so counting them here would be the same lie.
  */
-export function registrationSteps(includeEmailStep: boolean): RegistrationStep[] {
+export function registrationSteps(
+  includeEmailStep: boolean,
+  includePhoneStep: boolean
+): RegistrationStep[] {
   return REGISTRATION_STEPS.filter(
-    (step) => step !== 'verifyEmail' || includeEmailStep
+    (step) =>
+      (step !== 'verifyEmail' || includeEmailStep) &&
+      (step !== 'phone' || includePhoneStep) &&
+      (step !== 'otp' || includePhoneStep)
   )
 }
 
@@ -70,8 +81,16 @@ export function RegistrationProgress({
   className?: string
 }) {
   const { t } = useTranslation()
+  // Read directly rather than as a prop: every caller of this component would
+  // otherwise need to thread the same value through. Being ON the phone/otp
+  // step implies it regardless, so this screen itself cannot mis-count even
+  // mid-flight (e.g. the flag flips between page loads).
+  const { requirePhoneVerification } = useAuthConfig()
 
-  const steps = registrationSteps(includeEmailStep || step === 'verifyEmail')
+  const steps = registrationSteps(
+    includeEmailStep || step === 'verifyEmail',
+    requirePhoneVerification || step === 'phone' || step === 'otp'
+  )
   const TOTAL_STEPS = steps.length
   const current = steps.indexOf(step) + 1
 
