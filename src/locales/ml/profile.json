@@ -12,6 +12,7 @@
     "jobPreferences": "ജോലി മുൻഗണനകൾ",
     "lastUpdated": "പ്രൊഫൈൽ അവസാനം അപ്ഡേറ്റ് ചെയ്തത് — {{date}}",
     "dateOfBirth": "ജനനത്തീയതി",
+    "errorDobAge": "നിങ്ങൾക്ക് കുറഞ്ഞത് 18 വയസ്സ് വേണം",
     "gender": "ലിംഗം",
     "accountStatus": {
       "ACTIVE": "സജീവം",

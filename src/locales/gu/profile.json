@@ -12,6 +12,7 @@
     "jobPreferences": "નોકરીની પસંદગીઓ",
     "lastUpdated": "પ્રોફાઇલ છેલ્લે અપડેટ થઈ — {{date}}",
     "dateOfBirth": "જન્મ તારીખ",
+    "errorDobAge": "તમારી ઉંમર ઓછામાં ઓછી 18 વર્ષ હોવી જોઈએ",
     "gender": "લિંગ",
     "accountStatus": {
       "ACTIVE": "સક્રિય",

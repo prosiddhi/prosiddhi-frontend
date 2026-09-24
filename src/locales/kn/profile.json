@@ -12,6 +12,7 @@
     "jobPreferences": "ಕೆಲಸದ ಆದ್ಯತೆಗಳು",
     "lastUpdated": "ಪ್ರೊಫೈಲ್ ಕೊನೆಯದಾಗಿ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ — {{date}}",
     "dateOfBirth": "ಹುಟ್ಟಿದ ದಿನಾಂಕ",
+    "errorDobAge": "ನಿಮಗೆ ಕನಿಷ್ಠ 18 ವರ್ಷ ಆಗಿರಬೇಕು",
     "gender": "ಲಿಂಗ",
     "accountStatus": {
       "ACTIVE": "ಸಕ್ರಿಯ",

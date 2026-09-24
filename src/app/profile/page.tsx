@@ -15,7 +15,7 @@ import { PhoneStatusField } from '@/components/profile/PhoneStatusField'
 import { AccountStatusIndicator } from '@/components/profile/AccountStatusIndicator'
 import { inputCls, fieldLabelCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
-import { toDateInput } from '@/lib/dateInput'
+import { isAtLeast18, toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
   resolveMediaUrl,
@@ -379,6 +379,12 @@ function SeekerProfileContent() {
     const problem = fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
     if (problem) {
       setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
+      return
+    }
+    // The BE refuses an under-18 date with a bare "Validation failed" — catch it here.
+    // An empty field is skipped: it is sent as undefined, so accounts with no DOB can still save.
+    if (dateOfBirth && !isAtLeast18(dateOfBirth)) {
+      setSaveError(t('profile:seeker.errorDobAge'))
       return
     }
     setSaving(true)
