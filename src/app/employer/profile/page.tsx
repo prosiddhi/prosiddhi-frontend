@@ -235,6 +235,13 @@ function EmployerProfileContent() {
     return fresh
   }, [hydrateAccount])
 
+  // The session user keeps the email/phone it was given at login, so push the new
+  // ones there too — Settings, checkout and the invite page read them from it.
+  const handleContactChanged = async () => {
+    const fresh = await refreshAccountInfo()
+    updateUser({ email: fresh.email, phoneNumber: fresh.phoneNumber })
+  }
+
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (photoRef.current) photoRef.current.value = ''
@@ -621,18 +628,14 @@ function EmployerProfileContent() {
         onClose={() => setEmailModalMode(null)}
         mode={emailModalMode ?? 'add'}
         currentEmail={email || null}
-        onSuccess={async () => {
-          await refreshAccountInfo()
-        }}
+        onSuccess={handleContactChanged}
       />
 
       <PhoneVerifyModal
         isOpen={phoneModalOpen}
         onClose={() => setPhoneModalOpen(false)}
         currentPhoneNumber={phoneNumber}
-        onSuccess={async () => {
-          await refreshAccountInfo()
-        }}
+        onSuccess={handleContactChanged}
       />
     </div>
   )

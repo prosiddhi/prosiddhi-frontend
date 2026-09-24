@@ -290,6 +290,14 @@ function SeekerProfileContent() {
     const fresh = await jobSeekerAPI.getProfile()
     lastProfileRef.current = fresh
     hydrate(fresh)
+    return fresh
+  }
+
+  // The session user keeps the email/phone it was given at login, so push the new
+  // ones there too — Settings, checkout and the invite page read them from it.
+  const handleContactChanged = async () => {
+    const fresh = await refreshProfile()
+    updateUser({ email: fresh.email, phoneNumber: fresh.phoneNumber })
   }
 
   // The coordinate this save would write, if any (TD-02). The rule itself lives
@@ -878,14 +886,14 @@ function SeekerProfileContent() {
         onClose={() => setEmailModalMode(null)}
         mode={emailModalMode ?? 'add'}
         currentEmail={email || null}
-        onSuccess={refreshProfile}
+        onSuccess={handleContactChanged}
       />
 
       <PhoneVerifyModal
         isOpen={phoneModalOpen}
         onClose={() => setPhoneModalOpen(false)}
         currentPhoneNumber={phoneNumber}
-        onSuccess={refreshProfile}
+        onSuccess={handleContactChanged}
       />
     </div>
   )
