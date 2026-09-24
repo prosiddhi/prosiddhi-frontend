@@ -1,19 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
+import { GoogleLogin } from '@react-oauth/google'
 import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, RefreshCw, Trash2, User } from 'lucide-react'
 import { Footer } from '@/components/home/Footer'
 import { LANGUAGE_OPTIONS } from '@/components/navigation/LanguageSwitcher'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { useAuth } from '@/contexts/AuthContext'
-import { authAPI, employerAPI, jobSeekerAPI } from '@/lib/api'
+import { ApiError, authAPI, employerAPI, jobSeekerAPI, meAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { DeleteAccountModal } from '@/components/settings/DeleteAccountModal'
 import { passwordInputCls, eyeToggleCls, outlineBtnBaseCls } from '@/components/settings/formClasses'
+
+/**
+ * The checks a NEW password must pass, in the order Change password reports them:
+ * the i18n key of the first one that fails, or null when the pair is good.
+ */
+function passwordPairProblem(password: string, confirmation: string): string | null {
+  if (!isStrongPassword(password)) return 'settings.password.weak'
+  if (password !== confirmation) return 'settings.password.mismatch'
+  return null
+}
 
 /**
  * Account / language / password / sign-out — everything below the header.
@@ -86,6 +97,25 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Profile still loading: the card waits, so a Google-only user never sees the wrong
+  // form. A failed load falls back to Change password, as before.
+  const passwordLoading = signInMethods === null && !profileFailed
+  // A Google-only account has no password to "change": it sets its FIRST one, proved
+  // by Google, not the session (POST /me/password).
+  const isFirstPassword = !!signInMethods && signInMethods.hasGoogleLogin && !signInMethods.hasPassword
+  // The Google button only shows for a valid pair, so no popup is spent on one the
+  // backend would refuse.
+  const canConfirmWithGoogle = isFirstPassword && passwordPairProblem(newPassword, confirmPassword) === null
+
+  // Google allows 200–400px and the card is narrower than that on a phone, so size the
+  // button to its (unpadded) container once before paint; null until then.
+  const googleAreaRef = useRef<HTMLDivElement>(null)
+  const [googleWidth, setGoogleWidth] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    if (!isFirstPassword || !googleAreaRef.current) return
+    setGoogleWidth(Math.max(200, Math.min(320, googleAreaRef.current.clientWidth)))
+  }, [isFirstPassword])
+
   const accountTypeLabel =
     user?.role === 'JOB_SEEKER'
       ? t('settings.roleSeeker')
@@ -97,12 +127,9 @@ export function SettingsView() {
     e.preventDefault()
     setError('')
 
-    if (!isStrongPassword(newPassword)) {
-      setError(t('settings.password.weak'))
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setError(t('settings.password.mismatch'))
+    const problem = passwordPairProblem(newPassword, confirmPassword)
+    if (problem) {
+      setError(t(problem))
       return
     }
     if (newPassword === currentPassword) {
@@ -119,6 +146,67 @@ export function SettingsView() {
       showToast(t('settings.password.success'), 'success')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings.password.failed'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // An open Google popup keeps the callback it was rendered with, even after an edit
+  // unmounts the button. Read the fields through a ref so it never sends a stale password.
+  const latest = useRef({ newPassword, confirmPassword, saving })
+  useLayoutEffect(() => {
+    latest.current = { newPassword, confirmPassword, saving }
+  })
+
+  // The account now holds both methods: the card becomes Change password and Delete
+  // account offers both proofs (AuthContext carries no such flags). The typed passwords
+  // are cleared so nothing sits half-filled in the form the card turns into.
+  const markPasswordSet = () => {
+    setNewPassword('')
+    setConfirmPassword('')
+    setNewPasswordTouched(false)
+    setSignInMethods((methods) => methods && { ...methods, hasPassword: true })
+  }
+
+  // `idToken` stays a plain argument — never state, storage or logs. `credential` is
+  // typed optional, so a blank one is refused here.
+  const handleSetPassword = async (idToken?: string) => {
+    const current = latest.current
+    if (current.saving) return
+    setError('')
+
+    // The button only shows for a valid pair, but a popup can outlive it — this
+    // guards the request.
+    const problem = passwordPairProblem(current.newPassword, current.confirmPassword)
+    if (problem) {
+      setError(t(problem))
+      return
+    }
+    if (!idToken?.trim()) {
+      setError(t('settings.deleteAccount.googleFailed'))
+      return
+    }
+
+    // Mark busy now: the ref only sees `saving` after the next render, and a second
+    // callback can land first.
+    current.saving = true
+    setSaving(true)
+    try {
+      await meAPI.setPassword({ idToken, newPassword: current.newPassword })
+      markPasswordSet()
+      showToast(t('settings.password.setSuccess'), 'success')
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'REAUTH_FAILED') {
+        // Wrong Google account or expired token: the session is kept and the fields
+        // stay filled.
+        setError(t('settings.deleteAccount.reauthFailedGoogle'))
+      } else if (err instanceof ApiError && err.code === 'PASSWORD_ALREADY_SET') {
+        // Set elsewhere first, so our flags are stale.
+        markPasswordSet()
+        setError(t('settings.password.alreadySet'))
+      } else {
+        setError(t('settings.password.failed'))
+      }
     } finally {
       setSaving(false)
     }
@@ -219,130 +307,173 @@ export function SettingsView() {
               </div>
             </section>
 
-            {/* Change password */}
-            <section className={cardCls}>
-              <h2 className={sectionHeadingCls + ' mb-1'}>
-                <Lock className={sectionHeadingIconCls} /> {t('settings.password.title')}
-              </h2>
-              <p className="text-sm text-[#717182] mb-6">
-                {t('settings.password.description')}
-              </p>
-
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm text-gray-700 mb-1">
-                    {t('settings.password.current')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="currentPassword"
-                      type={showPasswords ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className={passwordInputCls}
-                    />
-                    <button
-                      type="button"
-                      onClick={toggleShowPasswords}
-                      aria-label={showPasswordsLabel}
-                      aria-pressed={showPasswords}
-                      className={eyeToggleCls}
-                    >
-                      {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+            {/* Change password — or, for a Google-only account, set its first password */}
+            <section className={cardCls} aria-busy={passwordLoading}>
+              {passwordLoading ? (
+                <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-[#717182]">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t('status.loading')}
                 </div>
-
-                {/* New + Confirm sit side by side above `sm` — the same paired
-                    layout Account already uses for its fields — so the card
-                    fills its width intentionally instead of one narrow column
-                    trailing off into empty space. */}
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-                  <div>
-                    <label htmlFor="newPassword" className="block text-sm text-gray-700 mb-1">
-                      {t('settings.password.new')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="newPassword"
-                        type={showPasswords ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        onBlur={() => setNewPasswordTouched(true)}
-                        aria-describedby="passwordRule"
-                        className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                          newPasswordTouched && !isStrongPassword(newPassword)
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-[#b5b5b5] focus:ring-primary-50'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={toggleShowPasswords}
-                        aria-label={showPasswordsLabel}
-                        aria-pressed={showPasswords}
-                        className={eyeToggleCls}
-                      >
-                        {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1">
-                      {t('settings.password.confirm')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="confirmPassword"
-                        type={showPasswords ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={passwordInputCls}
-                      />
-                      <button
-                        type="button"
-                        onClick={toggleShowPasswords}
-                        aria-label={showPasswordsLabel}
-                        aria-pressed={showPasswords}
-                        className={eyeToggleCls}
-                      >
-                        {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Spans the full row below both fields — previously nested
-                    under just New Password, which made it read as scoped to
-                    that one field instead of the new-password pair as a
-                    whole. */}
-                <div id="passwordRule">
-                  <PasswordRequirementsChecklist password={newPassword} />
-                </div>
-
-                {error && (
-                  <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span className="whitespace-pre-line">{error}</span>
+              ) : (
+                <>
+                  <h2 className={sectionHeadingCls + ' mb-1'}>
+                    <Lock className={sectionHeadingIconCls} />{' '}
+                    {t(isFirstPassword ? 'settings.password.setTitle' : 'settings.password.title')}
+                  </h2>
+                  <p className="text-sm text-[#717182] mb-6">
+                    {t(isFirstPassword ? 'settings.password.setDescription' : 'settings.password.description')}
                   </p>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg transition-colors hover:bg-primary-60 active:bg-primary-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {t('settings.password.submit')}
-                </button>
-              </form>
+                  <form
+                    // A first password is saved by the Google button, never by submitting.
+                    onSubmit={isFirstPassword ? (e) => e.preventDefault() : handleChangePassword}
+                    className="space-y-4"
+                  >
+                    {!isFirstPassword && (
+                      <div>
+                        <label htmlFor="currentPassword" className="block text-sm text-gray-700 mb-1">
+                          {t('settings.password.current')}
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="currentPassword"
+                            type={showPasswords ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className={passwordInputCls}
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleShowPasswords}
+                            aria-label={showPasswordsLabel}
+                            aria-pressed={showPasswords}
+                            className={eyeToggleCls}
+                          >
+                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New + Confirm sit side by side above `sm` — the same paired
+                        layout Account already uses for its fields — so the card
+                        fills its width intentionally instead of one narrow column
+                        trailing off into empty space. */}
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <label htmlFor="newPassword" className="block text-sm text-gray-700 mb-1">
+                          {t('settings.password.new')}
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="newPassword"
+                            type={showPasswords ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            required
+                            value={newPassword}
+                            onChange={(e) => { setNewPassword(e.target.value); if (isFirstPassword) setError('') }}
+                            onBlur={() => setNewPasswordTouched(true)}
+                            aria-describedby="passwordRule"
+                            className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                              newPasswordTouched && !isStrongPassword(newPassword)
+                                ? 'border-red-500 focus:ring-red-500'
+                                : 'border-[#b5b5b5] focus:ring-primary-50'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleShowPasswords}
+                            aria-label={showPasswordsLabel}
+                            aria-pressed={showPasswords}
+                            className={eyeToggleCls}
+                          >
+                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1">
+                          {t('settings.password.confirm')}
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="confirmPassword"
+                            type={showPasswords ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            required
+                            value={confirmPassword}
+                            onChange={(e) => { setConfirmPassword(e.target.value); if (isFirstPassword) setError('') }}
+                            className={passwordInputCls}
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleShowPasswords}
+                            aria-label={showPasswordsLabel}
+                            aria-pressed={showPasswords}
+                            className={eyeToggleCls}
+                          >
+                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Spans the full row below both fields — previously nested
+                        under just New Password, which made it read as scoped to
+                        that one field instead of the new-password pair as a
+                        whole. */}
+                    <div id="passwordRule">
+                      <PasswordRequirementsChecklist password={newPassword} />
+                    </div>
+
+                    {error && (
+                      <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span className="whitespace-pre-line">{error}</span>
+                      </p>
+                    )}
+
+                    {isFirstPassword ? (
+                      <div ref={googleAreaRef}>
+                        {saving ? (
+                          <div className="flex items-center gap-2 text-sm text-[#717182]">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {t('settings.deleteAccount.verifying')}
+                          </div>
+                        ) : canConfirmWithGoogle ? (
+                          <>
+                            <p className="text-sm text-[#717182] mb-3">
+                              {t('settings.password.setGooglePrompt')}
+                            </p>
+                            {googleWidth && (
+                              <GoogleLogin
+                                onSuccess={(cred) => handleSetPassword(cred.credential)}
+                                onError={() => setError(t('settings.deleteAccount.googleFailed'))}
+                                click_listener={() => setError('')}
+                                width={String(googleWidth)}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-[#717182]">{t('settings.password.setConfirmHint')}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg transition-colors hover:bg-primary-60 active:bg-primary-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {t('settings.password.submit')}
+                      </button>
+                    )}
+                  </form>
+                </>
+              )}
             </section>
 
             {/* Sign out — label/description left, action right, so the card
