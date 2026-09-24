@@ -179,7 +179,7 @@ async function apiRequest<T>(
      * A 401 whose body `code` equals this keeps the session (no clear-storage,
      * no logout). Any OTHER 401 from the call — an expired or invalid token —
      * still logs out. For a 401 that means "wrong re-auth proof", not "session
-     * expired": self-delete's REAUTH_FAILED.
+     * expired": REAUTH_FAILED on self-delete and on set-first-password.
      */
     preserveSessionOnCode?: string
   } = {}
@@ -948,6 +948,13 @@ export interface DeleteAccountResult {
   retentionDays: number | null
 }
 
+// POST /me/password body — a Google-only account's FIRST password. The Google
+// idToken is the proof, not the session (me.validator.ts's setPasswordSchema).
+export interface SetPasswordInput {
+  idToken: string
+  newPassword: string
+}
+
 // Current-user (role-agnostic) endpoints — /api/me/*
 // Imported from i18n/languages (plain data, no side effects) rather than i18n/config,
 // which would boot react-i18next just by being imported here.
@@ -974,6 +981,17 @@ export const meAPI = {
   deleteAccount: async (input: DeleteAccountInput) => {
     return apiRequest<DeleteAccountResult>('/me', {
       method: 'DELETE',
+      body: JSON.stringify(input),
+      preserveSessionOnCode: 'REAUTH_FAILED',
+    })
+  },
+
+  // POST /api/me/password — first password for a Google-only account (hasGoogleLogin
+  // && !hasPassword). REAUTH_FAILED (401) keeps the session; PASSWORD_ALREADY_SET
+  // (409) means use authAPI.changePassword.
+  setPassword: async (input: SetPasswordInput) => {
+    return apiRequest<{ hasPassword: true }>('/me/password', {
+      method: 'POST',
       body: JSON.stringify(input),
       preserveSessionOnCode: 'REAUTH_FAILED',
     })
