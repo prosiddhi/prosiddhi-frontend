@@ -8,6 +8,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 const OTP_LENGTH = 6
@@ -103,7 +104,7 @@ export default function RegisterVerifyEmailPage() {
       setResendLoading(true)
       setError('')
       const res = await emailOtpAPI.send(data.email, 'REGISTRATION')
-      update({ devEmailOtp: res?.otp })
+      update({ devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined })
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
@@ -161,8 +162,8 @@ export default function RegisterVerifyEmailPage() {
                 </div>
               </div>
 
-              {/* Dev convenience: BE echoes the OTP in non-production. */}
-              {data.devEmailOtp && (
+              {/* Dev builds only (IS_DEV_BUILD). */}
+              {IS_DEV_BUILD && data.devEmailOtp && (
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
                   <p className="text-amber-700 text-sm">
                     {t('auth:verifyEmail.devMode')} <span className="font-mono font-bold">{data.devEmailOtp}</span>

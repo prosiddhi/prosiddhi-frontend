@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, otpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 
 interface PhoneVerifyModalProps {
   isOpen: boolean
@@ -34,8 +35,8 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
   const [cooldown, setCooldown] = useState(0)
-  // Dev convenience: the BE echoes the OTP in non-production (see otpAPI.send /
-  // OtpSendResult). Same pattern as EmailVerifyModal and register/otp/page.tsx.
+  // Dev builds only: the server-echoed OTP (see OtpSendResult). Gated by
+  // IS_DEV_BUILD at capture and render, so it is never held or shown in production.
   const [devOtp, setDevOtp] = useState<string | undefined>()
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
     setError('')
     try {
       const res = await otpAPI.send(e164)
-      setDevOtp(res?.otp)
+      setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setStep('otp')
       setOtp('')
       setCooldown(RESEND_COOLDOWN_SECONDS)
@@ -141,8 +142,8 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                   : t('profile:seeker.phoneModal.otpSentTo', { phone: e164 ?? phoneNumber })}
               </p>
 
-              {/* Dev convenience: BE echoes the OTP in non-production. */}
-              {step === 'otp' && devOtp && (
+              {/* Dev builds only (IS_DEV_BUILD). */}
+              {IS_DEV_BUILD && step === 'otp' && devOtp && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-amber-700 text-sm">
                     {t('profile:seeker.phoneModal.devMode')} <span className="font-mono font-bold">{devOtp}</span>

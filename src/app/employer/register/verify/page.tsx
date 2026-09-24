@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
 const OTP_LENGTH = 6
@@ -116,13 +117,9 @@ export default function EmployerVerifyPage() {
       ])
       update({
         devPhoneOtp:
-          phoneResult.status === 'fulfilled' && phoneResult.value
-            ? phoneResult.value.otp
-            : undefined,
+          IS_DEV_BUILD && phoneResult.status === 'fulfilled' ? phoneResult.value?.otp : undefined,
         devEmailOtp:
-          emailResult.status === 'fulfilled' && emailResult.value
-            ? emailResult.value.otp
-            : undefined,
+          IS_DEV_BUILD && emailResult.status === 'fulfilled' ? emailResult.value?.otp : undefined,
       })
       setTimer(30)
     } finally {
@@ -189,7 +186,7 @@ export default function EmployerVerifyPage() {
                     aria-invalid={!!phoneError}
                     className={otpInputCls}
                   />
-                  {data.devPhoneOtp && (
+                  {IS_DEV_BUILD && data.devPhoneOtp && (
                     <p className="mt-2 text-sm text-amber-700">
                       {t('employerRegister:verify.devMode')}{' '}
                       <span className="font-mono font-bold">{data.devPhoneOtp}</span>
@@ -233,7 +230,7 @@ export default function EmployerVerifyPage() {
                     aria-invalid={!!emailError}
                     className={otpInputCls}
                   />
-                  {data.devEmailOtp && (
+                  {IS_DEV_BUILD && data.devEmailOtp && (
                     <p className="mt-2 text-sm text-amber-700">
                       {t('employerRegister:verify.devMode')}{' '}
                       <span className="font-mono font-bold">{data.devEmailOtp}</span>

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { useAuthConfig } from '@/hooks/useAuthConfig'
 
@@ -126,9 +127,9 @@ export default function EmployerContactsPage() {
         // Same reasoning: when skipped, phoneResult.value is already null,
         // so the optional chain already yields undefined on its own.
         devPhoneOtp:
-          phoneResult.status === 'fulfilled' ? phoneResult.value?.otp : undefined,
+          IS_DEV_BUILD && phoneResult.status === 'fulfilled' ? phoneResult.value?.otp : undefined,
         devEmailOtp:
-          emailResult.status === 'fulfilled' ? emailResult.value?.otp : undefined,
+          IS_DEV_BUILD && emailResult.status === 'fulfilled' ? emailResult.value?.otp : undefined,
       })
 
       if (phoneFailed && emailFailed) {

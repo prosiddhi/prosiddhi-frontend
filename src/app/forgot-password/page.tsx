@@ -14,28 +14,10 @@ import { forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/valid
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { IdentifierField } from '@/components/auth/IdentifierField'
 import { SUPPORT_EMAIL } from '@/lib/legal'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 
 const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
-
-/**
- * Is this a development build?
- *
- * `process.env.NODE_ENV` is INLINED by Next at build time, so in a production
- * build every use of this collapses to `false` and the branches behind it are
- * dropped from the bundle entirely. That is the point: the dev OTP banner must
- * be impossible to render in production, not merely unlikely.
- *
- * It was previously gated on nothing but "did the server send an `otp` field",
- * which is a promise the server is NOT currently keeping — docs/STATUS.md §1
- * records that the backend still runs with `NODE_ENV=development` on the public
- * internet and therefore echoes OTPs in API responses. Under that server, the
- * old condition rendered the code to real users on the real site.
- *
- * ⚠️ The same weak gate is still in place at five other render sites — see the
- * note in the session report. This constant fixes THIS page only.
- */
-const IS_DEV_BUILD = process.env.NODE_ENV !== 'production'
 
 type Stage = 'identifier' | 'otp' | 'reset' | 'done'
 
@@ -105,10 +87,7 @@ export default function ForgotPasswordPage() {
       setLoading(true)
       setError('')
       const res = await authAPI.forgotPassword(id)
-      // Never even hold the value in state in a production build — the render
-      // guard alone would be enough, but this way the code cannot reach the
-      // client component's state to be read out of a React devtools dump either.
-      if (IS_DEV_BUILD) setDevOtp(res?.otp)
+      setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setIdentifier(id)
       setStage('otp')
     } catch (err) {

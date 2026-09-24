@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 
 export type EmailVerifyMode = 'add' | 'change' | 'verify'
 
@@ -32,9 +33,8 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
   const [cooldown, setCooldown] = useState(0)
-  // Dev convenience: the BE echoes the OTP in non-production (see emailOtpAPI.send /
-  // OtpSendResult). Same pattern as register/verify-email, register/otp, and
-  // employer/register/verify — undefined and therefore never shown in production.
+  // Dev builds only: the server-echoed OTP (see EmailOtpSendResult). Gated by
+  // IS_DEV_BUILD at capture and render, so it is never held or shown in production.
   const [devOtp, setDevOtp] = useState<string | undefined>()
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
     setError('')
     try {
       const res = await emailOtpAPI.send(trimmedEmail, mode === 'verify' ? 'REGISTRATION' : 'CHANGE_EMAIL')
-      setDevOtp(res?.otp)
+      setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setStep('otp')
       setOtp('')
       setCooldown(RESEND_COOLDOWN_SECONDS)
@@ -150,8 +150,8 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
                   : t('profile:seeker.emailModal.otpSentTo', { email: trimmedEmail })}
               </p>
 
-              {/* Dev convenience: BE echoes the OTP in non-production. */}
-              {step === 'otp' && devOtp && (
+              {/* Dev builds only (IS_DEV_BUILD). */}
+              {IS_DEV_BUILD && step === 'otp' && devOtp && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-amber-700 text-sm">
                     {t('profile:seeker.emailModal.devMode')} <span className="font-mono font-bold">{devOtp}</span>
