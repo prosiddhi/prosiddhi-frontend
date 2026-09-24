@@ -12,6 +12,7 @@
     "jobPreferences": "Job Preferences",
     "lastUpdated": "Profile last updated — {{date}}",
     "dateOfBirth": "Date of Birth",
+    "errorDobAge": "You must be at least 18 years old",
     "gender": "Gender",
     "accountStatus": {
       "ACTIVE": "Active",

@@ -12,6 +12,7 @@
     "jobPreferences": "চাকরির পছন্দ",
     "lastUpdated": "প্রোফাইল সবশেষ আপডেট হয়েছে — {{date}}",
     "dateOfBirth": "জন্ম তারিখ",
+    "errorDobAge": "আপনার বয়স কমপক্ষে 18 বছর হতে হবে",
     "gender": "লিঙ্গ",
     "accountStatus": {
       "ACTIVE": "সক্রিয়",

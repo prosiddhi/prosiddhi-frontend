@@ -12,6 +12,7 @@
     "jobPreferences": "नोकरीच्या आवडीनिवडी",
     "lastUpdated": "प्रोफाइल शेवटचे अपडेट केले — {{date}}",
     "dateOfBirth": "जन्मतारीख",
+    "errorDobAge": "तुमचे वय किमान 18 वर्षे असावे",
     "gender": "लिंग",
     "accountStatus": {
       "ACTIVE": "सक्रिय",

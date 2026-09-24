@@ -12,6 +12,7 @@
     "jobPreferences": "नौकरी की प्राथमिकताएँ",
     "lastUpdated": "प्रोफ़ाइल आख़िरी बार अपडेट की गई — {{date}}",
     "dateOfBirth": "जन्म तिथि",
+    "errorDobAge": "आपकी आयु कम से कम 18 वर्ष होनी चाहिए",
     "gender": "लिंग",
     "accountStatus": {
       "ACTIVE": "सक्रिय",

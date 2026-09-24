@@ -12,6 +12,7 @@
     "jobPreferences": "ଚାକିରି ପସନ୍ଦ",
     "lastUpdated": "ପ୍ରୋଫାଇଲ୍ ଶେଷ ଥର ଅପଡେଟ୍ ହୋଇଛି — {{date}}",
     "dateOfBirth": "ଜନ୍ମ ତାରିଖ",
+    "errorDobAge": "ଆପଣଙ୍କ ବୟସ ଅତି କମରେ 18 ବର୍ଷ ହେବା ଦରକାର",
     "gender": "ଲିଙ୍ଗ",
     "accountStatus": {
       "ACTIVE": "ସକ୍ରିୟ",
