@@ -3,6 +3,7 @@
 import { useState, useRef, ChangeEvent, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
+import { EmailPromptDialog } from '@/components/auth/EmailPromptDialog'
 import { ChevronRight, ChevronLeft, X, ImageIcon, Pencil } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -43,6 +44,15 @@ export default function RegisterProfilePage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // C:PR-06 — the "add an email?" nudge. Two email inputs are rendered (desktop
+  // and mobile layouts), so "Add email now" needs a ref to each.
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false)
+  const emailLgRef = useRef<HTMLInputElement>(null)
+  const emailSmRef = useRef<HTMLInputElement>(null)
+  // Set the moment "Continue without email" is chosen. State would not do: two
+  // clicks in the same tick both read the old value, and the second one would
+  // update() and router.push() again.
+  const advancingRef = useRef(false)
 
   // Guard: require a verified phone. Waits for the sessionStorage restore.
   useEffect(() => {
@@ -109,17 +119,44 @@ export default function RegisterProfilePage() {
     return true
   }
 
+  const base = { fullName: fullName.trim(), dateOfBirth, gender }
+
+  // "Continue without email" from the prompt: skip the verify step entirely.
+  // Nothing is sent, and the flow never shows a screen that would read as "you
+  // must supply an email".
+  const continueWithoutEmail = () => {
+    if (advancingRef.current) return
+    advancingRef.current = true
+    setShowEmailPrompt(false)
+    update({ ...base, email: '', emailVerified: false })
+    router.push('/register/categories')
+  }
+
+  // Closes the prompt and puts the cursor in the email field. No API call — the
+  // normal Next press sends the code once a valid address is typed.
+  const addEmailNow = () => {
+    setShowEmailPrompt(false)
+    // Both layouts are in the DOM; only the one the breakpoint shows has a box.
+    const visible = [emailLgRef.current, emailSmRef.current].find((el) => el?.offsetParent)
+    visible?.focus()
+  }
+
   const handleNext = async () => {
+    // Wait for the sessionStorage restore. Before it, `email` is still the empty
+    // default, so a seeker returning with a saved email would be told they left it
+    // blank. (`showEmailPrompt` cannot normally be true here — the overlay covers
+    // Next — it just rules out a second prompt.)
+    if (!hydrated || showEmailPrompt || advancingRef.current) return
     if (!validateForm()) return
 
     const trimmedEmail = email.trim()
-    const base = { fullName: fullName.trim(), dateOfBirth, gender }
 
-    // No email → skip the verify step entirely. Nothing is sent, and the flow
-    // never shows a screen that would read as "you must supply an email".
+    // Validation has passed. Email stays optional, but without one a forgotten
+    // password cannot be recovered — so ask, every time Next is pressed with the
+    // field blank. Independent of requirePhoneVerification: the backend refuses
+    // phone password reset either way.
     if (!trimmedEmail) {
-      update({ ...base, email: '', emailVerified: false })
-      router.push('/register/categories')
+      setShowEmailPrompt(true)
       return
     }
 
@@ -245,6 +282,7 @@ export default function RegisterProfilePage() {
                     <span className="text-[#767676] font-normal">{t('auth:profile.emailOptional')}</span>
                   </label>
                   <input
+                    ref={emailLgRef}
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
@@ -337,6 +375,7 @@ export default function RegisterProfilePage() {
                 <span className="text-[#767676] font-normal">{t('auth:profile.emailOptional')}</span>
               </label>
               <input
+                ref={emailSmRef}
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
@@ -383,6 +422,10 @@ export default function RegisterProfilePage() {
           </button>
         </div>
       </div>
+
+      {showEmailPrompt && (
+        <EmailPromptDialog onAddEmail={addEmailNow} onContinue={continueWithoutEmail} />
+      )}
     </div>
   )
 }
