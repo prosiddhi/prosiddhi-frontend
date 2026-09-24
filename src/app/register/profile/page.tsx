@@ -9,6 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 
@@ -179,7 +180,7 @@ export default function RegisterProfilePage() {
         ...base,
         email: trimmedEmail,
         emailVerified: false,
-        devEmailOtp: res?.otp,
+        devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined,
       })
       router.push('/register/verify-email')
     } catch (err) {

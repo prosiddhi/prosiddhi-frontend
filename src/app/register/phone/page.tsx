@@ -9,6 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { useAuthConfig } from '@/hooks/useAuthConfig'
 
@@ -72,9 +73,13 @@ export default function RegisterPhonePage() {
       const res = await jobSeekerAPI.registerPhone({ phoneNumber: e164 })
 
       // Hold the normalised number in memory for the OTP + register steps.
-      // `devPhoneOtp` is only present in non-prod — the OTP screen shows it so QA
+      // `devPhoneOtp` is kept only in a dev build — the OTP screen shows it so QA
       // can get past this step without an SMS gateway (same as the email step).
-      update({ phoneNumber: e164, phoneVerified: false, devPhoneOtp: res?.otp })
+      update({
+        phoneNumber: e164,
+        phoneVerified: false,
+        devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined,
+      })
 
       router.push('/register/otp')
     } catch (err) {

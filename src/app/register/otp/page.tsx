@@ -9,6 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { useAuthConfig } from '@/hooks/useAuthConfig'
 
@@ -121,7 +122,7 @@ export default function RegisterOTPPage() {
       const res = await jobSeekerAPI.registerPhone({ phoneNumber })
       // A resend issues a NEW code — refresh the dev banner or it would show the
       // stale one, which no longer verifies.
-      update({ devPhoneOtp: res?.otp })
+      update({ devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined })
 
       setCanResend(false)
       setCountdown(30)
@@ -190,9 +191,8 @@ export default function RegisterOTPPage() {
                   {t('auth:otp.sentTo', { phone: phoneNumber })}
                 </p>
               </div>
-              {/* Dev convenience: BE echoes the OTP in non-production. Without it QA
-                  cannot get past this step — there is no SMS gateway wired. */}
-              {data.devPhoneOtp && (
+              {/* Dev builds only (IS_DEV_BUILD): server-echoed OTP, no SMS gateway wired. */}
+              {IS_DEV_BUILD && data.devPhoneOtp && (
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
                   <p className="text-amber-700 text-sm">
                     {t('auth:otp.devMode')} <span className="font-mono font-bold">{data.devPhoneOtp}</span>
@@ -281,9 +281,8 @@ export default function RegisterOTPPage() {
           <p className="text-base text-gray-600 mb-8">
             {t('auth:otp.sentTo', { phone: phoneNumber })}
           </p>
-              {/* Dev convenience: BE echoes the OTP in non-production. Without it QA
-                  cannot get past this step — there is no SMS gateway wired. */}
-              {data.devPhoneOtp && (
+              {/* Dev builds only (IS_DEV_BUILD): server-echoed OTP, no SMS gateway wired. */}
+              {IS_DEV_BUILD && data.devPhoneOtp && (
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-[520px]">
                   <p className="text-amber-700 text-sm">
                     {t('auth:otp.devMode')} <span className="font-mono font-bold">{data.devPhoneOtp}</span>
