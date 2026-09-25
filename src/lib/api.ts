@@ -2029,6 +2029,8 @@ export interface CheckoutInput {
   planCode: string
   gstin?: string
   placeOfSupply?: string
+  // Buyer address printed on the GST invoice. Sent only with a gstin; trimmed, 5-500 chars.
+  billingAddress?: string
 }
 
 export interface VerifyPaymentInput {
