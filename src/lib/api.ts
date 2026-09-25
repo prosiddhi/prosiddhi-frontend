@@ -375,6 +375,9 @@ export interface Job {
   // admin (every new post, and an approved post after a material edit). Only
   // APPROVED can be activated. Present on the employer's own job reads.
   moderationStatus?: string
+  // The admin's reason when moderationStatus is REJECTED. The same column holds an
+  // optional note on an approval, so read it only for a rejected job.
+  moderationNotes?: string | null
   // BR-3 — 3-level taxonomy. `subcategory` is retired (the BE Job model has no
   // such column); jobs now carry category → sector → jobTitle names.
   category?: string

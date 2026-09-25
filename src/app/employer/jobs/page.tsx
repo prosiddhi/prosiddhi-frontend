@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { employerAPI, ApiError, type Job } from '@/lib/api'
-import { jobStatusMeta, isJobAwaitingReview, canActivateJob } from '@/lib/applicationStatus'
+import { jobStatusMeta, isJobAwaitingReview, isJobRejected, canActivateJob } from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime, localizeLocation } from '@/lib/jobFormat'
 import {
   Plus,
@@ -27,11 +27,21 @@ import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { showToast } from '@/lib/toast'
 
-type Tab = 'active' | 'expired'
+// The keys are the BE's `?tab=` values. `cancelled` is what an admin rejection
+// leaves behind, and is shown to the employer as "Rejected".
+type Tab = 'active' | 'expired' | 'cancelled'
+
+// What an empty tab says. Literal keys, so they stay greppable.
+const EMPTY_COPY: Record<Tab, { title: string; body: string }> = {
+  active: { title: 'employer:jobs.noActiveTitle', body: 'employer:jobs.noActiveBody' },
+  expired: { title: 'employer:jobs.noExpiredTitle', body: 'employer:jobs.noExpiredBody' },
+  cancelled: { title: 'employer:jobs.noRejectedTitle', body: 'employer:jobs.noRejectedBody' },
+}
 
 function MyJobsContent() {
   const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('active')
+  const rejectedTab = tab === 'cancelled'
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -134,15 +144,16 @@ function MyJobsContent() {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200">
+          <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200 overflow-x-auto overflow-y-hidden">
             {([
               { key: 'active', label: t('employer:jobs.tabs.active') },
               { key: 'expired', label: t('employer:jobs.tabs.expired') },
+              { key: 'cancelled', label: t('employer:jobs.tabs.rejected') },
             ] as { key: Tab; label: string }[]).map((tabItem) => (
               <button
                 key={tabItem.key}
                 onClick={() => setTab(tabItem.key)}
-                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px transition-colors ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
                   tab === tabItem.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
               >
@@ -171,10 +182,8 @@ function MyJobsContent() {
           {!loading && !error && jobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center text-[#717182]">
               <Briefcase className="w-12 h-12 mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-black mb-1">{tab === 'active' ? t('employer:jobs.noActiveTitle') : t('employer:jobs.noExpiredTitle')}</p>
-              <p className="max-w-md mb-6">
-                {tab === 'active' ? t('employer:jobs.noActiveBody') : t('employer:jobs.noExpiredBody')}
-              </p>
+              <p className="text-lg font-medium text-black mb-1">{t(EMPTY_COPY[tab].title)}</p>
+              <p className="max-w-md mb-6">{t(EMPTY_COPY[tab].body)}</p>
               {tab === 'active' && (
                 <Link href="/employer/jobs/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm">
                   <Plus className="w-4 h-4" /> {t('employer:jobs.postJob')}
@@ -190,6 +199,7 @@ function MyJobsContent() {
                 const isActive = job.status === 'ACTIVE'
                 const badge = jobStatusMeta(job)
                 const awaitingReview = isJobAwaitingReview(job)
+                const rejected = isJobRejected(job)
                 return (
                   <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-6">
@@ -200,6 +210,14 @@ function MyJobsContent() {
                         </div>
                         {awaitingReview && (
                           <p className="text-sm text-amber-700 mb-2">{t('employer:jobs.awaitingReviewHint')}</p>
+                        )}
+                        {rejected && (
+                          <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                            <p className="font-medium">{t('employer:jobs.rejectionReason')}</p>
+                            <p className="mt-0.5 whitespace-pre-wrap break-words">
+                              {job.moderationNotes?.trim() || t('employer:jobs.rejectionReasonMissing')}
+                            </p>
+                          </div>
                         )}
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
                           <span className="flex items-center gap-1"><IndianRupee className="w-4 h-4" />{formatSalary(job.salaryMin, job.salaryMax)}</span>
@@ -213,10 +231,13 @@ function MyJobsContent() {
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
                         {/* An expired job can still be viewed and its applicants read;
-                            only editing and deleting stay on the Active tab. */}
-                        <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                          <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
-                        </Link>
+                            only editing and deleting stay on the Active tab. A
+                            rejected job gets View only. */}
+                        {!rejectedTab && (
+                          <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                            <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
+                          </Link>
+                        )}
                         <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                           <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
                         </Link>
@@ -233,7 +254,7 @@ function MyJobsContent() {
                           >
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />} {t('employer:jobs.deactivate')}
                           </button>
-                        ) : canActivateJob(job) && (
+                        ) : !rejectedTab && canActivateJob(job) && (
                           <button
                             onClick={() => handleActivate(job)}
                             disabled={busy}

@@ -68,10 +68,18 @@ export function isJobAwaitingReview(job: { status?: string; moderationStatus?: s
   return job.status !== 'ACTIVE' && !!m && m !== 'APPROVED' && m !== 'REJECTED'
 }
 
+/** An admin turned this post down. The BE also sets its status to CANCELLED. */
+export function isJobRejected(job: { moderationStatus?: string }): boolean {
+  return job.moderationStatus === 'REJECTED'
+}
+
 /** Badge for a job on My Jobs: label + pill classes decided together, so they cannot drift. */
 export function jobStatusMeta(job: { status?: string; moderationStatus?: string }): StatusMeta {
   if (isJobAwaitingReview(job)) {
     return { label: i18n.t('employer:jobs.awaitingReview'), pill: 'bg-amber-50 text-amber-700' }
+  }
+  if (isJobRejected(job)) {
+    return { label: i18n.t('employer:jobs.rejected'), pill: STATUS_PILL.REJECTED }
   }
   return {
     label: jobStatusLabel(job.status),

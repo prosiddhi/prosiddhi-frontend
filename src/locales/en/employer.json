@@ -313,7 +313,8 @@
     "title": "My Jobs",
     "tabs": {
       "active": "Active",
-      "expired": "Expired"
+      "expired": "Expired",
+      "rejected": "Rejected"
     },
     "loading": "Loading your jobs...",
     "loadFailed": "Failed to load your jobs. Please try again.",
@@ -336,7 +337,12 @@
     "awaitingReviewHint": "Our team is checking this job. It goes live once it is approved.",
     "noticePosted": "Your job is with our team for review. It goes live once it is approved, and we will notify you.",
     "noticeEdited": "Changes saved. This job is with our team for review and stays offline until it is approved.",
-    "confirmRelist": "This job's live period has ended. Re-listing it uses 1 Job Post. Continue?"
+    "confirmRelist": "This job's live period has ended. Re-listing it uses 1 Job Post. Continue?",
+    "noRejectedTitle": "No rejected jobs",
+    "noRejectedBody": "Jobs our team did not approve appear here, with the reason.",
+    "rejected": "Rejected",
+    "rejectionReason": "Reason from our team",
+    "rejectionReasonMissing": "No reason was given."
   },
   "jobNew": {
     "logoAlt": "ProSiddhi",
