@@ -168,6 +168,23 @@ export function fieldErrorsByPath(err: unknown): Record<string, string[]> {
   }, {})
 }
 
+/** The two business identifiers the BE keeps unique across employers. */
+export type BusinessIdentifierField = 'gstNumber' | 'registrationNumber'
+
+/**
+ * Which identifier a 409 `DUPLICATE_BUSINESS_IDENTIFIER` is about, or null if
+ * `err` is anything else. The register and the profile update both return it.
+ * The BE names the field in the error data (`{ reason, field, value }`) and does
+ * not say whose it is, so read `field` rather than guessing from the message.
+ * Kept out of `classifyRegisterError`: other register screens share that and
+ * cannot receive this error.
+ */
+export function duplicateIdentifierField(err: unknown): BusinessIdentifierField | null {
+  if (!(err instanceof ApiError) || err.status !== 409 || err.code !== 'DUPLICATE_BUSINESS_IDENTIFIER') return null
+  const field = err.details?.field
+  return field === 'gstNumber' || field === 'registrationNumber' ? field : null
+}
+
 // Helper function for API requests. Returns the unwrapped `.data` payload.
 async function apiRequest<T>(
   endpoint: string,

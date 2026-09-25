@@ -88,7 +88,6 @@
     "addressTooShort": "Company address must be at least 5 characters",
     "foundedInvalid": "Please enter a valid founded date",
     "sizeRequired": "Please select the company size",
-    "gstInvalid": "GST number must be exactly 15 characters",
     "cinRequired": "Please enter the company registration number (CIN)",
     "registerFailed": "Could not register the business. Please try again.",
     "sizeOptions": {

@@ -219,6 +219,12 @@
     "empty": "No notifications yet.",
     "loadError": "Couldn't load your notifications."
   },
+  "businessIdentifier": {
+    "gstInvalid": "Enter a valid 15-character GST number, for example 29ABCDE1234F1Z5.",
+    "registrationLength": "The registration number must be 5 to 50 characters.",
+    "gstDuplicate": "This GST number is already registered to another employer.",
+    "registrationDuplicate": "This registration number is already registered to another employer."
+  },
   "breadcrumbs": {
     "label": "Breadcrumb",
     "employer": "Employer",
