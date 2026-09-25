@@ -161,6 +161,10 @@ function EmployerProfileContent() {
   const originalReg = useRef('')
 
   const isBusiness = employerType === 'BUSINESS'
+  // GST/registration are business-only fields. Hidden for an explicit INDIVIDUAL
+  // only, so a missing type still shows them. Display only: the state is still
+  // hydrated, so a stored value is neither cleared nor sent (see gstChanged).
+  const isIndividual = employerType === 'INDIVIDUAL'
 
   // Root account fields only — deliberately excludes the Personal/Business edit
   // fields below, so refreshing account info (email/phone verify) mid-edit never
@@ -277,10 +281,8 @@ function EmployerProfileContent() {
 
   // A GST or CIN change re-flags the employer for admin review on the BE — the
   // controller's reverify check (gstChanged || cinChanged) is not conditioned
-  // on employerType, so this applies whether an individual is adding a GST
-  // number for the first time or a business is changing an existing one.
-  // Compared as the BE will store them (trimmed, upper-cased), so retyping the
-  // same number in lower case is not a change.
+  // on employerType. Compared as the BE will store them (trimmed, upper-cased),
+  // so retyping the same number in lower case is not a change.
   const gstChanged = !!gstNumber.trim() && normaliseIdentifier(gstNumber) !== originalGst.current
   const registrationChanged =
     !!registrationNumber.trim() && normaliseIdentifier(registrationNumber) !== originalReg.current
@@ -317,8 +319,7 @@ function EmployerProfileContent() {
     // and sent: an account whose stored value predates the format rule (it exists —
     // see the BE's identifiers.ts) must still be able to edit its address, and the
     // BE reads a missing value as "leave it alone". A blank box is likewise not
-    // sent. Applies to either type — Business Information is the same optional
-    // block for both.
+    // sent.
     const problems: IdentifierErrors = {}
     if (gstChanged && !isValidGstNumber(gstNumber)) {
       problems.gstNumber = t('businessIdentifier.gstInvalid')
@@ -518,8 +519,9 @@ function EmployerProfileContent() {
                 </section>
 
                 {/* Employer Details — Personal Details + Business Information,
-                    the same optional fields for both employer types. Filling
-                    either in never changes employerType. */}
+                    the same optional fields for both employer types (except GST
+                    and registration number, business only). Filling either in
+                    never changes employerType. */}
                 <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                   <div className="pb-6 mb-6 border-b border-[#eee]">
                     <h2 className={sectionHeadingCls + ' mb-4'}>
@@ -570,14 +572,18 @@ function EmployerProfileContent() {
                             ))}
                           </select>
                         </Field>
-                        <Field label={t('profile:employer.gstNumber')} className={fieldLabelCls}>
-                          <input {...identifiers.inputProps('gstNumber')} value={gstNumber} onChange={(e) => { setGstNumber(e.target.value); identifiers.clear('gstNumber') }} maxLength={GST_INPUT_MAX_LENGTH} placeholder={t('profile:employer.gstPlaceholder')} className={inputCls} />
-                          <IdentifierError field="gstNumber" message={identifiers.errors.gstNumber} />
-                        </Field>
-                        <Field label={t('profile:employer.registrationNumber')} className={fieldLabelCls}>
-                          <input {...identifiers.inputProps('registrationNumber')} value={registrationNumber} onChange={(e) => { setRegistrationNumber(e.target.value); identifiers.clear('registrationNumber') }} placeholder={t('profile:employer.registrationPlaceholder')} className={inputCls} />
-                          <IdentifierError field="registrationNumber" message={identifiers.errors.registrationNumber} />
-                        </Field>
+                        {!isIndividual && (
+                          <>
+                            <Field label={t('profile:employer.gstNumber')} className={fieldLabelCls}>
+                              <input {...identifiers.inputProps('gstNumber')} value={gstNumber} onChange={(e) => { setGstNumber(e.target.value); identifiers.clear('gstNumber') }} maxLength={GST_INPUT_MAX_LENGTH} placeholder={t('profile:employer.gstPlaceholder')} className={inputCls} />
+                              <IdentifierError field="gstNumber" message={identifiers.errors.gstNumber} />
+                            </Field>
+                            <Field label={t('profile:employer.registrationNumber')} className={fieldLabelCls}>
+                              <input {...identifiers.inputProps('registrationNumber')} value={registrationNumber} onChange={(e) => { setRegistrationNumber(e.target.value); identifiers.clear('registrationNumber') }} placeholder={t('profile:employer.registrationPlaceholder')} className={inputCls} />
+                              <IdentifierError field="registrationNumber" message={identifiers.errors.registrationNumber} />
+                            </Field>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
@@ -586,8 +592,12 @@ function EmployerProfileContent() {
                         <ReadOnlyField label={t('profile:employer.companyAddress')} value={companyAddress} full notProvided={t('profile:employer.notProvided')} breakWords />
                         <ReadOnlyField label={t('profile:employer.foundedDate')} value={formatDate(companyFoundedDate)} notProvided={t('profile:employer.notProvided')} breakWords />
                         <ReadOnlyField label={t('profile:employer.companySize')} value={companySize ? t(SIZE_KEYS[companySize]) : ''} notProvided={t('profile:employer.notProvided')} breakWords />
-                        <ReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} notProvided={t('profile:employer.notProvided')} breakWords />
-                        <ReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                        {!isIndividual && (
+                          <>
+                            <ReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                            <ReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
