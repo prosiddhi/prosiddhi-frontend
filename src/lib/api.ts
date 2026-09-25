@@ -1612,6 +1612,9 @@ export interface CandidateDocument {
 export interface EmployerApplicationItem {
   id: string
   status: string
+  // The employer's private bookmark flag, independent of `status`. Toggled by
+  // PUT /applications/:id/bookmark; the seeker-facing reads omit it.
+  isBookmarked?: boolean
   appliedAt?: string
   message?: string | null
   jobSeeker?: {
@@ -1828,14 +1831,17 @@ export const employerAPI = {
 
   // Candidate management — all applications across the employer's jobs.
   // GET /api/applications/employer/all → { applications, pagination }
+  // `isBookmarked: true` filters to bookmarked only. The BE also accepts false,
+  // but the portal has no use for it, so false here means "no filter".
   getEmployerAllApplications: async (
-    params: { page?: number; limit?: number; jobId?: string; status?: string; search?: string } = {}
+    params: { page?: number; limit?: number; jobId?: string; status?: string; isBookmarked?: boolean; search?: string } = {}
   ) => {
     const qs = new URLSearchParams()
     qs.set('page', String(params.page ?? 1))
     qs.set('limit', String(params.limit ?? 20))
     if (params.jobId) qs.set('jobId', params.jobId)
     if (params.status) qs.set('status', params.status)
+    if (params.isBookmarked) qs.set('isBookmarked', 'true')
     if (params.search) qs.set('search', params.search)
     return apiRequest<EmployerApplicationsPage>(`/applications/employer/all?${qs.toString()}`)
   },

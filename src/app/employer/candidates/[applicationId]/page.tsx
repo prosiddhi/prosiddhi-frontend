@@ -142,33 +142,24 @@ function CandidateDetailContent() {
    * restriction below is a product rule the client has to hold.
    *
    * Status is a SINGLE column, so setting SHORTLISTED overwrites whatever was
-   * there. That makes three states unsafe to offer it from:
+   * there. That makes two states unsafe to offer it from:
    *
    *   ACCEPTED / REJECTED  the decision is already made; shortlisting is
    *                        "still deciding", so it would be a regression.
    *   WITHDRAWN            the SEEKER pulled out. Shortlisting would erase that
    *                        and resurface them as a live candidate — the employer
    *                        would be working a list of people who are gone.
-   *   BOOKMARKED           it would silently destroy the bookmark, and there is
-   *                        no way back: toggleBookmark only accepts
-   *                        PENDING/REVIEWED/BOOKMARKED, so from SHORTLISTED the
-   *                        bookmark cannot be restored. The employer can
-   *                        un-bookmark and then shortlist — two clicks, but
-   *                        nothing is lost and nothing happens that they did not
-   *                        ask for.
    *
    * And SHORTLISTED itself, where the button would be a no-op.
+   *
+   * A bookmark is no longer a state: it is the `isBookmarked` flag, so a
+   * bookmarked candidate can be shortlisted and keeps the bookmark.
    */
   const canShortlist =
     !!app &&
     !isTerminal &&
     app.status !== 'SHORTLISTED' &&
-    app.status !== 'WITHDRAWN' &&
-    app.status !== 'BOOKMARKED'
-  // BE toggleBookmark only accepts PENDING/REVIEWED (→bookmark) or BOOKMARKED (→un-bookmark);
-  // any other status throws. Only show the button when the toggle is actually valid.
-  const canBookmark =
-    app?.status === 'PENDING' || app?.status === 'REVIEWED' || app?.status === 'BOOKMARKED'
+    app.status !== 'WITHDRAWN'
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -344,10 +335,13 @@ function CandidateDetailContent() {
                       {t('employer:candidateDetail.shortlist')}
                     </button>
                   )}
-                  {canBookmark && (
+                  {/* A bookmark is a flag, not a stage, so the BE toggle works from any
+                      status. New bookmarks are offered only while the application is
+                      open, but an existing one must stay clearable after the decision. */}
+                  {(!isTerminal || app.isBookmarked) && (
                     <button onClick={handleBookmark} disabled={bookmarking} className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60">
-                      {bookmarking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bookmark className={`w-5 h-5 ${app.status === 'BOOKMARKED' ? 'fill-primary-50 text-primary-50' : ''}`} />}
-                      {app.status === 'BOOKMARKED' ? t('employer:candidateDetail.bookmarked') : t('employer:candidateDetail.bookmark')}
+                      {bookmarking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bookmark className={`w-5 h-5 ${app.isBookmarked ? 'fill-primary-50 text-primary-50' : ''}`} />}
+                      {app.isBookmarked ? t('employer:candidateDetail.bookmarked') : t('employer:candidateDetail.bookmark')}
                     </button>
                   )}
                 </div>

@@ -10,6 +10,7 @@ import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
   Search,
+  Bookmark,
   MapPin,
   Users,
   Loader2,
@@ -18,14 +19,16 @@ import {
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
-type Tab = { key: string; label: string; status?: string }
+// `filter` is spread into the list request: a pipeline `status`, or the bookmark
+// flag (a bookmark is not a status). "All" has none.
+type Tab = { key: string; label: string; filter?: { status?: string; isBookmarked?: boolean } }
 
 const TABS: Tab[] = [
   { key: 'all', label: 'All' },
-  { key: 'accepted', label: 'Accepted', status: 'ACCEPTED' },
-  { key: 'shortlisted', label: 'Shortlisted', status: 'SHORTLISTED' },
-  { key: 'rejected', label: 'Rejected', status: 'REJECTED' },
-  { key: 'bookmarked', label: 'Bookmarked', status: 'BOOKMARKED' },
+  { key: 'accepted', label: 'Accepted', filter: { status: 'ACCEPTED' } },
+  { key: 'shortlisted', label: 'Shortlisted', filter: { status: 'SHORTLISTED' } },
+  { key: 'rejected', label: 'Rejected', filter: { status: 'REJECTED' } },
+  { key: 'bookmarked', label: 'Bookmarked', filter: { isBookmarked: true } },
 ]
 
 function CandidatesContent() {
@@ -43,7 +46,7 @@ function CandidatesContent() {
   const [reloadKey, setReloadKey] = useState(0)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
-  const activeStatus = TABS.find((t) => t.key === tabKey)?.status
+  const activeTab = TABS.find((t) => t.key === tabKey)
 
   // The results area swaps between the spinner, an error, "no candidates",
   // and the list in one React commit (e.g. a tab with results -> an empty
@@ -88,7 +91,7 @@ function CandidatesContent() {
           page: 1,
           limit: 50,
           jobId,
-          status: activeStatus,
+          ...activeTab?.filter,
           search: search || undefined,
         })
         if (!ignore) {
@@ -111,7 +114,7 @@ function CandidatesContent() {
     return () => {
       ignore = true
     }
-  }, [activeStatus, search, jobId, reloadKey])
+  }, [activeTab, search, jobId, reloadKey])
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -210,7 +213,15 @@ function CandidatesContent() {
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            {app.isBookmarked && (
+                              <Bookmark
+                                className="w-4 h-4 fill-primary-50 text-primary-50"
+                                aria-label={t('employer:candidateDetail.bookmarked')}
+                              />
+                            )}
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
+                          </div>
                           <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
