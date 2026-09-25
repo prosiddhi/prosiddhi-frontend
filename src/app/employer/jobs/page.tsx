@@ -4,7 +4,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { employerAPI, type Job } from '@/lib/api'
+import { employerAPI, ApiError, type Job } from '@/lib/api'
 import { jobStatusMeta, isJobAwaitingReview, canActivateJob } from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime, localizeLocation } from '@/lib/jobFormat'
 import {
@@ -24,15 +24,10 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { TopUpModal } from '@/components/employer/TopUpModal'
 import { showToast } from '@/lib/toast'
 
 type Tab = 'active' | 'expired'
-
-// BE getEmployerJobs (the "active" feed) has no status filter — it returns every
-// job the employer owns, including the FILLED/CLOSED/CANCELLED ones that also show
-// under the Expired tab. Filter those out client-side so a job never appears in
-// both tabs and the "Active" label stays honest.
-const EXPIRED_STATUSES = new Set(['FILLED', 'CLOSED', 'CANCELLED'])
 
 function MyJobsContent() {
   const { t } = useTranslation()
@@ -44,6 +39,8 @@ function MyJobsContent() {
   const [actioningId, setActioningId] = useState<string | null>(null)
   // Transient success notice (e.g. "1 post credit refunded" after a delete).
   const [notice, setNotice] = useState('')
+  // Re-listing an expired job with no post credits left opens the top-up pop-up.
+  const [topUp, setTopUp] = useState(false)
 
   useEffect(() => {
     let ignore = false
@@ -51,13 +48,9 @@ function MyJobsContent() {
       setLoading(true)
       setError('')
       try {
-        const res = tab === 'active'
-          ? await employerAPI.getMyJobs(1, 50)
-          : await employerAPI.getMyExpiredJobs(1, 50)
-        const list = tab === 'active'
-          ? res.jobs.filter((j) => !EXPIRED_STATUSES.has((j.status ?? '').toUpperCase()))
-          : res.jobs
-        if (!ignore) setJobs(list)
+        // The BE splits the tabs itself, so nothing is filtered here.
+        const res = await employerAPI.getMyJobs(1, 50, tab)
+        if (!ignore) setJobs(res.jobs)
       } catch (err) {
         if (!ignore) {
           setError(err instanceof Error ? err.message : t('employer:jobs.loadFailed'))
@@ -87,10 +80,25 @@ function MyJobsContent() {
       await fn()
       setReloadKey((k) => k + 1)
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('employer:jobs.actionFailed'), 'error')
+      // Only re-listing can be refused for credits (402). Offer the top-up
+      // instead of a toast that says "no credits" and leaves the employer stuck.
+      if (err instanceof ApiError && err.code === 'INSUFFICIENT_POST_CREDITS') {
+        setTopUp(true)
+      } else {
+        showToast(err instanceof Error ? err.message : t('employer:jobs.actionFailed'), 'error')
+      }
     } finally {
       setActioningId(null)
     }
+  }
+
+  const handleActivate = (job: Job) => {
+    // Re-listing a job whose paid window has ended spends 1 Job Post, so ask
+    // first. The Expired tab is exactly those jobs — the BE picks it with the same
+    // test it bills on, so we do not re-test on the device clock. Resuming a job
+    // still inside its window (Active tab) is free: no prompt.
+    if (tab === 'expired' && !window.confirm(t('employer:jobs.confirmRelist'))) return
+    runAction(() => employerAPI.activateJob(job.id), job.id)
   }
 
   const handleDelete = async (id: string) => {
@@ -204,19 +212,18 @@ function MyJobsContent() {
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* Expired tab shows Activate only for now; other actions hidden until re-enabled */}
+                        {/* An expired job can still be viewed and its applicants read;
+                            only editing and deleting stay on the Active tab. */}
+                        <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                          <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
+                        </Link>
+                        <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                          <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
+                        </Link>
                         {tab === 'active' && (
-                          <>
-                            <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                              <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
-                            </Link>
-                            <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                              <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
-                            </Link>
-                            <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                              <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
-                            </Link>
-                          </>
+                          <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                            <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
+                          </Link>
                         )}
                         {isActive ? (
                           <button
@@ -228,7 +235,7 @@ function MyJobsContent() {
                           </button>
                         ) : canActivateJob(job) && (
                           <button
-                            onClick={() => runAction(() => employerAPI.activateJob(job.id), job.id)}
+                            onClick={() => handleActivate(job)}
                             disabled={busy}
                             className="inline-flex items-center gap-1.5 px-3 py-2 border border-green-300 text-green-700 rounded-lg text-sm hover:bg-green-50 transition-colors disabled:opacity-60"
                           >
@@ -253,6 +260,8 @@ function MyJobsContent() {
           )}
         </div>
       </main>
+
+      {topUp && <TopUpModal onClose={() => setTopUp(false)} />}
     </div>
   )
 }

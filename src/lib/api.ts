@@ -1795,14 +1795,13 @@ export const employerAPI = {
     })
   },
 
-  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs → { jobs, pagination }
-  getMyJobs: async (page = 1, limit = 10) => {
-    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}`)
-  },
-
-  // Get employer's expired/fulfilled jobs. GET /api/jobs/employer/me/expired → { jobs, pagination }
-  getMyExpiredJobs: async (page = 1, limit = 10) => {
-    return apiRequest<JobsPage>(`/jobs/employer/me/expired?page=${page}&limit=${limit}`)
+  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs?tab= → { jobs, pagination }
+  // The BE splits jobs by `liveUntil` into three exclusive tabs — active (live, or
+  // awaiting review), expired (paid window over; re-listing costs 1 POST credit)
+  // and cancelled (rejected by an admin) — so the client does no filtering.
+  // `tab` defaults to active, which is also what the BE serves when it is omitted.
+  getMyJobs: async (page = 1, limit = 10, tab: 'active' | 'expired' | 'cancelled' = 'active') => {
+    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}&tab=${tab}`)
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
