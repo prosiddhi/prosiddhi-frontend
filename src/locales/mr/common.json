@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "अर्ज केला",
-    "REVIEWED": "तपासले",
     "SHORTLISTED": "शॉर्टलिस्ट केलेले",
     "ACCEPTED": "स्वीकारले",
     "REJECTED": "नाकारले",
     "WITHDRAWN": "मागे घेतले",
-    "BOOKMARKED": "जतन केले",
     "unknown": "अज्ञात"
   },
   "jobStatus": {
-    "DRAFT": "ड्राफ्ट",
     "ACTIVE": "सक्रिय",
     "INACTIVE": "निष्क्रिय",
-    "CLOSED": "बंद",
-    "FILLED": "भरले",
     "CANCELLED": "रद्द",
     "unknown": "अज्ञात"
   },

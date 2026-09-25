@@ -1590,7 +1590,6 @@ export interface EmployerDashboardJob {
   rejectedCount: number
   pendingCount: number
   shortlistedCount: number
-  reviewedCount: number
 }
 
 export interface EmployerDashboardJobsPage {

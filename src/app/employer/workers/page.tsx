@@ -355,7 +355,7 @@ function WorkersSearchContent() {
     ;(async () => {
       try {
         // Five, not one: `getMyJobs` has no status filter, so the newest row can
-        // be CANCELLED or FILLED while the copy says "your most recent job".
+        // be CANCELLED or INACTIVE while the copy says "your most recent job".
         // Prefer a live one, fall back to the newest of any status rather than
         // showing nothing.
         const mine = await employerAPI.getMyJobs(1, 5)

@@ -129,12 +129,10 @@
   },
   "status": {
     "PENDING": "ಅರ್ಜಿ ಹಾಕಲಾಗಿದೆ",
-    "REVIEWED": "ಪರಿಶೀಲನೆಯಲ್ಲಿ",
     "SHORTLISTED": "ಶಾರ್ಟ್‌ಲಿಸ್ಟ್",
     "ACCEPTED": "ಸ್ವೀಕೃತ",
     "REJECTED": "ತಿರಸ್ಕೃತ",
     "WITHDRAWN": "ಹಿಂಪಡೆಯಲಾಗಿದೆ",
-    "BOOKMARKED": "ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಲಾಗಿದೆ",
     "UNKNOWN": "ತಿಳಿದಿಲ್ಲ"
   },
   "myApplications": {

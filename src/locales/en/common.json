@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "Applied",
-    "REVIEWED": "Under Review",
     "SHORTLISTED": "Shortlisted",
     "ACCEPTED": "Accepted",
     "REJECTED": "Rejected",
     "WITHDRAWN": "Withdrawn",
-    "BOOKMARKED": "Bookmarked",
     "unknown": "Unknown"
   },
   "jobStatus": {
-    "DRAFT": "Draft",
     "ACTIVE": "Active",
     "INACTIVE": "Inactive",
-    "CLOSED": "Closed",
-    "FILLED": "Filled",
     "CANCELLED": "Cancelled",
     "unknown": "Unknown"
   },

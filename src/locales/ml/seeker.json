@@ -129,12 +129,10 @@
   },
   "status": {
     "PENDING": "അപേക്ഷിച്ചു",
-    "REVIEWED": "പരിശോധനയിൽ",
     "SHORTLISTED": "ഷോർട്ട്ലിസ്റ്റ് ചെയ്തു",
     "ACCEPTED": "സ്വീകരിച്ചു",
     "REJECTED": "നിരസിച്ചു",
     "WITHDRAWN": "പിൻവലിച്ചു",
-    "BOOKMARKED": "ബുക്ക്മാർക്ക് ചെയ്തു",
     "UNKNOWN": "അറിയില്ല"
   },
   "myApplications": {

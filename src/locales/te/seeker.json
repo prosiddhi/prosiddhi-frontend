@@ -129,12 +129,10 @@
   },
   "status": {
     "PENDING": "దరఖాస్తు చేశారు",
-    "REVIEWED": "పరిశీలనలో",
     "SHORTLISTED": "షార్ట్‌లిస్ట్",
     "ACCEPTED": "ఆమోదించారు",
     "REJECTED": "తిరస్కరించారు",
     "WITHDRAWN": "వెనక్కి తీసుకున్నారు",
-    "BOOKMARKED": "బుక్‌మార్క్ చేశారు",
     "UNKNOWN": "తెలియదు"
   },
   "myApplications": {

@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "അപേക്ഷിച്ചു",
-    "REVIEWED": "പരിശോധനയിൽ",
     "SHORTLISTED": "ഷോർട്ട്ലിസ്റ്റ് ചെയ്തു",
     "ACCEPTED": "സ്വീകരിച്ചു",
     "REJECTED": "നിരസിച്ചു",
     "WITHDRAWN": "പിൻവലിച്ചു",
-    "BOOKMARKED": "ബുക്ക്മാർക്ക് ചെയ്തു",
     "unknown": "അജ്ഞാതം"
   },
   "jobStatus": {
-    "DRAFT": "ഡ്രാഫ്റ്റ്",
     "ACTIVE": "സജീവം",
     "INACTIVE": "നിഷ്ക്രിയം",
-    "CLOSED": "അടച്ചു",
-    "FILLED": "ഒഴിവ് നികന്നു",
     "CANCELLED": "റദ്ദാക്കി",
     "unknown": "അജ്ഞാതം"
   },

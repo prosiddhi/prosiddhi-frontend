@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "আবেদন করা হয়েছে",
-    "REVIEWED": "দেখা হচ্ছে",
     "SHORTLISTED": "শর্টলিস্ট হয়েছে",
     "ACCEPTED": "গ্রহণ করা হয়েছে",
     "REJECTED": "গ্রহণ করা হয়নি",
     "WITHDRAWN": "ফিরিয়ে নেওয়া হয়েছে",
-    "BOOKMARKED": "বুকমার্ক করা হয়েছে",
     "unknown": "অজানা"
   },
   "jobStatus": {
-    "DRAFT": "ড্রাফট",
     "ACTIVE": "চালু",
     "INACTIVE": "বন্ধ",
-    "CLOSED": "আবেদন বন্ধ",
-    "FILLED": "লোক নেওয়া হয়েছে",
     "CANCELLED": "বাতিল",
     "unknown": "অজানা"
   },

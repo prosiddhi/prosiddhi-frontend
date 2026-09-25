@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "దరఖాస్తు చేశారు",
-    "REVIEWED": "పరిశీలనలో",
     "SHORTLISTED": "షార్ట్‌లిస్ట్",
     "ACCEPTED": "ఆమోదించారు",
     "REJECTED": "తిరస్కరించారు",
     "WITHDRAWN": "వెనక్కి తీసుకున్నారు",
-    "BOOKMARKED": "బుక్‌మార్క్ చేశారు",
     "unknown": "తెలియదు"
   },
   "jobStatus": {
-    "DRAFT": "డ్రాఫ్ట్",
     "ACTIVE": "యాక్టివ్",
     "INACTIVE": "ఇన్‌యాక్టివ్",
-    "CLOSED": "మూసివేశారు",
-    "FILLED": "భర్తీ అయ్యింది",
     "CANCELLED": "రద్దు చేశారు",
     "unknown": "తెలియదు"
   },

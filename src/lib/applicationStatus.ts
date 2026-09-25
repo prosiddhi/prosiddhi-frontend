@@ -1,5 +1,6 @@
 // Shared presentation for the BE ApplicationStatus enum
-// (PENDING / REVIEWED / SHORTLISTED / REJECTED / ACCEPTED / WITHDRAWN / BOOKMARKED).
+// (PENDING / SHORTLISTED / REJECTED / ACCEPTED / WITHDRAWN). A bookmark is the
+// `isBookmarked` flag, not a status.
 // Rendered on the seeker's My Applications list + detail, and on the employer's
 // dashboard and candidate screens.
 //
@@ -22,12 +23,10 @@ export interface StatusMeta {
 /** Pill colours per status. Colour is language-independent, so it stays here. */
 const STATUS_PILL: Record<string, string> = {
   PENDING: 'bg-[#eef6ff] text-[#1d6fb8]',
-  REVIEWED: 'bg-amber-50 text-amber-700',
   SHORTLISTED: 'bg-indigo-50 text-indigo-700',
   ACCEPTED: 'bg-green-50 text-green-700',
   REJECTED: 'bg-red-50 text-red-700',
   WITHDRAWN: 'bg-gray-100 text-gray-600',
-  BOOKMARKED: 'bg-purple-50 text-purple-700',
 }
 
 const FALLBACK_PILL = 'bg-gray-100 text-gray-600'
@@ -52,7 +51,7 @@ export function canWithdraw(status?: string): boolean {
 
 /** Presentation for the BE JobStatus enum (employer's My Jobs / dashboard). */
 export function jobStatusLabel(status?: string): string {
-  const KNOWN = ['DRAFT', 'ACTIVE', 'INACTIVE', 'CLOSED', 'FILLED', 'CANCELLED']
+  const KNOWN = ['ACTIVE', 'INACTIVE', 'CANCELLED']
   if (!status || !KNOWN.includes(status)) return i18n.t('jobStatus.unknown')
   return i18n.t(`jobStatus.${status}`)
 }

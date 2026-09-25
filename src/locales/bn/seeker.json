@@ -129,12 +129,10 @@
   },
   "status": {
     "PENDING": "আবেদন করা হয়েছে",
-    "REVIEWED": "দেখা হচ্ছে",
     "SHORTLISTED": "শর্টলিস্ট করা হয়েছে",
     "ACCEPTED": "গ্রহণ করা হয়েছে",
     "REJECTED": "বাতিল করা হয়েছে",
     "WITHDRAWN": "ফিরিয়ে নেওয়া হয়েছে",
-    "BOOKMARKED": "বুকমার্ক করা হয়েছে",
     "UNKNOWN": "জানা নেই"
   },
   "myApplications": {

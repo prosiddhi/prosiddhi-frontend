@@ -129,12 +129,10 @@
   },
   "status": {
     "PENDING": "अर्ज केला",
-    "REVIEWED": "तपासले",
     "SHORTLISTED": "शॉर्टलिस्ट केलेले",
     "ACCEPTED": "स्वीकारले",
     "REJECTED": "नाकारले",
     "WITHDRAWN": "मागे घेतले",
-    "BOOKMARKED": "जतन केले",
     "UNKNOWN": "अज्ञात"
   },
   "myApplications": {
