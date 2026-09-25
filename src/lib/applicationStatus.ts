@@ -58,6 +58,37 @@ export function jobStatusLabel(status?: string): string {
 }
 
 /**
+ * Offline and not yet approved: a new post, an edited one, or one an admin has
+ * scanned but not decided on (PENDING_REVIEW / NO_VIOLATION / VIOLATION_FOUND).
+ * A live job never counts — a content scan can re-queue an ACTIVE job without
+ * taking it down. A rejected job is its own state, not "awaiting".
+ */
+export function isJobAwaitingReview(job: { status?: string; moderationStatus?: string }): boolean {
+  const m = job.moderationStatus
+  return job.status !== 'ACTIVE' && !!m && m !== 'APPROVED' && m !== 'REJECTED'
+}
+
+/** Badge for a job on My Jobs: label + pill classes decided together, so they cannot drift. */
+export function jobStatusMeta(job: { status?: string; moderationStatus?: string }): StatusMeta {
+  if (isJobAwaitingReview(job)) {
+    return { label: i18n.t('employer:jobs.awaitingReview'), pill: 'bg-amber-50 text-amber-700' }
+  }
+  return {
+    label: jobStatusLabel(job.status),
+    pill: job.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : FALLBACK_PILL,
+  }
+}
+
+/**
+ * The BE only activates an APPROVED job (awaiting review and rejected are
+ * refused), so do not offer a button that can only fail. If the field is missing
+ * we cannot tell, so we offer it and let the BE decide, as before.
+ */
+export function canActivateJob(job: { moderationStatus?: string }): boolean {
+  return !job.moderationStatus || job.moderationStatus === 'APPROVED'
+}
+
+/**
  * Presentation for the BE VerificationStatus enum (employer profile).
  * It used to render as a raw token — "PENDING" / "APPROVED" — sitting next to a
  * translated label, which read as a bug even in English.

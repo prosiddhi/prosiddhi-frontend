@@ -354,6 +354,10 @@ export interface Job {
   paymentType?: string
   jobType?: string
   status?: string
+  // Where the post sits in admin review. PENDING_REVIEW = offline, waiting for an
+  // admin (every new post, and an approved post after a material edit). Only
+  // APPROVED can be activated. Present on the employer's own job reads.
+  moderationStatus?: string
   // BR-3 — 3-level taxonomy. `subcategory` is retired (the BE Job model has no
   // such column); jobs now carry category → sector → jobTitle names.
   category?: string

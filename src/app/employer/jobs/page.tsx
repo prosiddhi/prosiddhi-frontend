@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { employerAPI, type Job } from '@/lib/api'
-import { jobStatusLabel } from '@/lib/applicationStatus'
+import { jobStatusMeta, isJobAwaitingReview, canActivateJob } from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime, localizeLocation } from '@/lib/jobFormat'
 import {
   Plus,
@@ -180,16 +180,19 @@ function MyJobsContent() {
               {jobs.map((job) => {
                 const busy = actioningId === job.id
                 const isActive = job.status === 'ACTIVE'
+                const badge = jobStatusMeta(job)
+                const awaitingReview = isJobAwaitingReview(job)
                 return (
                   <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-6">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="text-lg sm:text-xl font-semibold text-black">{job.title}</h3>
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                            {jobStatusLabel(job.status)}
-                          </span>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${badge.pill}`}>{badge.label}</span>
                         </div>
+                        {awaitingReview && (
+                          <p className="text-sm text-amber-700 mb-2">{t('employer:jobs.awaitingReviewHint')}</p>
+                        )}
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
                           <span className="flex items-center gap-1"><IndianRupee className="w-4 h-4" />{formatSalary(job.salaryMin, job.salaryMax)}</span>
                           {job.jobType && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{humanizeJobType(job.jobType)}</span>}
@@ -223,7 +226,7 @@ function MyJobsContent() {
                           >
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PowerOff className="w-4 h-4" />} {t('employer:jobs.deactivate')}
                           </button>
-                        ) : (
+                        ) : canActivateJob(job) && (
                           <button
                             onClick={() => runAction(() => employerAPI.activateJob(job.id), job.id)}
                             disabled={busy}

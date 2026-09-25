@@ -14,6 +14,8 @@ import {
   type PaymentTypeValue,
   type UrgencyLevelValue,
 } from '@/lib/api'
+import { isJobAwaitingReview } from '@/lib/applicationStatus'
+import { showToast } from '@/lib/toast'
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
@@ -81,7 +83,10 @@ function EditJobContent() {
     setSubmitting(true)
     setError('')
     try {
-      await employerAPI.updateJob(jobId, data)
+      const job = await employerAPI.updateJob(jobId, data)
+      // A material edit pulls an approved post back into review (and offline).
+      // The BE reports it in the response, so we do not have to guess what counts.
+      if (isJobAwaitingReview(job)) showToast(t('employer:jobs.noticeEdited'), 'info')
       router.push('/employer/jobs')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('employer:jobEdit.saveFailed'))

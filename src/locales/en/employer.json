@@ -331,7 +331,11 @@
     "edit": "Edit",
     "deactivate": "Deactivate",
     "activate": "Activate",
-    "delete": "Delete"
+    "delete": "Delete",
+    "awaitingReview": "Awaiting review",
+    "awaitingReviewHint": "Our team is checking this job. It goes live once it is approved.",
+    "noticePosted": "Your job is with our team for review. It goes live once it is approved, and we will notify you.",
+    "noticeEdited": "Changes saved. This job is with our team for review and stays offline until it is approved."
   },
   "jobNew": {
     "logoAlt": "ProSiddhi",
