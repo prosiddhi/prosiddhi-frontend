@@ -235,7 +235,7 @@ The BE deleted both `set-password` routes and made register require **both conta
 DEF-021 and DEF-022 share one fix site — the employer header. **Fix them together.**
 
 **Also newly confirmed:**
-- **DEF-033 — "Shortlisted" can never work.** `candidates/page.tsx:27` defines a filter tab for status `SHORTLISTED`, but the only status actions that exist are Accept, Reject and Bookmark. **Nothing ever writes that status**, so the tab is permanently empty. Either build the action or drop the tab.
+- **DEF-033 — "Shortlisted" can never work.** ✅ **FIXED 2026-08-18 (`dce2c3d`, on `main`) — awaiting retest.** The candidate page has a Shortlist action; R1-POR-03 / P-01 later let a bookmarked candidate be shortlisted too (a bookmark is now a flag). The retest needs a shortlisted candidate in the data. Was: `candidates/page.tsx:27` defines a filter tab for status `SHORTLISTED`, but the only status actions that exist are Accept, Reject and Bookmark. **Nothing ever writes that status**, so the tab is permanently empty. Either build the action or drop the tab.
 - **DEF-030 — the name field accepts `1234`.** `register/profile/page.tsx:75` checks only `length < 2`; no character class. Needs a client pattern **and** a BE mirror.
 - **DEF-032 — email/phone are not editable** anywhere in the UI, though the BE has OTP-verified `change-email` / `change-phone` endpoints. Built on the server, unexposed on the client.
 
