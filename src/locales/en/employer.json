@@ -212,7 +212,7 @@
     "noActor": "—",
     "pageOf": "Page {{page}} of {{total}}",
     "reasons": {
-      "GRANT_TRIAL": "Trial credit",
+      "GRANT_TRIAL": "Free trial",
       "GRANT_PURCHASE": "Purchase",
       "SPEND_POST": "Job post",
       "SPEND_UNLOCK": "Candidate unlock",
