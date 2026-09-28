@@ -382,8 +382,15 @@ function JobFeedPageContent() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filter sidebar — bordered card, matching the Figma reference. */}
-          <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
+          {/* Filter sidebar — bordered card, matching the Figma reference.
+              `order-2 lg:order-none`: below `lg:` this column stacks under the
+              results instead of above them (TD-15 — a phone's first screen
+              should show job cards, not the whole filter panel), while at
+              `lg:`+ resetting to `order-none` restores the source order
+              (sidebar left, results right), so the desktop layout is
+              byte-for-byte unchanged. Filters stay fully intact and reachable
+              by scrolling past the results, not hidden behind any toggle. */}
+          <aside className="order-2 lg:order-none w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-black">{t('seeker:jobFeed.filters.allFilters')}</h2>
               {hasActiveFilters && (
@@ -506,7 +513,7 @@ function JobFeedPageContent() {
             </div>
           </aside>
 
-          <div className="flex-1 min-w-0">
+          <div className="order-1 lg:order-none flex-1 min-w-0">
             <JobFeedSection
               bare
               heading={
