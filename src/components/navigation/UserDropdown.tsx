@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -249,6 +249,47 @@ export function UserDropdown() {
               <Briefcase className="w-4 h-4 text-gray-700" />
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
+
+            {/* Team / Plans / Invoices (employer only). EmployerHeader only ever
+                links Team (hidden below md:) and Find Workers (hidden below sm:) —
+                Plans and Invoices have no header link at any width, reachable
+                today only from the CreditWallet widget, which doesn't render on
+                every employer page. This dropdown is visible and 44px-tall at
+                every width, so it's the one place an employer can always reach
+                all three (PJP-39). */}
+            {isEmployer && (
+              <>
+                <Link
+                  href="/employer/team"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <Users className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:dashboard.team')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/plans"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <CreditCard className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:plans.navLabel')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/invoices"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:invoices.navLabel')}</span>
+                </Link>
+              </>
+            )}
 
             {/* Ledger (employer only) — the credit transaction history. */}
             {isEmployer && (

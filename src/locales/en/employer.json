@@ -170,6 +170,7 @@
     "error": "Couldn't load your wallet."
   },
   "invoices": {
+    "navLabel": "Invoices",
     "logoAlt": "ProSiddhi",
     "title": "Invoices",
     "subtitle": "Your GST invoices for every purchase.",
@@ -212,6 +213,7 @@
     "pageOf": "Page {{page}} of {{total}}"
   },
   "plans": {
+    "navLabel": "Plans",
     "heading": "Plans & pricing",
     "subheading": "Buy Job Posts and Candidate Unlocks. Choose a plan that fits how much you hire.",
     "seekersFree": "Job seekers are free, forever.",
