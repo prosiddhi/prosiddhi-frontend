@@ -8,10 +8,6 @@ import { PricingPlans } from '@/components/employer/PricingPlans'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Phone,
-  Facebook,
-  Instagram,
-  Github,
-  Linkedin,
   ArrowRight,
   PhoneCall,
   MessageCircle
