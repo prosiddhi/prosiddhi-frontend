@@ -190,7 +190,14 @@ function JobFeedPageContent() {
   const [roleExpanded, setRoleExpanded] = useState(false)
 
   const departments = useMemo(() => categories.filter(hasJobTitles), [categories])
-  const roles = useMemo(() => flatJobTitleNames(categories), [categories])
+  // Scoped to the selected department once one is picked, so Role Category
+  // only ever offers roles that actually exist under it — otherwise a
+  // seeker could pick a role from another department and get zero results.
+  const roleSourceCategories = useMemo(
+    () => (filters.category ? departments.filter((c) => c.name === filters.category) : departments),
+    [departments, filters.category]
+  )
+  const roles = useMemo(() => flatJobTitleNames(roleSourceCategories), [roleSourceCategories])
   const visibleDepartments = departmentExpanded ? departments : departments.slice(0, DEPARTMENT_PREVIEW)
   const visibleRoles = roleExpanded ? roles : roles.slice(0, ROLE_PREVIEW)
 
@@ -297,7 +304,12 @@ function JobFeedPageContent() {
   const setSalaryPreset = (key: string) => applyFilters((prev) => ({ ...prev, salaryPreset: key }))
 
   const setDepartment = (name: string) =>
-    applyFilters((prev) => ({ ...prev, category: prev.category === name ? '' : name }))
+    applyFilters((prev) => ({
+      ...prev,
+      category: prev.category === name ? '' : name,
+      // The previously selected role may not exist under the new department.
+      jobTitle: '',
+    }))
 
   const setRole = (name: string) =>
     applyFilters((prev) => ({ ...prev, jobTitle: prev.jobTitle === name ? '' : name }))
