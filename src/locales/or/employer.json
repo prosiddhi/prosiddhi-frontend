@@ -184,33 +184,41 @@
     "pageOf": "ପୃଷ୍ଠା {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "ଲେଜର୍",
+    "title": "ଲେଜର୍",
+    "subtitle": "ଆପଣ ରୋଜଗାର କରିଥିବା କିମ୍ବା ଖର୍ଚ୍ଚ କରିଥିବା ସବୁକିଛି, ଏଠାରେ ଅନୁକ୍ରମେ ଅଛି।",
+    "back": "ଡ୍ୟାସବୋର୍ଡକୁ ଫେରନ୍ତୁ",
+    "loading": "ଆପଣଙ୍କ ଲେଜର୍ ଲୋଡ୍ ହେଉଛି…",
+    "loadFailed": "ଆପଣଙ୍କ ଲେଜର୍ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।",
+    "notOwner": "କେବଳ ଖାତାର ମାଲିକ ଲେଜର୍ ଦେଖିପାରିବେ।",
+    "empty": "ଏବେ ସୁଦ୍ଧା କୌଣସି କାରବାର ହୋଇନାହିଁ।",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "ପ୍ରକାର",
+      "kindAll": "ସବୁ",
+      "fromLabel": "ଠାରୁ",
+      "toLabel": "ପର୍ଯ୍ୟନ୍ତ",
+      "clear": "ଫିଲ୍ଟର ହଟାନ୍ତୁ"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "ତାରିଖ ଏବଂ ସମୟ",
+      "kind": "ପ୍ରକାର",
+      "delta": "ପରିବର୍ତ୍ତନ",
+      "reason": "କାରଣ",
+      "label": "ବିବରଣୀ",
+      "ref": "ସନ୍ଦର୍ଭ",
+      "actor": "ବ୍ୟକ୍ତି"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "ପୃଷ୍ଠା {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "ମାଗଣା ଟ୍ରାୟାଲ୍",
+      "GRANT_PURCHASE": "କିଣା",
+      "SPEND_POST": "ଚାକିରି ପୋଷ୍ଟ",
+      "SPEND_UNLOCK": "ପ୍ରାର୍ଥୀ ଅନଲକ୍",
+      "REFUND_DELETE": "ଫେରସ୍ତ (ଚାକିରି ଡିଲିଟ୍ ହେଲା)",
+      "EXPIRE": "ମିଆଦ ସରିଛି"
+    }
   },
   "plans": {
     "navLabel": "ପ୍ଲାନ୍",

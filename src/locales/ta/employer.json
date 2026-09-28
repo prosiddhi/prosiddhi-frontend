@@ -184,33 +184,41 @@
     "pageOf": "பக்கம் {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "லெட்ஜர்",
+    "title": "லெட்ஜர்",
+    "subtitle": "நீங்கள் சம்பாதித்தது அல்லது செலவழித்தது எல்லாம், வரிசைப்படி இங்கே உள்ளது.",
+    "back": "டாஷ்போர்டுக்குத் திரும்புங்கள்",
+    "loading": "உங்கள் லெட்ஜர் ஏற்றப்படுகிறது…",
+    "loadFailed": "உங்கள் லெட்ஜரை ஏற்ற முடியவில்லை.",
+    "notOwner": "கணக்கின் உரிமையாளர் மட்டுமே லெட்ஜரைப் பார்க்க முடியும்.",
+    "empty": "இதுவரை எந்த பரிவர்த்தனையும் இல்லை.",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "வகை",
+      "kindAll": "அனைத்தும்",
+      "fromLabel": "இருந்து",
+      "toLabel": "வரை",
+      "clear": "வடிகட்டிகளை நீக்குங்கள்"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "தேதி மற்றும் நேரம்",
+      "kind": "வகை",
+      "delta": "மாற்றம்",
+      "reason": "காரணம்",
+      "label": "விவரம்",
+      "ref": "குறிப்பு",
+      "actor": "நபர்"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "பக்கம் {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "இலவச சோதனை",
+      "GRANT_PURCHASE": "கொள்முதல்",
+      "SPEND_POST": "வேலை விளம்பரம்",
+      "SPEND_UNLOCK": "விண்ணப்பதாரர் அன்லாக்",
+      "REFUND_DELETE": "திரும்பு (வேலை நீக்கப்பட்டது)",
+      "EXPIRE": "காலாவதியானது"
+    }
   },
   "plans": {
     "navLabel": "திட்டங்கள்",
