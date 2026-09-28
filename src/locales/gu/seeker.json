@@ -94,6 +94,8 @@
     "loading": "નોકરી લોડ થઈ રહી છે...",
     "loadError": "આ નોકરી લોડ થઈ શકી નથી.",
     "notFound": "નોકરી મળી નથી.",
+    "unavailableTitle": "આ નોકરી હવે ઉપલબ્ધ નથી",
+    "unavailableBody": "નોકરીદાતાએ તે બંધ કરી હશે, અથવા તે સમાપ્ત થઈ ગઈ હશે. તમે પાછા જઈને શોધ ચાલુ રાખી શકો છો.",
     "backToFeed": "જોબ ફીડ પર પાછા જાઓ",
     "backToHome": "હોમ પર પાછા જાઓ",
     "backToSavedJobs": "સાચવેલી નોકરીઓ પર પાછા જાઓ",
@@ -127,12 +129,10 @@
   },
   "status": {
     "PENDING": "અરજી કરી",
-    "REVIEWED": "સમીક્ષા હેઠળ",
     "SHORTLISTED": "શૉર્ટલિસ્ટ થયેલ",
     "ACCEPTED": "સ્વીકારાયેલ",
     "REJECTED": "નકારાયેલ",
     "WITHDRAWN": "પાછી ખેંચેલી",
-    "BOOKMARKED": "બુકમાર્ક કરેલી",
     "UNKNOWN": "અજાણ્યું"
   },
   "myApplications": {

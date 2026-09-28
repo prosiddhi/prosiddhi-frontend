@@ -193,7 +193,6 @@
     "fullNamePlaceholder": "Your name",
     "designation": "Designation",
     "designationPlaceholder": "e.g. Owner, HR Manager",
-    "gstLengthError": "GST number must be exactly 15 characters.",
     "reverifyConfirm": "Changing your GST or Registration number will send your account for admin re-verification. You may be unable to post new jobs until it is approved again. Continue?",
     "reverifyWarning": "Changing your GST or Registration number sends your account for admin re-verification. You may be unable to post new jobs until it's approved again.",
     "saving": "Saving…",

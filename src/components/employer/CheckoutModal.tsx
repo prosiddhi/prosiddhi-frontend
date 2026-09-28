@@ -12,12 +12,25 @@ import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { subscriptionAPI, type Plan } from '@/lib/api'
+import { ApiError, employerAPI, fieldErrorsByPath, subscriptionAPI, type Plan } from '@/lib/api'
 import { GSTIN_REGEX, INDIAN_STATES } from '@/lib/gst'
 import { loadRazorpay } from '@/lib/razorpay'
 
 function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN')}`
+}
+
+// The BE's rule for the invoice address, checked on the trimmed value.
+const BILLING_ADDRESS_MIN = 5
+const BILLING_ADDRESS_MAX = 500
+
+// The message key for a bad billing address, or null when it is fine.
+function billingAddressProblem(value: string): string | null {
+  if (!value) return 'employer:checkout.billingAddressRequired'
+  if (value.length < BILLING_ADDRESS_MIN || value.length > BILLING_ADDRESS_MAX) {
+    return 'employer:checkout.billingAddressLength'
+  }
+  return null
 }
 
 // Cap how long we wait on the post-capture verify call. If the response is lost
@@ -42,6 +55,12 @@ export function CheckoutModal({
 
   const [gstin, setGstin] = useState('')
   const [placeOfSupply, setPlaceOfSupply] = useState('')
+  const [billingAddress, setBillingAddress] = useState('')
+  const [billingError, setBillingError] = useState('')
+  const billingRef = useRef<HTMLTextAreaElement>(null)
+  // Set on the first keystroke in the box, so a late prefill never overwrites it.
+  const billingEditedRef = useRef(false)
+  const prefillTriedRef = useRef(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [granted, setGranted] = useState<{ post: number; download: number } | null>(null)
@@ -67,11 +86,30 @@ export function CheckoutModal({
   // state from the GSTIN's first two digits otherwise).
   const stateRequired = !hasGstin
 
+  // Prefill from the fresh profile (the session copy can be stale, and this prints
+  // on a tax invoice). Single attempt; a failure leaves the box empty, and so does
+  // an invalid address (the pay-time check will ask for one).
+  // Skipped when signed out: a 401 here would log them out.
+  useEffect(() => {
+    if (!hasGstin || !isAuthenticated || prefillTriedRef.current) return
+    prefillTriedRef.current = true
+    employerAPI
+      .getProfile()
+      .then((profile) => {
+        const address = profile.employer?.companyAddress?.trim()
+        if (address && !billingAddressProblem(address) && !billingEditedRef.current) {
+          setBillingAddress(address)
+        }
+      })
+      .catch(() => {})
+  }, [hasGstin, isAuthenticated])
+
   const gstBase = plan.baseInr
   const gstAmount = Math.round((plan.totalInr - plan.baseInr) * 100) / 100
 
   const handlePay = async () => {
     setError('')
+    setBillingError('')
 
     if (!isAuthenticated) {
       // Buy from a logged-out marketing visit → send them to sign in first.
@@ -80,6 +118,15 @@ export function CheckoutModal({
     }
     if (hasGstin && !GSTIN_REGEX.test(gstinNorm)) {
       setError(t('employer:checkout.gstinInvalid'))
+      return
+    }
+    // Required with a GSTIN here, though the BE only insists when no company
+    // address is on file.
+    const billing = billingAddress.trim()
+    const billingProblem = hasGstin ? billingAddressProblem(billing) : null
+    if (billingProblem) {
+      setBillingError(t(billingProblem))
+      billingRef.current?.focus()
       return
     }
     if (stateRequired && !placeOfSupply) {
@@ -93,6 +140,7 @@ export function CheckoutModal({
         planCode: plan.code,
         gstin: hasGstin ? gstinNorm : undefined,
         placeOfSupply: placeOfSupply || undefined,
+        billingAddress: hasGstin ? billing : undefined,
       })
 
       const Razorpay = await loadRazorpay()
@@ -154,8 +202,18 @@ export function CheckoutModal({
       })
       rzp.open()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
       setSubmitting(false)
+      // The BE refuses a bad address before any order exists, so nothing was
+      // charged and the buyer can fix it and pay again. Shown on the field.
+      const required = e instanceof ApiError && e.code === 'BILLING_ADDRESS_REQUIRED'
+      if (required || fieldErrorsByPath(e).billingAddress) {
+        setBillingError(
+          t(required ? 'employer:checkout.billingAddressRequired' : 'employer:checkout.billingAddressLength'),
+        )
+        billingRef.current?.focus()
+      } else {
+        setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
+      }
     }
   }
 
@@ -245,6 +303,42 @@ export function CheckoutModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
+
+            {/* Billing address — printed on the GST invoice, so required with a GSTIN */}
+            {hasGstin && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-black mb-1" htmlFor="checkout-billing-address">
+                  {t('employer:checkout.billingAddressLabel')}
+                  <span className="text-red-500"> *</span>
+                </label>
+                <textarea
+                  id="checkout-billing-address"
+                  ref={billingRef}
+                  value={billingAddress}
+                  onChange={(e) => {
+                    billingEditedRef.current = true
+                    setBillingAddress(e.target.value)
+                    setBillingError('')
+                  }}
+                  rows={3}
+                  placeholder={t('employer:checkout.billingAddressPlaceholder')}
+                  aria-required="true"
+                  aria-invalid={!!billingError}
+                  aria-describedby="checkout-billing-address-error checkout-billing-address-hint"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 ${
+                    billingError ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                <p id="checkout-billing-address-hint" className="mt-1 text-xs text-[#717182]">
+                  {t('employer:checkout.billingAddressHint')}
+                </p>
+                {billingError && (
+                  <p id="checkout-billing-address-error" role="alert" className="mt-1.5 text-sm text-red-600">
+                    {billingError}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Place of supply (required unless GSTIN given) */}
             <div className="mb-5">

@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "आवेदन किया",
-    "REVIEWED": "समीक्षा में",
     "SHORTLISTED": "शॉर्टलिस्ट",
     "ACCEPTED": "स्वीकृत",
     "REJECTED": "अस्वीकृत",
     "WITHDRAWN": "वापस लिया",
-    "BOOKMARKED": "सहेजा गया",
     "unknown": "अज्ञात"
   },
   "jobStatus": {
-    "DRAFT": "ड्राफ़्ट",
     "ACTIVE": "सक्रिय",
     "INACTIVE": "निष्क्रिय",
-    "CLOSED": "बंद",
-    "FILLED": "भरा गया",
     "CANCELLED": "रद्द",
     "unknown": "अज्ञात"
   },
@@ -218,6 +213,12 @@
     "markAllRead": "सभी पढ़ी हुई करें",
     "empty": "अभी तक कोई सूचना नहीं।",
     "loadError": "आपकी सूचनाएँ लोड नहीं हो सकीं।"
+  },
+  "businessIdentifier": {
+    "gstInvalid": "15 अक्षरों का सही GST नंबर दर्ज करें, जैसे 29ABCDE1234F1Z5।",
+    "registrationLength": "पंजीकरण नंबर 5 से 50 अक्षरों का होना चाहिए।",
+    "gstDuplicate": "यह GST नंबर पहले से किसी दूसरे नियोक्ता के नाम पर दर्ज है।",
+    "registrationDuplicate": "यह पंजीकरण नंबर पहले से किसी दूसरे नियोक्ता के नाम पर दर्ज है।"
   },
   "breadcrumbs": {
     "label": "ब्रेडक्रम्ब",

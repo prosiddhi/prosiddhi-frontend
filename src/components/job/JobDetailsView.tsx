@@ -9,7 +9,7 @@ import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
-import { jobSeekerAPI, type Job } from '@/lib/api'
+import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
 import {
   humanizeJobType,
   humanizePaymentType,
@@ -66,6 +66,15 @@ interface JobDetailsViewProps {
   backLabel: string
   /** What the back button does. */
   onBack: () => void
+  /**
+   * The seeker opened this job from something that already points at it — a saved
+   * job or one of their applications. The BE now returns 404 for a job that is no
+   * longer live (expired, taken down, rejected), so for them a 404 means "this
+   * job is gone", not "you followed a bad link". When set, a 404 shows "no longer
+   * available" instead of the generic error. Any other error, and a 404 from
+   * anywhere else (feed, home, a typed URL), keeps the generic error.
+   */
+  unavailableOn404?: boolean
 }
 
 /**
@@ -81,7 +90,7 @@ interface JobDetailsViewProps {
  * false by `ProtectedRoute requiredRole="employer"`, so those sections simply
  * never render there, with no separate employer-specific markup to maintain.
  */
-export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
+export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetailsViewProps) {
   const { t } = useTranslation()
   const params = useParams()
   const jobId = String(params?.id ?? '')
@@ -95,6 +104,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
   const [hasReported, setHasReported] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [unavailable, setUnavailable] = useState(false)
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
@@ -111,6 +121,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
     const run = async () => {
       setLoading(true)
       setError('')
+      setUnavailable(false)
       // Reset per-job state up front. Without this the PREVIOUS job's values
       // survive into this render, and because the writes below are guarded on
       // 'fulfilled', a rejected check leaves them showing indefinitely — the
@@ -136,7 +147,10 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
         if (saved.status === 'fulfilled') setIsSaved(!!saved.value.isSaved)
         if (applied.status === 'fulfilled') setHasApplied(!!applied.value.hasApplied)
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : t('seeker:jobDetails.loadError'))
+        if (!ignore) {
+          if (unavailableOn404 && err instanceof ApiError && err.status === 404) setUnavailable(true)
+          else setError(err instanceof Error ? err.message : t('seeker:jobDetails.loadError'))
+        }
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -145,7 +159,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
     return () => {
       ignore = true
     }
-  }, [jobId, t, isSeeker])
+  }, [jobId, t, isSeeker, unavailableOn404])
 
   const handleSaveJob = async () => {
     if (saveLoading || !job) return
@@ -234,8 +248,23 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
               </div>
             )}
 
+            {/* A saved / applied job that is no longer live. Not an error: the
+                seeker did nothing wrong, so no red icon and no "failed". The back
+                button above already goes to where they came from; this one is the
+                obvious next step for someone who does not look above the fold. */}
+            {!loading && unavailable && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <Briefcase className="w-10 h-10 text-[#9a9aa5] mb-4" />
+                <p className="text-lg font-semibold text-black mb-1">{t('seeker:jobDetails.unavailableTitle')}</p>
+                <p className="text-[#717182] mb-6 max-w-md">{t('seeker:jobDetails.unavailableBody')}</p>
+                <button onClick={onBack} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
+                  {backLabel}
+                </button>
+              </div>
+            )}
+
             {/* Error / not found */}
-            {!loading && (error || !job) && (
+            {!loading && !unavailable && (error || !job) && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
                 <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
@@ -245,7 +274,7 @@ export function JobDetailsView({ backLabel, onBack }: JobDetailsViewProps) {
               </div>
             )}
 
-            {!loading && !error && job && (
+            {!loading && !error && !unavailable && job && (
               <>
                 {/* Job Hero */}
               <div className="mb-4 sm:mb-6">

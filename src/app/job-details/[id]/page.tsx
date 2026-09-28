@@ -61,7 +61,13 @@ function SeekerJobDetailsGate() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader active={activeNavTab} />
-      <JobDetailsView backLabel={backLabel} onBack={goBack} />
+      <JobDetailsView
+        backLabel={backLabel}
+        onBack={goBack}
+        // Saved Jobs and Application Details already point at this job, so a 404
+        // there means it is no longer live. The feed and home only list live jobs.
+        unavailableOn404={from === 'saved-jobs' || from === 'application-details'}
+      />
     </div>
   )
 }

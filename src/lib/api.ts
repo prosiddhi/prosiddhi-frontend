@@ -168,6 +168,23 @@ export function fieldErrorsByPath(err: unknown): Record<string, string[]> {
   }, {})
 }
 
+/** The two business identifiers the BE keeps unique across employers. */
+export type BusinessIdentifierField = 'gstNumber' | 'registrationNumber'
+
+/**
+ * Which identifier a 409 `DUPLICATE_BUSINESS_IDENTIFIER` is about, or null if
+ * `err` is anything else. The register and the profile update both return it.
+ * The BE names the field in the error data (`{ reason, field, value }`) and does
+ * not say whose it is, so read `field` rather than guessing from the message.
+ * Kept out of `classifyRegisterError`: other register screens share that and
+ * cannot receive this error.
+ */
+export function duplicateIdentifierField(err: unknown): BusinessIdentifierField | null {
+  if (!(err instanceof ApiError) || err.status !== 409 || err.code !== 'DUPLICATE_BUSINESS_IDENTIFIER') return null
+  const field = err.details?.field
+  return field === 'gstNumber' || field === 'registrationNumber' ? field : null
+}
+
 // Helper function for API requests. Returns the unwrapped `.data` payload.
 async function apiRequest<T>(
   endpoint: string,
@@ -354,6 +371,13 @@ export interface Job {
   paymentType?: string
   jobType?: string
   status?: string
+  // Where the post sits in admin review. PENDING_REVIEW = offline, waiting for an
+  // admin (every new post, and an approved post after a material edit). Only
+  // APPROVED can be activated. Present on the employer's own job reads.
+  moderationStatus?: string
+  // The admin's reason when moderationStatus is REJECTED. The same column holds an
+  // optional note on an approval, so read it only for a rejected job.
+  moderationNotes?: string | null
   // BR-3 — 3-level taxonomy. `subcategory` is retired (the BE Job model has no
   // such column); jobs now carry category → sector → jobTitle names.
   category?: string
@@ -1566,7 +1590,6 @@ export interface EmployerDashboardJob {
   rejectedCount: number
   pendingCount: number
   shortlistedCount: number
-  reviewedCount: number
 }
 
 export interface EmployerDashboardJobsPage {
@@ -1612,6 +1635,9 @@ export interface CandidateDocument {
 export interface EmployerApplicationItem {
   id: string
   status: string
+  // The employer's private bookmark flag, independent of `status`. Toggled by
+  // PUT /applications/:id/bookmark; the seeker-facing reads omit it.
+  isBookmarked?: boolean
   appliedAt?: string
   message?: string | null
   jobSeeker?: {
@@ -1788,14 +1814,13 @@ export const employerAPI = {
     })
   },
 
-  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs → { jobs, pagination }
-  getMyJobs: async (page = 1, limit = 10) => {
-    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}`)
-  },
-
-  // Get employer's expired/fulfilled jobs. GET /api/jobs/employer/me/expired → { jobs, pagination }
-  getMyExpiredJobs: async (page = 1, limit = 10) => {
-    return apiRequest<JobsPage>(`/jobs/employer/me/expired?page=${page}&limit=${limit}`)
+  // Get employer's posted jobs. GET /api/jobs/employer/me/jobs?tab= → { jobs, pagination }
+  // The BE splits jobs by `liveUntil` into three exclusive tabs — active (live, or
+  // awaiting review), expired (paid window over; re-listing costs 1 POST credit)
+  // and cancelled (rejected by an admin) — so the client does no filtering.
+  // `tab` defaults to active, which is also what the BE serves when it is omitted.
+  getMyJobs: async (page = 1, limit = 10, tab: 'active' | 'expired' | 'cancelled' = 'active') => {
+    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}&tab=${tab}`)
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
@@ -1828,14 +1853,17 @@ export const employerAPI = {
 
   // Candidate management — all applications across the employer's jobs.
   // GET /api/applications/employer/all → { applications, pagination }
+  // `isBookmarked: true` filters to bookmarked only. The BE also accepts false,
+  // but the portal has no use for it, so false here means "no filter".
   getEmployerAllApplications: async (
-    params: { page?: number; limit?: number; jobId?: string; status?: string; search?: string } = {}
+    params: { page?: number; limit?: number; jobId?: string; status?: string; isBookmarked?: boolean; search?: string } = {}
   ) => {
     const qs = new URLSearchParams()
     qs.set('page', String(params.page ?? 1))
     qs.set('limit', String(params.limit ?? 20))
     if (params.jobId) qs.set('jobId', params.jobId)
     if (params.status) qs.set('status', params.status)
+    if (params.isBookmarked) qs.set('isBookmarked', 'true')
     if (params.search) qs.set('search', params.search)
     return apiRequest<EmployerApplicationsPage>(`/applications/employer/all?${qs.toString()}`)
   },
@@ -2001,6 +2029,8 @@ export interface CheckoutInput {
   planCode: string
   gstin?: string
   placeOfSupply?: string
+  // Buyer address printed on the GST invoice. Sent only with a gstin; trimmed, 5-500 chars.
+  billingAddress?: string
 }
 
 export interface VerifyPaymentInput {

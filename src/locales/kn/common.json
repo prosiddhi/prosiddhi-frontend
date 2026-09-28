@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "ಅರ್ಜಿ ಹಾಕಲಾಗಿದೆ",
-    "REVIEWED": "ಪರಿಶೀಲನೆಯಲ್ಲಿ",
     "SHORTLISTED": "ಶಾರ್ಟ್‌ಲಿಸ್ಟ್",
     "ACCEPTED": "ಸ್ವೀಕೃತ",
     "REJECTED": "ತಿರಸ್ಕೃತ",
     "WITHDRAWN": "ಹಿಂಪಡೆಯಲಾಗಿದೆ",
-    "BOOKMARKED": "ಬುಕ್‌ಮಾರ್ಕ್ ಮಾಡಲಾಗಿದೆ",
     "unknown": "ತಿಳಿದಿಲ್ಲ"
   },
   "jobStatus": {
-    "DRAFT": "ಡ್ರಾಫ್ಟ್",
     "ACTIVE": "ಸಕ್ರಿಯ",
     "INACTIVE": "ನಿಷ್ಕ್ರಿಯ",
-    "CLOSED": "ಮುಚ್ಚಲಾಗಿದೆ",
-    "FILLED": "ಭರ್ತಿಯಾಗಿದೆ",
     "CANCELLED": "ರದ್ದಾಗಿದೆ",
     "unknown": "ತಿಳಿದಿಲ್ಲ"
   },
@@ -218,6 +213,12 @@
     "markAllRead": "ಎಲ್ಲವನ್ನೂ ಓದಿದೆ ಎಂದು ಗುರುತಿಸಿ",
     "empty": "ಇನ್ನೂ ಯಾವುದೇ ಸೂಚನೆ ಇಲ್ಲ.",
     "loadError": "ನಿಮ್ಮ ಸೂಚನೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ."
+  },
+  "businessIdentifier": {
+    "gstInvalid": "ಸರಿಯಾದ 15 ಅಕ್ಷರದ GST ನಂಬರ್ ನಮೂದಿಸಿ, ಉದಾ. 29ABCDE1234F1Z5.",
+    "registrationLength": "ನೋಂದಣಿ ನಂಬರ್ 5 ರಿಂದ 50 ಅಕ್ಷರ ಇರಬೇಕು.",
+    "gstDuplicate": "ಈ GST ನಂಬರ್ ಈಗಾಗಲೇ ಬೇರೆ ಕೆಲಸ ಕೊಡುವವರ ಹೆಸರಿನಲ್ಲಿ ನೋಂದಣಿಯಾಗಿದೆ.",
+    "registrationDuplicate": "ಈ ನೋಂದಣಿ ನಂಬರ್ ಈಗಾಗಲೇ ಬೇರೆ ಕೆಲಸ ಕೊಡುವವರ ಹೆಸರಿನಲ್ಲಿ ನೋಂದಣಿಯಾಗಿದೆ."
   },
   "breadcrumbs": {
     "label": "ಮಾರ್ಗಸೂಚಿ",

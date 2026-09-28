@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "ଆବେଦନ କରାଯାଇଛି",
-    "REVIEWED": "ସମୀକ୍ଷା ଚାଲିଛି",
     "SHORTLISTED": "ଶର୍ଟଲିଷ୍ଟ ହୋଇଛି",
     "ACCEPTED": "ଗ୍ରହଣ କରାଯାଇଛି",
     "REJECTED": "ନାକଚ ହୋଇଛି",
     "WITHDRAWN": "ଫେରାଇ ନିଆଯାଇଛି",
-    "BOOKMARKED": "ବୁକମାର୍କ ହୋଇଛି",
     "unknown": "ଅଜଣା"
   },
   "jobStatus": {
-    "DRAFT": "ଡ୍ରାଫ୍ଟ",
     "ACTIVE": "ସକ୍ରିୟ",
     "INACTIVE": "ନିଷ୍କ୍ରିୟ",
-    "CLOSED": "ବନ୍ଦ",
-    "FILLED": "ପୂରଣ ହୋଇଛି",
     "CANCELLED": "ବାତିଲ୍",
     "unknown": "ଅଜଣା"
   },
@@ -218,6 +213,12 @@
     "markAllRead": "ସବୁ ପଢ଼ାହୋଇଛି",
     "empty": "ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ସୂଚନା ନାହିଁ।",
     "loadError": "ଆପଣଙ୍କ ସୂଚନା ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।"
+  },
+  "businessIdentifier": {
+    "gstInvalid": "15 ଅକ୍ଷରର ସଠିକ୍ GST ନମ୍ବର ଲେଖନ୍ତୁ, ଉଦା. 29ABCDE1234F1Z5।",
+    "registrationLength": "ରେଜିଷ୍ଟ୍ରେସନ୍ ନମ୍ବର 5 ରୁ 50 ଅକ୍ଷରର ହେବା ଦରକାର।",
+    "gstDuplicate": "ଏହି GST ନମ୍ବର ଆଗରୁ ଅନ୍ୟ ଜଣେ ଚାକିରିଦାତାଙ୍କ ନାମରେ ରେଜିଷ୍ଟର ହୋଇଛି।",
+    "registrationDuplicate": "ଏହି ରେଜିଷ୍ଟ୍ରେସନ୍ ନମ୍ବର ଆଗରୁ ଅନ୍ୟ ଜଣେ ଚାକିରିଦାତାଙ୍କ ନାମରେ ରେଜିଷ୍ଟର ହୋଇଛି।"
   },
   "breadcrumbs": {
     "label": "ବ୍ରେଡକ୍ରମ୍ବ",

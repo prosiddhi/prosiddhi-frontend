@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "अर्ज केला",
-    "REVIEWED": "तपासले",
     "SHORTLISTED": "शॉर्टलिस्ट केलेले",
     "ACCEPTED": "स्वीकारले",
     "REJECTED": "नाकारले",
     "WITHDRAWN": "मागे घेतले",
-    "BOOKMARKED": "जतन केले",
     "unknown": "अज्ञात"
   },
   "jobStatus": {
-    "DRAFT": "ड्राफ्ट",
     "ACTIVE": "सक्रिय",
     "INACTIVE": "निष्क्रिय",
-    "CLOSED": "बंद",
-    "FILLED": "भरले",
     "CANCELLED": "रद्द",
     "unknown": "अज्ञात"
   },
@@ -218,6 +213,12 @@
     "markAllRead": "सर्व वाचल्या म्हणून खुणा करा",
     "empty": "अजून एकही सूचना नाही.",
     "loadError": "तुमच्या सूचना लोड होऊ शकल्या नाहीत."
+  },
+  "businessIdentifier": {
+    "gstInvalid": "15 अक्षरांचा योग्य GST नंबर टाका, उदा. 29ABCDE1234F1Z5.",
+    "registrationLength": "नोंदणी क्रमांक 5 ते 50 अक्षरांचा असावा.",
+    "gstDuplicate": "हा GST नंबर आधीच दुसऱ्या नोकरी देणाऱ्याच्या नावावर नोंदवलेला आहे.",
+    "registrationDuplicate": "हा नोंदणी क्रमांक आधीच दुसऱ्या नोकरी देणाऱ्याच्या नावावर नोंदवलेला आहे."
   },
   "breadcrumbs": {
     "label": "तुम्ही इथे आहात",

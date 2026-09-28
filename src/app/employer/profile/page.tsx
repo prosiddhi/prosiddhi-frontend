@@ -22,6 +22,9 @@ import {
   type EmployerProfileUpdate,
   type CompanySize,
 } from '@/lib/api'
+import { GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
+import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
+import { IdentifierError } from '@/components/form/IdentifierError'
 import { LANGUAGES } from '@/lib/jobCategories'
 import { Tooltip } from '@/components/ui/Tooltip'
 import {
@@ -112,6 +115,8 @@ function EmployerProfileContent() {
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  // GST / registration number problems, shown under their own input.
+  const identifiers = useIdentifierErrors()
   const [saved, setSaved] = useState(false)
 
   // View/edit mode, same split as the seeker profile: only the Employer
@@ -156,6 +161,10 @@ function EmployerProfileContent() {
   const originalReg = useRef('')
 
   const isBusiness = employerType === 'BUSINESS'
+  // GST/registration are business-only fields. Hidden for an explicit INDIVIDUAL
+  // only, so a missing type still shows them. Display only: the state is still
+  // hydrated, so a stored value is neither cleared nor sent (see gstChanged).
+  const isIndividual = employerType === 'INDIVIDUAL'
 
   // Root account fields only — deliberately excludes the Personal/Business edit
   // fields below, so refreshing account info (email/phone verify) mid-edit never
@@ -186,8 +195,10 @@ function EmployerProfileContent() {
     setGstNumber(e?.gstNumber ?? '')
     setRegistrationNumber(e?.registrationNumber ?? '')
     originalFullName.current = (e?.fullName ?? '').trim()
-    originalGst.current = e?.gstNumber ?? ''
-    originalReg.current = e?.registrationNumber ?? ''
+    // Normalised, so a legacy row stored lower-case or padded (before the BE began
+    // normalising) still compares equal to itself and is not seen as an edit.
+    originalGst.current = normaliseIdentifier(e?.gstNumber ?? '')
+    originalReg.current = normaliseIdentifier(e?.registrationNumber ?? '')
   }, [hydrateAccount])
 
   useEffect(() => {
@@ -264,16 +275,18 @@ function EmployerProfileContent() {
     if (lastProfileRef.current) hydrate(lastProfileRef.current)
     setEditing(false)
     setSaveError('')
+    identifiers.reset()
     setSaved(false)
   }
 
   // A GST or CIN change re-flags the employer for admin review on the BE — the
   // controller's reverify check (gstChanged || cinChanged) is not conditioned
-  // on employerType, so this applies whether an individual is adding a GST
-  // number for the first time or a business is changing an existing one.
-  const gstCinChanged =
-    (gstNumber.trim() && gstNumber.trim() !== originalGst.current) ||
-    (registrationNumber.trim() && registrationNumber.trim() !== originalReg.current)
+  // on employerType. Compared as the BE will store them (trimmed, upper-cased),
+  // so retyping the same number in lower case is not a change.
+  const gstChanged = !!gstNumber.trim() && normaliseIdentifier(gstNumber) !== originalGst.current
+  const registrationChanged =
+    !!registrationNumber.trim() && normaliseIdentifier(registrationNumber) !== originalReg.current
+  const gstCinChanged = gstChanged || registrationChanged
 
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
@@ -282,6 +295,7 @@ function EmployerProfileContent() {
     // worked and failed. This applies to the GST guard below too, which had the
     // same shape before this rule was added.
     setSaveError('')
+    identifiers.reset()
     setSaved(false)
 
     // Same name rule as registration (DEF-030). Applies to both employer
@@ -300,11 +314,21 @@ function EmployerProfileContent() {
       setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
       return
     }
-    // BE requires GST to be exactly 15 chars; guard before the round-trip.
-    // Applies to either type — Business Information is now the same optional
-    // block for both.
-    if (gstNumber.trim() && gstNumber.trim().length !== 15) {
-      setSaveError(t('profile:employer.gstLengthError'))
+    // The BE checks the GSTIN format and the registration number length, so guard
+    // before the round-trip. Only a number the employer actually CHANGED is checked
+    // and sent: an account whose stored value predates the format rule (it exists —
+    // see the BE's identifiers.ts) must still be able to edit its address, and the
+    // BE reads a missing value as "leave it alone". A blank box is likewise not
+    // sent.
+    const problems: IdentifierErrors = {}
+    if (gstChanged && !isValidGstNumber(gstNumber)) {
+      problems.gstNumber = t('businessIdentifier.gstInvalid')
+    }
+    if (registrationChanged && !isValidRegistrationNumber(registrationNumber)) {
+      problems.registrationNumber = t('businessIdentifier.registrationLength')
+    }
+    if (problems.gstNumber || problems.registrationNumber) {
+      identifiers.show(problems)
       return
     }
     if (gstCinChanged) {
@@ -315,7 +339,8 @@ function EmployerProfileContent() {
     try {
       // Personal Details and Business Information are now the same optional
       // fields for both employer types — filling either in never changes
-      // employerType, so both are always sent together.
+      // employerType, so both blocks are always sent together. The GST and
+      // registration numbers are the exception: sent only when changed.
       const body: EmployerProfileUpdate = {
         fullName: fullName.trim() || undefined,
         designation: designation.trim() || undefined,
@@ -324,8 +349,8 @@ function EmployerProfileContent() {
         companyAddress: companyAddress.trim() || undefined,
         companyFoundedDate: companyFoundedDate || undefined,
         companySize: companySize || undefined,
-        gstNumber: gstNumber.trim() || undefined,
-        registrationNumber: registrationNumber.trim() || undefined,
+        gstNumber: gstChanged ? normaliseIdentifier(gstNumber) : undefined,
+        registrationNumber: registrationChanged ? normaliseIdentifier(registrationNumber) : undefined,
       }
       await employerAPI.updateProfile(body)
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
@@ -344,7 +369,11 @@ function EmployerProfileContent() {
       setSaved(true)
       window.setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : t('profile:employer.saveError'))
+      // Another employer already holds this number: show it under the field the
+      // BE names, and stay in edit mode so it can be corrected.
+      if (!identifiers.fromError(err)) {
+        setSaveError(err instanceof Error ? err.message : t('profile:employer.saveError'))
+      }
     } finally {
       setSaving(false)
     }
@@ -490,8 +519,9 @@ function EmployerProfileContent() {
                 </section>
 
                 {/* Employer Details — Personal Details + Business Information,
-                    the same optional fields for both employer types. Filling
-                    either in never changes employerType. */}
+                    the same optional fields for both employer types (except GST
+                    and registration number, business only). Filling either in
+                    never changes employerType. */}
                 <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                   <div className="pb-6 mb-6 border-b border-[#eee]">
                     <h2 className={sectionHeadingCls + ' mb-4'}>
@@ -542,12 +572,18 @@ function EmployerProfileContent() {
                             ))}
                           </select>
                         </Field>
-                        <Field label={t('profile:employer.gstNumber')} className={fieldLabelCls}>
-                          <input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} maxLength={15} placeholder={t('profile:employer.gstPlaceholder')} className={inputCls} />
-                        </Field>
-                        <Field label={t('profile:employer.registrationNumber')} className={fieldLabelCls}>
-                          <input value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} placeholder={t('profile:employer.registrationPlaceholder')} className={inputCls} />
-                        </Field>
+                        {!isIndividual && (
+                          <>
+                            <Field label={t('profile:employer.gstNumber')} className={fieldLabelCls}>
+                              <input {...identifiers.inputProps('gstNumber')} value={gstNumber} onChange={(e) => { setGstNumber(e.target.value); identifiers.clear('gstNumber') }} maxLength={GST_INPUT_MAX_LENGTH} placeholder={t('profile:employer.gstPlaceholder')} className={inputCls} />
+                              <IdentifierError field="gstNumber" message={identifiers.errors.gstNumber} />
+                            </Field>
+                            <Field label={t('profile:employer.registrationNumber')} className={fieldLabelCls}>
+                              <input {...identifiers.inputProps('registrationNumber')} value={registrationNumber} onChange={(e) => { setRegistrationNumber(e.target.value); identifiers.clear('registrationNumber') }} placeholder={t('profile:employer.registrationPlaceholder')} className={inputCls} />
+                              <IdentifierError field="registrationNumber" message={identifiers.errors.registrationNumber} />
+                            </Field>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
@@ -556,8 +592,12 @@ function EmployerProfileContent() {
                         <ReadOnlyField label={t('profile:employer.companyAddress')} value={companyAddress} full notProvided={t('profile:employer.notProvided')} breakWords />
                         <ReadOnlyField label={t('profile:employer.foundedDate')} value={formatDate(companyFoundedDate)} notProvided={t('profile:employer.notProvided')} breakWords />
                         <ReadOnlyField label={t('profile:employer.companySize')} value={companySize ? t(SIZE_KEYS[companySize]) : ''} notProvided={t('profile:employer.notProvided')} breakWords />
-                        <ReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} notProvided={t('profile:employer.notProvided')} breakWords />
-                        <ReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                        {!isIndividual && (
+                          <>
+                            <ReadOnlyField label={t('profile:employer.gstNumber')} value={gstNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                            <ReadOnlyField label={t('profile:employer.registrationNumber')} value={registrationNumber} notProvided={t('profile:employer.notProvided')} breakWords />
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

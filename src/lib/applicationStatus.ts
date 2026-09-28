@@ -1,5 +1,6 @@
 // Shared presentation for the BE ApplicationStatus enum
-// (PENDING / REVIEWED / SHORTLISTED / REJECTED / ACCEPTED / WITHDRAWN / BOOKMARKED).
+// (PENDING / SHORTLISTED / REJECTED / ACCEPTED / WITHDRAWN). A bookmark is the
+// `isBookmarked` flag, not a status.
 // Rendered on the seeker's My Applications list + detail, and on the employer's
 // dashboard and candidate screens.
 //
@@ -22,12 +23,10 @@ export interface StatusMeta {
 /** Pill colours per status. Colour is language-independent, so it stays here. */
 const STATUS_PILL: Record<string, string> = {
   PENDING: 'bg-[#eef6ff] text-[#1d6fb8]',
-  REVIEWED: 'bg-amber-50 text-amber-700',
   SHORTLISTED: 'bg-indigo-50 text-indigo-700',
   ACCEPTED: 'bg-green-50 text-green-700',
   REJECTED: 'bg-red-50 text-red-700',
   WITHDRAWN: 'bg-gray-100 text-gray-600',
-  BOOKMARKED: 'bg-purple-50 text-purple-700',
 }
 
 const FALLBACK_PILL = 'bg-gray-100 text-gray-600'
@@ -52,9 +51,48 @@ export function canWithdraw(status?: string): boolean {
 
 /** Presentation for the BE JobStatus enum (employer's My Jobs / dashboard). */
 export function jobStatusLabel(status?: string): string {
-  const KNOWN = ['DRAFT', 'ACTIVE', 'INACTIVE', 'CLOSED', 'FILLED', 'CANCELLED']
+  const KNOWN = ['ACTIVE', 'INACTIVE', 'CANCELLED']
   if (!status || !KNOWN.includes(status)) return i18n.t('jobStatus.unknown')
   return i18n.t(`jobStatus.${status}`)
+}
+
+/**
+ * Offline and not yet approved: a new post, an edited one, or one an admin has
+ * scanned but not decided on (PENDING_REVIEW / NO_VIOLATION / VIOLATION_FOUND).
+ * A live job never counts — a content scan can re-queue an ACTIVE job without
+ * taking it down. A rejected job is its own state, not "awaiting".
+ */
+export function isJobAwaitingReview(job: { status?: string; moderationStatus?: string }): boolean {
+  const m = job.moderationStatus
+  return job.status !== 'ACTIVE' && !!m && m !== 'APPROVED' && m !== 'REJECTED'
+}
+
+/** An admin turned this post down. The BE also sets its status to CANCELLED. */
+export function isJobRejected(job: { moderationStatus?: string }): boolean {
+  return job.moderationStatus === 'REJECTED'
+}
+
+/** Badge for a job on My Jobs: label + pill classes decided together, so they cannot drift. */
+export function jobStatusMeta(job: { status?: string; moderationStatus?: string }): StatusMeta {
+  if (isJobAwaitingReview(job)) {
+    return { label: i18n.t('employer:jobs.awaitingReview'), pill: 'bg-amber-50 text-amber-700' }
+  }
+  if (isJobRejected(job)) {
+    return { label: i18n.t('employer:jobs.rejected'), pill: STATUS_PILL.REJECTED }
+  }
+  return {
+    label: jobStatusLabel(job.status),
+    pill: job.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : FALLBACK_PILL,
+  }
+}
+
+/**
+ * The BE only activates an APPROVED job (awaiting review and rejected are
+ * refused), so do not offer a button that can only fail. If the field is missing
+ * we cannot tell, so we offer it and let the BE decide, as before.
+ */
+export function canActivateJob(job: { moderationStatus?: string }): boolean {
+  return !job.moderationStatus || job.moderationStatus === 'APPROVED'
 }
 
 /**

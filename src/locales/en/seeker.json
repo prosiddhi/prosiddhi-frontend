@@ -94,6 +94,8 @@
     "loading": "Loading job...",
     "loadError": "Failed to load this job.",
     "notFound": "Job not found.",
+    "unavailableTitle": "This job is no longer available",
+    "unavailableBody": "The employer may have closed it, or it has expired. You can go back and keep looking.",
     "backToFeed": "Back to Job Feed",
     "backToHome": "Back to Home",
     "backToSavedJobs": "Back to Saved Jobs",
@@ -127,12 +129,10 @@
   },
   "status": {
     "PENDING": "Applied",
-    "REVIEWED": "Under Review",
     "SHORTLISTED": "Shortlisted",
     "ACCEPTED": "Accepted",
     "REJECTED": "Rejected",
     "WITHDRAWN": "Withdrawn",
-    "BOOKMARKED": "Bookmarked",
     "UNKNOWN": "Unknown"
   },
   "myApplications": {

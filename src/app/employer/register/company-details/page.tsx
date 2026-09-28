@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { authAPI, classifyRegisterError, employerAPI, type CompanySize } from '@/lib/api'
+import { GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
+import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
+import { IdentifierError } from '@/components/form/IdentifierError'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
@@ -35,6 +38,8 @@ export default function CompanyDetailsPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // GST / registration number problems, shown under their own input.
+  const identifiers = useIdentifierErrors()
 
   // Stops the guard below judging a flow that has already succeeded.
   //
@@ -85,6 +90,9 @@ export default function CompanyDetailsPage() {
   const set = (name: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }))
     if (error) setError('')
+    if (name === 'gstNumber' || name === 'registrationNumber') {
+      identifiers.clear(name)
+    }
   }
 
   const handleNext = async () => {
@@ -94,6 +102,10 @@ export default function CompanyDetailsPage() {
     // over a registration that worked. The window is real: this page stays
     // mounted and interactive for the whole async route transition.
     if (accountCreated) return
+
+    // Each attempt starts clean: the inline messages and any banner from the last try.
+    identifiers.reset()
+    setError('')
 
     if (!form.companyName.trim() || form.companyName.trim().length < 2) {
       setError(t('employerRegister:companyDetails.nameTooShort'))
@@ -115,12 +127,18 @@ export default function CompanyDetailsPage() {
       setError(t('employerRegister:companyDetails.sizeRequired'))
       return
     }
-    if (form.gstNumber.trim().length !== 15) {
-      setError(t('employerRegister:companyDetails.gstInvalid'))
-      return
+    // Same rules as the backend, checked together so both problems show at once.
+    const problems: IdentifierErrors = {}
+    if (!isValidGstNumber(form.gstNumber)) {
+      problems.gstNumber = t('businessIdentifier.gstInvalid')
     }
     if (!form.registrationNumber.trim()) {
-      setError(t('employerRegister:companyDetails.cinRequired'))
+      problems.registrationNumber = t('employerRegister:companyDetails.cinRequired')
+    } else if (!isValidRegistrationNumber(form.registrationNumber)) {
+      problems.registrationNumber = t('businessIdentifier.registrationLength')
+    }
+    if (problems.gstNumber || problems.registrationNumber) {
+      identifiers.show(problems)
       return
     }
 
@@ -138,8 +156,8 @@ export default function CompanyDetailsPage() {
         companyAddress: form.companyAddress.trim(),
         companyFoundedDate: form.companyFoundedDate,
         companySize: form.companySize,
-        gstNumber: form.gstNumber.trim(),
-        registrationNumber: form.registrationNumber.trim(),
+        gstNumber: normaliseIdentifier(form.gstNumber),
+        registrationNumber: normaliseIdentifier(form.registrationNumber),
       })
 
       // Creates the account PENDING_DOCUMENTS — no trial credits until an admin
@@ -172,6 +190,12 @@ export default function CompanyDetailsPage() {
         pendingInvite ? invitePath(pendingInvite) : '/employer/register/under-review'
       )
     } catch (err) {
+      // Another employer already holds this GST / registration number: say so
+      // under the field the BE names, not in the banner.
+      if (identifiers.fromError(err)) {
+        setLoading(false)
+        return
+      }
       const failure = classifyRegisterError(err)
       switch (failure.kind) {
         case 'fields':
@@ -256,7 +280,8 @@ export default function CompanyDetailsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.gstNumber')} <span className="text-red-500">*</span></label>
-                <input type="text" value={form.gstNumber} onChange={(e) => set('gstNumber', e.target.value.toUpperCase())} placeholder={t('employerRegister:companyDetails.gstPlaceholder')} maxLength={15} disabled={loading} className={inputCls} />
+                <input {...identifiers.inputProps('gstNumber')} type="text" value={form.gstNumber} onChange={(e) => set('gstNumber', e.target.value.toUpperCase())} placeholder={t('employerRegister:companyDetails.gstPlaceholder')} maxLength={GST_INPUT_MAX_LENGTH} disabled={loading} className={inputCls} />
+                <IdentifierError field="gstNumber" message={identifiers.errors.gstNumber} />
               </div>
             </div>
           </div>
@@ -265,7 +290,8 @@ export default function CompanyDetailsPage() {
             <h2 className="text-lg sm:text-xl font-semibold text-black mb-4">{t('employerRegister:companyDetails.sectionRegistration')}</h2>
             <div>
               <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.cin')} <span className="text-red-500">*</span></label>
-              <input type="text" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} placeholder={t('employerRegister:companyDetails.cinPlaceholder')} disabled={loading} className={inputCls} />
+              <input {...identifiers.inputProps('registrationNumber')} type="text" value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value)} placeholder={t('employerRegister:companyDetails.cinPlaceholder')} disabled={loading} className={inputCls} />
+              <IdentifierError field="registrationNumber" message={identifiers.errors.registrationNumber} />
             </div>
           </div>
 

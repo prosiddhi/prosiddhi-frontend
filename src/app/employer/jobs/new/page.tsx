@@ -9,6 +9,8 @@ import { JobForm } from '@/components/job/JobForm'
 import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
 import { employerAPI, type PostJobData } from '@/lib/api'
+import { isJobAwaitingReview } from '@/lib/applicationStatus'
+import { showToast } from '@/lib/toast'
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
@@ -38,7 +40,11 @@ function NewJobContent() {
     setSubmitting(true)
     setError('')
     try {
-      await employerAPI.postJob(data)
+      const job = await employerAPI.postJob(data)
+      // Pre-moderation: a new post is offline until an admin approves it. Say so,
+      // or the employer wonders why it is not live. My Jobs keeps the row's
+      // "Awaiting review" pill after this toast is gone.
+      if (isJobAwaitingReview(job)) showToast(t('employer:jobs.noticePosted'), 'info')
       router.push('/employer/jobs')
     } catch (err) {
       const message = err instanceof Error ? err.message : t('employer:jobNew.publishFailed')

@@ -172,20 +172,15 @@
   },
   "applicationStatus": {
     "PENDING": "અરજી કરી",
-    "REVIEWED": "સમીક્ષામાં",
     "SHORTLISTED": "શૉર્ટલિસ્ટ",
     "ACCEPTED": "સ્વીકારાયેલ",
     "REJECTED": "નકારાયેલ",
     "WITHDRAWN": "પાછી ખેંચી",
-    "BOOKMARKED": "બુકમાર્ક કરેલ",
     "unknown": "અજાણ"
   },
   "jobStatus": {
-    "DRAFT": "ડ્રાફ્ટ",
     "ACTIVE": "સક્રિય",
     "INACTIVE": "નિષ્ક્રિય",
-    "CLOSED": "બંધ",
-    "FILLED": "ભરાઈ ગઈ",
     "CANCELLED": "રદ",
     "unknown": "અજાણ"
   },
@@ -218,6 +213,12 @@
     "markAllRead": "બધી વાંચેલી કરો",
     "empty": "હજી સુધી કોઈ સૂચના નથી.",
     "loadError": "તમારી સૂચનાઓ લોડ થઈ શકી નથી."
+  },
+  "businessIdentifier": {
+    "gstInvalid": "15 અક્ષરનો સાચો GST નંબર દાખલ કરો, દા.ત. 29ABCDE1234F1Z5.",
+    "registrationLength": "નોંધણી નંબર 5 થી 50 અક્ષરનો હોવો જોઈએ.",
+    "gstDuplicate": "આ GST નંબર પહેલેથી બીજા નોકરીદાતાના નામે નોંધાયેલો છે.",
+    "registrationDuplicate": "આ નોંધણી નંબર પહેલેથી બીજા નોકરીદાતાના નામે નોંધાયેલો છે."
   },
   "breadcrumbs": {
     "label": "તમે અહીં છો",

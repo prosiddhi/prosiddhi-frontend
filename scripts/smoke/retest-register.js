@@ -151,7 +151,7 @@ async function asUser(browser, who, path) {
     // DEF-022 — Messages must be reachable.
     for (const [id, sev, what, sel] of [
       ['DEF-021', 'S2', 'Employer header shows the notification bell', 'header button[aria-label*="Notification" i]'],
-      ['DEF-022', 'S1', 'Employer can reach Messages from the header', 'header a[href="/messages"]'],
+      ['DEF-022', 'S1', 'Employer can reach Messages from the header', 'header a[href="/employer/messages"]'],
     ]) {
       const { ctx, page } = await asUser(browser, employer, '/employer')
       const n = await page.locator(sel).count()
@@ -162,10 +162,10 @@ async function asUser(browser, who, path) {
     // DEF-023 — an employer opening their OWN job must not be bounced.
     {
       const { ctx, page } = await asUser(browser, employer, '/employer/jobs')
-      // `/job-details/<id>` ONLY. The first version also matched
-      // `/employer/jobs/new` — the Post a Job button — so it clicked that,
-      // landed on the form, and reported a PASS without ever opening a job.
-      const view = page.locator('a[href^="/job-details/"]').first()
+      // The View link, `/employer/jobs/<id>`, inside `main`. Exclude `/new` (the
+      // empty-state Post a Job link) and `<id>/edit`: matching `/new` once landed on
+      // the form and reported a PASS without ever opening a job.
+      const view = page.locator('main a[href^="/employer/jobs/"]:not([href$="/new"]):not([href$="/edit"])').first()
       if (!(await view.count())) {
         verdict('DEF-023', 'S1', 'Employer can open their own job', 'HUMAN', 'no job rows on the list to click')
       } else {
