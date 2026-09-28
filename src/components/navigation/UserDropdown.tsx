@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -215,6 +215,20 @@ export function UserDropdown() {
             role="menu"
             className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
           >
+            {/* Dashboard (employer only) — always sends the employer back to
+                /employer, regardless of which page the dropdown was opened from. */}
+            {isEmployer && (
+              <Link
+                href="/employer"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4 text-gray-700" />
+                <span className="text-sm text-gray-900">{t('nav.dashboard')}</span>
+              </Link>
+            )}
+
             <Link
               href={profileHref}
               role="menuitem"
