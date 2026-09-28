@@ -97,10 +97,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
       </div>
 
       <div className="flex items-center justify-end gap-2 sm:gap-3 mt-4">
-        {/* Success-style chip, independent of statusMeta's per-status pill
-            color — the actual PENDING→"Applied" label mapping is still a
-            deferred change, this is only the badge's visual treatment. */}
-        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-50 text-green-700 whitespace-nowrap">
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${meta.pill}`}>
           {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
         </span>
         <Link
