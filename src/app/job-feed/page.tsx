@@ -330,7 +330,7 @@ function JobFeedPageContent() {
     !!filters.jobTitle ||
     filters.urgent
 
-  const radioRowCls = 'flex items-center gap-2 text-sm text-black cursor-pointer'
+  const radioRowCls = 'flex items-center gap-2 min-h-[44px] text-sm text-black cursor-pointer'
 
   // Department/Role Category are single-select — the backend's `category`
   // and `jobTitle` filters each take exactly one value — so they're native
