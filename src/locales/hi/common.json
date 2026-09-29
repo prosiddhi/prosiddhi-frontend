@@ -172,11 +172,11 @@
     "failed": "आपकी जगह नहीं मिल पाई। अपने शहर का नाम लिखें।"
   },
   "applicationStatus": {
-    "PENDING": "आवेदन किया",
-    "SHORTLISTED": "शॉर्टलिस्ट",
+    "PENDING": "आवेदन किया गया",
+    "SHORTLISTED": "शॉर्टलिस्ट किया गया",
     "ACCEPTED": "स्वीकृत",
     "REJECTED": "अस्वीकृत",
-    "WITHDRAWN": "वापस लिया",
+    "WITHDRAWN": "वापस लिया गया",
     "unknown": "अज्ञात"
   },
   "jobStatus": {

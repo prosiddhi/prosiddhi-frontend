@@ -98,7 +98,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
 
       <div className="flex items-center justify-end gap-2 sm:gap-3 mt-4">
         <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${meta.pill}`}>
-          {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
+          {meta.label}
         </span>
         <Link
           href={detailsHref}

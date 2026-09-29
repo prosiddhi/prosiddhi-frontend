@@ -128,14 +128,6 @@
     "emptyBody": "Start browsing jobs and save the ones you're interested in to view them here.",
     "browseJobs": "Browse Jobs"
   },
-  "status": {
-    "PENDING": "Applied",
-    "SHORTLISTED": "Shortlisted",
-    "ACCEPTED": "Accepted",
-    "REJECTED": "Rejected",
-    "WITHDRAWN": "Withdrawn",
-    "UNKNOWN": "Unknown"
-  },
   "myApplications": {
     "title": "My Applications",
     "count_one": "{{count}} Application",

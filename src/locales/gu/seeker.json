@@ -128,14 +128,6 @@
     "emptyBody": "નોકરીઓ જોવાનું શરૂ કરો અને જે તમને ગમે તે સાચવો, જેથી તે અહીં દેખાય.",
     "browseJobs": "નોકરીઓ જુઓ"
   },
-  "status": {
-    "PENDING": "અરજી કરી",
-    "SHORTLISTED": "શૉર્ટલિસ્ટ થયેલ",
-    "ACCEPTED": "સ્વીકારાયેલ",
-    "REJECTED": "નકારાયેલ",
-    "WITHDRAWN": "પાછી ખેંચેલી",
-    "UNKNOWN": "અજાણ્યું"
-  },
   "myApplications": {
     "title": "મારી અરજીઓ",
     "count_one": "{{count}} અરજી",

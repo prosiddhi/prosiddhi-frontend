@@ -173,9 +173,9 @@
   },
   "applicationStatus": {
     "PENDING": "আবেদন করা হয়েছে",
-    "SHORTLISTED": "শর্টলিস্ট হয়েছে",
+    "SHORTLISTED": "শর্টলিস্ট করা হয়েছে",
     "ACCEPTED": "গ্রহণ করা হয়েছে",
-    "REJECTED": "গ্রহণ করা হয়নি",
+    "REJECTED": "বাতিল করা হয়েছে",
     "WITHDRAWN": "ফিরিয়ে নেওয়া হয়েছে",
     "unknown": "অজানা"
   },
