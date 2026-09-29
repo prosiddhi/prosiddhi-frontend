@@ -551,7 +551,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
                         </div>
                         <div className="flex items-center gap-1 mb-3 text-sm text-black font-medium">
                           <IndianRupee className="w-3.5 h-3.5 text-[#3386a9] shrink-0" />
-                          {formatSalaryLine(rel.salaryMin, rel.salaryMax)}
+                          {formatSalaryLine(rel.salaryMin, rel.salaryMax, rel.paymentType)}
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {rel.jobType && (
