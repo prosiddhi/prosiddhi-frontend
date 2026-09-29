@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "ജോലി ഫീഡ്",
     "pageSubtitle": "ജോലി അവസരങ്ങൾ തിരയുക",
+    "skipToResults": "ജോലികളിലേക്ക് പോകുക",
     "showingCount_one": "{{count}} സമീപകാല ജോലി കാണിക്കുന്നു",
     "showingCount_other": "{{count}} സമീപകാല ജോലികൾ കാണിക്കുന്നു",
     "heroTitle": "നിങ്ങളുടെ അടുത്തുള്ള ജോലികൾ കണ്ടെത്തുക",

@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "ಕೆಲಸಗಳ ಪಟ್ಟಿ",
     "pageSubtitle": "ಕೆಲಸದ ಅವಕಾಶಗಳನ್ನು ಹುಡುಕಿ",
+    "skipToResults": "ಕೆಲಸಗಳ ಪಟ್ಟಿಗೆ ಹೋಗಿ",
     "showingCount_one": "{{count}} ಇತ್ತೀಚಿನ ಕೆಲಸ ತೋರಿಸಲಾಗುತ್ತಿದೆ",
     "showingCount_other": "{{count}} ಇತ್ತೀಚಿನ ಕೆಲಸಗಳು ತೋರಿಸಲಾಗುತ್ತಿವೆ",
     "heroTitle": "ನಿಮ್ಮ ಹತ್ತಿರದ ಕೆಲಸಗಳನ್ನು ಹುಡುಕಿ",

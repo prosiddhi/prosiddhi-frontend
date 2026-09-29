@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "চাকরির ফিড",
     "pageSubtitle": "চাকরির সুযোগ খুঁজুন",
+    "skipToResults": "চাকরির তালিকায় যান",
     "showingCount_one": "{{count}}টি সাম্প্রতিক চাকরি দেখানো হচ্ছে",
     "showingCount_other": "{{count}}টি সাম্প্রতিক চাকরি দেখানো হচ্ছে",
     "heroTitle": "আপনার কাছের চাকরি খুঁজুন",

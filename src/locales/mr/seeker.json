@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "जॉब फीड",
     "pageSubtitle": "नोकरीच्या संधी शोधा",
+    "skipToResults": "नोकऱ्यांच्या यादीकडे जा",
     "showingCount_one": "{{count}} अलीकडील नोकरी दाखवली जात आहे",
     "showingCount_other": "{{count}} अलीकडील नोकऱ्या दाखवल्या जात आहेत",
     "heroTitle": "तुमच्या जवळच्या नोकऱ्या शोधा",
