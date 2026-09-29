@@ -28,6 +28,9 @@ export interface EmployerRegistrationState {
   emailVerified: boolean
   // In-memory ONLY — never written to storage.
   password: string
+  // R1-BE-03 — WhatsApp opt-in. Shared by both employer types, collected once
+  // on the account step. Not secret, safe to persist like the fields below.
+  whatsappConsent: boolean
   // Individual only
   fullName: string
   designation: string
@@ -52,6 +55,7 @@ const defaultState: EmployerRegistrationState = {
   email: '',
   emailVerified: false,
   password: '',
+  whatsappConsent: false,
   fullName: '',
   designation: '',
   companyName: '',
@@ -77,6 +81,7 @@ const PERSISTED_KEYS = [
   'phoneVerified',
   'email',
   'emailVerified',
+  'whatsappConsent',
   'fullName',
   'designation',
   'companyName',

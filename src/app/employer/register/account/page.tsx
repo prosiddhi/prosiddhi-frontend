@@ -32,6 +32,8 @@ export default function AccountSetupPage() {
   const [fullName, setFullName] = useState(data.fullName)
   const [designation, setDesignation] = useState(data.designation)
   const [password, setPassword] = useState('')
+  // R1-BE-03 — WhatsApp opt-in. Unchecked by default; never blocks submission.
+  const [whatsappConsent, setWhatsappConsent] = useState(data.whatsappConsent)
   const [passwordTouched, setPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -60,6 +62,11 @@ export default function AccountSetupPage() {
     if (!hydrated) return
     setFullName((prev) => prev || data.fullName)
     setDesignation((prev) => prev || data.designation)
+    // Plain overwrite, not the `prev || …` idiom above: that trick relies on
+    // '' meaning "not typed yet", which has no boolean equivalent — `false`
+    // is a real, deliberate answer, not an empty one, so OR-ing it could
+    // never restore an explicit uncheck, only ever force it back to true.
+    setWhatsappConsent(data.whatsappConsent)
     // One-shot on hydrate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated])
@@ -92,7 +99,7 @@ export default function AccountSetupPage() {
     }
 
     // Held in memory only — never written to storage.
-    update({ password, fullName: fullName.trim(), designation })
+    update({ password, fullName: fullName.trim(), designation, whatsappConsent })
 
     // Corporate collects company details next, and registers there.
     if (!isIndividual) {
@@ -114,6 +121,7 @@ export default function AccountSetupPage() {
         fullName: fullName.trim(),
         phoneNumber: data.phoneNumber,
         designation: designation.trim() || undefined,
+        whatsappConsent,
       })
 
       // Register issues the session itself. There used to be an unconditional
@@ -317,6 +325,16 @@ export default function AccountSetupPage() {
                 </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={whatsappConsent}
+                onChange={(e) => setWhatsappConsent(e.target.checked)}
+                className="w-4 h-4 accent-primary-50"
+              />
+              {t('employerRegister:account.whatsappConsentLabel')}
+            </label>
           </div>
 
           <div className="flex items-center justify-between gap-4">

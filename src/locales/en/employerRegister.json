@@ -52,6 +52,7 @@
     "changeEmail": "Change email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
+    "whatsappConsentLabel": "Send me updates on WhatsApp",
     "nameTooShort": "Please enter your full name (at least 2 characters)",
     "nameLetters": "Please enter your full name (letters only, no numbers)",
     "passwordWeak": "Password must include:\n- 8–64 characters\n- One lowercase letter\n- One uppercase letter\n- One number\n- At least one special character",

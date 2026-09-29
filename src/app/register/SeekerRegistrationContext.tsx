@@ -53,6 +53,9 @@ export interface SeekerRegistrationState {
   documentName: string
   // In-memory ONLY — never written to storage.
   password: string
+  // R1-BE-03 — WhatsApp opt-in. Not secret, safe to persist like the fields
+  // above — a refresh on the password step should not silently lose it.
+  whatsappConsent: boolean
   // BE echoes the OTPs in non-production for dev/QA convenience. Without these,
   // QA cannot complete registration at all: there is no SMS/email sender wired.
   devEmailOtp?: string
@@ -74,6 +77,7 @@ const defaultState: SeekerRegistrationState = {
   workExperiences: [],
   documentName: '',
   password: '',
+  whatsappConsent: false,
 }
 
 /**
@@ -108,6 +112,7 @@ const PERSISTED_KEYS = [
   'preferredJobTitle',
   'workExperiences',
   'documentName',
+  'whatsappConsent',
 ] as const satisfies readonly (keyof SeekerRegistrationState)[]
 
 type PersistedState = Pick<

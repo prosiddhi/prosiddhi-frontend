@@ -25,9 +25,10 @@ export default function RegisterPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { login } = useAuth()
-  // No `update` — the password is deliberately never written to the shared
-  // context here; it goes straight from local state into register() + login().
-  const { data, reset, hydrated } = useSeekerRegistration()
+  // `update` is used only for `whatsappConsent` — not secret, safe to persist.
+  // The password itself still never goes through it; it goes straight from
+  // local state into register() + login().
+  const { data, update, reset, hydrated } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [passwordTouched, setPasswordTouched] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -123,6 +124,7 @@ export default function RegisterPasswordPage() {
         workExperiences: data.workExperiences,
         profilePic: data.profilePic,
         document: data.document,
+        whatsappConsent: data.whatsappConsent,
       })
 
       // Log straight in. A phone-only seeker has no email to log in with, so the
@@ -334,6 +336,16 @@ export default function RegisterPasswordPage() {
                     </button>
                   </div>
                 </div>
+
+                <label className="flex items-center gap-2 text-sm lg:text-base text-[#4d4d4d]">
+                  <input
+                    type="checkbox"
+                    checked={data.whatsappConsent}
+                    onChange={(e) => update({ whatsappConsent: e.target.checked })}
+                    className="w-4 h-4 accent-primary-50"
+                  />
+                  {t('auth:password.whatsappConsentLabel')}
+                </label>
               </div>
 
               <div className="flex justify-end">

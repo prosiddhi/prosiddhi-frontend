@@ -1198,6 +1198,12 @@ export interface SeekerRegisterData {
   dateOfBirth?: string
   /** BR-1. Must match the BE `Gender` enum exactly: MALE | FEMALE | OTHER. */
   gender?: 'MALE' | 'FEMALE' | 'OTHER'
+  /**
+   * R1-BE-03 — WhatsApp opt-in. Required, no default: the BE's `booleanField()`
+   * treats a missing value as a gap, not a decline, so this must always be sent
+   * explicitly — checked = true, unchecked = false.
+   */
+  whatsappConsent: boolean
   workExperiences?: SeekerWorkExperience[]
   profilePic?: File
   document?: File
@@ -1284,6 +1290,9 @@ export const jobSeekerAPI = {
     }
     if (data.profilePic) fd.append('profilePic', data.profilePic)
     if (data.document) fd.append('document', data.document)
+    // Always sent, never gated on truthiness like the optional fields above —
+    // the BE's booleanField() treats a missing key as a gap, not a decline.
+    fd.append('whatsappConsent', String(data.whatsappConsent))
     return apiRequest<SeekerRegisterResult>('/jobseekers/register', {
       method: 'POST',
       body: fd,
@@ -1721,6 +1730,8 @@ export interface EmployerIndividualData {
   fullName: string
   phoneNumber: string // E.164, must already be verified
   designation?: string
+  // R1-BE-03 — WhatsApp opt-in. Required, no default — see SeekerRegisterData.
+  whatsappConsent: boolean
 }
 
 export interface EmployerBusinessData {
@@ -1734,6 +1745,8 @@ export interface EmployerBusinessData {
   companySize: CompanySize
   gstNumber: string // exactly 15 chars
   registrationNumber: string
+  // R1-BE-03 — WhatsApp opt-in. Required, no default — see SeekerRegisterData.
+  whatsappConsent: boolean
 }
 
 /**

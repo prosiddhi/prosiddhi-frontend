@@ -158,6 +158,9 @@ export default function CompanyDetailsPage() {
         companySize: form.companySize,
         gstNumber: normaliseIdentifier(form.gstNumber),
         registrationNumber: normaliseIdentifier(form.registrationNumber),
+        // Collected on the account step, carried through context — see its
+        // own comment for why this screen has no checkbox of its own.
+        whatsappConsent: data.whatsappConsent,
       })
 
       // Creates the account PENDING_DOCUMENTS — no trial credits until an admin
