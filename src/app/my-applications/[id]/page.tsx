@@ -175,7 +175,7 @@ function ApplicationDetailsContent() {
                       {t('seeker:applicationDetail.appliedRelative', { time: relativeTime(application.appliedAt) })}
                     </span>
                     <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${meta.pill}`}>
-                      {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
+                      {meta.label}
                     </span>
                   </div>
                 </div>

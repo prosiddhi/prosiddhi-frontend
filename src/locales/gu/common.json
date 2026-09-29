@@ -173,10 +173,10 @@
   },
   "applicationStatus": {
     "PENDING": "અરજી કરી",
-    "SHORTLISTED": "શૉર્ટલિસ્ટ",
+    "SHORTLISTED": "શૉર્ટલિસ્ટ થયેલ",
     "ACCEPTED": "સ્વીકારાયેલ",
     "REJECTED": "નકારાયેલ",
-    "WITHDRAWN": "પાછી ખેંચી",
+    "WITHDRAWN": "પાછી ખેંચેલી",
     "unknown": "અજાણ"
   },
   "jobStatus": {

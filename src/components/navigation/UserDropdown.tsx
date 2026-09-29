@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl, teamAPI } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -42,26 +42,27 @@ export function UserDropdown() {
   // see employer/ledger/page.tsx). AuthUser carries no seat role (checked
   // EmployerProfile and Wallet too — neither has one), and there's no
   // existing cache to read it from: react-query is a listed dependency but
-  // has no QueryClientProvider anywhere in the app, and employer/team/page.tsx
-  // itself calls teamAPI.getTeam() with plain useEffect/useState, no caching.
-  // So this is the only way to know. Starts false and stays false on any
-  // failure — the menu item must never show for a MEMBER or while ownership
-  // is still unknown, only once an OWNER response actually confirms it.
+  // has no QueryClientProvider anywhere in the app. `getEntitlements()` (any
+  // seat may read it, same as `getTeam()`) answers this with no roster —
+  // no member names/emails, no invite tokens — unlike `employer/team/page.tsx`,
+  // which genuinely needs the full `getTeam()` roster for its own listing.
+  // Starts false and stays false on any failure — the menu item must never
+  // show for a MEMBER or while ownership is still unknown, only once an
+  // OWNER response actually confirms it.
   // Known cost: there is no shared layout.tsx under src/app/employer/, so
   // every employer page imports EmployerHeader (→ this component) itself —
   // this effect re-fires on every employer-page navigation, not once per
-  // session, and on /employer/team specifically that page's own load()
-  // fetches the identical endpoint again on top of it. Not deduped here; a
-  // shared cache is bigger than this fix, and "any seat may read it" keeps
-  // each individual call cheap.
+  // session. Not deduped here; a shared cache is bigger than this fix, and
+  // "any seat may read it" plus the lighter entitlements payload keeps each
+  // individual call cheap.
   const [isOwner, setIsOwner] = useState(false)
   useEffect(() => {
     if (!isEmployer) return
     let ignore = false
     teamAPI
-      .getTeam()
-      .then((team) => {
-        if (!ignore) setIsOwner(team.me.role === 'OWNER')
+      .getEntitlements()
+      .then((entitlements) => {
+        if (!ignore) setIsOwner(entitlements.role === 'OWNER')
       })
       .catch(() => {
         // Leave isOwner false — fail closed, not open.
@@ -283,15 +284,39 @@ export function UserDropdown() {
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
 
-            {/* Team / Plans / Invoices (employer only). EmployerHeader only ever
-                links Team (hidden below md:) and Find Workers (hidden below sm:) —
-                Plans and Invoices have no header link at any width, reachable
-                today only from the CreditWallet widget, which doesn't render on
-                every employer page. This dropdown is visible and 44px-tall at
-                every width, so it's the one place an employer can always reach
-                all three (PJP-39). */}
+            {/* Find Workers / Candidates / Team / Plans / Invoices (employer
+                only, any seat — none of these five are owner-gated on the
+                backend). EmployerHeader only ever links Find Workers (hidden
+                below sm:) and Team (hidden below md:) — Candidates, Plans and
+                Invoices have no header link at any width, Candidates reachable
+                today only from the dashboard's "Manage all" tile (itself
+                conditional on having an unlocked candidate) or a per-job link,
+                Plans/Invoices only from the CreditWallet widget, which doesn't
+                render on every employer page. This dropdown is visible and
+                44px-tall at every width, so it's the one place an employer can
+                always reach all five (PJP-39, P-18 follow-up). */}
             {isEmployer && (
               <>
+                <Link
+                  href="/employer/workers"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <Search className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:dashboard.findWorkers')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/candidates"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <UserCheck className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:candidates.navLabel')}</span>
+                </Link>
+
                 <Link
                   href="/employer/team"
                   role="menuitem"

@@ -425,7 +425,7 @@ function JobFeedPageContent() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-black">{t('seeker:jobFeed.filters.allFilters')}</h2>
               {hasActiveFilters && (
-                <button onClick={clearAll} className="text-sm text-primary-60 hover:underline">
+                <button onClick={clearAll} className="inline-flex items-center min-h-[44px] text-sm text-primary-60 hover:underline">
                   {t('seeker:jobFeed.filters.clearAll')}
                 </button>
               )}
@@ -443,7 +443,7 @@ function JobFeedPageContent() {
                   aria-label={t('seeker:jobFeed.filters.location')}
                   value={filters.city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full h-10 pl-3 pr-8 bg-[#f3f3f5] rounded-lg text-sm appearance-none cursor-pointer"
+                  className="w-full h-11 pl-3 pr-8 bg-[#f3f3f5] rounded-lg text-sm appearance-none cursor-pointer"
                 >
                   <option value="">{t('seeker:jobFeed.anyLocation')}</option>
                   {CITY_KEYS.map((key) => (
@@ -502,7 +502,7 @@ function JobFeedPageContent() {
                 {departments.length > DEPARTMENT_PREVIEW && (
                   <button
                     onClick={() => setDepartmentExpanded((v) => !v)}
-                    className="mt-2 text-sm text-primary-60 hover:underline flex items-center gap-1"
+                    className="mt-2 min-h-[44px] text-sm text-primary-60 hover:underline flex items-center gap-1"
                   >
                     {departmentExpanded ? t('seeker:jobFeed.filters.viewLess') : t('seeker:jobFeed.filters.viewMore')}
                     {departmentExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -526,7 +526,7 @@ function JobFeedPageContent() {
                 {roles.length > ROLE_PREVIEW && (
                   <button
                     onClick={() => setRoleExpanded((v) => !v)}
-                    className="mt-2 text-sm text-primary-60 hover:underline flex items-center gap-1"
+                    className="mt-2 min-h-[44px] text-sm text-primary-60 hover:underline flex items-center gap-1"
                   >
                     {roleExpanded ? t('seeker:jobFeed.filters.viewLess') : t('seeker:jobFeed.filters.viewMore')}
                     {roleExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
