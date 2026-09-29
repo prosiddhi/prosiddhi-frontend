@@ -202,6 +202,15 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
   const isUrgent = job?.urgencyLevel === 'URGENT'
   const applyByDate = formatShortDate(job?.liveUntil)
 
+  const backButton = (
+    <button
+      onClick={onBack}
+      className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
+    >
+      {backLabel}
+    </button>
+  )
+
   // Salary carries its actual pay period (Monthly/Hourly/...) instead of the
   // generic "/ Month" suffix `formatSalaryLine` appends everywhere else — that
   // shared helper is used by ~15 screens that only ever show monthly figures,
@@ -257,9 +266,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
                 <Briefcase className="w-10 h-10 text-[#9a9aa5] mb-4" />
                 <p className="text-lg font-semibold text-black mb-1">{t('seeker:jobDetails.unavailableTitle')}</p>
                 <p className="text-[#717182] mb-6 max-w-md">{t('seeker:jobDetails.unavailableBody')}</p>
-                <button onClick={onBack} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
-                  {backLabel}
-                </button>
+                {backButton}
               </div>
             )}
 
@@ -268,12 +275,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
                 <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
-                <button
-                  onClick={onBack}
-                  className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
-                >
-                  {backLabel}
-                </button>
+                {backButton}
               </div>
             )}
 
