@@ -170,6 +170,7 @@
     "error": "Couldn't load your wallet."
   },
   "invoices": {
+    "navLabel": "Invoices",
     "logoAlt": "ProSiddhi",
     "title": "Invoices",
     "subtitle": "Your GST invoices for every purchase.",
@@ -185,12 +186,12 @@
   "ledger": {
     "navLabel": "Ledger",
     "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
+    "subtitle": "Everything you've earned or spent, in order.",
     "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "loading": "Loading your ledger…",
+    "loadFailed": "Couldn't load your ledger.",
+    "notOwner": "Only the account owner can view the ledger.",
+    "empty": "No transactions yet.",
     "filters": {
       "kindLabel": "Type",
       "kindAll": "All",
@@ -201,7 +202,7 @@
     "columns": {
       "date": "Date & time",
       "kind": "Kind",
-      "delta": "Credit change",
+      "delta": "Change",
       "reason": "Reason",
       "label": "Description",
       "ref": "Reference",
@@ -209,9 +210,18 @@
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "Page {{page}} of {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "Free trial",
+      "GRANT_PURCHASE": "Purchase",
+      "SPEND_POST": "Job post",
+      "SPEND_UNLOCK": "Candidate unlock",
+      "REFUND_DELETE": "Refund (job deleted)",
+      "EXPIRE": "Expired"
+    }
   },
   "plans": {
+    "navLabel": "Plans",
     "heading": "Plans & pricing",
     "subheading": "Buy Job Posts and Candidate Unlocks. Choose a plan that fits how much you hire.",
     "seekersFree": "Job seekers are free, forever.",

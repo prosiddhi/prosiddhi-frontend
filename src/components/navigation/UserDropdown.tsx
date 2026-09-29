@@ -4,9 +4,9 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { resolveMediaUrl } from '@/lib/api'
+import { resolveMediaUrl, teamAPI } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
 import { Tooltip } from '@/components/ui/Tooltip'
 
@@ -37,6 +37,39 @@ export function UserDropdown() {
   const workHref = isEmployer ? '/employer/jobs' : '/my-applications'
   const workLabel = isEmployer ? t('nav.myJobs') : t('nav.myApplications')
   const settingsHref = isEmployer ? '/employer/settings' : '/settings'
+
+  // Ledger is owner-only on the backend (a MEMBER seat gets a 403 NOT_OWNER —
+  // see employer/ledger/page.tsx). AuthUser carries no seat role (checked
+  // EmployerProfile and Wallet too — neither has one), and there's no
+  // existing cache to read it from: react-query is a listed dependency but
+  // has no QueryClientProvider anywhere in the app, and employer/team/page.tsx
+  // itself calls teamAPI.getTeam() with plain useEffect/useState, no caching.
+  // So this is the only way to know. Starts false and stays false on any
+  // failure — the menu item must never show for a MEMBER or while ownership
+  // is still unknown, only once an OWNER response actually confirms it.
+  // Known cost: there is no shared layout.tsx under src/app/employer/, so
+  // every employer page imports EmployerHeader (→ this component) itself —
+  // this effect re-fires on every employer-page navigation, not once per
+  // session, and on /employer/team specifically that page's own load()
+  // fetches the identical endpoint again on top of it. Not deduped here; a
+  // shared cache is bigger than this fix, and "any seat may read it" keeps
+  // each individual call cheap.
+  const [isOwner, setIsOwner] = useState(false)
+  useEffect(() => {
+    if (!isEmployer) return
+    let ignore = false
+    teamAPI
+      .getTeam()
+      .then((team) => {
+        if (!ignore) setIsOwner(team.me.role === 'OWNER')
+      })
+      .catch(() => {
+        // Leave isOwner false — fail closed, not open.
+      })
+    return () => {
+      ignore = true
+    }
+  }, [isEmployer])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -215,6 +248,20 @@ export function UserDropdown() {
             role="menu"
             className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
           >
+            {/* Dashboard (employer only) — always sends the employer back to
+                /employer, regardless of which page the dropdown was opened from. */}
+            {isEmployer && (
+              <Link
+                href="/employer"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4 text-gray-700" />
+                <span className="text-sm text-gray-900">{t('nav.dashboard')}</span>
+              </Link>
+            )}
+
             <Link
               href={profileHref}
               role="menuitem"
@@ -236,8 +283,50 @@ export function UserDropdown() {
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
 
-            {/* Ledger (employer only) — the credit transaction history. */}
+            {/* Team / Plans / Invoices (employer only). EmployerHeader only ever
+                links Team (hidden below md:) and Find Workers (hidden below sm:) —
+                Plans and Invoices have no header link at any width, reachable
+                today only from the CreditWallet widget, which doesn't render on
+                every employer page. This dropdown is visible and 44px-tall at
+                every width, so it's the one place an employer can always reach
+                all three (PJP-39). */}
             {isEmployer && (
+              <>
+                <Link
+                  href="/employer/team"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <Users className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:dashboard.team')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/plans"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <CreditCard className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:plans.navLabel')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/invoices"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:invoices.navLabel')}</span>
+                </Link>
+              </>
+            )}
+
+            {/* Ledger — owner only (see isOwner above). A MEMBER seat never sees
+                this item; it doesn't just 403 when they click it. */}
+            {isEmployer && isOwner && (
               <Link
                 href="/employer/ledger"
                 role="menuitem"

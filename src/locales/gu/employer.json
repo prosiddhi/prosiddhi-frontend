@@ -170,6 +170,7 @@
     "error": "તમારું વૉલેટ લોડ થઈ શક્યું નથી."
   },
   "invoices": {
+    "navLabel": "ઇન્વોઇસ",
     "logoAlt": "ProSiddhi",
     "title": "ઇન્વોઇસ",
     "subtitle": "તમારી દરેક ખરીદી માટેના GST ઇન્વોઇસ.",
@@ -183,35 +184,44 @@
     "pageOf": "પેજ {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "લેજર",
+    "title": "લેજર",
+    "subtitle": "તમે કમાયેલું અથવા ખર્ચેલું બધું, અહીં ક્રમમાં છે.",
+    "back": "ડેશબોર્ડ પર પાછા જાઓ",
+    "loading": "તમારું લેજર લોડ થઈ રહ્યું છે…",
+    "loadFailed": "તમારું લેજર લોડ થઈ શક્યું નથી.",
+    "notOwner": "ફક્ત ખાતાના માલિક જ લેજર જોઈ શકે છે.",
+    "empty": "હજી કોઈ વ્યવહાર થયો નથી.",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "પ્રકાર",
+      "kindAll": "બધા",
+      "fromLabel": "થી",
+      "toLabel": "સુધી",
+      "clear": "ફિલ્ટર દૂર કરો"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "તારીખ અને સમય",
+      "kind": "પ્રકાર",
+      "delta": "ફેરફાર",
+      "reason": "કારણ",
+      "label": "વર્ણન",
+      "ref": "સંદર્ભ",
+      "actor": "વ્યક્તિ"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "પેજ {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "મફત ટ્રાયલ",
+      "GRANT_PURCHASE": "ખરીદી",
+      "SPEND_POST": "જોબ પોસ્ટ",
+      "SPEND_UNLOCK": "ઉમેદવાર અનલૉક",
+      "REFUND_DELETE": "રિફંડ (નોકરી કાઢી નાખી)",
+      "EXPIRE": "સમાપ્ત"
+    }
   },
   "plans": {
+    "navLabel": "પ્લાન",
     "heading": "પ્લાન અને કિંમતો",
     "subheading": "જોબ પોસ્ટ અને ઉમેદવાર અનલૉક ખરીદો. તમે જેટલી ભરતી કરો તેને અનુકૂળ પ્લાન પસંદ કરો.",
     "seekersFree": "નોકરી શોધનારાઓ માટે હંમેશાં મફત.",

@@ -268,8 +268,11 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
                 <p className="text-red-600 mb-4 max-w-md">{error || t('seeker:jobDetails.notFound')}</p>
-                <Link href="/job-feed" className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
-                  {t('seeker:jobDetails.backToFeed')}
+                <Link
+                  href={isSeeker ? '/job-feed' : '/employer/jobs'}
+                  className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
+                >
+                  {isSeeker ? t('seeker:jobDetails.backToFeed') : t('employer:jobEdit.backToMyJobs')}
                 </Link>
               </div>
             )}

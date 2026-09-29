@@ -190,7 +190,14 @@ function JobFeedPageContent() {
   const [roleExpanded, setRoleExpanded] = useState(false)
 
   const departments = useMemo(() => categories.filter(hasJobTitles), [categories])
-  const roles = useMemo(() => flatJobTitleNames(categories), [categories])
+  // Scoped to the selected department once one is picked, so Role Category
+  // only ever offers roles that actually exist under it — otherwise a
+  // seeker could pick a role from another department and get zero results.
+  const roleSourceCategories = useMemo(
+    () => (filters.category ? departments.filter((c) => c.name === filters.category) : departments),
+    [departments, filters.category]
+  )
+  const roles = useMemo(() => flatJobTitleNames(roleSourceCategories), [roleSourceCategories])
   const visibleDepartments = departmentExpanded ? departments : departments.slice(0, DEPARTMENT_PREVIEW)
   const visibleRoles = roleExpanded ? roles : roles.slice(0, ROLE_PREVIEW)
 
@@ -297,7 +304,12 @@ function JobFeedPageContent() {
   const setSalaryPreset = (key: string) => applyFilters((prev) => ({ ...prev, salaryPreset: key }))
 
   const setDepartment = (name: string) =>
-    applyFilters((prev) => ({ ...prev, category: prev.category === name ? '' : name }))
+    applyFilters((prev) => ({
+      ...prev,
+      category: prev.category === name ? '' : name,
+      // The previously selected role may not exist under the new department.
+      jobTitle: '',
+    }))
 
   const setRole = (name: string) =>
     applyFilters((prev) => ({ ...prev, jobTitle: prev.jobTitle === name ? '' : name }))
@@ -318,7 +330,7 @@ function JobFeedPageContent() {
     !!filters.jobTitle ||
     filters.urgent
 
-  const radioRowCls = 'flex items-center gap-2 text-sm text-black cursor-pointer'
+  const radioRowCls = 'flex items-center gap-2 min-h-[44px] text-sm text-black cursor-pointer'
 
   // Department/Role Category are single-select — the backend's `category`
   // and `jobTitle` filters each take exactly one value — so they're native
@@ -382,8 +394,15 @@ function JobFeedPageContent() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filter sidebar — bordered card, matching the Figma reference. */}
-          <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
+          {/* Filter sidebar — bordered card, matching the Figma reference.
+              `order-2 lg:order-none`: below `lg:` this column stacks under the
+              results instead of above them (TD-15 — a phone's first screen
+              should show job cards, not the whole filter panel), while at
+              `lg:`+ resetting to `order-none` restores the source order
+              (sidebar left, results right), so the desktop layout is
+              byte-for-byte unchanged. Filters stay fully intact and reachable
+              by scrolling past the results, not hidden behind any toggle. */}
+          <aside className="order-2 lg:order-none w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-black">{t('seeker:jobFeed.filters.allFilters')}</h2>
               {hasActiveFilters && (
@@ -506,7 +525,7 @@ function JobFeedPageContent() {
             </div>
           </aside>
 
-          <div className="flex-1 min-w-0">
+          <div className="order-1 lg:order-none flex-1 min-w-0">
             <JobFeedSection
               bare
               heading={

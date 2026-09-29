@@ -170,6 +170,7 @@
     "error": "আপনার ওয়ালেট লোড করা যায়নি।"
   },
   "invoices": {
+    "navLabel": "ইনভয়েস",
     "logoAlt": "ProSiddhi",
     "title": "ইনভয়েস",
     "subtitle": "আপনার প্রতিটি কেনাকাটার GST ইনভয়েস।",
@@ -183,35 +184,44 @@
     "pageOf": "পেজ {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "লেজার",
+    "title": "লেজার",
+    "subtitle": "আপনি যা আয় করেছেন বা খরচ করেছেন, সবকিছু এখানে ক্রমানুসারে আছে।",
+    "back": "ড্যাশবোর্ডে ফিরে যান",
+    "loading": "আপনার লেজার লোড হচ্ছে…",
+    "loadFailed": "আপনার লেজার লোড করা যায়নি।",
+    "notOwner": "শুধু অ্যাকাউন্টের মালিক লেজার দেখতে পারেন।",
+    "empty": "এখনও কোনও লেনদেন হয়নি।",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "ধরন",
+      "kindAll": "সব",
+      "fromLabel": "থেকে",
+      "toLabel": "পর্যন্ত",
+      "clear": "ফিল্টার সরান"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "তারিখ ও সময়",
+      "kind": "ধরন",
+      "delta": "পরিবর্তন",
+      "reason": "কারণ",
+      "label": "বিবরণ",
+      "ref": "সূত্র",
+      "actor": "ব্যক্তি"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "পেজ {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "বিনামূল্যে ট্রায়াল",
+      "GRANT_PURCHASE": "কেনাকাটা",
+      "SPEND_POST": "চাকরি পোস্ট",
+      "SPEND_UNLOCK": "প্রার্থী আনলক",
+      "REFUND_DELETE": "ফেরত (চাকরি মুছে ফেলা হয়েছে)",
+      "EXPIRE": "মেয়াদ শেষ"
+    }
   },
   "plans": {
+    "navLabel": "প্ল্যান",
     "heading": "প্ল্যান আর দাম",
     "subheading": "চাকরি পোস্ট আর প্রার্থী আনলক কিনুন। আপনি যত লোক নেন, তার সঙ্গে মানানসই একটি প্ল্যান বেছে নিন।",
     "seekersFree": "চাকরিপ্রার্থীদের জন্য সবসময় ফ্রি।",

@@ -170,6 +170,7 @@
     "error": "आपका वॉलेट लोड नहीं हो सका।"
   },
   "invoices": {
+    "navLabel": "इनवॉइस",
     "logoAlt": "ProSiddhi",
     "title": "इनवॉइस",
     "subtitle": "आपकी हर खरीद के लिए GST इनवॉइस।",
@@ -183,35 +184,44 @@
     "pageOf": "पेज {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "लेजर",
+    "title": "लेजर",
+    "subtitle": "आपने जो कुछ कमाया या ख़र्च किया, वह सब यहाँ क्रम से है।",
+    "back": "डैशबोर्ड पर वापस जाएं",
+    "loading": "आपका लेजर लोड हो रहा है…",
+    "loadFailed": "आपका लेजर लोड नहीं हो सका।",
+    "notOwner": "केवल खाता मालिक ही लेजर देख सकते हैं।",
+    "empty": "अभी तक कोई लेन-देन नहीं हुआ।",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "प्रकार",
+      "kindAll": "सभी",
+      "fromLabel": "से",
+      "toLabel": "तक",
+      "clear": "फ़िल्टर हटाएं"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "तारीख़ और समय",
+      "kind": "प्रकार",
+      "delta": "बदलाव",
+      "reason": "कारण",
+      "label": "विवरण",
+      "ref": "संदर्भ",
+      "actor": "व्यक्ति"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "पेज {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "मुफ़्त ट्रायल",
+      "GRANT_PURCHASE": "खरीद",
+      "SPEND_POST": "जॉब पोस्ट",
+      "SPEND_UNLOCK": "उम्मीदवार अनलॉक",
+      "REFUND_DELETE": "वापसी (नौकरी हटाई गई)",
+      "EXPIRE": "समाप्त"
+    }
   },
   "plans": {
+    "navLabel": "प्लान",
     "heading": "प्लान और कीमतें",
     "subheading": "जॉब पोस्ट और उम्मीदवार अनलॉक खरीदें। आप जितनी भर्ती करते हैं, उसके हिसाब से प्लान चुनें।",
     "seekersFree": "नौकरी तलाशने वालों के लिए हमेशा मुफ़्त।",

@@ -8,10 +8,6 @@ import { PricingPlans } from '@/components/employer/PricingPlans'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Phone,
-  Facebook,
-  Instagram,
-  Github,
-  Linkedin,
   ArrowRight,
   PhoneCall,
   MessageCircle
@@ -125,15 +121,15 @@ function EmployerLandingPageContent() {
                 the same 14px/16px size a 1024px+ screen gets — `min-[640px]:`
                 and up reuse the sizes that were already here. */}
           <nav className="hidden min-[460px]:flex items-center justify-self-center gap-2 min-[640px]:gap-4 lg:gap-8 xl:gap-11">
-            <a href="#offer" className="text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+            <a href="#offer" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
               {t('employer:landing.offers.heading')}
             </a>
 
-            <a href="#hero" className="text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+            <a href="#hero" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
               {t('employer:landing.nav.findWorkers')}
             </a>
 
-            <a href="#pricing" className="text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
+            <a href="#pricing" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
               {t('employer:landing.nav.pricing')}
             </a>
           </nav>

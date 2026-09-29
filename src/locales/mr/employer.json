@@ -170,6 +170,7 @@
     "error": "तुमचे वॉलेट लोड करता आले नाही."
   },
   "invoices": {
+    "navLabel": "इनव्हॉइस",
     "logoAlt": "ProSiddhi",
     "title": "इनव्हॉइस",
     "subtitle": "तुमच्या प्रत्येक खरेदीचे GST इनव्हॉइस.",
@@ -183,35 +184,44 @@
     "pageOf": "पान {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "लेजर",
+    "title": "लेजर",
+    "subtitle": "तुम्ही कमावलेलं किंवा खर्च केलेलं सगळं, इथे क्रमाने आहे.",
+    "back": "डॅशबोर्डवर परत जा",
+    "loading": "तुमचा लेजर लोड होत आहे…",
+    "loadFailed": "तुमचा लेजर लोड करता आला नाही.",
+    "notOwner": "फक्त खात्याचे मालकच लेजर पाहू शकतात.",
+    "empty": "अजून एकही व्यवहार झालेला नाही.",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "स्वरूप",
+      "kindAll": "सर्व",
+      "fromLabel": "पासून",
+      "toLabel": "पर्यंत",
+      "clear": "फिल्टर काढा"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "तारीख आणि वेळ",
+      "kind": "स्वरूप",
+      "delta": "बदल",
+      "reason": "कारण",
+      "label": "वर्णन",
+      "ref": "संदर्भ",
+      "actor": "व्यक्ती"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "पान {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "मोफत ट्रायल",
+      "GRANT_PURCHASE": "खरेदी",
+      "SPEND_POST": "नोकरी पोस्ट",
+      "SPEND_UNLOCK": "उमेदवार अनलॉक",
+      "REFUND_DELETE": "परतावा (नोकरी हटवली)",
+      "EXPIRE": "मुदत संपली"
+    }
   },
   "plans": {
+    "navLabel": "प्लान",
     "heading": "प्लान आणि किंमत",
     "subheading": "नोकरी पोस्ट आणि उमेदवार अनलॉक खरेदी करा. तुम्ही जेवढी भरती करता त्याला साजेसा प्लान निवडा.",
     "seekersFree": "नोकरी शोधणाऱ्यांसाठी हे कायम मोफत आहे.",

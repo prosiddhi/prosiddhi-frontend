@@ -39,7 +39,8 @@ function formatDateTime(iso: string): string {
   return `${date}, ${time}`
 }
 
-// Cosmetic only ('SPEND_POST' -> 'Spend Post') — same transform jobFormat.ts's
+// Fallback only, for a reason value the translated set below doesn't cover
+// yet ('SPEND_POST' -> 'Spend Post') — same transform jobFormat.ts's
 // humanizeJobType() falls back to for an enum value with no translation.
 function humanizeReason(reason: string): string {
   return reason
@@ -47,6 +48,14 @@ function humanizeReason(reason: string): string {
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+}
+
+// CreditTransactionReason has exactly 6 values (prosiddhi-backend's
+// prisma/schema.prisma) — translated via employer:ledger.reasons.*, in every
+// language, falling back to humanizeReason for a reason the backend adds
+// later and this list hasn't caught up to yet.
+function reasonLabel(reason: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  return t(`employer:ledger.reasons.${reason}`, { defaultValue: humanizeReason(reason) })
 }
 
 function LedgerContent() {
@@ -254,7 +263,12 @@ function LedgerContent() {
                             >
                               {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-[#717182]">{humanizeReason(entry.reason)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-[#717182]">{reasonLabel(entry.reason, t)}</td>
+                            {/* entry.label is server-built text ("Posted Delivery
+                                Executive" — api.ts's CreditHistoryEntry doc comment),
+                                not a translation key, so it stays in whatever
+                                language the backend generated it in regardless of
+                                the viewer's locale. Not fixable on the portal side. */}
                             <td className="px-4 py-3 text-black">{entry.label}</td>
                             <td className="px-4 py-3">
                               {entry.ref && entry.ref.type === 'job' ? (

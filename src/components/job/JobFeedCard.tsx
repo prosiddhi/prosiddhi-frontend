@@ -44,7 +44,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
   const router = useRouter()
   const classification = [job.jobTitle, job.sector].filter(Boolean).join(' · ')
   const skills = job.skillsRequired ?? []
-  const posted = relativeTime(job.createdAt)
+  const posted = relativeTime(job.postedAt ?? job.createdAt)
   const detailsHref = from ? `/job-details/${job.id}?from=${from}` : `/job-details/${job.id}`
 
   // Pulled out only so the JSX below reads as one action row rather than
@@ -112,7 +112,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
           {/* Salary — its own line, the figure a seeker scans for first. */}
           <div className="flex items-center gap-1 mt-3 text-sm sm:text-base text-black font-medium">
             <IndianRupee className="w-4 h-4 text-[#3386a9] shrink-0" />
-            {formatSalaryLine(job.salaryMin, job.salaryMax)}
+            {formatSalaryLine(job.salaryMin, job.salaryMax, job.paymentType)}
           </div>
 
           {/* Quick metadata — job type, category, location as compact

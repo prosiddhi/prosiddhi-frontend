@@ -170,6 +170,7 @@
     "error": "നിങ്ങളുടെ വാലറ്റ് ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല."
   },
   "invoices": {
+    "navLabel": "ഇൻവോയ്സുകൾ",
     "logoAlt": "ProSiddhi",
     "title": "ഇൻവോയ്സുകൾ",
     "subtitle": "നിങ്ങളുടെ എല്ലാ വാങ്ങലുകൾക്കുമുള്ള GST ഇൻവോയ്സുകൾ.",
@@ -183,35 +184,44 @@
     "pageOf": "പേജ് {{page}} / {{total}}"
   },
   "ledger": {
-    "navLabel": "Ledger",
-    "title": "Ledger",
-    "subtitle": "Every credit you've earned or spent, in order.",
-    "back": "Back to dashboard",
-    "loading": "Loading your credit history…",
-    "loadFailed": "Couldn't load your credit history.",
-    "notOwner": "Only the account owner can view the credit ledger.",
-    "empty": "No credit activity yet.",
+    "navLabel": "ലെഡ്ജർ",
+    "title": "ലെഡ്ജർ",
+    "subtitle": "നിങ്ങൾ നേടിയതും ചെലവഴിച്ചതും എല്ലാം, ക്രമത്തിൽ ഇവിടെയുണ്ട്.",
+    "back": "ഡാഷ്ബോർഡിലേക്ക് തിരികെ",
+    "loading": "നിങ്ങളുടെ ലെഡ്ജർ ലോഡ് ചെയ്യുന്നു…",
+    "loadFailed": "നിങ്ങളുടെ ലെഡ്ജർ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
+    "notOwner": "അക്കൗണ്ട് ഉടമയ്ക്ക് മാത്രമേ ലെഡ്ജർ കാണാൻ കഴിയൂ.",
+    "empty": "ഇതുവരെ ഒരു ഇടപാടും ഇല്ല.",
     "filters": {
-      "kindLabel": "Type",
-      "kindAll": "All",
-      "fromLabel": "From",
-      "toLabel": "To",
-      "clear": "Clear filters"
+      "kindLabel": "തരം",
+      "kindAll": "എല്ലാം",
+      "fromLabel": "മുതൽ",
+      "toLabel": "വരെ",
+      "clear": "ഫിൽട്ടറുകൾ നീക്കം ചെയ്യുക"
     },
     "columns": {
-      "date": "Date & time",
-      "kind": "Kind",
-      "delta": "Credit change",
-      "reason": "Reason",
-      "label": "Description",
-      "ref": "Reference",
-      "actor": "Actor"
+      "date": "തീയതിയും സമയവും",
+      "kind": "തരം",
+      "delta": "മാറ്റം",
+      "reason": "കാരണം",
+      "label": "വിവരണം",
+      "ref": "റഫറൻസ്",
+      "actor": "വ്യക്തി"
     },
     "noRef": "—",
     "noActor": "—",
-    "pageOf": "Page {{page}} of {{total}}"
+    "pageOf": "പേജ് {{page}} / {{total}}",
+    "reasons": {
+      "GRANT_TRIAL": "സൗജന്യ ട്രയൽ",
+      "GRANT_PURCHASE": "വാങ്ങൽ",
+      "SPEND_POST": "ജോലി പോസ്റ്റ്",
+      "SPEND_UNLOCK": "ഉദ്യോഗാർത്ഥി അൺലോക്ക്",
+      "REFUND_DELETE": "തിരികെ (ജോലി നീക്കം ചെയ്തു)",
+      "EXPIRE": "കാലാവധി കഴിഞ്ഞു"
+    }
   },
   "plans": {
+    "navLabel": "പ്ലാനുകൾ",
     "heading": "പ്ലാനുകളും വിലയും",
     "subheading": "ജോലി പോസ്റ്റുകളും ഉദ്യോഗാർത്ഥി അൺലോക്കുകളും വാങ്ങുക. നിങ്ങൾ എത്ര ആളുകളെ എടുക്കുന്നു എന്നതിന് അനുയോജ്യമായ പ്ലാൻ തിരഞ്ഞെടുക്കുക.",
     "seekersFree": "ജോലി അന്വേഷിക്കുന്നവർക്ക് എന്നും സൗജന്യം.",

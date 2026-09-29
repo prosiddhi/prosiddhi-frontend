@@ -174,9 +174,7 @@ function ApplicationDetailsContent() {
                     <span className="text-sm sm:text-base text-black">
                       {t('seeker:applicationDetail.appliedRelative', { time: relativeTime(application.appliedAt) })}
                     </span>
-                    {/* Success-style chip, matching the My Applications card —
-                        independent of statusMeta's per-status pill color. */}
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-50 text-green-700 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${meta.pill}`}>
                       {t(`seeker:status.${application.status ?? 'UNKNOWN'}`, { defaultValue: meta.label })}
                     </span>
                   </div>
