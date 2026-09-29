@@ -2401,6 +2401,27 @@ export interface TeamSummary {
   me: { userId: string; role: TeamMemberRole; seatStatus: TeamMemberStatus }
 }
 
+/**
+ * GET /api/employers/me/entitlements — seat cap + plan window, plus who's
+ * asking (`role`/`seatStatus`). Any seat may read it (same gating as
+ * `/me/team`), but unlike `TeamSummary` it carries no roster — no member
+ * names/emails, no invite tokens — so prefer this over `teamAPI.getTeam()`
+ * for anything that only needs to know the caller's own role.
+ */
+export interface EmployerEntitlements {
+  employerId: string
+  seatCap: number
+  seatsUsed: number
+  members: number
+  pendingInvites: number
+  seatsFree: number
+  planExpiresAt: string | null
+  hasActivePlan: boolean
+  inGracePeriod: boolean
+  role: TeamMemberRole
+  seatStatus: TeamMemberStatus
+}
+
 export interface InviteResult {
   inviteId: string
   email: string
@@ -2438,6 +2459,14 @@ export const teamAPI = {
   // GET /api/employers/me/team — seat usage + roster. Any seat may read it.
   getTeam: async () => {
     return apiRequest<TeamSummary>('/employers/me/team')
+  },
+
+  // GET /api/employers/me/entitlements — seat cap + plan window + the
+  // caller's own role/seatStatus, no roster. Any seat may read it (same
+  // gating as /me/team). Prefer this over getTeam() when only `role` is
+  // needed — it's the lighter call.
+  getEntitlements: async () => {
+    return apiRequest<EmployerEntitlements>('/employers/me/entitlements')
   },
 
   // POST /api/employers/me/team/invite — owner only. 201 + the one-shot raw token.
