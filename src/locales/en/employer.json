@@ -166,8 +166,8 @@
     "planExpired": "Your plan has ended and anything left on it is gone. Jobs already live stay up for 3 more days. Buy a plan to keep hiring.",
     "renew": "Buy a plan",
     "invoices": "View invoices",
-    "loading": "Loading your wallet…",
-    "error": "Couldn't load your wallet."
+    "loading": "Loading what you have left…",
+    "error": "Couldn't load what you have left."
   },
   "invoices": {
     "navLabel": "Invoices",
