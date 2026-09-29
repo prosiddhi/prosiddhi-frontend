@@ -17,7 +17,7 @@ A **mobile-first, multilingual job portal connecting unskilled / blue-collar wor
 **Three surfaces, one backend:**
 - **Portal** (`prosiddhi-frontend`) — job seekers + employers, web.
 - **Admin console** (`prosiddhi-admin`) — internal, web only.
-- **Mobile app** (`prosiddhi-mobile-app`) — seeker + employer parity. **Flutter, ~85% built.** Missing the checkout and invoices; **never run on a device.**
+- **Mobile app** (`prosiddhi-mobile-app`) — seeker + employer parity. **Flutter, ~85% built.** Missing invoices. Checkout is web-only (D2) — mobile sells nothing. *(Per the portal's `docs/STATUS.md` snapshot, dated 2026-09-15: has run on Android; no recorded iOS run or mobile smoke test since — not independently reconfirmed for this edit.)*
 
 ## 2. Who it's for
 
