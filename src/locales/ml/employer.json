@@ -446,6 +446,7 @@
   },
   "candidates": {
     "logoAlt": "ProSiddhi",
+    "navLabel": "ഉദ്യോഗാർത്ഥികൾ",
     "title": "ഉദ്യോഗാർത്ഥികൾ",
     "count_one": "{{count}} ഉദ്യോഗാർത്ഥി",
     "count_other": "{{count}} ഉദ്യോഗാർത്ഥികൾ",

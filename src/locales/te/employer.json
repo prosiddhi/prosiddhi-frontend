@@ -446,6 +446,7 @@
   },
   "candidates": {
     "logoAlt": "ProSiddhi",
+    "navLabel": "అభ్యర్థులు",
     "title": "అభ్యర్థులు",
     "count_one": "{{count}} అభ్యర్థి",
     "count_other": "{{count}} అభ్యర్థులు",

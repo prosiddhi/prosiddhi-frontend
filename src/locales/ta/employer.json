@@ -446,6 +446,7 @@
   },
   "candidates": {
     "logoAlt": "ProSiddhi",
+    "navLabel": "விண்ணப்பதாரர்கள்",
     "title": "விண்ணப்பதாரர்கள்",
     "count_one": "{{count}} விண்ணப்பதாரர்",
     "count_other": "{{count}} விண்ணப்பதாரர்கள்",
