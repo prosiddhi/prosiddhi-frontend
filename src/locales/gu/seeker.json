@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "જોબ ફીડ",
     "pageSubtitle": "નોકરીની તકો શોધો",
+    "skipToResults": "નોકરીઓની યાદી પર જાઓ",
     "showingCount_one": "{{count}} તાજેતરની નોકરી બતાવાઈ રહી છે",
     "showingCount_other": "{{count}} તાજેતરની નોકરીઓ બતાવાઈ રહી છે",
     "heroTitle": "તમારી નજીકની નોકરીઓ શોધો",

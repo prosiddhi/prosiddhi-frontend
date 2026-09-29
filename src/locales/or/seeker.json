@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "ଚାକିରି ଫିଡ୍",
     "pageSubtitle": "ଚାକିରି ସୁଯୋଗ ଖୋଜନ୍ତୁ",
+    "skipToResults": "ଚାକିରି ତାଲିକାକୁ ଯାଆନ୍ତୁ",
     "showingCount_one": "{{count}} ସାମ୍ପ୍ରତିକ ଚାକିରି ଦେଖାଯାଉଛି",
     "showingCount_other": "{{count}} ସାମ୍ପ୍ରତିକ ଚାକିରି ଦେଖାଯାଉଛି",
     "heroTitle": "ଆପଣଙ୍କ ପାଖରେ ଚାକିରି ଖୋଜନ୍ତୁ",

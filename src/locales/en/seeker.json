@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "Job feed",
     "pageSubtitle": "Explore career opportunities",
+    "skipToResults": "Skip to job listings",
     "showingCount_one": "Showing {{count}} recently job",
     "showingCount_other": "Showing {{count}} recently jobs",
     "heroTitle": "Find Jobs Near You",

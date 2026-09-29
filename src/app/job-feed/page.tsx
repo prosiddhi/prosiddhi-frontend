@@ -393,6 +393,25 @@ function JobFeedPageContent() {
           </button>
         </div>
 
+        {/* Keyboard bypass, not a DOM reorder: the filter sidebar (below) still
+            sits before the results in source order at every breakpoint — Tab
+            order and screen-reader reading order stay filters-then-results,
+            same as before P-17 gave mobile its own visual order via `order-*`.
+            Reordering the DOM to match mobile's visual order would just move
+            today's mismatch onto desktop instead of removing it (two elements,
+            two breakpoints, opposite required visual sequences — CSS placement,
+            Grid included, never changes DOM/AT reading order, so one breakpoint
+            always has to rely on a repositioning override that diverges from
+            it). This link only lets a keyboard user jump past the filter panel
+            in one step, matching what a sighted mobile user already sees first;
+            it does not touch the underlying order for anyone reading linearly. */}
+        <a
+          href="#job-results"
+          className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary-50 focus:text-primary-100 focus:rounded-lg"
+        >
+          {t('seeker:jobFeed.skipToResults')}
+        </a>
+
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filter sidebar — bordered card, matching the Figma reference.
               `order-2 lg:order-none`: below `lg:` this column stacks under the
@@ -525,7 +544,7 @@ function JobFeedPageContent() {
             </div>
           </aside>
 
-          <div className="order-1 lg:order-none flex-1 min-w-0">
+          <div id="job-results" tabIndex={-1} className="order-1 lg:order-none flex-1 min-w-0 focus:outline-none">
             <JobFeedSection
               bare
               heading={

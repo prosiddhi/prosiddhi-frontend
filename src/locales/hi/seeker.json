@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "जॉब फ़ीड",
     "pageSubtitle": "करियर के अवसर खोजें",
+    "skipToResults": "नौकरियों की सूची पर जाएं",
     "showingCount_one": "{{count}} हाल की नौकरी दिखाई जा रही है",
     "showingCount_other": "{{count}} हाल की नौकरियाँ दिखाई जा रही हैं",
     "heroTitle": "अपने पास नौकरियाँ खोजें",

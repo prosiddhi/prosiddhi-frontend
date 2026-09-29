@@ -19,6 +19,7 @@
   "jobFeed": {
     "pageTitle": "ఉద్యోగాల ఫీడ్",
     "pageSubtitle": "ఉద్యోగ అవకాశాలు వెతకండి",
+    "skipToResults": "ఉద్యోగాల జాబితాకు వెళ్లండి",
     "showingCount_one": "{{count}} ఇటీవలి ఉద్యోగం చూపిస్తోంది",
     "showingCount_other": "{{count}} ఇటీవలి ఉద్యోగాలు చూపిస్తున్నాయి",
     "heroTitle": "మీ దగ్గర ఉద్యోగాలు వెతకండి",
