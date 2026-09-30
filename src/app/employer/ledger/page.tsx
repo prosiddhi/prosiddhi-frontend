@@ -65,10 +65,44 @@ function LedgerContent() {
   const [kind, setKind] = useState<'' | 'POST' | 'DOWNLOAD'>('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  // A native date input fires onChange per SEGMENT edit (e.g. arrowing the year
+  // of an already-complete date), not once per finished date, so typing/arrowing
+  // in From or To can fire several requests in a row. debouncedFrom/debouncedTo
+  // settle ~300ms after the last edit; load() reads these, not the raw values,
+  // so the inputs themselves stay instantly responsive while the request they
+  // drive does not. Kind is a <select> — one onChange per selection already —
+  // so it deliberately bypasses this and stays on the raw state below.
+  const [debouncedFrom, setDebouncedFrom] = useState('')
+  const [debouncedTo, setDebouncedTo] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notOwner, setNotOwner] = useState(false)
   const reqIdRef = useRef(0)
+  // What load() is currently applying — a ref, not state, so updating it
+  // doesn't itself trigger a render. Lets the debounce timer below tell a real
+  // filter change from a no-op one (type a date, then clear it back to the
+  // same value) without adding debouncedFrom/debouncedTo to its own deps,
+  // which would otherwise re-arm the timer every time it settles.
+  const appliedFilterRef = useRef({ from: '', to: '' })
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      // Compare against what's actually applied, not the debounced state var:
+      // this only reruns when a genuinely new value settles, never on a
+      // transient edit that lands back where it started. Reset to page 1 here,
+      // not in the date inputs' onChange: page is undebounced, so resetting it
+      // eagerly would change load()'s deps immediately and fire one fetch
+      // early, with the new page but the still-stale (pre-debounce) filter —
+      // then a second, correct fetch once this timer fires. Resetting it
+      // alongside the settled filter keeps it to one fetch, like Kind's.
+      const changed = from !== appliedFilterRef.current.from || to !== appliedFilterRef.current.to
+      appliedFilterRef.current = { from, to }
+      setDebouncedFrom(from)
+      setDebouncedTo(to)
+      if (changed) setPage(1)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [from, to])
 
   const load = useCallback(async () => {
     const myReq = ++reqIdRef.current
@@ -80,8 +114,8 @@ function LedgerContent() {
         page,
         limit: PAGE_SIZE,
         kind: kind || undefined,
-        from: from || undefined,
-        to: to || undefined,
+        from: debouncedFrom || undefined,
+        to: debouncedTo || undefined,
       })
       if (myReq !== reqIdRef.current) return
       setData(res)
@@ -96,30 +130,31 @@ function LedgerContent() {
     } finally {
       if (myReq === reqIdRef.current) setLoading(false)
     }
-  }, [page, kind, from, to, t])
+  }, [page, kind, debouncedFrom, debouncedTo, t])
 
   useEffect(() => {
     void load()
   }, [load])
 
   // Every filter change goes back to page 1 — a stale page number from a wider
-  // result set can otherwise land past the end of a narrower one.
+  // result set can otherwise land past the end of a narrower one. Kind resets
+  // it immediately, since it isn't debounced; From/To reset it in the debounce
+  // effect above, once the value actually settles (see that effect's comment).
   const updateKind = (v: string) => {
     setKind(v as '' | 'POST' | 'DOWNLOAD')
-    setPage(1)
-  }
-  const updateFrom = (v: string) => {
-    setFrom(v)
-    setPage(1)
-  }
-  const updateTo = (v: string) => {
-    setTo(v)
     setPage(1)
   }
   const clearFilters = () => {
     setKind('')
     setFrom('')
     setTo('')
+    // Bypass the debounce here — Clear is one deliberate action, not a run of
+    // segment edits, so it should not wait out the 300ms window like typing does.
+    // Also resets appliedFilterRef, so a later re-entry of the exact value just
+    // cleared is still correctly seen as a change once it settles.
+    appliedFilterRef.current = { from: '', to: '' }
+    setDebouncedFrom('')
+    setDebouncedTo('')
     setPage(1)
   }
   const hasFilters = !!kind || !!from || !!to
@@ -179,7 +214,7 @@ function LedgerContent() {
                     type="date"
                     value={from}
                     max={to || undefined}
-                    onChange={(e) => updateFrom(e.target.value)}
+                    onChange={(e) => setFrom(e.target.value)}
                     className="h-11 px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
                   />
                 </div>
@@ -192,7 +227,7 @@ function LedgerContent() {
                     type="date"
                     value={to}
                     min={from || undefined}
-                    onChange={(e) => updateTo(e.target.value)}
+                    onChange={(e) => setTo(e.target.value)}
                     className="h-11 px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
                   />
                 </div>
