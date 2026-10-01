@@ -14,7 +14,7 @@ import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser
 import { useAuthConfig } from '@/hooks/useAuthConfig'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
-import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
 import { showToast } from '@/lib/toast'
 import { displayName } from '@/lib/userDisplay'
 import {
@@ -112,44 +112,6 @@ function GoogleG({ className }: { className?: string }) {
       />
     </svg>
   )
-}
-
-// Seeker → the seeker home page, Employer (individual/business) → /employer.
-function homeForUser(user: AuthUser): string {
-  return user.role === 'JOB_SEEKER' ? SEEKER_HOME_ROUTE : '/employer'
-}
-
-// Employer-only areas. A seeker who lands on a /employer/* returnUrl would just be
-// bounced by ProtectedRoute, so send them home instead of through a dead redirect.
-//
-// /invite/<token> is the exception: it is a PUBLIC page that both roles may land on,
-// and it renders its own "you're signed in as the wrong kind of account" guidance.
-// Excluding it here would silently swallow a team invite — the invitee signs in and
-// gets dumped on the dashboard with no idea the invite existed.
-function returnUrlSuitsRole(returnUrl: string, user: AuthUser): boolean {
-  if (returnUrl.startsWith('/invite/')) return true
-  const isEmployerArea = returnUrl.startsWith('/employer')
-  const isEmployer = user.role !== 'JOB_SEEKER'
-  return isEmployerArea === isEmployer
-}
-
-/**
- * Where to land after a successful login.
- *
- * `returnUrl` is attacker-supplied (it arrives in a link), so it is normalised by
- * `safeInternalPath`, which is the single arbiter of "is this target ours?" — see
- * that module for why an origin check alone is NOT enough (an origin-passing URL can
- * still yield a protocol-relative PATHNAME like `//evil.com`, which the router then
- * hard-navigates cross-origin).
- *
- * It must also match the user's role, or we would send them somewhere ProtectedRoute
- * immediately bounces them out of.
- */
-function destinationAfterLogin(user: AuthUser, returnUrl: string | null): string {
-  const path = safeInternalPath(returnUrl)
-  if (!path || path === '/') return homeForUser(user)
-  if (!returnUrlSuitsRole(path, user)) return homeForUser(user)
-  return path
 }
 
 /**
@@ -253,8 +215,11 @@ function LoginContent() {
 
   const onLoginSuccess = (result: { token: string; user: AuthUser }) => {
     login(result.token, result.user)
+    // A temporary password: nowhere to go but the change screen, and AuthProvider
+    // sends them there (carrying `returnUrl`). Pushing here too would race it.
+    if (result.user.mustChangePassword) return
     showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
-    router.push(destinationAfterLogin(result.user, returnUrl))
+    router.push(destinationAfterAuth(result.user.role, returnUrl))
   }
 
   const switchTab = (next: Tab) => {
@@ -462,9 +427,10 @@ function LoginContent() {
         bindSendForm.reset({ phone: '' })
         bindVerifyForm.reset({ otp: EMPTY_OTP })
         setOtpSent(false)
-      } else {
+      } else if (!result.user.mustChangePassword) {
+        // (Flagged → AuthProvider routes to the change screen; see onLoginSuccess.)
         showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
-        router.push(destinationAfterLogin(result.user, returnUrl))
+        router.push(destinationAfterAuth(result.user.role, returnUrl))
       }
     } catch (err) {
       // Deliberately NOT routed through handleLoginError. This is a different
@@ -495,7 +461,7 @@ function LoginContent() {
   const completeBind = (e164: string) => {
     updateUser({ phoneNumber: e164, accountStatus: 'ACTIVE' })
     if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
-    router.push(bindUser ? homeForUser(bindUser) : '/')
+    router.push(bindUser ? homeRouteForRole(bindUser.role) : '/')
   }
 
   // Sends the real code and primes the verify form — the normal path below,

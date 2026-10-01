@@ -10,6 +10,11 @@
     "number": "One number",
     "special": "At least one special character"
   },
+  "passwordChangeRequired": {
+    "title": "Set a new password",
+    "description": "Your password was reset. Choose a new password to continue.",
+    "currentHint": "Enter the temporary password you were given as your current password."
+  },
   "nav": {
     "home": "Home",
     "findJobs": "Find Jobs",

@@ -283,6 +283,12 @@ async function apiRequest<T>(
       window.localStorage.removeItem(AUTH_USER_KEY)
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
+    // An admin reset the password mid-session, so the stored flag is stale. Unlike
+    // a 401 the session is still valid — AuthContext flags it (idempotently) and
+    // routes to the change screen.
+    if (response.status === 403 && code === 'PASSWORD_CHANGE_REQUIRED' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:password-change-required'))
+    }
     const details =
       body?.error && typeof body.error === 'object' && !Array.isArray(body.error)
         ? (body.error as Record<string, unknown>)
@@ -343,6 +349,12 @@ export interface AuthUser {
   accountStatus?: string
   phoneNumber?: string | null
   profile?: AuthUserProfile | null
+  /**
+   * True while an admin-set temporary password is in force. The BE answers every
+   * route but change-password with 403 PASSWORD_CHANGE_REQUIRED until it is
+   * changed. Absent on a session stored before this field existed — read as false.
+   */
+  mustChangePassword?: boolean
 }
 
 export interface LoginResult {
@@ -599,6 +611,8 @@ export interface SeekerProfile extends SignInMethodFlags {
   phoneNumber?: string | null
   role: UserRole
   accountStatus?: string
+  /** Same flag as `AuthUser.mustChangePassword`, read fresh from the server. */
+  mustChangePassword?: boolean
   emailVerified?: boolean
   /** Phone is mandatory at registration, so this is true for every self-registered seeker. */
   phoneVerified?: boolean
@@ -633,6 +647,8 @@ export interface EmployerProfile extends SignInMethodFlags {
   phoneNumber?: string | null
   role: UserRole
   accountStatus?: string
+  /** Same flag as `AuthUser.mustChangePassword`, read fresh from the server. */
+  mustChangePassword?: boolean
   emailVerified?: boolean
   phoneVerified?: boolean
   preferredLanguage?: string

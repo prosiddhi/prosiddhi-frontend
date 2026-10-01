@@ -9,12 +9,13 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
   type AuthUser,
 } from '@/lib/api'
+import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
 import { safeInternalPath } from '@/lib/safeRedirect'
 
 interface AuthContextValue {
@@ -73,6 +74,10 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
  * - Subscribes to the `auth:unauthorized` window event dispatched by
  *   `lib/api.ts` on a 401 → logs out + redirects to /login. This keeps the API
  *   client framework-free (no router import in lib/api.ts).
+ * - Owns the forced password change. While `user.mustChangePassword` is true
+ *   PasswordChangeGate (below) is the ONLY thing that redirects to /change-password
+ *   — /login, ProtectedRoute and the page itself defer to it, so two redirects
+ *   never race.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -118,6 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = useCallback((patch: Partial<AuthUser>) => {
     setUser((prev) => {
       if (!prev) return prev
+      // Nothing to change → keep the same object, so a burst of identical patches
+      // (several in-flight calls all answering 403 PASSWORD_CHANGE_REQUIRED) is one
+      // render, not one per call.
+      if ((Object.keys(patch) as (keyof AuthUser)[]).every((k) => prev[k] === patch[k])) return prev
       const next = { ...prev, ...patch }
       try {
         window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(next))
@@ -197,6 +206,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized)
   }, [router])
 
+  // React to 403 PASSWORD_CHANGE_REQUIRED from the API client: the session is
+  // fine, but an admin reset the password after we stored the user. Flag it and
+  // let PasswordChangeGate do the redirect.
+  useEffect(() => {
+    const onPasswordChangeRequired = () => updateUser({ mustChangePassword: true })
+    window.addEventListener('auth:password-change-required', onPasswordChangeRequired)
+    return () => window.removeEventListener('auth:password-change-required', onPasswordChangeRequired)
+  }, [updateUser])
+
   const value: AuthContextValue = {
     user,
     token,
@@ -208,7 +226,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoggingOut,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      <PasswordChangeGate />
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+/**
+ * The forced-password-change gate. Covers every route — protected or public — and
+ * every way in (login, a refresh of a stored session, the 403 event).
+ *
+ * Its own component, not an effect in AuthProvider: `usePathname()` re-renders
+ * whoever calls it on every navigation, and in the provider that would re-render
+ * every `useAuth()` consumer on every page change for everyone, to serve a state
+ * almost nobody is ever in.
+ */
+function PasswordChangeGate() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { user, isLoading } = useAuth()
+  const mustChangePassword = !!user?.mustChangePassword
+
+  useEffect(() => {
+    if (isLoading || !mustChangePassword || pathname === CHANGE_PASSWORD_ROUTE) return
+    // Remember where they were going so the screen can send them back (it validates
+    // the target before using it). /login carries its own `returnUrl`; anywhere else
+    // the page itself is the target.
+    const { search } = window.location
+    const returnUrl = new URLSearchParams(search).get('returnUrl') ?? pathname + search
+    router.replace(`${CHANGE_PASSWORD_ROUTE}?returnUrl=${encodeURIComponent(returnUrl)}`)
+  }, [isLoading, mustChangePassword, pathname, router])
+
+  return null
 }
 
 export function useAuth(): AuthContextValue {

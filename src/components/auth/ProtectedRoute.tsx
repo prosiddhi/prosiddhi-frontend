@@ -4,16 +4,9 @@ import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/lib/api'
-import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import { homeRouteForRole } from '@/lib/routes'
 
 type RequiredRole = 'seeker' | 'employer'
-
-/** Home route for a given backend role. */
-function homeForRole(role: UserRole | undefined): string {
-  if (role === 'JOB_SEEKER') return SEEKER_HOME_ROUTE
-  // EMPLOYER_INDIVIDUAL | EMPLOYER_BUSINESS
-  return '/employer'
-}
 
 /** Does the backend role satisfy the route's required role? */
 function roleMatches(role: UserRole | undefined, required: RequiredRole): boolean {
@@ -24,6 +17,11 @@ function roleMatches(role: UserRole | undefined, required: RequiredRole): boolea
 interface ProtectedRouteProps {
   children: ReactNode
   requiredRole?: RequiredRole
+  /**
+   * Render for an account that must still change its temporary password. Only the
+   * change-password screen sets this; every other page is held back (see below).
+   */
+  allowPasswordChange?: boolean
 }
 
 /**
@@ -34,6 +32,9 @@ interface ProtectedRouteProps {
  *   hard refresh of a logged-in user).
  * - Not authenticated → redirect to /login.
  * - Authenticated but wrong role for this route → redirect to that user's home.
+ * - Must change a temporary password → loading state only, and no redirect:
+ *   AuthProvider's gate owns that, and a second one would race it. Holding the
+ *   children back stops the page firing requests the BE would refuse with 403.
  *
  * A 401 from any API call is handled globally by AuthContext (auth:unauthorized
  * event) → logout + /login, so this component only guards the initial render.
@@ -41,9 +42,12 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({
   children,
   requiredRole,
+  allowPasswordChange = false,
 }: ProtectedRouteProps) {
   const router = useRouter()
   const { isAuthenticated, isLoading, user, isLoggingOut } = useAuth()
+
+  const passwordChangeBlocked = isAuthenticated && !!user?.mustChangePassword && !allowPasswordChange
 
   const wrongRole =
     isAuthenticated &&
@@ -88,12 +92,15 @@ export default function ProtectedRoute({
       )
       return
     }
+    // Held for a password change: AuthProvider is already sending them to
+    // /change-password, so a role bounce here would race it.
+    if (passwordChangeBlocked) return
     if (wrongRole) {
-      router.replace(homeForRole(user?.role))
+      router.replace(homeRouteForRole(user?.role))
     }
-  }, [isLoading, isAuthenticated, wrongRole, user?.role, router, isLoggingOut])
+  }, [isLoading, isAuthenticated, wrongRole, passwordChangeBlocked, user?.role, router, isLoggingOut])
 
-  if (isLoading || !isAuthenticated || wrongRole) {
+  if (isLoading || !isAuthenticated || wrongRole || passwordChangeBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div
