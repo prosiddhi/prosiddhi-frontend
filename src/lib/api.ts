@@ -12,7 +12,9 @@ import type { SupportedLanguage } from '@/i18n/languages'
 // dispatches a `auth:unauthorized` window event — AuthContext listens for this
 // and performs logout + redirect, keeping this module framework-free. The event
 // carries the response's `code` in `detail` so the listener can tell a suspended
-// or rejected account from an ordinary expired session.
+// or rejected account from an ordinary expired session. Two per-call options opt
+// a 401 out of all of this: `preserveSessionOnCode` (a re-auth proof failed) and
+// `isCredentialCheck` (a sign-in attempt failed).
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
@@ -207,6 +209,7 @@ async function apiRequest<T>(
   endpoint: string,
   {
     preserveSessionOnCode,
+    isCredentialCheck,
     ...options
   }: RequestInit & {
     /**
@@ -216,6 +219,12 @@ async function apiRequest<T>(
      * expired": REAUTH_FAILED on self-delete and on set-first-password.
      */
     preserveSessionOnCode?: string
+    /**
+     * A sign-in attempt: its 401 means "wrong credentials", not "session expired",
+     * so it never clears storage or fires `auth:unauthorized` (which would drop the
+     * login page's `?returnUrl=`).
+     */
+    isCredentialCheck?: boolean
   } = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
@@ -295,7 +304,7 @@ async function apiRequest<T>(
     const code = typeof body?.code === 'string' ? body.code : undefined
     // Centralized auth-expiry handling. Clear storage and let AuthContext react.
     const keepSession = preserveSessionOnCode !== undefined && code === preserveSessionOnCode
-    if (response.status === 401 && !keepSession && typeof window !== 'undefined') {
+    if (response.status === 401 && !keepSession && !isCredentialCheck && typeof window !== 'undefined') {
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
       window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { code } }))
@@ -775,6 +784,7 @@ export const authAPI = {
     return apiRequest<LoginResult>(loginEndpoint(role), {
       method: 'POST',
       body: JSON.stringify(credentials),
+      isCredentialCheck: true,
     })
   },
 
@@ -831,6 +841,7 @@ export const authAPI = {
       return await apiRequest<LoginResult>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
+        isCredentialCheck: true,
       })
     } catch (err) {
       // ⚠️ TRANSITIONAL, and delete it once the backend carrying TD-43 is live.
@@ -903,6 +914,7 @@ export const authAPI = {
     return apiRequest<GoogleLoginResult>('/auth/google/login', {
       method: 'POST',
       body: JSON.stringify({ idToken, role }),
+      isCredentialCheck: true,
     })
   },
 
