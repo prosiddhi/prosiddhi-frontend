@@ -5,24 +5,23 @@ Siblings under `c:\dev\Azkashine\Prosiddhi\`: **`prosiddhi-backend`** (the API �
 
 ## Read these first
 
-1. **`docs/STATUS.md`** — ⭐ **what is done and what is left.** The single source of truth. **JIRA is stale — trust this instead.** *(This file you are reading now is a summary and goes stale faster than STATUS.md. Where the two disagree, STATUS.md wins.)*
+1. **`docs/STATUS.md`** — ⭐ **what is done and what is left**, on one short page (rewritten 2026-10-05). Work is tracked in **Jira, R1 board 34** (tickets PJP-200…243). Where STATUS.md and Jira disagree, check both and fix the wrong one. The full history up to 4 Oct is in `docs/_archive/STATUS-history-to-2026-10-04.md`.
 2. **`docs/PRODUCT.md`** — what we're building, who for, and the locked rules (incl. what's permanently out of scope).
 3. **`docs/MONETIZATION.md`** — the employer billing system: pricing rules, what's built, what's broken.
-4. **`docs/DEPLOY.md`** — deploy + go-live.
+4. **`docs/DEPLOY.md`** + **`docs/deploy-checklist.md`** — deploy + go-live.
 
-**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows, the QA run plus what we found ourselves. *(The old `docs/qa/functional-audit-portal.md` and the admin's `functional-audit-admin.md` were both resolved and deleted; don't look for them.)* **Admin** — the invoice-PDF download is wired (2026-08-27), but the 2026-09-15 sync found new flags, one of them security. See `docs/STATUS.md` §0.
+**The defect list is `docs/qa/defect-log.csv`** — one register, 35 rows. Out-of-date docs live in `docs/_archive/` (and `../_archive/` for the root folder) — don't treat them as current.
 
-## Where the product stands *(2026-09-15 — all four surfaces re-checked)*
+## Where the product stands *(2026-10-05 — summary; STATUS.md wins)*
 
-**Live in production on HTTPS:** portal `https://prosiddhi.com` · API `https://api.prosiddhi.com` · admin `https://admin.prosiddhi.com`. Ports 3000/5000/3001 on the old IP are closed. **Production runs the portal as of about 2026-09-11 14:49.** Checked 2026-09-15 by probing pages only newer code has: `/employer/ledger` is live, but the 09-11 16:20 employer sign-in change is not.
+Release 1 launches **21 Oct 2026**; the Android app must reach Google Play by **13 Oct**. Production (`prosiddhi.com`, `api.` and `admin.`) still runs on the old server; the move to Google Cloud has started late.
 
-- **Backend** — feature-complete *(HEAD `c413dc0`, 2026-09-11)*. New since 08-21: job pre-moderation, paid re-listing of expired jobs, bookmark-as-a-flag, a SALES role, an editable plan catalogue. ⚠️ **The release is 19 hand-run SQL folders in order — never `prisma db push`** (it drops 5 unique indexes). 🔴 Phone OTPs have no SMS code, so prod keeps `EXPOSE_OTP_IN_RESPONSE` on — an account-takeover path (`STATUS.md` §4 bug 3).
-- **Portal** — feature-complete, and **redesigned 2026-08-25 → 09-11** (40 commits, Bharath Kumar). Example: a seeker now lands on a new `/home` page after login, and employers got a credit ledger at `/employer/ledger`. Login, forgot-password, both profiles, settings, the job feed, job details and messages were all rebuilt. There are **19 new portal bugs** — `STATUS.md` §4 rows 29–47: 14 from the redesign, 5 from backend contract changes.
-- **Admin console** — feature-complete. The invoice-PDF download is wired. New since 08-18: a SALES role, Plans, account restore, post Approve / Reject. **Open:** an admin-takeover risk through forgot-password (backend + config), the content scan lost its UI, and three broken flows — `STATUS.md` §0.
-- **Mobile (Flutter)** — **~85%**. It has now run on Android, but has no recorded smoke test and no iOS run. Missing: invoices. **Forgot password is broken on mobile** (backend drift) — `STATUS.md` §0. *(Checkout is not being built: D2 was resolved 2026-08-20, web-only.)*
+- **Backend** — R1 work done except **security hardening (R1-BE-09)**. The queue (BE-07) moved out of R1. ⚠️ **Never `prisma db push`** — use the tracked migration commands from R1-BE-10. 🔴 While prod has `EXPOSE_OTP_IN_RESPONSE` on, a seeker/employer email reset returns the code in the reply — STATUS §6.
+- **Portal** — R1 work done except **R1-POR-02** (delete-account + help pages, privacy updates, notification settings) — Bharath, blocks the Play submission.
+- **Admin console** — no work since 15 Sep. **R1-ADM-01** (sign-in safety) and **R1-ADM-02** (reset password, release phone) — Prabhjot from 5 Oct.
+- **Mobile (Flutter, Android only in R1)** — sign-in and backend sync done; Play compliance, push, polish and the Play release in progress; blocked on the keystore, a new Google/Firebase account and D-U-N-S.
+- **SMS + WhatsApp** are built behind server switches and stay off until DLT / Meta approve — they don't block launch.
 - **10 languages ship on both clients** — en · hi · ta · kn · ml · mr · gu · or · te · bn.
-
-What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the register), **outbound notification config**, **mobile completion**, and **go-live config**.
 
 ## Hard rules
 
@@ -59,9 +58,9 @@ What's left is in `STATUS.md` §3. Headline: the **QA defect pass** (see the reg
 
 ## Team
 
-Shaik (owner/product) · **Nazir** (frontend + acting PM) · Asrar (backend) · Najeeb + Farhana (QA) · Nayan (infra) · Sailaja (mobile).
+Shaik (owner) · **Nazir** (frontend lead + acting PM — every decision goes to him) · Asrar + Prabhjot Singh (backend; Prabhjot also takes the admin console from 2026-10-05) · Bharath Kumar Srimanthula (portal) · Sailaja + Krishna Kumar (mobile) · Nayan (DevOps; Noor supports) · Nazeeb (Jira: "Nazeebur Rehman Syed"; older docs say "Najeeb") + Farhana (QA).
 
-**New names in the commit history since 2026-08-21 — roles not yet recorded, ask Nazir before writing one:** Bharath Kumar Srimanthula (all 40 portal commits, 2026-08-25 → 09-11) · prabhazkashine (admin commits) · Krishna Kumar (mobile commits).
+*(prabhazkashine in the git history = Prabhjot Singh.)*
 
 ## Working style
 

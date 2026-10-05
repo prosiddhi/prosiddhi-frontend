@@ -163,7 +163,7 @@ job carries a coordinate until TD-03 ships. Do not log it as a regression.
 ## 7. After the deploy — the part that has been blocked for two sessions
 
 - [ ] **Re-run the whole retest table** in
-      [teardown-fix-list.md](teardown-fix-list.md) §1. **20 register rows are
+      [teardown-fix-list.md](_archive/teardown-fix-list.md) §1. **20 register rows are
       sitting in "fixed — awaiting retest" and cannot be judged until now**,
       because until this deploy, testing production tested old code.
 - [ ] Update [qa/defect-log.csv](qa/defect-log.csv) with the real results.
