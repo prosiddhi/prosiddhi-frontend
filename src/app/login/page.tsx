@@ -10,7 +10,16 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/contexts/AuthContext'
-import { ApiError, authAPI, otpAPI, type LoginRole, type UserRole, type AuthUser } from '@/lib/api'
+import {
+  ACCOUNT_ENDED_REASONS,
+  ApiError,
+  authAPI,
+  otpAPI,
+  type AccountEndedReason,
+  type LoginRole,
+  type UserRole,
+  type AuthUser,
+} from '@/lib/api'
 import { useAuthConfig } from '@/hooks/useAuthConfig'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
@@ -165,6 +174,17 @@ function LoginContent() {
     if (roleTouched) return
     setRole(initialRoleFor(returnUrl))
   }, [returnUrl, roleTouched])
+  // Allowlisted `?reason=` from AuthContext's redirect for a suspended / rejected
+  // account; the text comes from the locale files, never the query. Kept in state
+  // because a failed sign-in pushes a bare /login that drops the query. Set in an
+  // effect, like `role`, since the query is empty during the server render.
+  const reasonParam = searchParams.get('reason')
+  const [endedReason, setEndedReason] = useState<AccountEndedReason | null>(null)
+  useEffect(() => {
+    const match = Object.values(ACCOUNT_ENDED_REASONS).find((r) => r === reasonParam)
+    if (match) setEndedReason(match)
+  }, [reasonParam])
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -753,6 +773,18 @@ function LoginContent() {
             </button>
           </div>
           </>
+          )}
+
+          {/* Signed out because the account was suspended / rejected */}
+          {endedReason && (
+            <div
+              role="alert"
+              className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+            >
+              {endedReason === 'suspended'
+                ? t('auth:login.accountSuspended')
+                : t('auth:login.accountRejected')}
+            </div>
           )}
 
           {/* Inline error */}

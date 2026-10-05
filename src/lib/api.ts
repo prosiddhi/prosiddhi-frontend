@@ -10,13 +10,30 @@ import type { SupportedLanguage } from '@/i18n/languages'
 // Auth: when an auth token is present in localStorage, `apiRequest` attaches
 // `Authorization: Bearer <token>`. On a 401 it clears auth storage and
 // dispatches a `auth:unauthorized` window event — AuthContext listens for this
-// and performs logout + redirect, keeping this module framework-free.
+// and performs logout + redirect, keeping this module framework-free. The event
+// carries the response's `code` in `detail` so the listener can tell a suspended
+// or rejected account from an ordinary expired session.
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
 // localStorage keys — single source of truth, shared with AuthContext.
 export const AUTH_TOKEN_KEY = 'auth_token'
 export const AUTH_USER_KEY = 'auth_user'
+
+// The two 401 codes the BE sends when an admin suspends or rejects an account
+// that is already signed in. Value = the `?reason=` the login page accepts.
+// One map, imported by AuthContext (to build the redirect) and the login page
+// (to validate the query), so the allowlist cannot drift.
+export const ACCOUNT_ENDED_REASONS = {
+  ACCOUNT_SUSPENDED: 'suspended',
+  ACCOUNT_REJECTED: 'rejected',
+} as const
+export type AccountEndedReason = (typeof ACCOUNT_ENDED_REASONS)[keyof typeof ACCOUNT_ENDED_REASONS]
+
+/** The login-page reason for a BE error code, or undefined for any other code. */
+export function accountEndedReason(code: string | undefined): AccountEndedReason | undefined {
+  return Object.entries(ACCOUNT_ENDED_REASONS).find(([endedCode]) => endedCode === code)?.[1]
+}
 
 // Tracks whether the last request failed at the network level, so we only
 // dispatch the paired `api:network-error` / `api:network-recovered` events on a
@@ -281,7 +298,7 @@ async function apiRequest<T>(
     if (response.status === 401 && !keepSession && typeof window !== 'undefined') {
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { code } }))
     }
     // An admin reset the password mid-session, so the stored flag is stale. Unlike
     // a 401 the session is still valid — AuthContext flags it (idempotently) and

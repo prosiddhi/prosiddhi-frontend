@@ -45,7 +45,7 @@ export default function ProtectedRoute({
   allowPasswordChange = false,
 }: ProtectedRouteProps) {
   const router = useRouter()
-  const { isAuthenticated, isLoading, user, isLoggingOut } = useAuth()
+  const { isAuthenticated, isLoading, user, loggingOutTo } = useAuth()
 
   const passwordChangeBlocked = isAuthenticated && !!user?.mustChangePassword && !allowPasswordChange
 
@@ -57,7 +57,8 @@ export default function ProtectedRoute({
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
-      if (isLoggingOut()) {
+      const endingTo = loggingOutTo()
+      if (endingTo) {
         // A session that was live somewhere in this tab just ended (explicit
         // logout, or a 401). `AuthContext.logout()`/its `auth:unauthorized`
         // handler already push to /login themselves. That push is async, so a
@@ -66,10 +67,11 @@ export default function ProtectedRoute({
         // here would read the OUTGOING user's path off `window.location` and
         // race the owning redirect, occasionally winning and sending the NEXT
         // person who logs in on this browser to the previous user's last page
-        // instead of their own dashboard. Redirect to plain /login (matching
-        // where the owning redirect is already headed) rather than nothing, so
-        // this still recovers if that push is ever lost.
-        router.replace('/login')
+        // instead of their own dashboard. Redirect to exactly where the owning
+        // redirect is already headed rather than nothing, so this still recovers
+        // if that push is ever lost — and so it cannot replace a suspended /
+        // rejected account's `/login?reason=…` with a bare /login.
+        router.replace(endingTo)
         return
       }
       // Remember where they were going. A shared job link used to bounce a
@@ -98,7 +100,7 @@ export default function ProtectedRoute({
     if (wrongRole) {
       router.replace(homeRouteForRole(user?.role))
     }
-  }, [isLoading, isAuthenticated, wrongRole, passwordChangeBlocked, user?.role, router, isLoggingOut])
+  }, [isLoading, isAuthenticated, wrongRole, passwordChangeBlocked, user?.role, router, loggingOutTo])
 
   if (isLoading || !isAuthenticated || wrongRole || passwordChangeBlocked) {
     return (

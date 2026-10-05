@@ -13,6 +13,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
+  accountEndedReason,
   type AuthUser,
 } from '@/lib/api'
 import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
@@ -39,23 +40,29 @@ interface AuthContextValue {
    */
   logout: (redirectTo?: string) => void
   /**
-   * True while a logout- or 401-driven redirect to /login is in flight.
+   * Where a logout- or 401-driven redirect is headed while it is in flight, or
+   * null when none is.
    *
    * `logout()` and the `auth:unauthorized` handler both clear the session and
    * `router.push` away, but that push is async — a page still mounted at that
    * instant (whatever the outgoing user was looking at) re-renders with
    * `isAuthenticated: false` before the URL has actually changed. `ProtectedRoute`
    * reads this to tell "the session that was live on me just ended" (its own
-   * redirect must not fire — AuthContext already owns one) apart from "I mounted
-   * on a URL nobody was ever signed in on" (its own redirect to /login should
-   * still happen). See ProtectedRoute.tsx.
+   * redirect must not build a returnUrl — AuthContext already owns one) apart from
+   * "I mounted on a URL nobody was ever signed in on" (its own redirect to /login
+   * should still happen). It replaces to this same target, so it cannot overwrite
+   * the `?reason=` of an ended account with a bare /login. (`logout()` always
+   * reports the bare /login, whatever `redirectTo` it pushes.) See ProtectedRoute.tsx.
    *
-   * A plain function reading a ref, not a boolean field: it must reflect the
-   * flag's value at the instant each caller's effect actually runs, not the
-   * value captured when this context object was built.
+   * A plain function reading a ref, not a field: it must reflect the value at the
+   * instant each caller's effect actually runs, not the value captured when this
+   * context object was built.
    */
-  isLoggingOut: () => boolean
+  loggingOutTo: () => string | null
 }
+
+// Prefix of the login URL an ended (suspended / rejected) account is sent to.
+const ACCOUNT_ENDED_LOGIN = '/login?reason='
 
 // `safeInternalPath` is the single arbiter of whether a redirect target is ours, so
 // logout() cannot become an open redirect even if a caller later forwards a
@@ -108,11 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // effect happens to run before the router.push they trigger has taken effect.
   // Cleared once the transition it announces has been observed (see the identity
   // effect below) so a later, genuinely-cold unauthenticated visit is unaffected.
-  const isLoggingOutRef = useRef(false)
-  const isLoggingOut = useCallback(() => isLoggingOutRef.current, [])
+  const loggingOutToRef = useRef<string | null>(null)
+  const loggingOutTo = useCallback(() => loggingOutToRef.current, [])
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
-    isLoggingOutRef.current = false
+    loggingOutToRef.current = null
     window.localStorage.setItem(AUTH_TOKEN_KEY, newToken)
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser))
     setToken(newToken)
@@ -139,7 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(
     (redirectTo?: string) => {
-      isLoggingOutRef.current = true
+      // ProtectedRoute's fallback target (always the bare /login).
+      loggingOutToRef.current = '/login'
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
       setToken(null)
@@ -189,22 +197,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // below this provider. Safe to clear so the NEXT unauthenticated visit (e.g.
     // a back-navigation into a stale protected tab, well after this logout) is
     // treated as genuinely cold again rather than still "mid-redirect".
-    isLoggingOutRef.current = false
+    loggingOutToRef.current = null
   }, [isLoading, user?.id, router])
 
   // React to 401s surfaced by the API client.
+  //
+  // `token` is a dependency so a suspended / rejected code is dropped once no
+  // session is live: a late response must not leave a stale `?reason=` target in
+  // the ref, nor push a bare /login over the banner's URL.
   useEffect(() => {
-    const onUnauthorized = () => {
-      isLoggingOutRef.current = true
+    const onUnauthorized = (e: Event) => {
+      // Several requests are usually in flight when an account is ended. The first
+      // one owns the redirect; the rest must not send it somewhere else.
+      if (loggingOutToRef.current?.startsWith(ACCOUNT_ENDED_LOGIN)) return
+      const reason = accountEndedReason((e as CustomEvent<{ code?: string }>).detail?.code)
+      if (reason && !token) return
+      const to = reason ? `${ACCOUNT_ENDED_LOGIN}${reason}` : '/login'
+      loggingOutToRef.current = to
       // Storage was already cleared by lib/api.ts; sync state + redirect.
       setToken(null)
       setUser(null)
-      router.push('/login')
+      router.push(to)
       // Cache purge is handled by the identity effect, same as logout().
     }
     window.addEventListener('auth:unauthorized', onUnauthorized)
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized)
-  }, [router])
+  }, [router, token])
 
   // React to 403 PASSWORD_CHANGE_REQUIRED from the API client: the session is
   // fine, but an admin reset the password after we stored the user. Flag it and
@@ -223,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     updateUser,
     logout,
-    isLoggingOut,
+    loggingOutTo,
   }
 
   return (
