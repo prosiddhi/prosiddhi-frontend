@@ -77,7 +77,7 @@ async function asUser(browser, who, path) {
     }
     {
       const { ctx, page } = await asUser(browser, seeker, '/job-feed')
-      const home = page.locator('header a[href="/"]')
+      const home = page.locator('header a[href="/home"] img')
       verdict('DEF-011', 'S3', 'Logo links back to the home page',
         (await home.count()) > 0 ? 'PASS' : 'FAIL', `${await home.count()} home link(s) in the header`)
       await ctx.close()
