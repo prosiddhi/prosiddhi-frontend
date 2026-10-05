@@ -128,7 +128,7 @@ No commits since 15 Sep.
 | **DLT (SMS)** | Phone codes by SMS | **Entity REGISTERED 5 Oct** (Airtel, ref AIR8106146323). Next: register the `PRSDHI` header and the message templates, then give the IDs to MSG91. Then Asrar turns on `SMS_OTP_ENABLED`. |
 | **D-U-N-S** | Organisation Play account → the app on the store | Applied 23 Sep. **Not confirmed.** Without it the 13 Oct submission cannot happen. |
 | **Meta (WhatsApp)** | WhatsApp messages | Not confirmed. Not needed to launch. |
-| **Razorpay live keys + KYC** | Real payments from 21 Oct (D-3) | Not confirmed. Were due ~5 Oct. |
+| **Razorpay KYC → live keys** | Real payments from 21 Oct (D-3) | **Waiting on the company bank account** (KYC needs it). No KYC = no live keys = no real payment on 21 Oct, and QA can't test one (R1-QA-03). Needed by ~10 Oct. |
 | **New Google account (biz-ops)** | Push + Google sign-in on mobile | Asrar is creating it. |
 
 ## 5. What is blocked on what
