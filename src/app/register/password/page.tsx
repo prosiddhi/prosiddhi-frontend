@@ -164,9 +164,9 @@ export default function RegisterPasswordPage() {
   /**
    * Turn a register/login failure into something the user can act on.
    *
-   * In production these errors carry no machine-readable code — only an HTTP
-   * status and a message — so `classifyRegisterError` matches the known message
-   * set, with a generic fallback when it does not recognise one.
+   * `classifyRegisterError` branches on the BE's `code`, with a temporary
+   * message match for an older BE, and a generic fallback when it recognises
+   * neither.
    */
   const handleRegisterFailure = (err: unknown) => {
     const failure = classifyRegisterError(err)
@@ -182,10 +182,9 @@ export default function RegisterPasswordPage() {
         )
         break
       case 'phoneUnverified':
-        // "Never verified", "already used" and "already registered" are ONE
-        // message on the backend — indistinguishable. Re-verifying the phone is
-        // the only response that is correct for all three. Never auto-retry the
-        // register call, and never say "phone already in use".
+        // PHONE_NOT_VERIFIED: "never verified" and "already used" are
+        // indistinguishable, so re-verify the phone. Never auto-retry the
+        // register call. An existing account arrives as `phoneTaken`.
         setError(t('auth:password.errorPhoneReverify'))
         setNeedsPhoneReverify(true)
         break

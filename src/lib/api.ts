@@ -1137,28 +1137,24 @@ export const emailOtpAPI = {
 /**
  * What went wrong on a register call, in terms a screen can act on.
  *
- * ⚠️ Registration business errors carry NO machine-readable discriminator in
- * production — `sendError()` omits the `error` field entirely there and these
- * paths pass no `code`. All we get is the HTTP status plus `message`, so this
- * matches on the known message set. That is fragile by construction: if the BE
- * rewords one of these strings, the branch degrades to `unknown` and the raw
- * message is shown. Recorded as a known limitation; a `code` on these responses
- * is a future BE ticket, not something to paper over here.
+ * Order: field errors (`errors[].path`), then the BE's machine-readable `code`
+ * (always serialised, in every environment), then a legacy message match, then
+ * `unknown`. The message match is TEMPORARY: it only exists in case a backend
+ * that predates the registration codes is still running. Remove it once the
+ * deployed BE is confirmed to send them.
  *
- * Field-level errors are the exception — `errors[].path` DOES survive prod, so
- * they are checked first and are reliable.
+ * `INVALID_JOB_PREFERENCE` has no kind of its own; it falls to `unknown` and the
+ * BE message is shown.
  */
 export type RegisterFailure =
   /**
-   * "Phone number must be verified before registration."
+   * `PHONE_NOT_VERIFIED` — "Phone number must be verified before registration."
    *
-   * THREE different causes collapse into this one message: the phone was never
-   * verified, the verification was already consumed by an earlier register
-   * (marks are single-use), or the phone belongs to an existing account whose
-   * mark is gone. They are indistinguishable to us — so the only safe response
-   * is to send the user back to re-verify their phone. Never auto-retry the
-   * register call, and never claim "phone already in use": two of the three
-   * causes would make that a lie.
+   * The phone was never verified, or its verification was already consumed by an
+   * earlier register (marks are single-use). The two are indistinguishable, so
+   * send the user back to re-verify. Never auto-retry the register call. (A phone
+   * that already belongs to an account arrives as `PHONE_ALREADY_REGISTERED`
+   * instead — see `phoneTaken`.)
    */
   | { kind: 'phoneUnverified' }
   /** Email was supplied but not verified under purpose REGISTRATION. */
@@ -1166,9 +1162,9 @@ export type RegisterFailure =
   /** Another account already owns this email — a clear, actionable message. */
   | { kind: 'emailTaken' }
   /**
-   * Another account already owns this phone. Only reachable when the phone
-   * verification succeeded, which is why it is distinguishable from the
-   * collapsed case above — when it does surface it is unambiguous.
+   * `PHONE_ALREADY_REGISTERED` — another account already owns this phone. The BE
+   * sends it both for a plain duplicate and for the "must be verified" message
+   * when a verified account holds the number; the code is authoritative.
    */
   | { kind: 'phoneTaken' }
   /** Zod field failures, keyed by field name; one field may carry several. */
@@ -1179,6 +1175,18 @@ export function classifyRegisterError(err: unknown): RegisterFailure {
   const fields = fieldErrorsByPath(err)
   if (Object.keys(fields).length) return { kind: 'fields', fields }
 
+  switch (err instanceof ApiError ? err.code : undefined) {
+    case 'PHONE_NOT_VERIFIED':
+      return { kind: 'phoneUnverified' }
+    case 'PHONE_ALREADY_REGISTERED':
+      return { kind: 'phoneTaken' }
+    case 'EMAIL_NOT_VERIFIED':
+      return { kind: 'emailUnverified' }
+    case 'EMAIL_ALREADY_REGISTERED':
+      return { kind: 'emailTaken' }
+  }
+
+  // TEMPORARY legacy fallback for a BE without registration codes.
   const message = err instanceof Error ? err.message : ''
   if (message.includes('Phone number must be verified')) return { kind: 'phoneUnverified' }
   if (message.includes('Email must be verified')) return { kind: 'emailUnverified' }
