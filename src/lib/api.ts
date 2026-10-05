@@ -1024,6 +1024,25 @@ export interface SetPasswordInput {
   newPassword: string
 }
 
+/**
+ * R1-BE-03 — the five switchable notification categories. Keep in step with the
+ * BE `NotificationCategory` enum. OTP / sign-in codes are not a category and are
+ * never switched off.
+ */
+export type NotificationCategory = 'APPLICATIONS' | 'VERIFICATION' | 'JOB_POSTS' | 'BILLING' | 'MESSAGES'
+
+/** `true` = on. The BE always answers with every category and the WhatsApp consent. */
+export interface NotificationPrefs {
+  categories: Record<NotificationCategory, boolean>
+  whatsappConsent: boolean
+}
+
+/** A PUT merges, so send only what changed (the BE needs at least one field). */
+export interface NotificationPrefsUpdate {
+  categories?: Partial<Record<NotificationCategory, boolean>>
+  whatsappConsent?: boolean
+}
+
 // Current-user (role-agnostic) endpoints — /api/me/*
 // Imported from i18n/languages (plain data, no side effects) rather than i18n/config,
 // which would boot react-i18next just by being imported here.
@@ -1042,6 +1061,19 @@ export const meAPI = {
     return apiRequest('/me/language', {
       method: 'PATCH',
       body: JSON.stringify({ language }),
+    })
+  },
+
+  // GET /api/v1/me/notification-prefs — role-agnostic.
+  getNotificationPrefs: async () => {
+    return apiRequest<NotificationPrefs>('/me/notification-prefs')
+  },
+
+  // PUT /api/v1/me/notification-prefs — merges; answers with the full state.
+  updateNotificationPrefs: async (patch: NotificationPrefsUpdate) => {
+    return apiRequest<NotificationPrefs>('/me/notification-prefs', {
+      method: 'PUT',
+      body: JSON.stringify(patch),
     })
   },
 

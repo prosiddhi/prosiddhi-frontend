@@ -14,7 +14,15 @@ import { showToast } from '@/lib/toast'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { DeleteAccountModal } from '@/components/settings/DeleteAccountModal'
-import { passwordInputCls, eyeToggleCls, outlineBtnBaseCls } from '@/components/settings/formClasses'
+import { NotificationPrefsSection } from '@/components/settings/NotificationPrefsSection'
+import {
+  passwordInputCls,
+  eyeToggleCls,
+  outlineBtnBaseCls,
+  cardCls,
+  sectionHeadingCls,
+  sectionHeadingIconCls,
+} from '@/components/settings/formClasses'
 
 /**
  * The checks a NEW password must pass, in the order Change password reports them:
@@ -215,12 +223,6 @@ export function SettingsView() {
   const toggleShowPasswords = () => setShowPasswords((v) => !v)
   const showPasswordsLabel = showPasswords ? t('settings.password.hide') : t('settings.password.show')
 
-  // The card/heading recipe every other seeker page's sections already use
-  // (Profile's Personal Information / Job Preferences / Documents cards).
-  const cardCls = 'bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6'
-  const sectionHeadingCls = 'flex items-center gap-2 text-lg sm:text-xl font-semibold text-black'
-  const sectionHeadingIconCls = 'w-5 h-5 text-[#3386a9] flex-shrink-0'
-
   return (
     <>
       <main className="flex-1 pt-[clamp(16px,5.33px_+_1.67vw,32px)] pb-[clamp(24px,8px_+_2.5vw,48px)]">
@@ -306,6 +308,8 @@ export function SettingsView() {
                 })}
               </div>
             </section>
+
+            <NotificationPrefsSection isEmployer={isEmployer} />
 
             {/* Change password — or, for a Google-only account, set its first password */}
             <section className={cardCls} aria-busy={passwordLoading}>

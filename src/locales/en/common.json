@@ -51,6 +51,26 @@
       "title": "Language",
       "description": "Choose the language you want to use across ProSiddhi."
     },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose which updates you want to receive.",
+      "applications": "Applications",
+      "applicationsDescSeeker": "Updates on your applications, shortlists and interviews.",
+      "applicationsDescEmployer": "New applications and candidate updates.",
+      "verification": "Verification",
+      "verificationDescSeeker": "When your documents and profile are verified.",
+      "verificationDescEmployer": "When your company documents and profile are approved.",
+      "jobPosts": "Job posts",
+      "jobPostsDesc": "When your job posts are approved or rejected.",
+      "billing": "Billing",
+      "billingDesc": "Payment reminders and billing updates.",
+      "messages": "Messages",
+      "messagesDesc": "New chat messages.",
+      "whatsappDesc": "Receive your updates on WhatsApp. You can turn this off at any time.",
+      "otpNote": "Sign-in codes (OTP) are always sent and are not controlled by these settings.",
+      "loadFailed": "We could not load your notification settings.",
+      "updateFailed": "We could not save your change. Please try again."
+    },
     "password": {
       "title": "Change password",
       "description": "Use a password you don't use anywhere else.",

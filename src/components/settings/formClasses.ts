@@ -1,3 +1,9 @@
+// The card/heading recipe every other seeker page's sections already use
+// (Profile's Personal Information / Job Preferences / Documents cards).
+export const cardCls = 'bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6'
+export const sectionHeadingCls = 'flex items-center gap-2 text-lg sm:text-xl font-semibold text-black'
+export const sectionHeadingIconCls = 'w-5 h-5 text-[#3386a9] flex-shrink-0'
+
 // Same input recipe Profile uses for its bordered fields (`#b5b5b5` border,
 // `#aaaaaa` placeholder). `pr-10` clears room for the in-field visibility-toggle
 // icon (eyeToggleCls), which every password field on Settings carries.
