@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
@@ -30,10 +32,15 @@ export function LegalPage({
 }) {
   // 'legal' holds this page's own copy; 'common' holds the app name for the logo.
   const { t } = useTranslation(['legal', 'common'])
+  const router = useRouter()
+
+  // These pages are public and often opened straight from a link (Google Play,
+  // an email), where there is no previous page to go back to — send them home.
+  const goBack = () => (window.history.length > 1 ? router.back() : router.push('/'))
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white shadow-[10px_10px_50px_0px_rgba(0,0,0,0.05)] sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
           <Link href="/" className="flex items-center min-h-[44px]">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
@@ -50,16 +57,24 @@ export function LegalPage({
         </div>
       </header>
 
-      <main className="flex-1 py-10 sm:py-14">
-        <article className="max-w-[760px] mx-auto px-4 sm:px-6">
-          <h1 className="text-3xl sm:text-4xl font-bold text-black mb-3">{title}</h1>
+      <main className="flex-1 pt-6 sm:pt-8 pb-10 sm:pb-14">
+        <article className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
+          <button
+            type="button"
+            onClick={goBack}
+            className="flex items-center gap-2 min-h-[44px] -mt-2.5 text-black hover:text-primary-50 transition-colors mb-2"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span>{t('common:buttons.back')}</span>
+          </button>
+          <h1 className="text-3xl sm:text-4xl font-bold text-primary-100 mb-3">{title}</h1>
           {showLastUpdated && (
             <p className="text-sm text-[#717182] mb-6">
               {t('legal:lastUpdated', { date: lastUpdated })}
             </p>
           )}
           {intro && (
-            <p className="text-base text-black leading-relaxed mb-8">{intro}</p>
+            <p className="max-w-[900px] text-base text-black leading-relaxed mb-8">{intro}</p>
           )}
           <div className="space-y-8">{children}</div>
         </article>
@@ -75,7 +90,7 @@ export function LegalSection({ title, children }: { title: string; children: Rea
   return (
     <section>
       <h2 className="text-xl sm:text-2xl font-semibold text-black mb-3">{title}</h2>
-      <div className="space-y-3 text-base text-[#333] leading-relaxed">{children}</div>
+      <div className="max-w-[900px] space-y-3 text-base text-[#333] leading-relaxed">{children}</div>
     </section>
   )
 }

@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
           <Trans
             i18nKey="legal:privacy.deletion.howTo"
             components={{
-              delete: <Link href="/delete-account" className="text-primary-50 underline" />,
+              delete: <Link href="/delete-account" className="text-primary-90 underline" />,
             }}
           />
         </p>

@@ -20,7 +20,7 @@ export default function DeleteAccountPage() {
   const { t } = useTranslation('legal')
 
   const list = (key: string) => t(key, { returnObjects: true }) as string[]
-  const linkClass = 'text-primary-50 underline'
+  const linkClass = 'text-primary-90 underline'
 
   return (
     <LegalPage
