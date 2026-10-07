@@ -280,5 +280,40 @@
       "title": "Still need help?",
       "body": "Visit our <contact>Contact Us</contact> page and tell us what you were trying to do."
     }
+  },
+  "deleteAccount": {
+    "title": "Delete your account",
+    "intro": "You can delete your ProSiddhi account yourself, at any time. This page explains how, and what happens next.",
+    "how": {
+      "title": "How to delete your account",
+      "steps": [
+        "Sign in to your account.",
+        "Open Settings.",
+        "Choose Delete account.",
+        "Confirm it is you with your password or your Google sign-in."
+      ],
+      "cta": "Go to Settings"
+    },
+    "what": {
+      "title": "What happens when you delete",
+      "items": [
+        "Your profile is hidden, and your contact details are no longer shown to employers.",
+        "You are signed out, and you can no longer sign in to that account.",
+        "If you are an employer, your job posts stop showing.",
+        "If you own an employer workspace with teammates, deleting your account closes it for them too. We ask you to confirm this first."
+      ]
+    },
+    "window": {
+      "title": "The 30-day window",
+      "body": "We keep the deleted account for 30 days. You cannot use it during that time, and you cannot undo the deletion yourself. If you change your mind, contact us within the 30 days and we may be able to restore it. After 30 days, your profile, documents, applications and messages are permanently erased."
+    },
+    "kept": {
+      "title": "What we keep",
+      "body": "We keep payment and invoice records for as long as tax law requires, and a limited record that an employer unlocked a profile."
+    },
+    "stuck": {
+      "title": "Cannot sign in?",
+      "body": "Visit our <help>Help</help> page or our <contact>Contact Us</contact> page."
+    }
   }
 }
