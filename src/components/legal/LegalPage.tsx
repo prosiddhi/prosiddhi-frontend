@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
-import { POLICY_LAST_UPDATED } from '@/lib/legal'
+import { TERMS_LAST_UPDATED } from '@/lib/legal'
 
 /**
  * Shared shell for the public legal pages (/privacy, /terms, /contact).
@@ -18,11 +18,14 @@ export function LegalPage({
   title,
   intro,
   showLastUpdated = true,
+  lastUpdated = TERMS_LAST_UPDATED,
   children,
 }: {
   title: string
   intro?: string
   showLastUpdated?: boolean
+  /** Effective date shown under the title. Defaults to the Terms date. */
+  lastUpdated?: string
   children: ReactNode
 }) {
   // 'legal' holds this page's own copy; 'common' holds the app name for the logo.
@@ -52,7 +55,7 @@ export function LegalPage({
           <h1 className="text-3xl sm:text-4xl font-bold text-black mb-3">{title}</h1>
           {showLastUpdated && (
             <p className="text-sm text-[#717182] mb-6">
-              {t('legal:lastUpdated', { date: POLICY_LAST_UPDATED })}
+              {t('legal:lastUpdated', { date: lastUpdated })}
             </p>
           )}
           {intro && (

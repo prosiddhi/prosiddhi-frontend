@@ -33,10 +33,12 @@ export const REGISTERED_OFFICE = ''
 export const GSTIN = ''
 
 /**
- * Last substantive revision of the policies. Bump this whenever the wording
- * changes — it is what users and auditors read as the effective date.
+ * Last substantive revision of each policy. Bump the matching one whenever its
+ * wording changes — it is what users and auditors read as the effective date.
+ * Kept separate so a privacy change never re-dates the Terms.
  */
-export const POLICY_LAST_UPDATED = '2026-10-07'
+export const TERMS_LAST_UPDATED = '2026-08-18'
+export const PRIVACY_LAST_UPDATED = '2026-10-07'
 
 /** Current year, for the footer copyright — never hardcode it again. */
 export function currentYear(): number {
