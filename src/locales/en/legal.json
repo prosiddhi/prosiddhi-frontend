@@ -242,35 +242,54 @@
   "help": {
     "title": "Help",
     "intro": "Quick answers to common questions about using ProSiddhi.",
+    "general": {
+      "title": "General",
+      "forgotPassword": {
+        "q": "I forgot my password. What do I do?",
+        "a": "If your account has an email address, choose “Forgot password” on the sign-in page and we will send a code to that email. If you signed up with only a phone number, resetting by phone is not available yet. Please <contact>contact us</contact> and we will help."
+      },
+      "deleteAccount": {
+        "q": "How do I delete my account?",
+        "a": "Open Settings, choose Delete account, and confirm it is you with your password or your Google sign-in. Your account is removed from view right away. We keep it for 30 days, and only our team can restore it in that time. After that it is erased, except the payment and invoice records we must keep, as described in our <privacy>Privacy Policy</privacy>. Read more about <delete>how deleting your account works</delete>."
+      },
+      "support": {
+        "q": "How do I contact support or report a problem?",
+        "a": "Go to our <contact>Contact Us</contact> page for our support details. Tell us whether you are a job seeker or an employer, the phone number or email on your account, and what happened."
+      }
+    },
     "seekers": {
       "title": "For job seekers",
-      "items": [
-        "Create your account with your phone number. We send a one-time password (OTP) to confirm it.",
-        "Fill in your profile. A complete profile gets noticed more.",
-        "Browse jobs, save the ones you like, and apply. Open My Applications to see where each one stands.",
-        "ProSiddhi is free for job seekers."
-      ]
+      "signUpNoEmail": {
+        "q": "Can I sign up without an email?",
+        "a": "Yes. Your phone number is enough. We send a one-time password (OTP) to your phone to confirm it. Adding an email address is optional."
+      },
+      "findAndApply": {
+        "q": "How do I find a job and apply?",
+        "a": "Open Find Jobs and browse. Open a job to read the details, then apply. You can save jobs you like and find them again under Saved Jobs. Follow every application in My Applications, where you can also withdraw one."
+      },
+      "costAndContact": {
+        "q": "Does it cost anything? How will employers reach me?",
+        "a": "ProSiddhi is free for job seekers. Employers can message you in the app and set up interviews, which you will see under My Interviews. An employer who unlocks your profile can also see your phone number."
+      }
     },
     "employers": {
       "title": "For employers",
-      "items": [
-        "Register as an employer, then post a job from your dashboard.",
-        "Review the people who apply, message them, and arrange interviews.",
-        "Search the candidate database. A candidate's contact details unlock with a credit.",
-        "Your plans, credits and invoices are in your account."
-      ]
-    },
-    "account": {
-      "title": "Your account",
-      "items": [
-        "Forgot your password? Choose Forgot password on the sign-in page.",
-        "Change your password and your notification choices in Settings.",
-        "Change the language from the language menu at the top of any page."
-      ]
-    },
-    "delete": {
-      "title": "Delete your account",
-      "body": "You can delete your account yourself, any time. See <delete>how to delete your account</delete> and what happens next."
+      "register": {
+        "q": "How do I register as an employer, and why is my account “under review”?",
+        "a": "Choose Individual or Corporate, verify your phone and email, and fill in your details. A Corporate account also uploads business documents (GST, CIN, ISO certificates). “Under review” means our team is checking those documents, and posting jobs unlocks once they are approved. Until then you can browse the portal and edit your profile."
+      },
+      "credits": {
+        "q": "How do credits work?",
+        "a": "There are two kinds. A Job Post is used each time you publish a job. A Candidate Unlock is used the first time you open a candidate's contact details. Looking at a candidate you already unlocked costs nothing more. They come in plans, and a plan's Job Posts and Candidate Unlocks are lost when it ends, except the single-post pack, which never expires. New employers get a free trial. You can see what you have left on your dashboard, and prices on the Plans page."
+      },
+      "postJob": {
+        "q": "How do I post and manage a job?",
+        "a": "Choose Post a Job, fill in the details, and publish. It uses 1 Job Post and goes live once our team approves it. Under My Jobs you can edit a job, deactivate or activate it, or delete it. You get the Job Post back for a deleted job only if nobody has applied and it was posted less than 24 hours ago. Re-listing an expired job uses 1 Job Post. A job we do not approve shows under Rejected, with the reason."
+      },
+      "findCandidates": {
+        "q": "How do I find candidates and see their phone number?",
+        "a": "Open Find Workers and search by skill, job title or keyword, with an optional location. A candidate's phone number stays hidden until you unlock them, which uses 1 Candidate Unlock and asks you to confirm first. Candidates you have unlocked are kept under the Unlocked tab. People who apply to your jobs appear under Applicants, where you can shortlist or reject them, message them and schedule interviews."
+      }
     },
     "safety": {
       "title": "Staying safe",
