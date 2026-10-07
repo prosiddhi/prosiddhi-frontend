@@ -105,20 +105,15 @@ export function Footer() {
               </ul>
             </div>
             <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.companyLegal')}</h3>
+              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.company')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
-                <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
-                <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/help" className={linkClass}>{t('footer.help')}</Link></li>
               </ul>
             </div>
-            {/* Support — only real routes, reusing existing privacy/terms keys. The
-                Figma this column is modelled on also has an FAQ, which still does
-                not exist here, so it is not linked. */}
             <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.support')}</h3>
+              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.legal')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/help" className={linkClass}>{t('footer.help')}</Link></li>
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
               </ul>
