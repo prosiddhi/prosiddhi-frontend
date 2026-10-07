@@ -112,15 +112,13 @@ export function Footer() {
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
               </ul>
             </div>
-            {/* Support — deliberately only 2 links, both reusing existing
-                privacy/terms keys and real routes. The Figma this column is
-                modelled on also has Help Centre and FAQ, but neither /help nor
-                /faq exists in this app, and this file's own history (see the
-                top comment) is literally about removing dead links exactly
-                like those — not recreating them. */}
+            {/* Support — only real routes, reusing existing privacy/terms keys. The
+                Figma this column is modelled on also has an FAQ, which still does
+                not exist here, so it is not linked. */}
             <div className="sm:flex-auto">
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.support')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
+                <li><Link href="/help" className={linkClass}>{t('footer.help')}</Link></li>
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
               </ul>

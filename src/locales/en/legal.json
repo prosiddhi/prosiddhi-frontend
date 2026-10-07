@@ -14,7 +14,8 @@
     "contact": "Contact Us",
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions",
-    "copyright": "© {{year}} {{company}}. All rights reserved."
+    "copyright": "© {{year}} {{company}}. All rights reserved.",
+    "help": "Help"
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -236,6 +237,48 @@
     "company": {
       "title": "Company",
       "operatedBy": "ProSiddhi is operated by {{company}}."
+    }
+  },
+  "help": {
+    "title": "Help",
+    "intro": "Quick answers to common questions about using ProSiddhi.",
+    "seekers": {
+      "title": "For job seekers",
+      "items": [
+        "Create your account with your phone number. We send a one-time password (OTP) to confirm it.",
+        "Fill in your profile. A complete profile gets noticed more.",
+        "Browse jobs, save the ones you like, and apply. Open My Applications to see where each one stands.",
+        "ProSiddhi is free for job seekers."
+      ]
+    },
+    "employers": {
+      "title": "For employers",
+      "items": [
+        "Register as an employer, then post a job from your dashboard.",
+        "Review the people who apply, message them, and arrange interviews.",
+        "Search the candidate database. A candidate's contact details unlock with a credit.",
+        "Your plans, credits and invoices are in your account."
+      ]
+    },
+    "account": {
+      "title": "Your account",
+      "items": [
+        "Forgot your password? Choose Forgot password on the sign-in page.",
+        "Change your password and your notification choices in Settings.",
+        "Change the language from the language menu at the top of any page."
+      ]
+    },
+    "delete": {
+      "title": "Delete your account",
+      "body": "You can delete your account yourself, any time. See <delete>how to delete your account</delete> and what happens next."
+    },
+    "safety": {
+      "title": "Staying safe",
+      "body": "Nobody at ProSiddhi will ever ask you to pay for a job, or ask you for your Aadhaar. If a job post looks fake or asks you for money, use the Report button on the job."
+    },
+    "stuck": {
+      "title": "Still need help?",
+      "body": "Visit our <contact>Contact Us</contact> page and tell us what you were trying to do."
     }
   }
 }
