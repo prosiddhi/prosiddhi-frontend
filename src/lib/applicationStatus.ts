@@ -22,14 +22,17 @@ export interface StatusMeta {
 
 /** Pill colours per status. Colour is language-independent, so it stays here. */
 const STATUS_PILL: Record<string, string> = {
-  PENDING: 'bg-[#eef6ff] text-[#1d6fb8]',
+  PENDING: 'bg-blue-50 text-blue-700',
   SHORTLISTED: 'bg-indigo-50 text-indigo-700',
   ACCEPTED: 'bg-green-50 text-green-700',
   REJECTED: 'bg-red-50 text-red-700',
   WITHDRAWN: 'bg-gray-100 text-gray-600',
 }
 
-const FALLBACK_PILL = 'bg-gray-100 text-gray-600'
+/** Every BE ApplicationStatus, in display order (the My Applications filter chips). */
+export const APPLICATION_STATUSES = Object.keys(STATUS_PILL)
+
+const FALLBACK_PILL ='bg-gray-100 text-gray-600'
 
 export function statusMeta(status?: string): StatusMeta {
   if (!status || !STATUS_PILL[status]) {
