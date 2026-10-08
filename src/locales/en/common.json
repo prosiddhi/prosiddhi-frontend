@@ -98,12 +98,12 @@
     },
     "deleteAccount": {
       "title": "Delete account",
-      "description": "Permanently remove your account and everything tied to it. This can't be undone.",
+      "description": "Remove your account. We keep it for 30 days, then erase it for good. You can't undo this yourself — only our team can restore it, and only within those 30 days.",
       "unavailable": "We couldn't verify a way to confirm it's you. Contact support to delete your account.",
       "loadFailed": "We couldn't load your account details, so deleting your account isn't available right now. Please try again.",
       "deleteButton": "Delete account",
-      "chooseIntro": "This permanently removes your account. Verify it's you to continue.",
-      "verifyIntro": "Verify it's you to continue. This permanently removes your account.",
+      "chooseIntro": "Your account is removed right away and erased after 30 days. Verify it's you to continue.",
+      "verifyIntro": "Verify it's you to continue. Your account is removed right away and erased after 30 days.",
       "continueWithPassword": "Continue with password",
       "continueWithGoogle": "Continue with Google",
       "reauthFailed": "That didn't match. Confirm it's you and try again.",
@@ -112,8 +112,8 @@
       "failed": "We couldn't delete your account. Please try again.",
       "verifying": "Verifying...",
       "orgConfirmTitle": "Close the organisation?",
-      "orgConfirmBody_one": "You own this workspace. Deleting your account closes it for {{count}} teammate, who will lose access immediately. This can't be undone.",
-      "orgConfirmBody_other": "You own this workspace. Deleting your account closes it for {{count}} teammates, who will lose access immediately. This can't be undone.",
+      "orgConfirmBody_one": "You own this workspace. Deleting your account closes it for {{count}} teammate, who will lose access immediately. You can't undo this yourself.",
+      "orgConfirmBody_other": "You own this workspace. Deleting your account closes it for {{count}} teammates, who will lose access immediately. You can't undo this yourself.",
       "confirmAndDelete": "Confirm & delete",
       "success": "Your account has been deleted."
     }
@@ -262,6 +262,8 @@
     "invoices": "Invoices",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "contact": "Contact Us"
+    "contact": "Contact Us",
+    "help": "Help",
+    "deleteAccount": "Delete Account"
   }
 }

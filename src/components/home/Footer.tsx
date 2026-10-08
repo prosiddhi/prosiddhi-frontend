@@ -21,7 +21,13 @@ import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
  * Auth-gated destinations (job feed, post a job, …) are intentional: a logged-out
  * visitor is sent to /login, which is a real screen — not a 404.
  */
-export function Footer() {
+/**
+ * `audience` picks which product-specific column(s) show: the seeker landing page
+ * passes 'seeker' and the employer landing page 'employer', so each only links
+ * to its own side. The default shows both, which is what every other page and
+ * the main landing page want. Company and Legal always show.
+ */
+export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'employer' }) {
   const { t } = useTranslation('legal')
 
   // inline-flex + min-h-[44px]: these were 18px-tall lines of text, the worst
@@ -32,6 +38,15 @@ export function Footer() {
   // stacked on top of padding that was already there and made a three-link
   // column 170px tall.
   const linkClass = 'inline-flex items-center min-h-[44px] hover:text-white transition-colors'
+
+  // The main footer keeps its four columns growing (see the note below). The
+  // seeker and employer footers have only three, and growing there left uneven
+  // gaps. From lg up their link block uses `display: contents`, so the logo and
+  // the three columns become siblings of one row and `justify-between` spaces
+  // all four evenly, with the logo on the left edge and the last column flush
+  // right. Below lg nothing changes: the logo stacks above the columns.
+  const filtered = audience !== 'all'
+  const colClass = filtered ? 'sm:flex-initial' : 'sm:flex-auto'
 
   // py-10, not py-12/lg:py-16. The Figma footer block is ~330px tall and this
   // one measured 395 at 1920 — the gap was almost entirely outer padding.
@@ -87,39 +102,36 @@ export function Footer() {
               logo (`w-full` there) rather than beside it, so `sm:w-full` gives it
               the same row to grow into as the `lg:flex-1` tier does above 1024.
               Only below `sm` (a real phone, `grid-cols-2`) is this untouched. */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere]">
-            <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
-              <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/job-feed" className={linkClass}>{t('footer.browseJobs')}</Link></li>
-                <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
-                <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
-              </ul>
-            </div>
-            <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.employers')}</h3>
-              <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
-                <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
-                <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
-                <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>
-              </ul>
-            </div>
-            <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.companyLegal')}</h3>
+          <div className={`grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere] ${filtered ? 'sm:justify-between lg:contents' : ''}`}>
+            {audience !== 'employer' && (
+              <div className={colClass}>
+                <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
+                <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
+                  <li><Link href="/job-feed" className={linkClass}>{t('footer.browseJobs')}</Link></li>
+                  <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
+                  <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
+                </ul>
+              </div>
+            )}
+            {audience !== 'seeker' && (
+              <div className={colClass}>
+                <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.employers')}</h3>
+                <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
+                  <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
+                  <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
+                  <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>
+                </ul>
+              </div>
+            )}
+            <div className={colClass}>
+              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.company')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
-                <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
-                <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/help" className={linkClass}>{t('footer.help')}</Link></li>
               </ul>
             </div>
-            {/* Support — deliberately only 2 links, both reusing existing
-                privacy/terms keys and real routes. The Figma this column is
-                modelled on also has Help Centre and FAQ, but neither /help nor
-                /faq exists in this app, and this file's own history (see the
-                top comment) is literally about removing dead links exactly
-                like those — not recreating them. */}
-            <div className="sm:flex-auto">
-              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.support')}</h3>
+            <div className={colClass}>
+              <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.legal')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>

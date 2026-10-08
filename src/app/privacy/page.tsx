@@ -1,8 +1,14 @@
 'use client'
 
-import { useTranslation } from 'react-i18next'
+import Link from 'next/link'
+import { Trans, useTranslation } from 'react-i18next'
 import { LegalPage, LegalSection, LegalList } from '@/components/legal/LegalPage'
-import { COMPANY_LEGAL_NAME, SUPPORT_EMAIL, REGISTERED_OFFICE } from '@/lib/legal'
+import {
+  COMPANY_LEGAL_NAME,
+  SUPPORT_EMAIL,
+  REGISTERED_OFFICE,
+  PRIVACY_LAST_UPDATED,
+} from '@/lib/legal'
 
 export default function PrivacyPolicyPage() {
   const { t } = useTranslation('legal')
@@ -11,7 +17,11 @@ export default function PrivacyPolicyPage() {
   const list = (key: string) => t(key, { returnObjects: true }) as string[]
 
   return (
-    <LegalPage title={t('privacy.title')} intro={t('privacy.intro')}>
+    <LegalPage
+      title={t('privacy.title')}
+      intro={t('privacy.intro')}
+      lastUpdated={PRIVACY_LAST_UPDATED}
+    >
       <LegalSection title={t('privacy.whoWeAre.title')}>
         <p>{t('privacy.whoWeAre.body', { company: COMPANY_LEGAL_NAME })}</p>
       </LegalSection>
@@ -52,6 +62,16 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection title={t('privacy.deletion.title')}>
         <p>{t('privacy.deletion.body')}</p>
+        <p>{t('privacy.deletion.timeline')}</p>
+        <p>{t('privacy.deletion.kept')}</p>
+        <p>
+          <Trans
+            i18nKey="legal:privacy.deletion.howTo"
+            components={{
+              delete: <Link href="/delete-account" className="text-primary-90 underline" />,
+            }}
+          />
+        </p>
       </LegalSection>
 
       <LegalSection title={t('privacy.security.title')}>

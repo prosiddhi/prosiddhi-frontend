@@ -102,6 +102,8 @@ const ROUTES: Array<{ pattern: string; trail: CrumbDef[] }> = [
   { pattern: '/privacy', trail: [{ labelKey: 'breadcrumbs.privacy' }] },
   { pattern: '/terms', trail: [{ labelKey: 'breadcrumbs.terms' }] },
   { pattern: '/contact', trail: [{ labelKey: 'breadcrumbs.contact' }] },
+  { pattern: '/help', trail: [{ labelKey: 'breadcrumbs.help' }] },
+  { pattern: '/delete-account', trail: [{ labelKey: 'breadcrumbs.deleteAccount' }] },
 ]
 
 function matches(pattern: string, path: string): boolean {

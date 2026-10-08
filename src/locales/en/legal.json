@@ -3,8 +3,8 @@
   "footer": {
     "candidates": "For Job Seekers",
     "employers": "For Employers",
-    "companyLegal": "Company & Legal",
-    "support": "Support",
+    "company": "Company",
+    "legal": "Legal",
     "browseJobs": "Browse Jobs",
     "savedJobs": "Saved Jobs",
     "myApplications": "My Applications",
@@ -14,7 +14,8 @@
     "contact": "Contact Us",
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions",
-    "copyright": "© {{year}} {{company}}. All rights reserved."
+    "copyright": "© {{year}} {{company}}. All rights reserved.",
+    "help": "Help"
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -87,14 +88,17 @@
       "items": [
         "See the personal information we hold about you — most of it is on your profile page, which you can view at any time.",
         "Correct anything that is wrong — you can edit your profile yourself.",
-        "Ask us to delete your account and your personal information.",
+        "Ask us to delete your account and your personal information — you can do this yourself in Settings.",
         "Withdraw your consent, and complain to us or to the Data Protection Board."
       ],
       "howTo": "To exercise any of these rights, contact us using the details below."
     },
     "deletion": {
       "title": "If you delete your account",
-      "body": "We stop showing your profile, and we stop serving your contact details to employers — including to an employer who had already unlocked you. Your name and contact details are no longer supplied to anyone. We do keep a limited record that an unlock happened, because the employer genuinely spent a credit, and we keep payment and invoice records for as long as tax law requires us to."
+      "body": "When you delete your account, we stop showing your profile and we stop serving your contact details to employers — including an employer who had already unlocked you. You are signed out and can no longer use the account.",
+      "timeline": "We keep the deleted account for 30 days, in case you change your mind. You cannot use it during that time, and you cannot bring it back yourself — you would need to contact us. After 30 days we permanently erase your profile, documents, applications and messages.",
+      "kept": "Even then, we keep a limited record that an unlock happened, because the employer genuinely spent a credit, and we keep payment and invoice records for as long as tax law requires us to.",
+      "howTo": "To delete your account, open Settings and choose Delete account. The steps are on our <delete>Delete your account</delete> page."
     },
     "security": {
       "title": "How we protect your information",
@@ -233,6 +237,102 @@
     "company": {
       "title": "Company",
       "operatedBy": "ProSiddhi is operated by {{company}}."
+    }
+  },
+  "help": {
+    "title": "Help",
+    "intro": "Quick answers to common questions about using ProSiddhi.",
+    "general": {
+      "title": "General",
+      "forgotPassword": {
+        "q": "I forgot my password. What do I do?",
+        "a": "If your account has an email address, choose “Forgot password” on the sign-in page and we will send a code to that email. If you signed up with only a phone number, resetting by phone is not available yet. Please <contact>contact us</contact> and we will help."
+      },
+      "deleteAccount": {
+        "q": "How do I delete my account?",
+        "a": "Open Settings, choose Delete account, and confirm it is you with your password or your Google sign-in. Your account is removed from view right away. We keep it for 30 days, and only our team can restore it in that time. After that it is erased, except the payment and invoice records we must keep, as described in our <privacy>Privacy Policy</privacy>. Read more about <delete>how deleting your account works</delete>."
+      },
+      "support": {
+        "q": "How do I contact support or report a problem?",
+        "a": "Go to our <contact>Contact Us</contact> page for our support details. Tell us whether you are a job seeker or an employer, the phone number or email on your account, and what happened."
+      }
+    },
+    "seekers": {
+      "title": "For job seekers",
+      "signUpNoEmail": {
+        "q": "Can I sign up without an email?",
+        "a": "Yes. Your phone number is enough. We send a one-time password (OTP) to your phone to confirm it. Adding an email address is optional."
+      },
+      "findAndApply": {
+        "q": "How do I find a job and apply?",
+        "a": "Open Find Jobs and browse. Open a job to read the details, then apply. You can save jobs you like and find them again under Saved Jobs. Follow every application in My Applications, where you can also withdraw one."
+      },
+      "costAndContact": {
+        "q": "Does it cost anything? How will employers reach me?",
+        "a": "ProSiddhi is free for job seekers. Employers can message you in the app and set up interviews, which you will see under My Interviews. An employer who unlocks your profile can also see your phone number."
+      }
+    },
+    "employers": {
+      "title": "For employers",
+      "register": {
+        "q": "How do I register as an employer, and why is my account “under review”?",
+        "a": "Choose Individual or Corporate, verify your phone and email, and fill in your details. A Corporate account also uploads business documents (GST, CIN, ISO certificates). “Under review” means our team is checking those documents, and posting jobs unlocks once they are approved. Until then you can browse the portal and edit your profile."
+      },
+      "credits": {
+        "q": "How do credits work?",
+        "a": "There are two kinds. A Job Post is used each time you publish a job. A Candidate Unlock is used the first time you open a candidate's contact details. Looking at a candidate you already unlocked costs nothing more. They come in plans, and a plan's Job Posts and Candidate Unlocks are lost when it ends, except the single-post pack, which never expires. New employers get a free trial. You can see what you have left on your dashboard, and prices on the Plans page."
+      },
+      "postJob": {
+        "q": "How do I post and manage a job?",
+        "a": "Choose Post a Job, fill in the details, and publish. It uses 1 Job Post and goes live once our team approves it. Under My Jobs you can edit a job, deactivate or activate it, or delete it. You get the Job Post back for a deleted job only if nobody has applied and it was posted less than 24 hours ago. Re-listing an expired job uses 1 Job Post. A job we do not approve shows under Rejected, with the reason."
+      },
+      "findCandidates": {
+        "q": "How do I find candidates and see their phone number?",
+        "a": "Open Find Workers and search by skill, job title or keyword, with an optional location. A candidate's phone number stays hidden until you unlock them, which uses 1 Candidate Unlock and asks you to confirm first. Candidates you have unlocked are kept under the Unlocked tab. People who apply to your jobs appear under Applicants, where you can shortlist or reject them, message them and schedule interviews."
+      }
+    },
+    "safety": {
+      "title": "Staying safe",
+      "body": "Nobody at ProSiddhi will ever ask you to pay for a job, or ask you for your Aadhaar. If a job post looks fake or asks you for money, use the Report button on the job."
+    },
+    "stuck": {
+      "title": "Still need help?",
+      "body": "Visit our <contact>Contact Us</contact> page and tell us what you were trying to do."
+    }
+  },
+  "deleteAccount": {
+    "title": "Delete your account",
+    "intro": "You can delete your ProSiddhi account yourself, at any time. This page explains how, and what happens next.",
+    "how": {
+      "title": "How to delete your account",
+      "steps": [
+        "Sign in to your account.",
+        "Open Settings.",
+        "Choose Delete account.",
+        "Confirm it is you with your password or your Google sign-in."
+      ],
+      "cta": "Go to Settings"
+    },
+    "what": {
+      "title": "What happens when you delete",
+      "items": [
+        "Your profile is hidden, and your contact details are no longer shown to employers.",
+        "You are signed out, and you can no longer sign in to that account.",
+        "If you are an employer, your job posts stop showing.",
+        "If you own an employer workspace with teammates, deleting your account closes it for them too. We ask you to confirm this first."
+      ]
+    },
+    "window": {
+      "title": "The 30-day window",
+      "body": "We keep the deleted account for 30 days. You cannot use it during that time, and you cannot undo the deletion yourself. If you change your mind, contact us within the 30 days and we may be able to restore it. After 30 days, your profile, documents, applications and messages are permanently erased."
+    },
+    "kept": {
+      "title": "What we keep",
+      "body": "We keep payment and invoice records for as long as tax law requires, and a limited record that an employer unlocked a profile."
+    },
+    "stuck": {
+      "title": "Cannot sign in?",
+      "body": "Visit our <help>Help</help> page or our <contact>Contact Us</contact> page."
     }
   }
 }

@@ -46,7 +46,7 @@ export default function ContactPage() {
 
       {/* Fraud warning — the audience is the group most likely to be targeted by
           a "pay me for a job" scam, so it gets visual weight, not fine print. */}
-      <section className="border border-amber-300 bg-amber-50 rounded-xl p-5">
+      <section className="max-w-[900px] border border-amber-300 bg-amber-50 rounded-xl p-5">
         <h2 className="flex items-center gap-2 text-xl font-semibold text-amber-900 mb-2">
           <ShieldAlert className="w-5 h-5 flex-shrink-0" />
           {t('contact.scam.title')}
@@ -61,7 +61,7 @@ export default function ContactPage() {
           <Trans
             i18nKey="legal:contact.privacyRequests.body"
             components={{
-              privacy: <Link href="/privacy" className="text-primary-50 underline" />,
+              privacy: <Link href="/privacy" className="text-primary-90 underline" />,
             }}
           />
         </p>

@@ -1013,7 +1013,7 @@ export interface DeleteAccountResult {
   deletedAt: string
   /** Teammates whose access ended with this delete. 0 for everyone but an org OWNER. */
   teammatesRemoved: number
-  /** Always null today — the backend has not set a retention period (me.service.ts). */
+  /** Days the account stays restorable before it is erased (30 by default). Null for staff. */
   retentionDays: number | null
 }
 
