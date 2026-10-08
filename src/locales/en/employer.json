@@ -517,5 +517,9 @@
     "accepting": "Accepting...",
     "acceptSchedule": "Accept & Schedule",
     "accept": "Accept"
+  },
+  "docsReview": {
+    "title": "Your documents are being reviewed",
+    "sla": "We review your documents within 2 working days."
   }
 }

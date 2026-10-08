@@ -37,7 +37,7 @@ export const GSTIN = ''
  * wording changes — it is what users and auditors read as the effective date.
  * Kept separate so a privacy change never re-dates the Terms.
  */
-export const TERMS_LAST_UPDATED = '2026-08-18'
+export const TERMS_LAST_UPDATED = '2026-10-07'
 export const PRIVACY_LAST_UPDATED = '2026-10-07'
 
 /** Current year, for the footer copyright — never hardcode it again. */

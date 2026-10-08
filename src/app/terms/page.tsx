@@ -55,6 +55,11 @@ export default function TermsPage() {
         <p>{t('terms.moderation.body')}</p>
       </LegalSection>
 
+      <LegalSection title={t('terms.reviewTimes.title')}>
+        <LegalList items={list('terms.reviewTimes.items')} />
+        <p>{t('terms.reviewTimes.exceptions')}</p>
+      </LegalSection>
+
       <LegalSection title={t('terms.content.title')}>
         <p>{t('terms.content.body')}</p>
       </LegalSection>

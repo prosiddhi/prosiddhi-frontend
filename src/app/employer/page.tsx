@@ -77,6 +77,7 @@ function EmployerDashboardContent() {
   const [jobs, setJobs] = useState<EmployerDashboardJob[]>([])
   const [recent, setRecent] = useState<RecentApplication[]>([])
   const [unlockedCount, setUnlockedCount] = useState<number | null>(null)
+  const [accountStatus, setAccountStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -87,13 +88,14 @@ function EmployerDashboardContent() {
       setLoading(true)
       setError('')
       try {
-        // Fetch the three panels in parallel; tolerate partial failures so one
+        // Fetch the panels (and the profile, for the review notice) in parallel; tolerate partial failures so one
         // slow/erroring panel doesn't blank the whole dashboard.
-        const [s, j, r, u] = await Promise.allSettled([
+        const [s, j, r, u, p] = await Promise.allSettled([
           employerAPI.getDashboardStats(),
           employerAPI.getDashboardJobs(1, 5),
           employerAPI.getRecentApplications(5),
           candidateAPI.getUnlockedCandidates({ page: 1, limit: 1 }),
+          employerAPI.getProfile(),
         ])
         if (ignore) return
         if (s.status === 'fulfilled') setStats(s.value)
@@ -101,6 +103,8 @@ function EmployerDashboardContent() {
         if (r.status === 'fulfilled') setRecent(r.value.applications)
         // Supplementary — never blocks the page; just hides the card on failure.
         if (u.status === 'fulfilled') setUnlockedCount(u.value.pagination.total)
+        // Same: only drives the documents-review notice, so a failure just hides it.
+        if (p.status === 'fulfilled') setAccountStatus(p.value.accountStatus ?? null)
         // Only treat it as a page error if everything failed.
         if (s.status === 'rejected' && j.status === 'rejected' && r.status === 'rejected') {
           setError(s.reason instanceof Error ? s.reason.message : t('employer:dashboard.loadFailed'))
@@ -152,6 +156,19 @@ function EmployerDashboardContent() {
 
           {!loading && !error && (
             <>
+              {/* Documents are with admin. Only PENDING_ADMIN_APPROVAL: a business that
+                  has not uploaded yet (PENDING_DOCUMENTS) has no review running, so the
+                  2-working-days promise would be false for them. */}
+              {accountStatus === 'PENDING_ADMIN_APPROVAL' && (
+                <div className="mb-6 sm:mb-8 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-secondary-70">{t('employer:docsReview.title')}</p>
+                    <p className="text-sm text-secondary-70">{t('employer:docsReview.sla')}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Job Overview — job-level counts, kept separate from the
                   application-lifecycle metrics below so the two don't read as
                   one flat, undifferentiated row of six unrelated numbers.
