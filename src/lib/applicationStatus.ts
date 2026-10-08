@@ -44,6 +44,16 @@ export function statusMeta(status?: string): StatusMeta {
   }
 }
 
+/**
+ * Job Details button once the seeker has applied. PENDING reads "Applied" (as on
+ * My Applications), and a missing or unknown status falls back to it too, so only
+ * the four other known statuses return their own label + pill.
+ */
+export function appliedCtaMeta(status?: string | null): StatusMeta | null {
+  if (!status || status === 'PENDING' || !STATUS_PILL[status]) return null
+  return statusMeta(status)
+}
+
 // A seeker can withdraw only while the application is still in flight. The BE
 // hard-blocks ACCEPTED + already-WITHDRAWN; we also hide it for REJECTED (a
 // terminal outcome — there is nothing left to withdraw), matching the

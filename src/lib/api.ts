@@ -1465,7 +1465,8 @@ export const jobSeekerAPI = {
 
   // Check if the seeker has already applied. GET /api/applications/check/:jobId
   checkIfApplied: async (jobId: string) => {
-    return apiRequest<{ hasApplied: boolean; jobId: string }>(`/applications/check/${jobId}`)
+    // `status` is the seeker's own application status, null when never applied.
+    return apiRequest<{ hasApplied: boolean; jobId: string; status?: string | null }>(`/applications/check/${jobId}`)
   },
 
   // Gated recruiter-contact reveal (NC-5/Q51). GET /api/jobs/:id/recruiter-contact

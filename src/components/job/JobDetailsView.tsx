@@ -10,6 +10,7 @@ import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
+import { appliedCtaMeta } from '@/lib/applicationStatus'
 import {
   humanizeJobType,
   humanizePaymentType,
@@ -101,6 +102,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [hasApplied, setHasApplied] = useState(false)
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null)
   const [hasReported, setHasReported] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -114,6 +116,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
   // would refuse anyway, so offering the button is a broken promise.
   const { user } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
+  const appliedMeta = hasApplied ? appliedCtaMeta(applicationStatus) : null
 
   useEffect(() => {
     if (!jobId) return
@@ -129,6 +132,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
       setRelated([])
       setIsSaved(false)
       setHasApplied(false)
+      setApplicationStatus(null)
       setHasReported(false)
       try {
         const j = await jobSeekerAPI.getJobDetails(jobId)
@@ -140,12 +144,15 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
         const [rel, saved, applied] = await Promise.allSettled([
           isSeeker ? jobSeekerAPI.getRelatedJobs(jobId) : Promise.resolve({ relatedJobs: [] }),
           isSeeker ? jobSeekerAPI.isJobSaved(jobId) : Promise.resolve({ isSaved: false }),
-          isSeeker ? jobSeekerAPI.checkIfApplied(jobId) : Promise.resolve({ hasApplied: false, jobId }),
+          isSeeker ? jobSeekerAPI.checkIfApplied(jobId) : Promise.resolve({ hasApplied: false, jobId, status: null }),
         ])
         if (ignore) return
         if (rel.status === 'fulfilled') setRelated(rel.value.relatedJobs ?? [])
         if (saved.status === 'fulfilled') setIsSaved(!!saved.value.isSaved)
-        if (applied.status === 'fulfilled') setHasApplied(!!applied.value.hasApplied)
+        if (applied.status === 'fulfilled') {
+          setHasApplied(!!applied.value.hasApplied)
+          setApplicationStatus(applied.value.status ?? null)
+        }
       } catch (err) {
         if (!ignore) {
           if (unavailableOn404 && err instanceof ApiError && err.status === 404) setUnavailable(true)
@@ -414,9 +421,13 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
                   <button
                     onClick={() => setIsApplyModalOpen(true)}
                     disabled={hasApplied}
-                    className="inline-flex items-center justify-center min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 bg-primary-50 text-primary-100 font-semibold rounded-lg hover:bg-primary-60 transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] disabled:opacity-60 disabled:cursor-not-allowed"
+                    className={`inline-flex items-center justify-center min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] disabled:cursor-not-allowed ${
+                      appliedMeta
+                        ? appliedMeta.pill
+                        : 'bg-primary-50 text-primary-100 hover:bg-primary-60 disabled:opacity-60'
+                    }`}
                   >
-                    {hasApplied ? t('seeker:jobDetails.applied') : t('buttons.apply')}
+                    {hasApplied ? (appliedMeta?.label ?? t('seeker:jobDetails.applied')) : t('buttons.apply')}
                   </button>
                   {/* Contact recruiter (PJP-113). Always shown: the per-job
                       showEmail/showPhone toggles this used to gate on were DROPPED by
@@ -595,7 +606,10 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
           jobId={job.id}
           jobTitle={job.title}
           companyName={companyOf(job, t('seeker:jobCard.company'))}
-          onApplied={() => setHasApplied(true)}
+          onApplied={() => {
+            setHasApplied(true)
+            setApplicationStatus('PENDING')
+          }}
         />
       )}
 
