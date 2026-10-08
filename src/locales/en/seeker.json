@@ -138,7 +138,12 @@
     "emptyTitle": "No Applications Yet",
     "emptyBody": "Start applying to jobs and track your applications here.",
     "browseJobs": "Browse Jobs",
-    "job": "Job"
+    "job": "Job",
+    "filterLabel": "Filter by status",
+    "filterAll": "All",
+    "emptyFilteredTitle": "No applications with this status",
+    "emptyFilteredBody": "Try another status to see your other applications.",
+    "showAll": "Show all applications"
   },
   "applicationDetail": {
     "back": "Back to My Applications",
