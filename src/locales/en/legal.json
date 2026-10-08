@@ -207,7 +207,7 @@
     "reviewTimes": {
       "title": "How fast we review",
       "items": [
-        "We review an employer's business documents within 2 working days (48 business hours) of the employer submitting them. Weekends are not working days.",
+        "We review an employer's business documents within 48 hours of the employer submitting them.",
         "We review every reported job within 36 hours of the report being made, and remove it if it breaks our rules. A review is a decision. It is not a promise that every reported job will be removed."
       ],
       "exceptions": "These times can be longer when we need more information from the employer, or when a legal process applies."
