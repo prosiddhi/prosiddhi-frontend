@@ -1676,6 +1676,8 @@ export interface EmployerDashboardJob {
   subcategory?: string | null
   location?: string
   status?: string
+  // Independent of `status`: a post in review and a rejected one are both INACTIVE.
+  moderationStatus?: string
   postedAt?: string
   expiresAt?: string | null
   viewCount?: number

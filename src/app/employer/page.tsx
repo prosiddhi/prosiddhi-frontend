@@ -13,7 +13,7 @@ import {
   type RecentApplication,
 } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta } from '@/lib/applicationStatus'
+import { statusMeta, jobStatusMeta } from '@/lib/applicationStatus'
 import {
   Plus,
   Briefcase,
@@ -201,29 +201,28 @@ function EmployerDashboardContent() {
                   </div>
                   {jobs.length > 0 ? (
                     <div className="space-y-3 sm:space-y-4">
-                      {jobs.map((job) => (
-                        <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5">
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h3 className="text-base sm:text-lg font-semibold text-black min-w-0 truncate">{job.title}</h3>
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                                job.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              {job.status === 'ACTIVE' ? t('employer:dashboard.statusActive') : t('employer:dashboard.statusInactive')}
-                            </span>
+                      {jobs.map((job) => {
+                        const badge = jobStatusMeta(job)
+                        return (
+                          <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <h3 className="text-base sm:text-lg font-semibold text-black min-w-0 truncate">{job.title}</h3>
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${badge.pill}`}>
+                                {badge.label}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
+                              <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> {t('employer:dashboard.applicants', { count: job.applicationCount ?? 0 })}</span>
+                              <span><span className="font-semibold text-black">{job.pendingCount}</span> {t('employer:dashboard.pendingCount')}</span>
+                              <span><span className="font-semibold text-black">{job.shortlistedCount}</span> {t('employer:dashboard.shortlistedCount')}</span>
+                              <span><span className="font-semibold text-black">{job.acceptedCount}</span> {t('employer:dashboard.acceptedCount')}</span>
+                            </div>
+                            {job.postedAt && (
+                              <p className="mt-2 text-xs text-[#717182]">{t('employer:dashboard.posted', { time: relativeTime(job.postedAt) })}</p>
+                            )}
                           </div>
-                          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#717182]">
-                            <span><span className="font-semibold text-black">{job.applicationCount ?? 0}</span> {t('employer:dashboard.applicants', { count: job.applicationCount ?? 0 })}</span>
-                            <span><span className="font-semibold text-black">{job.pendingCount}</span> {t('employer:dashboard.pendingCount')}</span>
-                            <span><span className="font-semibold text-black">{job.shortlistedCount}</span> {t('employer:dashboard.shortlistedCount')}</span>
-                            <span><span className="font-semibold text-black">{job.acceptedCount}</span> {t('employer:dashboard.acceptedCount')}</span>
-                          </div>
-                          {job.postedAt && (
-                            <p className="mt-2 text-xs text-[#717182]">{t('employer:dashboard.posted', { time: relativeTime(job.postedAt) })}</p>
-                          )}
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="bg-white border border-dashed border-[#dddddd] rounded-[10px] p-8 text-center text-[#717182]">
