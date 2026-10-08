@@ -453,6 +453,10 @@ function EmployerProfileContent() {
                   label={accountStatus ? (ACCOUNT_STATUS_LABEL_KEY[accountStatus] ? t(ACCOUNT_STATUS_LABEL_KEY[accountStatus]) : accountStatus) : null}
                   dotClassName={ACCOUNT_STATUS_DOT[accountStatus] ?? 'bg-gray-400'}
                 />
+                {/* Only once documents are in review — see the same check on the dashboard. */}
+                {accountStatus === 'PENDING_ADMIN_APPROVAL' && (
+                  <p className="text-xs text-[#717182] mt-2 max-w-[280px]">{t('employer:docsReview.sla')}</p>
+                )}
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
                   {phoneNumber && (
                     <span className="inline-flex items-center gap-1.5 flex-shrink-0">

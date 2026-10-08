@@ -203,6 +203,14 @@
     "contact": {
       "title": "Contact",
       "body": "Questions about these terms? Email us at {{email}}."
+    },
+    "reviewTimes": {
+      "title": "How fast we review",
+      "items": [
+        "We review an employer's business documents within 2 working days (48 business hours) of the employer submitting them. Weekends are not working days.",
+        "We review every reported job within 36 hours of the report being made, and remove it if it breaks our rules. A review is a decision. It is not a promise that every reported job will be removed."
+      ],
+      "exceptions": "These times can be longer when we need more information from the employer, or when a legal process applies."
     }
   },
   "contact": {
@@ -224,7 +232,7 @@
     },
     "report": {
       "title": "Reporting a job or a user",
-      "body": "If a job post looks fake, unsafe, or is asking you for money, use the Report button on the job itself — that sends it straight to our moderators. If you cannot reach the post, email us and we will act on it."
+      "body": "If a job post looks fake, unsafe, or is asking you for money, use the Report button on the job itself — that sends it straight to our moderators. We review every reported job within 36 hours and remove it if it breaks our rules. If you cannot reach the post, email us and we will act on it."
     },
     "scam": {
       "title": "A warning worth repeating",

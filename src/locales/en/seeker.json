@@ -243,7 +243,7 @@
   },
   "reportModal": {
     "successTitle": "Report Submitted",
-    "successBody": "Thanks for flagging this. Our team will review the post.",
+    "successBody": "Thanks for flagging this. We review every reported job within 36 hours and remove it if it breaks our rules.",
     "done": "Done",
     "title": "Report this job",
     "intro": "Tell us what's wrong with <bold>{{jobTitle}}</bold> — e.g. it asks for money, looks like a scam, or the details are misleading.",
