@@ -399,7 +399,7 @@ function EmployerLandingPageContent() {
           is the same shared component the seeker landing page uses (which
           has no such overlay to rise above), so it needs no change. */}
       <div className="relative z-10">
-        <Footer />
+        <Footer audience="employer" />
       </div>
     </div>
   )

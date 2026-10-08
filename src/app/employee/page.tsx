@@ -575,7 +575,7 @@ export default function EmployeeLandingPage() {
           </div>
         </div>
       </section>
-      <Footer />
+      <Footer audience="seeker" />
     </div>
   )
 }
