@@ -14,10 +14,15 @@ import { ChevronLeft, Plus } from 'lucide-react'
 import { PricingPlans } from '@/components/employer/PricingPlans'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { useCredits } from '@/hooks/useCredits'
 
 function PlansContent() {
   const { t } = useTranslation()
   const [topUp, setTopUp] = useState(false)
+  // Buying is owner-only on the backend, so only an OWNER is shown the quick
+  // top-up. Unknown role (still loading, or the wallet failed) → no button.
+  const { wallet } = useCredits()
+  const canBuy = wallet?.role === 'OWNER'
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -34,22 +39,30 @@ function PlansContent() {
               <Link href="/employer/my-plans" className="text-sm text-primary-50 hover:underline whitespace-nowrap">
                 {t('employer:myPlans.navLabel')}
               </Link>
-              <button
-                type="button"
-                onClick={() => setTopUp(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                {t('employer:plans.quickTopUp')}
-              </button>
+              {canBuy && (
+                <button
+                  type="button"
+                  onClick={() => setTopUp(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('employer:plans.quickTopUp')}
+                </button>
+              )}
             </div>
           </div>
 
-          <PricingPlans />
+          {/* A member can browse the catalog but not buy from it. Only said once
+              the wallet has told us so; while the role is unknown the Buy
+              buttons are simply hidden. */}
+          {wallet && !canBuy && (
+            <p className="text-sm text-[#717182] mb-4">{t('employer:myPlans.ownerBuysNote')}</p>
+          )}
+          <PricingPlans canBuy={canBuy} />
         </div>
       </main>
 
-      {topUp && <TopUpModal onClose={() => setTopUp(false)} />}
+      {canBuy && topUp && <TopUpModal onClose={() => setTopUp(false)} />}
     </div>
   )
 }

@@ -22,6 +22,9 @@ import type { Wallet as CreditWalletData } from '@/lib/api'
 export function OutOfCreditsUpsell({ wallet }: { wallet?: CreditWalletData | null }) {
   const { t } = useTranslation()
   const [topUp, setTopUp] = useState(false)
+  // Missing or unknown role is treated as "not the owner": no purchase controls.
+  const canBuy = wallet?.role === 'OWNER'
+  const isMember = !!wallet && !canBuy
 
   // An employer whose FREE TRIAL ran out should be told that, not the bare
   // "you're out of job-post credits" — which reads as though they had bought
@@ -46,25 +49,36 @@ export function OutOfCreditsUpsell({ wallet }: { wallet?: CreditWalletData | nul
         {t(endedTrial ? 'employer:postGate.trialEndedTitle' : 'employer:postGate.title')}
       </h2>
       <p className="text-sm text-[#717182] mb-6">
-        {t(endedTrial ? 'employer:postGate.trialEndedBody' : 'employer:postGate.body')}
+        {t(`employer:postGate.${endedTrial ? 'trialEndedBody' : 'body'}${isMember ? 'Member' : ''}`)}
       </p>
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => setTopUp(true)}
-          className="inline-flex items-center justify-center px-6 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
-        >
-          {t('employer:postGate.topUpNow')}
-        </button>
-        <Link
-          href="/employer/plans"
-          className="inline-flex items-center justify-center px-6 py-2.5 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm font-medium"
-        >
-          {t('employer:postGate.viewPlans')}
-        </Link>
-      </div>
+      {isMember ? (
+        // Buying is owner-only on the backend: a member is told who can, and is
+        // offered no purchase control.
+        <p className="text-sm text-[#717182]">{t('employer:myPlans.ownerBuysNote')}</p>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {/* The top-up button needs a confirmed OWNER. With no wallet at all
+              (it failed to load) the role is unknown, so only the plans link is
+              left; /employer/plans applies the same owner check itself. */}
+          {canBuy && (
+            <button
+              type="button"
+              onClick={() => setTopUp(true)}
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium"
+            >
+              {t('employer:postGate.topUpNow')}
+            </button>
+          )}
+          <Link
+            href="/employer/plans"
+            className="inline-flex items-center justify-center px-6 py-2.5 border border-primary-50 text-primary-50 rounded-lg hover:bg-primary-50/5 transition-colors text-sm font-medium"
+          >
+            {t('employer:postGate.viewPlans')}
+          </Link>
+        </div>
+      )}
 
-      {topUp && <TopUpModal onClose={() => setTopUp(false)} />}
+      {canBuy && topUp && <TopUpModal onClose={() => setTopUp(false)} />}
     </div>
   )
 }

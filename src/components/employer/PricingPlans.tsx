@@ -20,6 +20,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
+import { useCredits } from '@/hooks/useCredits'
 
 type Tab = 'basic' | 'enterprise'
 
@@ -27,7 +28,15 @@ function formatInr(n: number): string {
   return n.toLocaleString('en-IN')
 }
 
-function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) {
+function PlanCard({
+  plan,
+  onBuy,
+  canBuy,
+}: {
+  plan: Plan
+  onBuy: (plan: Plan) => void
+  canBuy: boolean
+}) {
   const { t } = useTranslation()
 
   // Inclusions (our data, mock styling). Posts are the header subtitle, so the
@@ -66,13 +75,15 @@ function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) 
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          onClick={() => onBuy(plan)}
-          className="mt-5 w-full bg-primary-50 text-primary-100 rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
-        >
-          {t('employer:plans.buy')}
-        </button>
+        {canBuy && (
+          <button
+            type="button"
+            onClick={() => onBuy(plan)}
+            className="mt-5 w-full bg-primary-50 text-primary-100 rounded-[8px] py-3 text-[16px] font-medium hover:bg-primary-60 transition-colors"
+          >
+            {t('employer:plans.buy')}
+          </button>
+        )}
         <p className="mt-3 text-[14px] italic text-[#aaaaaa] text-center">
           {t('employer:plans.gstApplicable')}
         </p>
@@ -81,7 +92,14 @@ function PlanCard({ plan, onBuy }: { plan: Plan; onBuy: (plan: Plan) => void }) 
   )
 }
 
-export function PricingPlans() {
+/**
+ * @param canBuy whether to show the Buy buttons. Defaults to true so the PUBLIC
+ * landing page (/employer/welcome) is unchanged — an anonymous visitor's Buy
+ * still sends them to sign up. The signed-in /employer/plans screen passes
+ * `false` for anyone who is not the account OWNER (buying is owner-only on the
+ * backend), including while the role is still unknown.
+ */
+export function PricingPlans({ canBuy = true }: { canBuy?: boolean }) {
   const { t } = useTranslation()
   const router = useRouter()
   const { isAuthenticated, user } = useAuth()
@@ -198,7 +216,7 @@ export function PricingPlans() {
         // while 100/110/125% drop to the `sm:grid-cols-2` tier already below it.
         <div className="grid grid-cols-1 sm:grid-cols-2 min-[1350px]:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
           {shown.map((plan) => (
-            <PlanCard key={plan.code} plan={plan} onBuy={handleBuy} />
+            <PlanCard key={plan.code} plan={plan} onBuy={handleBuy} canBuy={canBuy} />
           ))}
         </div>
       )}
@@ -206,6 +224,30 @@ export function PricingPlans() {
       {selected && <CheckoutModal plan={selected} onClose={() => setSelected(null)} />}
     </div>
   )
+}
+
+// A signed-in employer's Buy buttons depend on the wallet role. Kept in its own
+// component so the wallet is read ONLY for signed-in employers: a signed-out
+// visitor has no token, and a wallet call would 401.
+function OwnerOnlyPricingPlans() {
+  const { wallet } = useCredits()
+  return <PricingPlans canBuy={wallet?.role === 'OWNER'} />
+}
+
+/**
+ * The catalog for the public landing page (/employer/welcome).
+ *   • signed-out visitor, or a signed-in non-employer → Buy shown, as before
+ *     (it sends them to sign up);
+ *   • signed-in employer → Buy only for the account OWNER; a member, or an
+ *     unknown role (wallet loading or failed), sees none.
+ * Nothing is drawn until the stored session has been read (a moment, no
+ * network), so a member never gets a flash of Buy buttons.
+ */
+export function PublicPricingPlans() {
+  const { isAuthenticated, isLoading, user } = useAuth()
+  if (isLoading) return null
+  if (isAuthenticated && user?.role?.startsWith('EMPLOYER')) return <OwnerOnlyPricingPlans />
+  return <PricingPlans />
 }
 
 export default PricingPlans

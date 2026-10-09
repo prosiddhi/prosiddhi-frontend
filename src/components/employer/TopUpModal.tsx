@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { CheckCircle2, X, Loader2 } from 'lucide-react'
 import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
+import { useCredits } from '@/hooks/useCredits'
 
 // The plan we surface as the quick top-up (seed code).
 const TOPUP_PLAN_CODE = 'PACK_SINGLE_POST'
@@ -26,6 +27,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
+  // Callers open this from a 402 ("no credits") and a member shares the org's
+  // wallet, so a member can land here. Buying is owner-only on the backend, so
+  // the modal checks the role itself: one wallet read, and only when it opens.
+  const { wallet, loading: walletLoading } = useCredits()
 
   useEffect(() => {
     let active = true
@@ -54,6 +59,13 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     return <CheckoutModal plan={pack} onClose={onClose} />
   }
 
+  const busy = loading || walletLoading
+  // Not the OWNER (including a role the wallet did not send) → no purchase.
+  const isMember = !busy && !!wallet && wallet.role !== 'OWNER'
+  // No wallet at all (it failed to load): the role is unknown, so fail closed.
+  const unavailable = !busy && !isMember && (error || !pack || !wallet)
+  const canPay = !busy && !isMember && !unavailable
+
   const bullets = pack
     ? [
         `${pack.postCredits} ${t('employer:plans.postsLabel')}`,
@@ -75,14 +87,20 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           <X className="w-5 h-5" />
         </button>
 
-        {loading && (
+        {busy && (
           <div className="flex items-center gap-2 py-10 text-[#717182]">
             <Loader2 className="w-5 h-5 animate-spin text-primary-50" />
             <span className="text-sm">{t('employer:topUp.loading')}</span>
           </div>
         )}
 
-        {!loading && (error || !pack) && (
+        {isMember && (
+          <div className="py-8 text-center">
+            <p className="text-[#717182]">{t('employer:myPlans.ownerBuysNote')}</p>
+          </div>
+        )}
+
+        {unavailable && (
           <div className="py-8 text-center">
             <p className="text-[#717182] mb-4">{t('employer:topUp.unavailable')}</p>
             <Link
@@ -94,7 +112,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {!loading && !error && pack && (
+        {canPay && pack && (
           <>
             <h3 className="text-2xl sm:text-[28px] font-semibold text-black mb-4">{pack.name}</h3>
 

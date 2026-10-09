@@ -61,18 +61,22 @@ function Tile({
 export function CreditWallet({ className }: { className?: string }) {
   const { t } = useTranslation()
   const { wallet, loading, error, reload } = useCredits()
+  // Buying is owner-only on the backend. Unknown role (loading / error) → no button.
+  const canBuy = wallet?.role === 'OWNER'
 
   return (
     <div className={`bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6 ${className ?? ''}`}>
       <div className="flex items-center justify-between mb-4 gap-3">
         <h2 className="text-lg sm:text-xl font-semibold text-black">{t('employer:wallet.title')}</h2>
-        <Link
-          href="/employer/plans"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          {t('employer:wallet.buyCredits')}
-        </Link>
+        {canBuy && (
+          <Link
+            href="/employer/plans"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            {t('employer:wallet.buyCredits')}
+          </Link>
+        )}
       </div>
 
       {loading && (
@@ -151,12 +155,16 @@ export function CreditWallet({ className }: { className?: string }) {
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>
                   {notice.level === 'expired'
-                    ? t('employer:wallet.planExpired')
-                    : t('employer:wallet.planExpiringSoon', { count: notice.days })}
+                    ? t(canBuy ? 'employer:wallet.planExpired' : 'employer:wallet.planExpiredMember')
+                    : t(canBuy ? 'employer:wallet.planExpiringSoon' : 'employer:wallet.planExpiringSoonMember', {
+                        count: notice.days,
+                      })}
                 </span>
-                <Link href="/employer/plans" className="underline font-medium whitespace-nowrap">
-                  {t('employer:wallet.renew')}
-                </Link>
+                {canBuy && (
+                  <Link href="/employer/plans" className="underline font-medium whitespace-nowrap">
+                    {t('employer:wallet.renew')}
+                  </Link>
+                )}
               </div>
             )
           })()}

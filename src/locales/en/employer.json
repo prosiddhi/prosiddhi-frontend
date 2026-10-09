@@ -163,7 +163,9 @@
     "trialBanner": "Free trial — these are on us. Use them by {{date}}.",
     "trialBannerNoDate": "Free trial — these are on us.",
     "planExpiringSoon": "Your plan ends in {{count}} days. Any Job Posts and Candidate Unlocks left on it will be lost. Buy a plan before then to keep hiring.",
+    "planExpiringSoonMember": "Your plan ends in {{count}} days. Any Job Posts and Candidate Unlocks left on it will be lost. Ask the account owner to buy a plan before then to keep hiring.",
     "planExpired": "Your plan has ended and anything left on it is gone. Jobs already live stay up for 3 more days. Buy a plan to keep hiring.",
+    "planExpiredMember": "Your plan has ended and anything left on it is gone. Jobs already live stay up for 3 more days. Ask the account owner to buy a plan to keep hiring.",
     "renew": "Buy a plan",
     "invoices": "View invoices",
     "loading": "Loading what you have left…",
@@ -371,8 +373,10 @@
   "postGate": {
     "title": "You have no Job Posts left",
     "body": "Publishing a job uses 1 Job Post. Buy a plan, or the single-post pack, to keep hiring.",
+    "bodyMember": "Publishing a job uses 1 Job Post. Ask the account owner to buy a plan, or the single-post pack, to keep hiring.",
     "trialEndedTitle": "Your free trial has ended",
     "trialEndedBody": "You used your free job post. Buy a plan, or the single-post pack, to keep hiring.",
+    "trialEndedBodyMember": "Your company's free job post has been used. Ask the account owner to buy a plan, or the single-post pack, to keep hiring.",
     "topUpNow": "Top up now",
     "viewPlans": "View plans"
   },

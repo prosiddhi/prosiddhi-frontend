@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { PricingPlans } from '@/components/employer/PricingPlans'
+import { PublicPricingPlans } from '@/components/employer/PricingPlans'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Phone,
@@ -344,7 +344,7 @@ function EmployerLandingPageContent() {
       {/* Pricing Section — live 8-tier catalog from GET /api/plans (PJP-176). */}
       <section id="pricing" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-20">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
-          <PricingPlans />
+          <PublicPricingPlans />
         </div>
       </section>
 
