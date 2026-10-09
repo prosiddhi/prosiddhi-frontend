@@ -13,7 +13,7 @@ import {
   type RecentApplication,
 } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta, jobStatusMeta } from '@/lib/applicationStatus'
+import { statusMeta, jobStatusMeta, isJobRejected } from '@/lib/applicationStatus'
 import {
   Plus,
   Briefcase,
@@ -220,8 +220,12 @@ function EmployerDashboardContent() {
                     <div className="space-y-3 sm:space-y-4">
                       {jobs.map((job) => {
                         const badge = jobStatusMeta(job)
-                        return (
-                          <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5">
+                        // Same rule as My Jobs, which hides Candidates on its Rejected tab
+                        // (status CANCELLED, which an admin rejection also sets).
+                        const clickable = !isJobRejected(job) && job.status !== 'CANCELLED'
+                        const cardClass = 'block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5'
+                        const body = (
+                          <>
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <h3 className="text-base sm:text-lg font-semibold text-black min-w-0 truncate">{job.title}</h3>
                               <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${badge.pill}`}>
@@ -237,6 +241,19 @@ function EmployerDashboardContent() {
                             {job.postedAt && (
                               <p className="mt-2 text-xs text-[#717182]">{t('employer:dashboard.posted', { time: relativeTime(job.postedAt) })}</p>
                             )}
+                          </>
+                        )
+                        return clickable ? (
+                          <Link
+                            key={job.id}
+                            href={`/employer/candidates?jobId=${job.id}`}
+                            className={`${cardClass} cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150`}
+                          >
+                            {body}
+                          </Link>
+                        ) : (
+                          <div key={job.id} className={cardClass}>
+                            {body}
                           </div>
                         )
                       })}
