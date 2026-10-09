@@ -148,6 +148,7 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/delete-account" className={linkClass}>{t('breadcrumbs.deleteAccount', { ns: 'common' })}</Link></li>
               </ul>
             </div>
           </div>
