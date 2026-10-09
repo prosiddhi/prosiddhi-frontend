@@ -505,6 +505,7 @@ function EmployerProfileContent() {
                       phoneNumber={phoneNumber}
                       verified={phoneVerified}
                       editing={editing}
+                      hideChange
                       notProvided={t('profile:employer.notProvided')}
                       verifiedText={t('profile:employer.phoneStatusVerified')}
                       changeLabel={t('profile:employer.changePhone')}
