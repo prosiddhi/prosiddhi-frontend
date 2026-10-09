@@ -2076,7 +2076,8 @@ export interface Plan {
 // Employer credit wallet (GET /api/employers/me/credits). `expiresAt` is the
 // wallet's single expiry = latest active subscription/trial lot's date (null
 // when the balance is zero or only non-expiring pack credits remain).
-// NOTE: the BE wallet summary intentionally has NO `seats` field.
+// The route also carries the org's seat counts (`seatCap`, `seatsUsed`), the
+// plan window, and the plans/products it holds (see HeldPlan / HeldProduct).
 export interface Wallet {
   post: { balance: number; expiresAt: string | null }
   download: { balance: number; expiresAt: string | null }
@@ -2092,6 +2093,45 @@ export interface Wallet {
   trialGranted?: boolean
   /** The employer has ever bought a pack or subscription. */
   hasPurchased?: boolean
+  /** Org-wide seat cap = MAX(seats) over the plans, NOT their sum. */
+  seatCap: number
+  /** Live members plus pending invites. */
+  seatsUsed: number
+  /** Latest expiry across the plans; null when none is running. */
+  planExpiresAt: string | null
+  /** Within the grace window after the last plan lapsed. */
+  inGracePeriod: boolean
+  /** Optional: the route is validated loosely, so a portal ahead of the BE reads `undefined` as none. */
+  plans?: HeldPlan[]
+  products?: HeldProduct[]
+  role: 'OWNER' | 'MEMBER'
+  seatStatus: 'ACTIVE' | 'SUSPENDED' | 'REMOVED'
+}
+
+// One subscription the employer holds, with its own dates. The route only lists
+// unexpired, non-PACK subscriptions, newest expiry first. `postCredits` and
+// `downloadCredits` are what the plan GRANTED, not what is left. Price is
+// deliberately not sent (every seat reads this route).
+export interface HeldPlan {
+  subscriptionId: string
+  name: string
+  code: string
+  group: PlanGroup
+  billingPeriod: 'MONTHLY' | 'QUARTERLY' | 'HALF_YEARLY' | 'YEARLY' | 'LIFETIME'
+  seats: number
+  postCredits: number
+  downloadCredits: number
+  startedAt: string
+  expiresAt: string
+}
+
+// A credit pack or the live free trial. `expiresAt: null` = never expires (a
+// pack). A trial has `group: 'TRIAL'` and `code: null`.
+export interface HeldProduct {
+  name: string
+  code: string | null
+  group: PlanGroup | 'TRIAL'
+  expiresAt: string | null
 }
 
 // POST /api/billing/checkout response — a created Razorpay order plus the GST

@@ -88,6 +88,10 @@ const ROUTES: Array<{ pattern: string; trail: CrumbDef[] }> = [
     { labelKey: 'breadcrumbs.employer', href: '/employer' },
     { labelKey: 'breadcrumbs.plans' },
   ] },
+  { pattern: '/employer/my-plans', trail: [
+    { labelKey: 'breadcrumbs.employer', href: '/employer' },
+    { labelKey: 'breadcrumbs.myPlans' },
+  ] },
   { pattern: '/employer/invoices', trail: [
     { labelKey: 'breadcrumbs.employer', href: '/employer' },
     { labelKey: 'breadcrumbs.invoices' },

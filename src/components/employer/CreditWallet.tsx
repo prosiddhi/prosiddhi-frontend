@@ -7,7 +7,7 @@
 
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt } from 'lucide-react'
+import { FileText, Unlock, Loader2, AlertCircle, Plus, Receipt, ClipboardList } from 'lucide-react'
 import { formatShortDate } from '@/lib/jobFormat'
 import { useCredits } from '@/hooks/useCredits'
 
@@ -162,6 +162,13 @@ export function CreditWallet({ className }: { className?: string }) {
           })()}
 
           <div className="flex flex-wrap items-center gap-4 mt-4">
+            <Link
+              href="/employer/my-plans"
+              className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:underline"
+            >
+              <ClipboardList className="w-4 h-4" />
+              {t('employer:myPlans.viewLink')}
+            </Link>
             <Link
               href="/employer/invoices"
               className="inline-flex items-center gap-1.5 text-sm text-primary-50 hover:underline"

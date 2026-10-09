@@ -30,14 +30,19 @@ function PlansContent() {
               <ChevronLeft className="w-5 h-5" />
               <span>{t('employer:plans.back')}</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => setTopUp(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              {t('employer:plans.quickTopUp')}
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link href="/employer/my-plans" className="text-sm text-primary-50 hover:underline whitespace-nowrap">
+                {t('employer:myPlans.navLabel')}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setTopUp(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                {t('employer:plans.quickTopUp')}
+              </button>
+            </div>
           </div>
 
           <PricingPlans />

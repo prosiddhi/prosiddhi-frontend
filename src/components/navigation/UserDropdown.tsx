@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck, ClipboardList } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl, teamAPI } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -39,10 +39,12 @@ export function UserDropdown() {
   const settingsHref = isEmployer ? '/employer/settings' : '/settings'
 
   // Ledger is owner-only on the backend (a MEMBER seat gets a 403 NOT_OWNER —
-  // see employer/ledger/page.tsx). AuthUser carries no seat role (checked
-  // EmployerProfile and Wallet too — neither has one), and there's no
-  // existing cache to read it from: react-query is a listed dependency but
-  // has no QueryClientProvider anywhere in the app. `getEntitlements()` (any
+  // see employer/ledger/page.tsx). AuthUser carries no seat role (nor does
+  // EmployerProfile). The credits Wallet does carry `role`, but reading it here
+  // would mean a second fetch of the whole wallet on every employer page, and
+  // useCredits() is uncached, so there's no existing cache to read it from:
+  // react-query is a listed dependency but has no QueryClientProvider anywhere
+  // in the app. `getEntitlements()` (any
   // seat may read it, same as `getTeam()`) answers this with no roster —
   // no member names/emails, no invite tokens — unlike `employer/team/page.tsx`,
   // which genuinely needs the full `getTeam()` roster for its own listing.
@@ -335,6 +337,16 @@ export function UserDropdown() {
                 >
                   <CreditCard className="w-4 h-4 text-gray-700" />
                   <span className="text-sm text-gray-900">{t('employer:plans.navLabel')}</span>
+                </Link>
+
+                <Link
+                  href="/employer/my-plans"
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <ClipboardList className="w-4 h-4 text-gray-700" />
+                  <span className="text-sm text-gray-900">{t('employer:myPlans.navLabel')}</span>
                 </Link>
 
                 <Link

@@ -518,6 +518,52 @@
     "acceptSchedule": "Accept & Schedule",
     "accept": "Accept"
   },
+  "myPlans": {
+    "navLabel": "My Plans",
+    "viewLink": "View my plans",
+    "back": "Back to dashboard",
+    "title": "My Plans",
+    "subtitle": "The plans and packs you have bought, and the dates they run.",
+    "loading": "Loading your plans…",
+    "error": "Couldn't load your plans.",
+    "seats": "Seats",
+    "seatsValue": "{{used}} of {{total}} used",
+    "lastPlanEnds": "Your last plan ends on {{date}}.",
+    "ownerBuysNote": "Only the account owner can buy or renew plans.",
+    "balanceNote": "This is what is left across all your plans and packs together.",
+    "grace": "Your plans have ended. Jobs already live stay up for a few more days. Buy a plan to keep hiring.",
+    "plansHeading": "Your plans",
+    "seatsNote": "Seats are shared. Your team gets the seats of the biggest plan, not the total of all plans.",
+    "group": {
+      "starter": "Starter",
+      "pro": "Pro"
+    },
+    "billing": {
+      "monthly": "Monthly",
+      "quarterly": "Every 3 months",
+      "halfYearly": "Every 6 months",
+      "yearly": "Yearly",
+      "lifetime": "Lifetime"
+    },
+    "started": "Started",
+    "ends": "Ends",
+    "endsSoon": "Ends soon",
+    "endingNow": "Ending now",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "seatsIncluded_one": "Includes {{count}} seat",
+    "seatsIncluded_other": "Includes {{count}} seats",
+    "granted": "Granted with this plan",
+    "packsHeading": "Packs and free trial",
+    "freeTrial": "Free trial",
+    "neverExpires": "Never expires",
+    "left": "Left",
+    "neverBoughtTitle": "No plans yet",
+    "neverBoughtBody": "You haven't bought a plan or pack yet. Pick one to start hiring.",
+    "browsePlans": "See plans",
+    "noneRunningTitle": "No plan is running right now",
+    "noneRunningBody": "Your earlier plans have ended. Buy a plan to keep hiring."
+  },
   "docsReview": {
     "title": "Your documents are being reviewed",
     "sla": "We review your documents within 48 hours."
