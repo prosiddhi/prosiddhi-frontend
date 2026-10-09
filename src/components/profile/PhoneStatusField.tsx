@@ -13,6 +13,7 @@ export function PhoneStatusField({
   verifiedText,
   changeLabel,
   onChangeClick,
+  hideChange = false,
 }: {
   label: string
   phoneNumber: string
@@ -22,6 +23,8 @@ export function PhoneStatusField({
   verifiedText: string
   changeLabel: string
   onChangeClick: () => void
+  /** Temporarily removes the Change Phone action (the number is still shown). */
+  hideChange?: boolean
 }) {
   return (
     <div>
@@ -32,7 +35,7 @@ export function PhoneStatusField({
       {phoneNumber && verified && (
         <p className="text-xs mt-0.5 text-green-600">{verifiedText}</p>
       )}
-      {editing && (
+      {editing && !hideChange && (
         <button
           type="button"
           onClick={onChangeClick}
