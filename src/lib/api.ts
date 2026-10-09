@@ -204,8 +204,22 @@ export function duplicateIdentifierField(err: unknown): BusinessIdentifierField 
   return field === 'gstNumber' || field === 'registrationNumber' ? field : null
 }
 
-// Helper function for API requests. Returns the unwrapped `.data` payload.
-async function apiRequest<T>(
+/**
+ * Thrown when a request given a `timeoutMs` (see `apiRequest`) is still running
+ * when the time is up. Not an `ApiError`: no HTTP response arrived, so there is
+ * no status to branch on. Like a deliberate abort, it does not raise the app-wide
+ * offline banner.
+ */
+export class RequestTimeoutError extends Error {
+  constructor() {
+    super('The request took too long.')
+    this.name = 'RequestTimeoutError'
+  }
+}
+
+// The request itself: auth header, error classification, central 401 handling.
+// Returns the unwrapped `.data` payload. Callers use `apiRequest` below.
+async function performRequest<T>(
   endpoint: string,
   {
     preserveSessionOnCode,
@@ -340,6 +354,49 @@ async function apiRequest<T>(
     return (json as ApiEnvelope<T>).data
   }
   return json as T
+}
+
+/**
+ * `performRequest` plus an OPT-IN time limit. Without `timeoutMs` this is a
+ * straight pass-through, so every existing call behaves exactly as before: uploads
+ * and slow reports must not inherit a default limit.
+ *
+ * With `timeoutMs` the whole request (headers AND body) is aborted when the time
+ * is up and the caller gets a `RequestTimeoutError`. A caller's own `signal` still
+ * works and is forwarded. There is deliberately no retry here: a timeout can fire
+ * after the server has already acted, so only a caller that knows its request is a
+ * harmless read may decide to try again.
+ */
+async function apiRequest<T>(
+  endpoint: string,
+  { timeoutMs, ...options }: Parameters<typeof performRequest>[1] & { timeoutMs?: number } = {}
+): Promise<T> {
+  if (timeoutMs === undefined) return performRequest<T>(endpoint, options)
+
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+  const callerSignal = options.signal
+  const forwardAbort = () => controller.abort()
+  if (callerSignal?.aborted) controller.abort()
+  else callerSignal?.addEventListener('abort', forwardAbort, { once: true })
+
+  try {
+    return await performRequest<T>(endpoint, { ...options, signal: controller.signal })
+  } catch (err) {
+    // Only our own abort becomes a timeout. A real HTTP error that was already
+    // classified (an ApiError, with its status and code) must keep its identity.
+    if (timedOut && err instanceof DOMException && err.name === 'AbortError') {
+      throw new RequestTimeoutError()
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+    callerSignal?.removeEventListener('abort', forwardAbort)
+  }
 }
 
 // ==========================================
@@ -1657,6 +1714,10 @@ export interface JobApplication {
   [key: string]: unknown
 }
 
+// How long a dashboard panel waits before giving up. Generous on purpose: the portal
+// is used on slow mobile networks, and a proxy usually answers sooner with its own 504.
+const DASHBOARD_TIMEOUT_MS = 20_000
+
 // Employer dashboard shapes (GET /api/employers/dashboard/*).
 export interface EmployerDashboardStats {
   totalJobPosts: number
@@ -1893,17 +1954,24 @@ export const employerAPI = {
   },
 
   // Dashboard. GET /api/employers/dashboard/{stats,jobs,recent-applications}
-  getDashboardStats: async () => {
-    return apiRequest<EmployerDashboardStats>('/employers/dashboard/stats')
+  // All three are harmless reads, so they carry a time limit; `signal` lets the page
+  // cancel one on unmount or when a retry replaces it.
+  getDashboardStats: async (opts?: { signal?: AbortSignal }) => {
+    return apiRequest<EmployerDashboardStats>('/employers/dashboard/stats', {
+      signal: opts?.signal,
+      timeoutMs: DASHBOARD_TIMEOUT_MS,
+    })
   },
-  getDashboardJobs: async (page = 1, limit = 10) => {
+  getDashboardJobs: async (page = 1, limit = 10, opts?: { signal?: AbortSignal }) => {
     return apiRequest<EmployerDashboardJobsPage>(
-      `/employers/dashboard/jobs?page=${page}&limit=${limit}`
+      `/employers/dashboard/jobs?page=${page}&limit=${limit}`,
+      { signal: opts?.signal, timeoutMs: DASHBOARD_TIMEOUT_MS }
     )
   },
-  getRecentApplications: async (limit = 10) => {
+  getRecentApplications: async (limit = 10, opts?: { signal?: AbortSignal }) => {
     return apiRequest<{ applications: RecentApplication[]; count: number }>(
-      `/employers/dashboard/recent-applications?limit=${limit}`
+      `/employers/dashboard/recent-applications?limit=${limit}`,
+      { signal: opts?.signal, timeoutMs: DASHBOARD_TIMEOUT_MS }
     )
   },
 

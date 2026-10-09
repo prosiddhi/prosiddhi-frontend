@@ -322,7 +322,14 @@
     "posted": "Posted {{time}}",
     "recentApplications": "Recent Applications",
     "applicantFallback": "Applicant",
-    "noApplications": "No applications yet. They'll appear here as candidates apply."
+    "noApplications": "No applications yet. They'll appear here as candidates apply.",
+    "errors": {
+      "stats": "We couldn't load your dashboard numbers. Please try again.",
+      "jobs": "We couldn't load your jobs. Please try again.",
+      "applications": "We couldn't load your recent applications. Please try again.",
+      "rateLimited": "Too many requests. Please wait a few minutes and try again.",
+      "noAccess": "This information isn't available for your account."
+    }
   },
   "jobs": {
     "logoAlt": "ProSiddhi",
