@@ -8,7 +8,7 @@ function EmployerSettingsContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployerHeader />
-      <SettingsView />
+      <SettingsView showFooter={false} />
     </div>
   )
 }

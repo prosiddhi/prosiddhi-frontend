@@ -40,7 +40,7 @@ function passwordPairProblem(password: string, confirmation: string): string | n
  * for an employer): identical settings either side, only the surrounding
  * chrome differs, and each page supplies its own header for that.
  */
-export function SettingsView() {
+export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
   const { language, setLanguage } = useLanguagePreference()
@@ -555,7 +555,7 @@ export function SettingsView() {
         />
       )}
 
-      <Footer />
+      {showFooter && <Footer />}
     </>
   )
 }

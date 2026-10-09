@@ -283,7 +283,7 @@ function ConversationThread({ conversation, myId, isSeeker, onBack, onRead, onMe
  * Builds its own `?c=<id>` URL off `usePathname()` rather than a hardcoded
  * `/messages`, so it lands on whichever of the two routes it's mounted under.
  */
-export function MessagesView() {
+export function MessagesView({ showFooter = true }: { showFooter?: boolean }) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
@@ -451,7 +451,7 @@ export function MessagesView() {
         </div>
       </main>
 
-      <Footer />
+      {showFooter && <Footer />}
     </>
   )
 }

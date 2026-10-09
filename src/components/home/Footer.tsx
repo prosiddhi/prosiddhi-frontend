@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
+import { useAuth } from '@/contexts/AuthContext'
 
 /**
  * Footer — every link here goes somewhere real.
@@ -26,9 +27,21 @@ import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
  * passes 'seeker' and the employer landing page 'employer', so each only links
  * to its own side. The default shows both, which is what every other page and
  * the main landing page want. Company and Legal always show.
+ *
+ * A signed-in job seeker never sees the employer column, whatever `audience` the
+ * page passed — the footer is shared by public pages a seeker also visits.
  */
 export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'employer' }) {
   const { t } = useTranslation('legal')
+  const { user, isLoading } = useAuth()
+  const isSeeker = user?.role === 'JOB_SEEKER'
+  const showEmployers = audience !== 'seeker' && !isSeeker
+  // The role is unknown until the stored session has been read, so a seeker could
+  // otherwise see the employer column for a moment. While waiting, the column
+  // keeps its space but is invisible: a seeker never sees it, and an employer or
+  // visitor sees no layout shift when it appears.
+  const employersPending = showEmployers && isLoading
+  const layoutAudience = audience === 'all' && isSeeker ? 'seeker' : audience
 
   // inline-flex + min-h-[44px]: these were 18px-tall lines of text, the worst
   // tap targets in the app (TD-20). The footer gets taller; that is the trade.
@@ -45,7 +58,7 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
   // the three columns become siblings of one row and `justify-between` spaces
   // all four evenly, with the logo on the left edge and the last column flush
   // right. Below lg nothing changes: the logo stacks above the columns.
-  const filtered = audience !== 'all'
+  const filtered = layoutAudience !== 'all'
   const colClass = filtered ? 'sm:flex-initial' : 'sm:flex-auto'
 
   // py-10, not py-12/lg:py-16. The Figma footer block is ~330px tall and this
@@ -113,8 +126,8 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
                 </ul>
               </div>
             )}
-            {audience !== 'seeker' && (
-              <div className={colClass}>
+            {showEmployers && (
+              <div className={employersPending ? `${colClass} invisible` : colClass} aria-hidden={employersPending || undefined}>
                 <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.employers')}</h3>
                 <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                   <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>

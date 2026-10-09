@@ -8,7 +8,7 @@ function EmployerMessagesContent() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployerHeader />
-      <MessagesView />
+      <MessagesView showFooter={false} />
     </div>
   )
 }

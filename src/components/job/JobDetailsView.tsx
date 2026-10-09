@@ -76,6 +76,8 @@ interface JobDetailsViewProps {
    * anywhere else (feed, home, a typed URL), keeps the generic error.
    */
   unavailableOn404?: boolean
+  /** The employer preview page has no footer; every other page keeps it. */
+  showFooter?: boolean
 }
 
 /**
@@ -91,7 +93,7 @@ interface JobDetailsViewProps {
  * false by `ProtectedRoute requiredRole="employer"`, so those sections simply
  * never render there, with no separate employer-specific markup to maintain.
  */
-export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetailsViewProps) {
+export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter = true }: JobDetailsViewProps) {
   const { t } = useTranslation()
   const params = useParams()
   const jobId = String(params?.id ?? '')
@@ -597,7 +599,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404 }: JobDetai
         </div>
       </main>
 
-      <Footer />
+      {showFooter && <Footer />}
 
       {job && (
         <ApplyModal

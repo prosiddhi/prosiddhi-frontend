@@ -16,6 +16,7 @@ function EmployerJobDetailsContent() {
       <JobDetailsView
         backLabel={t('employer:jobEdit.backToMyJobs')}
         onBack={() => router.push('/employer/jobs')}
+        showFooter={false}
       />
     </div>
   )
