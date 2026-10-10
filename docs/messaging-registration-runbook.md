@@ -199,17 +199,20 @@ unique **19-digit Entity ID (PE ID)** by email. *Approval: 1–3 days.*
 explicitly link **MSG91 as your Telemarketer (TM)**. Without this link, MSG91 is not authorised to send on
 your headers and every message fails — even with a valid Entity ID and approved templates.
 
-**B4. Register the Header (sender ID).** Submit `PRSDHI` (decision D2). It must be exactly 6 alphabetic
+**B4. Register the Header (sender ID).** ✅ **Done — `AZKASH` approved 2026-10-08** (the third choice; `PRSDHI` was not used). Originally: submit `PRSDHI` (decision D2). It must be exactly 6 alphabetic
 characters and unique across the DLT system. Category: **not promotional**. *Approval: 1–3 days. Free.*
 
 **B5. Register the content templates.**
 
-> ⚠️ **The single most common rejection.** Do **not** select the **`Transactional`** category. On the DLT
-> portal that category is reserved for **banks and financial institutions**. ProSiddhi is not a bank, so an
-> OTP template filed as `Transactional` **will be rejected**.
+> ⚠️ **Corrected 2026-10-10 — Airtel wants `Transactional`.** This runbook used to say `Service Implicit`.
+> Airtel rejected our first OTP template filed that way (ref TEM212466495601204: *"Kindly upload template in
+> Transactional category"*). On Airtel, file OTP templates as **Type of Communication: `Transactional`**,
+> Category `OTHERS`, header **`AZKASH`** (approved 2026-10-08; `PRSDHI` was not used).
 >
-> **Select `Service Implicit`.** This is the correct category for OTPs sent by non-banking businesses, and it
-> still delivers 24×7 to numbers on the Do Not Disturb registry — which is what we need.
+> **Variable tagging (TRAI direction, 18 Nov 2025):** every variable must be tagged. The OTP variable is
+> **Numeric** (digits only; our codes are 6 digits, backend `crypto.ts:37`). The variable's Description field
+> does not allow `{` or `}` — describe it in words, e.g. *6-digit one-time password (OTP) sent to the user to
+> verify their phone number*.
 
 Templates must match the sent message **character for character**, with variables marked `{#var#}`.
 Two are enough for v1 (drafted in Appendix B). *Approval: 1–3 days each. Free.*
@@ -342,7 +345,7 @@ Director
 
 ## Appendix B — SMS templates to register (DLT)
 
-Category for **both**: **`Service Implicit`** — *not* `Transactional`. See §B5.
+Type of Communication for **both**: **`Transactional`** (Airtel, corrected 2026-10-10). Category `OTHERS`. Header `AZKASH`. See §B5. Both submitted 2026-10-10.
 
 The 10-minute validity below matches the backend's configured OTP expiry. Do not change the wording without
 telling engineering, because DLT matches the sent message character-for-character against the registered text.
@@ -383,9 +386,9 @@ Each will need a Hindi variant before code freeze.
 | **Principal Entity (PE)** | Us — the business whose messages these are. Gets a 19-digit Entity ID. |
 | **Telemarketer (TM)** | MSG91 — the company that physically sends on our behalf. |
 | **PE–TM Chain** | The link on the portal saying "MSG91 is allowed to send as us." Easy to forget; nothing works without it. |
-| **Header / Sender ID** | The 6-letter name the SMS appears to come from. Ours will be `PRSDHI`. |
+| **Header / Sender ID** | The 6-letter name the SMS appears to come from. Ours is **`AZKASH`** (approved 2026-10-08). |
 | **Content Template** | The exact pre-approved text of a message, with `{#var#}` where the OTP goes. |
-| **Service Implicit** | The DLT category for OTPs from non-bank businesses. The correct one for us. |
+| **Transactional** | The DLT communication type Airtel requires for our OTP templates (corrected 2026-10-10; it rejected `Service Implicit`). |
 | **SPF / DKIM / DMARC** | Three DNS records proving our emails really came from us. Without them, mail lands in spam. |
 | **BSP** | Business Solution Provider — a Meta-approved reseller of WhatsApp API access. MSG91 is ours. |
 | **WABA** | WhatsApp Business Account — the Meta-side container for our WhatsApp number and templates. |
