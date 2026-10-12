@@ -1730,6 +1730,8 @@ export interface EmployerDashboardStats {
   rejectedApplications: number
   pendingApplications: number
   shortlistedApplications: number
+  // Absent on a backend older than df96861; the dashboard hides the tile then.
+  withdrawnApplications?: number
   activeJobs: number
   reviewedApplications: number
 }
@@ -1752,6 +1754,8 @@ export interface EmployerDashboardJob {
   rejectedCount: number
   pendingCount: number
   shortlistedCount: number
+  // Absent on a backend older than df96861; the card hides the count then.
+  withdrawnCount?: number
 }
 
 export interface EmployerDashboardJobsPage {
