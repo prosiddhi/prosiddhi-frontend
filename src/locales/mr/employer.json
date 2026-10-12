@@ -485,7 +485,13 @@
     "noneTitle": "इथे एकही उमेदवार नाही",
     "noneSearch": "तुमच्या शोधाशी जुळणारा एकही उमेदवार नाही.",
     "noneDefault": "नोकरी शोधणारे अर्ज करू लागले की उमेदवार इथे दिसतील.",
-    "applicantFallback": "अर्जदार"
+    "applicantFallback": "अर्जदार",
+    "jobBanner": {
+      "showing": "उमेदवार दाखवत आहे: {{title}}",
+      "showAll": "सर्व उमेदवार पहा",
+      "unavailable": "ही नोकरी तुमच्या खात्यासाठी उपलब्ध नाही.",
+      "thisJob": "ही नोकरी"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

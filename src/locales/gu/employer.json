@@ -485,7 +485,13 @@
     "noneTitle": "અહીં કોઈ ઉમેદવાર નથી",
     "noneSearch": "તમારી શોધ સાથે મેળ ખાતો કોઈ ઉમેદવાર નથી.",
     "noneDefault": "નોકરી શોધનારાઓ અરજી કરશે તેમ ઉમેદવારો અહીં દેખાશે.",
-    "applicantFallback": "અરજદાર"
+    "applicantFallback": "અરજદાર",
+    "jobBanner": {
+      "showing": "ઉમેદવારો બતાવી રહ્યા છીએ: {{title}}",
+      "showAll": "બધા ઉમેદવારો જુઓ",
+      "unavailable": "આ નોકરી તમારા ખાતા માટે ઉપલબ્ધ નથી.",
+      "thisJob": "આ નોકરી"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

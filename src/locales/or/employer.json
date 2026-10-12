@@ -485,7 +485,13 @@
     "noneTitle": "ଏଠାରେ କୌଣସି ପ୍ରାର୍ଥୀ ନାହାନ୍ତି",
     "noneSearch": "ଆପଣଙ୍କ ଖୋଜା ସହିତ ମେଳ ଖାଉଥିବା କୌଣସି ପ୍ରାର୍ଥୀ ନାହାନ୍ତି।",
     "noneDefault": "ଚାକିରି ଖୋଜୁଥିବା ଲୋକେ ଆବେଦନ କଲେ ପ୍ରାର୍ଥୀ ଏଠାରେ ଦେଖାଯିବେ।",
-    "applicantFallback": "ଆବେଦନକାରୀ"
+    "applicantFallback": "ଆବେଦନକାରୀ",
+    "jobBanner": {
+      "showing": "ପ୍ରାର୍ଥୀ ଦେଖାଯାଉଛନ୍ତି: {{title}}",
+      "showAll": "ସବୁ ପ୍ରାର୍ଥୀ ଦେଖନ୍ତୁ",
+      "unavailable": "ଏହି ଚାକିରି ଆପଣଙ୍କ ଖାତା ପାଇଁ ଉପଲବ୍ଧ ନୁହେଁ।",
+      "thisJob": "ଏହି ଚାକିରି"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

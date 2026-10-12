@@ -1818,6 +1818,16 @@ export interface EmployerApplicationItem {
   interview?: Interview | null
   [key: string]: unknown
 }
+// One row of GET /api/applications/employer/jobs: every job of the signed-in employer's
+// organisation, whatever its status. The BE does not declare this shape (openapi says
+// "not declared in code"), so it is read from the controller and checked on arrival.
+export interface EmployerJobListItem {
+  id: string
+  title: string
+  status?: string
+  _count?: { applications?: number }
+}
+
 export interface EmployerApplicationsPage {
   applications: EmployerApplicationItem[]
   pagination: JobsPagination
@@ -2034,6 +2044,16 @@ export const employerAPI = {
   // GET /api/applications/employer/all → { applications, pagination }
   // `isBookmarked: true` filters to bookmarked only. The BE also accepts false,
   // but the portal has no use for it, so false here means "no filter".
+  // The organisation's jobs, for a "which job is this filter?" lookup.
+  // GET /api/applications/employer/jobs → { jobs }. Org-scoped on the BE (teammates see
+  // the same list), unpaginated. A harmless read: time limit, and `signal` to cancel it.
+  getEmployerJobsList: async (opts?: { signal?: AbortSignal }) => {
+    return apiRequest<{ jobs: EmployerJobListItem[] }>('/applications/employer/jobs', {
+      signal: opts?.signal,
+      timeoutMs: DASHBOARD_TIMEOUT_MS,
+    })
+  },
+
   // A harmless read, so it carries a time limit; `signal` lets the page cancel it.
   getEmployerAllApplications: async (
     params: { page?: number; limit?: number; jobId?: string; status?: string; isBookmarked?: boolean; search?: string } = {},

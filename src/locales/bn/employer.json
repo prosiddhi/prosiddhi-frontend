@@ -485,7 +485,13 @@
     "noneTitle": "এখানে কোনও প্রার্থী নেই",
     "noneSearch": "আপনার খোঁজার সঙ্গে মেলে এমন কোনও প্রার্থী নেই।",
     "noneDefault": "চাকরিপ্রার্থীরা আবেদন করলে প্রার্থীদের এখানে দেখা যাবে।",
-    "applicantFallback": "আবেদনকারী"
+    "applicantFallback": "আবেদনকারী",
+    "jobBanner": {
+      "showing": "প্রার্থীদের দেখানো হচ্ছে: {{title}}",
+      "showAll": "সব প্রার্থী দেখুন",
+      "unavailable": "এই চাকরি আপনার অ্যাকাউন্টের জন্য পাওয়া যাচ্ছে না।",
+      "thisJob": "এই চাকরি"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

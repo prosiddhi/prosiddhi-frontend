@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { employerAPI, ApiError, type EmployerApplicationItem } from '@/lib/api'
+import { employerAPI, ApiError, type EmployerApplicationItem, type EmployerJobListItem } from '@/lib/api'
 import {
   candidateDetailUrl,
   candidatesUrl,
@@ -19,6 +19,7 @@ import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
   Search,
+  Briefcase,
   Bookmark,
   MapPin,
   Users,
@@ -61,7 +62,21 @@ function CandidatesContent() {
   // employer was. Anything invalid falls back to a default (All, page 1, no job).
   const tabKey = parseCandidateTab(searchParams.get('tab'))
   const urlPage = parseCandidatePage(searchParams.get('page'))
-  const jobId = parseCandidateJobId(searchParams.get('jobId'))
+  const rawJobId = searchParams.get('jobId')
+  const jobId = parseCandidateJobId(rawJobId)
+  // A job filter that is present but not a job id at all (the list ignores it).
+  const jobFilterMalformed = !!rawJobId && jobId === undefined
+
+  // The organisation's jobs, to say which job a valid `jobId` is — and whether it is one
+  // of this employer's. Fetched only while a valid `jobId` is in the URL, on its own, so
+  // it never holds up or fails the candidates list. 'error' is "could not check", not
+  // "not found": a failed lookup must not tell the employer the job does not exist.
+  const [jobsLookup, setJobsLookup] = useState<{
+    status: 'idle' | 'loading' | 'ready' | 'error'
+    jobs: EmployerJobListItem[]
+  }>({ status: 'idle', jobs: [] })
+  const needJobsLookup = jobId !== undefined
+  const jobsLoaded = jobsLookup.status === 'ready'
 
   const [searchDraft, setSearchDraft] = useState('')
   // The committed search. `null` until sessionStorage has been read (it cannot be during
@@ -123,6 +138,32 @@ function CandidatesContent() {
     if (ignoredPage !== null && urlPage !== ignoredPage) setIgnoredPage(null)
   }, [urlPage, ignoredPage])
 
+  // Looked up once and kept: clearing and picking a job again does not ask again. A
+  // failed lookup is tried again the next time a job filter appears.
+  useEffect(() => {
+    if (!needJobsLookup || jobsLoaded) return
+    let ignore = false
+    const controller = new AbortController()
+    setJobsLookup((prev) => ({ ...prev, status: 'loading' }))
+    employerAPI
+      .getEmployerJobsList({ signal: controller.signal })
+      .then((res) => {
+        // The shape is not declared by the BE, so check it before relying on it.
+        if (!Array.isArray(res?.jobs)) throw new Error('Unexpected jobs response')
+        if (!ignore) setJobsLookup({ status: 'ready', jobs: res.jobs })
+      })
+      .catch((err) => {
+        if (ignore) return
+        // A 401, or a 403 PASSWORD_CHANGE_REQUIRED, is already being redirected.
+        if (err instanceof ApiError && (err.status === 401 || err.code === 'PASSWORD_CHANGE_REQUIRED')) return
+        setJobsLookup((prev) => ({ ...prev, status: 'error' }))
+      })
+    return () => {
+      ignore = true
+      controller.abort()
+    }
+  }, [needJobsLookup, jobsLoaded])
+
   // Filter changes drop `page` from the URL, so they land on page 1.
   const goToTab = (next: CandidateTab) => {
     if (next === tabKey) return
@@ -152,6 +193,31 @@ function CandidatesContent() {
     if (urlPage > 1) {
       setIgnoredPage(urlPage)
       router.replace(candidatesUrl({ tab: tabKey, jobId }), { scroll: false })
+    }
+  }
+
+  // What the job filter is, for the banner above the search. `null` = no job filter.
+  //   unavailable  malformed id, or a valid id that is not one of this organisation's jobs
+  //   showing      the job's title, or "this job" when the lookup could not be made
+  //   checking     the lookup is still running
+  let jobBanner:
+    | { kind: 'unavailable' }
+    | { kind: 'showing'; title: string }
+    | { kind: 'checking' }
+    | null = null
+  if (jobFilterMalformed) {
+    jobBanner = { kind: 'unavailable' }
+  } else if (jobId) {
+    if (jobsLookup.status === 'ready') {
+      const job = jobsLookup.jobs.find((j) => typeof j?.id === 'string' && j.id.toLowerCase() === jobId.toLowerCase())
+      const title = typeof job?.title === 'string' ? job.title.trim() : ''
+      jobBanner = job
+        ? { kind: 'showing', title: title || t('employer:candidates.jobBanner.thisJob') }
+        : { kind: 'unavailable' }
+    } else if (jobsLookup.status === 'error') {
+      jobBanner = { kind: 'showing', title: t('employer:candidates.jobBanner.thisJob') }
+    } else {
+      jobBanner = { kind: 'checking' }
     }
   }
 
@@ -280,6 +346,42 @@ function CandidatesContent() {
               <div className="h-4 sm:h-[18px] w-40 bg-gray-200 rounded animate-pulse" aria-hidden="true" />
             )}
           </div>
+
+          {/* Which job the list is filtered to. Clearing drops only the job: the tab stays,
+              the page returns to 1 and the stored search is untouched. */}
+          {jobBanner && (
+            <div
+              role="status"
+              className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+                jobBanner.kind === 'unavailable'
+                  ? 'bg-amber-50 border-amber-200 text-amber-800'
+                  : 'bg-blue-50 border-blue-100 text-secondary-70'
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                {jobBanner.kind === 'unavailable' ? (
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                ) : (
+                  <Briefcase className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                )}
+                {jobBanner.kind === 'checking' ? (
+                  <span className="h-4 w-48 animate-pulse rounded bg-blue-100" aria-hidden="true" />
+                ) : (
+                  <span className="min-w-0 break-words font-medium">
+                    {jobBanner.kind === 'unavailable'
+                      ? t('employer:candidates.jobBanner.unavailable')
+                      : t('employer:candidates.jobBanner.showing', { title: jobBanner.title })}
+                  </span>
+                )}
+              </div>
+              <Link
+                href={candidatesUrl({ tab: tabKey })}
+                className="font-medium underline underline-offset-2 hover:no-underline"
+              >
+                {t('employer:candidates.jobBanner.showAll')}
+              </Link>
+            </div>
+          )}
 
           {/* Search */}
           <div className="flex gap-3 mb-6 max-w-xl">

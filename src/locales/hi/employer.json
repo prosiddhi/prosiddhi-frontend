@@ -485,7 +485,13 @@
     "noneTitle": "यहां कोई उम्मीदवार नहीं",
     "noneSearch": "आपकी खोज से मेल खाने वाला कोई उम्मीदवार नहीं।",
     "noneDefault": "जैसे ही आवेदक आवेदन करेंगे, उम्मीदवार यहां दिखाई देंगे।",
-    "applicantFallback": "आवेदक"
+    "applicantFallback": "आवेदक",
+    "jobBanner": {
+      "showing": "{{title}} के लिए उम्मीदवार दिखाए जा रहे हैं",
+      "showAll": "सभी उम्मीदवार दिखाएं",
+      "unavailable": "यह नौकरी आपके खाते के लिए उपलब्ध नहीं है।",
+      "thisJob": "इस नौकरी"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

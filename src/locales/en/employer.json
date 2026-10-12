@@ -485,7 +485,13 @@
     "noneTitle": "No candidates here",
     "noneSearch": "No candidates match your search.",
     "noneDefault": "Candidates will appear here as seekers apply.",
-    "applicantFallback": "Applicant"
+    "applicantFallback": "Applicant",
+    "jobBanner": {
+      "showing": "Showing candidates for {{title}}",
+      "showAll": "Show all candidates",
+      "unavailable": "This job isn't available for your account.",
+      "thisJob": "this job"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",

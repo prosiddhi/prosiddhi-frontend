@@ -485,7 +485,13 @@
     "noneTitle": "ಇಲ್ಲಿ ಯಾವ ಅಭ್ಯರ್ಥಿಯೂ ಇಲ್ಲ",
     "noneSearch": "ನಿಮ್ಮ ಹುಡುಕಾಟಕ್ಕೆ ಹೊಂದುವ ಅಭ್ಯರ್ಥಿ ಇಲ್ಲ.",
     "noneDefault": "ಕೆಲಸ ಹುಡುಕುವವರು ಅರ್ಜಿ ಹಾಕಿದಂತೆ ಅಭ್ಯರ್ಥಿಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತಾರೆ.",
-    "applicantFallback": "ಅರ್ಜಿದಾರ"
+    "applicantFallback": "ಅರ್ಜಿದಾರ",
+    "jobBanner": {
+      "showing": "ಅಭ್ಯರ್ಥಿಗಳನ್ನು ತೋರಿಸಲಾಗುತ್ತಿದೆ: {{title}}",
+      "showAll": "ಎಲ್ಲಾ ಅಭ್ಯರ್ಥಿಗಳನ್ನು ನೋಡಿ",
+      "unavailable": "ಈ ಕೆಲಸ ನಿಮ್ಮ ಖಾತೆಗೆ ಲಭ್ಯವಿಲ್ಲ.",
+      "thisJob": "ಈ ಕೆಲಸ"
+    }
   },
   "candidateDetail": {
     "logoAlt": "ProSiddhi",
