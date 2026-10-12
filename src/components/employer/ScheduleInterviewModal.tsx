@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, CalendarClock, Loader2, AlertCircle } from 'lucide-react'
-import { employerAPI } from '@/lib/api'
+import { employerAPI, fieldErrorsByPath } from '@/lib/api'
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean
@@ -12,6 +12,12 @@ interface ScheduleInterviewModalProps {
   candidateName: string
   /** Called after the accept (with or without interview) succeeds. */
   onAccepted: () => void
+}
+
+// BE validation paths for the accept body (validateBody joins the Zod path with '.').
+const INTERVIEW_ERROR_KEYS: Record<string, string> = {
+  'interview.date': 'interviewErrors.date',
+  'interview.time': 'interviewErrors.time',
 }
 
 // Today as yyyy-mm-dd from LOCAL parts. toISOString() would give the UTC date,
@@ -73,7 +79,24 @@ export function ScheduleInterviewModal({
       await employerAPI.acceptApplication(applicationId, body)
       onAccepted()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('employer:scheduleInterview.acceptFailed'))
+      // Translate the BE's field errors by PATH (the English text can change).
+      // Only when every failing field is one we know; otherwise keep the old
+      // message so an unmapped error is never hidden.
+      const messages: string[] = []
+      let allKnown = true
+      for (const path of Object.keys(fieldErrorsByPath(err))) {
+        const key = INTERVIEW_ERROR_KEYS[path]
+        if (!key) {
+          allKnown = false
+          break
+        }
+        messages.push(t(key))
+      }
+      if (allKnown && messages.length > 0) {
+        setError(messages.join(' '))
+      } else {
+        setError(err instanceof Error ? err.message : t('employer:scheduleInterview.acceptFailed'))
+      }
     } finally {
       setSubmitting(false)
     }
