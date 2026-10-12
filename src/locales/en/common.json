@@ -22,6 +22,7 @@
     "companies": "Companies",
     "savedJobs": "Saved Jobs",
     "messages": "Messages",
+    "messagesAriaWithCount": "Messages, {{count}} unread",
     "notifications": "Notifications",
     "profile": "Profile",
     "dashboard": "Dashboard",
@@ -266,5 +267,9 @@
     "contact": "Contact Us",
     "help": "Help",
     "deleteAccount": "Delete Account"
+  },
+  "interviewErrors": {
+    "date": "Pick a real date that is today or later.",
+    "time": "Enter a valid time, like 10:30 AM or 14:30."
   }
 }

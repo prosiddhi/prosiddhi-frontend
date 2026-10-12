@@ -22,6 +22,7 @@
     "companies": "କମ୍ପାନୀ",
     "savedJobs": "ସେଭ୍ କରିଥିବା ଚାକିରି",
     "messages": "ମେସେଜ୍",
+    "messagesAriaWithCount": "ମେସେଜ୍, {{count}} ଅପଠିତ",
     "notifications": "ସୂଚନା",
     "profile": "ପ୍ରୋଫାଇଲ୍",
     "dashboard": "ଡ୍ୟାସବୋର୍ଡ",
@@ -266,5 +267,9 @@
     "contact": "ଯୋଗାଯୋଗ କରନ୍ତୁ",
     "help": "ସହାୟତା",
     "deleteAccount": "ଖାତା ଡିଲିଟ୍ କରନ୍ତୁ"
+  },
+  "interviewErrors": {
+    "date": "ଆଜି କିମ୍ବା ତା’ପରର ଏକ ସଠିକ୍ ତାରିଖ ବାଛନ୍ତୁ।",
+    "time": "ସଠିକ୍ ସମୟ ଲେଖନ୍ତୁ, ଯେପରି 10:30 AM କିମ୍ବା 14:30।"
   }
 }

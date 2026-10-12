@@ -22,6 +22,7 @@
     "companies": "कंपन्या",
     "savedJobs": "जतन केलेल्या नोकऱ्या",
     "messages": "संदेश",
+    "messagesAriaWithCount": "संदेश, {{count}} न वाचलेले",
     "notifications": "सूचना",
     "profile": "प्रोफाइल",
     "dashboard": "डॅशबोर्ड",
@@ -266,5 +267,9 @@
     "contact": "आमच्याशी संपर्क साधा",
     "help": "मदत",
     "deleteAccount": "खाते हटवा"
+  },
+  "interviewErrors": {
+    "date": "आजची किंवा त्यानंतरची योग्य तारीख निवडा.",
+    "time": "योग्य वेळ लिहा, उदा. 10:30 AM किंवा 14:30."
   }
 }

@@ -22,6 +22,7 @@
     "companies": "কোম্পানি",
     "savedJobs": "সেভ করা চাকরি",
     "messages": "মেসেজ",
+    "messagesAriaWithCount": "মেসেজ, {{count}}টি পড়া হয়নি",
     "notifications": "নোটিফিকেশন",
     "profile": "প্রোফাইল",
     "dashboard": "ড্যাশবোর্ড",
@@ -266,5 +267,9 @@
     "contact": "যোগাযোগ করুন",
     "help": "সহায়তা",
     "deleteAccount": "অ্যাকাউন্ট মুছে ফেলুন"
+  },
+  "interviewErrors": {
+    "date": "আজ বা তার পরের একটি সঠিক তারিখ বেছে নিন।",
+    "time": "সঠিক সময় লিখুন, যেমন 10:30 AM বা 14:30।"
   }
 }
