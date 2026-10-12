@@ -22,6 +22,7 @@
     "companies": "কোম্পানি",
     "savedJobs": "সেভ করা চাকরি",
     "messages": "মেসেজ",
+    "messagesAriaWithCount": "মেসেজ, {{count}}টি পড়া হয়নি",
     "notifications": "নোটিফিকেশন",
     "profile": "প্রোফাইল",
     "dashboard": "ড্যাশবোর্ড",

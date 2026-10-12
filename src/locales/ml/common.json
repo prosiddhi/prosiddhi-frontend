@@ -22,6 +22,7 @@
     "companies": "കമ്പനികൾ",
     "savedJobs": "സേവ് ചെയ്ത ജോലികൾ",
     "messages": "സന്ദേശങ്ങൾ",
+    "messagesAriaWithCount": "സന്ദേശങ്ങൾ, {{count}} എണ്ണം വായിക്കാത്തത്",
     "notifications": "അറിയിപ്പുകൾ",
     "profile": "പ്രൊഫൈൽ",
     "dashboard": "ഡാഷ്ബോർഡ്",

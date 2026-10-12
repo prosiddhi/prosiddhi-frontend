@@ -22,6 +22,7 @@
     "companies": "நிறுவனங்கள்",
     "savedJobs": "சேமித்த வேலைகள்",
     "messages": "செய்திகள்",
+    "messagesAriaWithCount": "செய்திகள், {{count}} படிக்காதவை",
     "notifications": "அறிவிப்புகள்",
     "profile": "சுயவிவரம்",
     "dashboard": "டாஷ்போர்டு",

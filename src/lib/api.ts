@@ -2769,6 +2769,11 @@ export const chatAPI = {
     return apiRequest<Conversation[]>('/conversations')
   },
 
+  // GET /api/conversations/unread-count → { count } (the Mail icon badge).
+  unreadCount: async () => {
+    return apiRequest<{ count: number }>('/conversations/unread-count')
+  },
+
   // POST /api/conversations → start or return the existing conversation.
   startConversation: async (recipientId: string, jobId?: string) => {
     return apiRequest<Conversation>('/conversations', {

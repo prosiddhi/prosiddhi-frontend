@@ -22,6 +22,7 @@
     "companies": "ಕಂಪನಿಗಳು",
     "savedJobs": "ಉಳಿಸಿದ ಕೆಲಸಗಳು",
     "messages": "ಸಂದೇಶಗಳು",
+    "messagesAriaWithCount": "ಸಂದೇಶಗಳು, {{count}} ಓದಿಲ್ಲ",
     "notifications": "ಸೂಚನೆಗಳು",
     "profile": "ಪ್ರೊಫೈಲ್",
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",

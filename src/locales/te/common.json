@@ -22,6 +22,7 @@
     "companies": "కంపెనీలు",
     "savedJobs": "సేవ్ చేసిన ఉద్యోగాలు",
     "messages": "సందేశాలు",
+    "messagesAriaWithCount": "సందేశాలు, {{count}} చదవనివి",
     "notifications": "నోటిఫికేషన్లు",
     "profile": "ప్రొఫైల్",
     "dashboard": "డాష్‌బోర్డ్",

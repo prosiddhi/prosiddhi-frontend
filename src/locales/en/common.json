@@ -22,6 +22,7 @@
     "companies": "Companies",
     "savedJobs": "Saved Jobs",
     "messages": "Messages",
+    "messagesAriaWithCount": "Messages, {{count}} unread",
     "notifications": "Notifications",
     "profile": "Profile",
     "dashboard": "Dashboard",

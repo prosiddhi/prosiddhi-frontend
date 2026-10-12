@@ -22,6 +22,7 @@
     "companies": "કંપનીઓ",
     "savedJobs": "સાચવેલી નોકરીઓ",
     "messages": "સંદેશા",
+    "messagesAriaWithCount": "સંદેશા, {{count}} વાંચ્યા વગરના",
     "notifications": "સૂચનાઓ",
     "profile": "પ્રોફાઇલ",
     "dashboard": "ડેશબોર્ડ",

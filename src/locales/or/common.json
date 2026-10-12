@@ -22,6 +22,7 @@
     "companies": "କମ୍ପାନୀ",
     "savedJobs": "ସେଭ୍ କରିଥିବା ଚାକିରି",
     "messages": "ମେସେଜ୍",
+    "messagesAriaWithCount": "ମେସେଜ୍, {{count}} ଅପଠିତ",
     "notifications": "ସୂଚନା",
     "profile": "ପ୍ରୋଫାଇଲ୍",
     "dashboard": "ଡ୍ୟାସବୋର୍ଡ",

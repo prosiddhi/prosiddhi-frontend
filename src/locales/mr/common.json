@@ -22,6 +22,7 @@
     "companies": "कंपन्या",
     "savedJobs": "जतन केलेल्या नोकऱ्या",
     "messages": "संदेश",
+    "messagesAriaWithCount": "संदेश, {{count}} न वाचलेले",
     "notifications": "सूचना",
     "profile": "प्रोफाइल",
     "dashboard": "डॅशबोर्ड",
