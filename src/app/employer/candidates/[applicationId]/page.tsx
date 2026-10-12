@@ -8,7 +8,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
-import { statusMeta } from '@/lib/applicationStatus'
+import { employerStatusMeta } from '@/lib/applicationStatus'
 import { candidatesReturnUrl } from '@/lib/candidatesNav'
 import {
   ChevronLeft,
@@ -133,7 +133,7 @@ function CandidateDetailContent() {
   }
 
   const seeker = app?.jobSeeker
-  const meta = statusMeta(app?.status)
+  const meta = employerStatusMeta(app?.status)
   const skills = seeker?.skills ?? []
   const experience = seeker?.workExperience ?? []
   const documents = seeker?.documents ?? []

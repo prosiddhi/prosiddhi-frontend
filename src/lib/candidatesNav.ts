@@ -10,7 +10,15 @@ import { safeInternalPath } from '@/lib/safeRedirect'
 const CANDIDATES_PATH = '/employer/candidates'
 
 /** The list's tabs. The page's own tab table is typed against this, so they cannot drift. */
-export const CANDIDATE_TABS = ['all', 'accepted', 'shortlisted', 'rejected', 'bookmarked'] as const
+export const CANDIDATE_TABS = [
+  'all',
+  'pending',
+  'accepted',
+  'shortlisted',
+  'rejected',
+  'withdrawn',
+  'bookmarked',
+] as const
 export type CandidateTab = (typeof CANDIDATE_TABS)[number]
 
 // Past any real list, but small enough that the BE is never asked for an absurd offset.

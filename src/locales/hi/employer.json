@@ -475,9 +475,11 @@
     "search": "खोजें",
     "tabs": {
       "all": "सभी",
+      "pending": "लंबित",
       "accepted": "स्वीकृत",
       "shortlisted": "शॉर्टलिस्ट किए गए",
       "rejected": "अस्वीकृत",
+      "withdrawn": "वापस लिया गया",
       "bookmarked": "बुकमार्क किए गए"
     },
     "loading": "उम्मीदवार लोड हो रहे हैं...",

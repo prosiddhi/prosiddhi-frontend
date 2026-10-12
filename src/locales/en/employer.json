@@ -475,9 +475,11 @@
     "search": "Search",
     "tabs": {
       "all": "All",
+      "pending": "Pending",
       "accepted": "Accepted",
       "shortlisted": "Shortlisted",
       "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
       "bookmarked": "Bookmarked"
     },
     "loading": "Loading candidates...",

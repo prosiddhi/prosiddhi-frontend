@@ -45,6 +45,17 @@ export function statusMeta(status?: string): StatusMeta {
 }
 
 /**
+ * `statusMeta` for the employer's own screens. The only difference is PENDING: a seeker
+ * reads "Applied" (they did the applying), but to the employer it is an application
+ * still "Pending" their decision. Kept apart from `statusMeta` so the seeker screens,
+ * which share that, keep their wording.
+ */
+export function employerStatusMeta(status?: string): StatusMeta {
+  const meta = statusMeta(status)
+  return status === 'PENDING' ? { ...meta, label: i18n.t('employer:candidates.tabs.pending') } : meta
+}
+
+/**
  * Job Details button once the seeker has applied. PENDING reads "Applied" (as on
  * My Applications), and a missing or unknown status falls back to it too, so only
  * the four other known statuses return their own label + pill.

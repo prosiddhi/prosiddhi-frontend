@@ -16,7 +16,7 @@ import {
   type CandidateTab,
 } from '@/lib/candidatesNav'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta } from '@/lib/applicationStatus'
+import { employerStatusMeta } from '@/lib/applicationStatus'
 import {
   Search,
   Briefcase,
@@ -36,9 +36,11 @@ type Tab = { key: CandidateTab; label: string; filter?: { status?: string; isBoo
 
 const TABS: Tab[] = [
   { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending', filter: { status: 'PENDING' } },
   { key: 'accepted', label: 'Accepted', filter: { status: 'ACCEPTED' } },
   { key: 'shortlisted', label: 'Shortlisted', filter: { status: 'SHORTLISTED' } },
   { key: 'rejected', label: 'Rejected', filter: { status: 'REJECTED' } },
+  { key: 'withdrawn', label: 'Withdrawn', filter: { status: 'WITHDRAWN' } },
   { key: 'bookmarked', label: 'Bookmarked', filter: { isBookmarked: true } },
 ]
 
@@ -457,7 +459,7 @@ function CandidatesContent() {
             {items.length > 0 && (
               <div className={`space-y-3 sm:space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
                 {items.map((app) => {
-                  const meta = statusMeta(app.status)
+                  const meta = employerStatusMeta(app.status)
                   const seeker = app.jobSeeker
                   return (
                     <Link

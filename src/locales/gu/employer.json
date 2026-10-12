@@ -475,9 +475,11 @@
     "search": "શોધો",
     "tabs": {
       "all": "બધા",
+      "pending": "બાકી",
       "accepted": "સ્વીકારેલા",
       "shortlisted": "શૉર્ટલિસ્ટ કરેલા",
       "rejected": "નકારેલા",
+      "withdrawn": "પાછી ખેંચેલી",
       "bookmarked": "બુકમાર્ક કરેલા"
     },
     "loading": "ઉમેદવારો લોડ થઈ રહ્યા છે...",

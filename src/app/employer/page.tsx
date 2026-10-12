@@ -8,7 +8,8 @@ import { CreditWallet } from '@/components/employer/CreditWallet'
 import { InlineError } from '@/components/feedback/InlineError'
 import { employerAPI, candidateAPI, ApiError } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta, jobStatusMeta, isJobAwaitingReview, isJobRejected } from '@/lib/applicationStatus'
+import { employerStatusMeta, jobStatusMeta, isJobAwaitingReview, isJobRejected } from '@/lib/applicationStatus'
+import { candidatesUrl } from '@/lib/candidatesNav'
 import { myJobsUrl, withReturnTo } from '@/lib/myJobsNav'
 import {
   Plus,
@@ -283,7 +284,7 @@ function EmployerDashboardContent() {
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4">
                     <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
-                    <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} href={candidatesUrl({ tab: 'pending' })} />
                     <StatTile label={t('employer:dashboard.stats.reviewed')} value={stats.reviewedApplications} icon={<Eye className="w-5 h-5" />} />
                     <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
                     <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
@@ -370,7 +371,7 @@ function EmployerDashboardContent() {
               {(recent) => recent.length > 0 ? (
                 <div className="space-y-3 sm:space-y-4">
                   {recent.map((app) => {
-                    const meta = statusMeta(app.status)
+                    const meta = employerStatusMeta(app.status)
                     return (
                       <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
                         <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">

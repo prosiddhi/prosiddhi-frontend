@@ -475,9 +475,11 @@
     "search": "शोधा",
     "tabs": {
       "all": "सर्व",
+      "pending": "प्रलंबित",
       "accepted": "स्वीकारले",
       "shortlisted": "शॉर्टलिस्ट केलेले",
       "rejected": "नाकारले",
+      "withdrawn": "मागे घेतले",
       "bookmarked": "बुकमार्क केलेले"
     },
     "loading": "उमेदवार लोड होत आहेत...",
