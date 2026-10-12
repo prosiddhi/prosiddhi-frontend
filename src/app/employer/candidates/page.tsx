@@ -15,6 +15,7 @@ import {
   Users,
   Loader2,
   AlertCircle,
+  ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
@@ -35,6 +36,8 @@ const TABS: Tab[] = [
 // limit window is 15 minutes, so asking again at once would only be refused again.
 const RATE_LIMIT_COOLDOWN_MS = 2 * 60 * 1000
 
+const PAGE_SIZE = 50
+
 function CandidatesContent() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
@@ -45,6 +48,17 @@ function CandidatesContent() {
   const [search, setSearch] = useState('')
   const [items, setItems] = useState<EmployerApplicationItem[]>([])
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  // The page belongs to the filters it was chosen under (tab, search, job). When any of
+  // them changes, the page is reset to 1 right here during render (React's supported
+  // way to adjust state when an input changes): React re-renders at once with the new
+  // state and the effect below sees only the settled value, so a filter change makes
+  // one request, and coming back to an earlier filter starts at page 1, not where that
+  // filter was left. `page` reads 1 for the pass that triggers the reset.
+  const filterKey = `${tabKey}\u0000${search}\u0000${jobId ?? ''}`
+  const [pageState, setPageState] = useState({ key: filterKey, page: 1 })
+  if (pageState.key !== filterKey) setPageState({ key: filterKey, page: 1 })
+  const page = pageState.key === filterKey ? pageState.page : 1
   const [loading, setLoading] = useState(true)
   // Why the last load failed ('' if it did not). A kind, not text, so the message is
   // translated at render and follows a language change.
@@ -107,24 +121,40 @@ function CandidatesContent() {
       // A 401, or a 403 PASSWORD_CHANGE_REQUIRED, has already started the central
       // redirect: stay on the spinner rather than flash an error or "no candidates".
       let redirecting = false
+      let pageChanged = false
       try {
         const res = await employerAPI.getEmployerAllApplications(
           {
-            page: 1,
-            limit: 50,
+            page,
+            limit: PAGE_SIZE,
             jobId,
             ...activeTab?.filter,
             search: search || undefined,
           },
           { signal: controller.signal }
         )
-        // A body without the list or the total is a failure, not an empty result.
-        if (!Array.isArray(res?.applications) || typeof res.pagination?.total !== 'number') {
+        // A body without the list, the total or the page count is a failure, not an
+        // empty result.
+        if (
+          !Array.isArray(res?.applications) ||
+          typeof res.pagination?.total !== 'number' ||
+          typeof res.pagination?.totalPages !== 'number'
+        ) {
           throw new Error('Unexpected applications response')
         }
-        if (!ignore) {
+        if (!ignore && res.applications.length === 0 && page > res.pagination.totalPages && page > 1) {
+          // This page no longer exists (rows were removed since it was opened): go to
+          // the last real page. Only when the page really is past the end: the BE counts
+          // and lists in two parallel queries, so an empty page with totalPages >= page
+          // is possible, and "correcting" to the same page would not reload and would
+          // leave the spinner up. Here the target is always a different page, so the
+          // load runs again and the spinner stays until it does.
+          pageChanged = true
+          setPageState({ key: filterKey, page: Math.max(1, res.pagination.totalPages) })
+        } else if (!ignore) {
           setItems(res.applications)
           setTotal(res.pagination.total)
+          setTotalPages(Math.max(1, res.pagination.totalPages))
         }
       } catch (err) {
         if (!ignore) {
@@ -140,7 +170,7 @@ function CandidatesContent() {
           setItems([])
         }
       } finally {
-        if (!ignore && !redirecting) {
+        if (!ignore && !redirecting && !pageChanged) {
           setLoading(false)
           setHasLoadedOnce(true)
         }
@@ -151,7 +181,13 @@ function CandidatesContent() {
       ignore = true
       controller.abort()
     }
-  }, [activeTab, search, jobId, reloadKey])
+  }, [activeTab, search, jobId, filterKey, page, reloadKey])
+
+  const goToPage = (next: number) => {
+    setPageState({ key: filterKey, page: next })
+    // The pager sits under up to 50 rows; bring the new page's first row into view.
+    resultsRef.current?.scrollIntoView({ block: 'start' })
+  }
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -281,6 +317,45 @@ function CandidatesContent() {
                     </Link>
                   )
                 })}
+              </div>
+            )}
+
+            {/* Pagination — same look as My Jobs. Buttons are disabled while a page loads,
+                so a second click cannot race the first. */}
+            {!error && items.length > 0 && totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10 lg:mt-12">
+                <button
+                  disabled={loading || page <= 1}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
+                  className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {totalPages <= 10 ? (
+                  Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      disabled={loading}
+                      onClick={() => goToPage(i + 1)}
+                      className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors disabled:cursor-not-allowed ${
+                        page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))
+                ) : (
+                  <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
+                )}
+
+                <button
+                  disabled={loading || page >= totalPages}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
+                  className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             )}
           </div>
