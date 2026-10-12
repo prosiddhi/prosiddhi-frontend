@@ -14,6 +14,15 @@ interface ScheduleInterviewModalProps {
   onAccepted: () => void
 }
 
+// Today as yyyy-mm-dd from LOCAL parts. toISOString() would give the UTC date,
+// which is still yesterday for an IST user in the early morning.
+function localToday(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
 // Accept-with-optional-interview. Mode dropdown is intentionally omitted — Q13
 // (interview mode picker) is deferred for a separate decision; web design has
 // only date/time/notes. The BE accept flow creates the Interview + flips status.
@@ -100,7 +109,7 @@ export function ScheduleInterviewModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.dateLabel')}</label>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  <input type="date" min={localToday()} value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.timeLabel')}</label>
