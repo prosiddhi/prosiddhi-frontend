@@ -80,6 +80,17 @@ export function isJobAwaitingReview(job: { status?: string; moderationStatus?: s
   return job.status !== 'ACTIVE' && !!m && m !== 'APPROVED' && m !== 'REJECTED'
 }
 
+/**
+ * Waiting for an admin to decide — whatever the job's own status. Unlike
+ * `isJobAwaitingReview` this is TRUE for a live (ACTIVE) job too: a content scan can
+ * flag a live post, which stays visible to seekers while it is re-checked. It is the
+ * BE's "pending" My Jobs tab (moderation neither APPROVED nor REJECTED).
+ */
+export function isJobUnderReview(job: { moderationStatus?: string }): boolean {
+  const m = job.moderationStatus
+  return !!m && m !== 'APPROVED' && m !== 'REJECTED'
+}
+
 /** An admin turned this post down. The BE also sets its status to CANCELLED. */
 export function isJobRejected(job: { moderationStatus?: string }): boolean {
   return job.moderationStatus === 'REJECTED'

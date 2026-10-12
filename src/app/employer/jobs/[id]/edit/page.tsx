@@ -1,10 +1,10 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { JobForm } from '@/components/job/JobForm'
 import {
   jobSeekerAPI,
@@ -14,7 +14,8 @@ import {
   type PaymentTypeValue,
   type UrgencyLevelValue,
 } from '@/lib/api'
-import { isJobAwaitingReview } from '@/lib/applicationStatus'
+import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
+import { myJobsReturnUrl, myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
@@ -24,6 +25,8 @@ function EditJobContent() {
   const router = useRouter()
   const params = useParams()
   const jobId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
+  // The My Jobs tab / page this edit was opened from; Back and a plain save return there.
+  const backUrl = myJobsReturnUrl(useSearchParams().get('from'))
 
   const [initial, setInitial] = useState<Partial<PostJobData> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -87,7 +90,9 @@ function EditJobContent() {
       // A material edit pulls an approved post back into review (and offline).
       // The BE reports it in the response, so we do not have to guess what counts.
       if (isJobAwaitingReview(job)) showToast(t('employer:jobs.noticeEdited'), 'info')
-      router.push('/employer/jobs')
+      // A post that is now waiting for review lives in the Pending Review tab, wherever
+      // the edit started; otherwise go back to the tab and page it was opened from.
+      router.push(isJobUnderReview(job) ? myJobsUrl('pending') : backUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('employer:jobEdit.saveFailed'))
       setSubmitting(false)
@@ -100,7 +105,7 @@ function EditJobContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
-          <Link href="/employer/jobs" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
+          <Link href={backUrl} className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:jobEdit.backToMyJobs')}</span>
           </Link>
@@ -132,7 +137,10 @@ function EditJobContent() {
 export default function EditJobPage() {
   return (
     <ProtectedRoute requiredRole="employer">
-      <EditJobContent />
+      {/* useSearchParams needs a Suspense boundary for the production build */}
+      <Suspense>
+        <EditJobContent />
+      </Suspense>
     </ProtectedRoute>
   )
 }

@@ -9,7 +9,8 @@ import { JobForm } from '@/components/job/JobForm'
 import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
 import { employerAPI, type PostJobData } from '@/lib/api'
-import { isJobAwaitingReview } from '@/lib/applicationStatus'
+import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
+import { myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
@@ -43,9 +44,11 @@ function NewJobContent() {
       const job = await employerAPI.postJob(data)
       // Pre-moderation: a new post is offline until an admin approves it. Say so,
       // or the employer wonders why it is not live. My Jobs keeps the row's
-      // "Awaiting review" pill after this toast is gone.
+      // "Under Review" pill after this toast is gone. It lands on the Pending Review
+      // tab: the default Active tab only lists live posts, so the new one would not be
+      // there.
       if (isJobAwaitingReview(job)) showToast(t('employer:jobs.noticePosted'), 'info')
-      router.push('/employer/jobs')
+      router.push(myJobsUrl(isJobUnderReview(job) ? 'pending' : 'active'))
     } catch (err) {
       const message = err instanceof Error ? err.message : t('employer:jobNew.publishFailed')
       if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {

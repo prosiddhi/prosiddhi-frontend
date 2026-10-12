@@ -336,7 +336,9 @@
     "postJob": "Post a Job",
     "title": "My Jobs",
     "tabs": {
+      "pending": "Pending Review",
       "active": "Active",
+      "inactive": "Inactive",
       "expired": "Expired",
       "rejected": "Rejected"
     },
@@ -366,7 +368,13 @@
     "noRejectedBody": "Jobs our team did not approve appear here, with the reason.",
     "rejected": "Rejected",
     "rejectionReason": "Reason from our team",
-    "rejectionReasonMissing": "No reason was given."
+    "rejectionReasonMissing": "No reason was given.",
+    "noPendingTitle": "No jobs pending review",
+    "noPendingBody": "New and edited jobs wait here until our team approves them.",
+    "noInactiveTitle": "No inactive jobs",
+    "noInactiveBody": "Jobs you pause appear here. You can resume them for free until their live period ends.",
+    "underReview": "Under Review",
+    "underReviewLiveHint": "This job is live while our team re-checks it."
   },
   "jobNew": {
     "logoAlt": "ProSiddhi",

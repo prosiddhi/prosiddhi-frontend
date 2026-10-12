@@ -1,12 +1,20 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { employerAPI, ApiError, type Job } from '@/lib/api'
-import { jobStatusMeta, isJobAwaitingReview, isJobRejected, canActivateJob } from '@/lib/applicationStatus'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { employerAPI, ApiError, type EmployerJobTab, type Job } from '@/lib/api'
+import {
+  jobStatusMeta,
+  isJobAwaitingReview,
+  isJobRejected,
+  isJobUnderReview,
+  canActivateJob,
+} from '@/lib/applicationStatus'
 import { formatSalary, humanizeJobType, relativeTime, localizeLocation } from '@/lib/jobFormat'
+import { myJobsUrl, parseJobTab, parsePage, withReturnTo } from '@/lib/myJobsNav'
 import {
   Plus,
   MapPin,
@@ -22,27 +30,49 @@ import {
   AlertCircle,
   Briefcase,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { showToast } from '@/lib/toast'
 
-// The keys are the BE's `?tab=` values. `cancelled` is what an admin rejection
-// leaves behind, and is shown to the employer as "Rejected".
-type Tab = 'active' | 'expired' | 'cancelled'
+const PAGE_SIZE = 10
 
-// What an empty tab says. Literal keys, so they stay greppable.
-const EMPTY_COPY: Record<Tab, { title: string; body: string }> = {
+// What an empty tab says. Literal keys, so they stay greppable. `cancelled` is what an
+// admin rejection leaves behind, and is shown to the employer as "Rejected".
+const EMPTY_COPY: Record<EmployerJobTab, { title: string; body: string }> = {
+  pending: { title: 'employer:jobs.noPendingTitle', body: 'employer:jobs.noPendingBody' },
   active: { title: 'employer:jobs.noActiveTitle', body: 'employer:jobs.noActiveBody' },
+  inactive: { title: 'employer:jobs.noInactiveTitle', body: 'employer:jobs.noInactiveBody' },
   expired: { title: 'employer:jobs.noExpiredTitle', body: 'employer:jobs.noExpiredBody' },
   cancelled: { title: 'employer:jobs.noRejectedTitle', body: 'employer:jobs.noRejectedBody' },
 }
 
 function MyJobsContent() {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('active')
+  const router = useRouter()
+
+  // Tab and page live in the URL so refresh, Back and a shared link land where the
+  // employer was, and View / Edit can return here. Anything that is not a known tab /
+  // positive integer falls back to Active / page 1, as the BE does for an unknown tab.
+  const searchParams = useSearchParams()
+  const tab = parseJobTab(searchParams.get('tab'))
+  const page = parsePage(searchParams.get('page'))
+  const here = myJobsUrl(tab, page)
+  // Clicking the tab you are already on (page 1) changes nothing, so it adds no history entry.
+  const goToTab = (next: EmployerJobTab) => {
+    if (next === tab && page === 1) return
+    router.push(myJobsUrl(next, 1), { scroll: false })
+  }
+  const goToPage = (next: number) => router.push(myJobsUrl(tab, next), { scroll: false })
+
   const rejectedTab = tab === 'cancelled'
+  // Edit and Delete are for posts still inside their paid window. An expired post is
+  // Activate-only (the BE refuses to edit it) and a rejected one is finished.
+  const editableTab = tab === 'pending' || tab === 'active' || tab === 'inactive'
   const [jobs, setJobs] = useState<Job[]>([])
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -51,30 +81,47 @@ function MyJobsContent() {
   const [notice, setNotice] = useState('')
   // Re-listing an expired job with no post credits left opens the top-up pop-up.
   const [topUp, setTopUp] = useState(false)
+  // Five tabs overflow a phone, so the selected one is scrolled into view.
+  const tabButtons = useRef<Partial<Record<EmployerJobTab, HTMLButtonElement | null>>>({})
+
+  useEffect(() => {
+    tabButtons.current[tab]?.scrollIntoView?.({ block: 'nearest', inline: 'center' })
+  }, [tab])
 
   useEffect(() => {
     let ignore = false
+    let redirected = false
     const run = async () => {
       setLoading(true)
       setError('')
       try {
         // The BE splits the tabs itself, so nothing is filtered here.
-        const res = await employerAPI.getMyJobs(1, 50, tab)
-        if (!ignore) setJobs(res.jobs)
+        const res = await employerAPI.getMyJobs(page, PAGE_SIZE, tab)
+        if (!ignore && res.jobs.length === 0 && page > res.pagination.totalPages && res.pagination.totalPages > 0) {
+          // The last row of this page just went (deleted, paused, moved tab), or a stale
+          // ?page= is past the end: jump to the last real page. Only when that is a
+          // DIFFERENT page — redirecting to the one already shown would not refetch and
+          // would leave the spinner up.
+          redirected = true
+          router.replace(myJobsUrl(tab, res.pagination.totalPages), { scroll: false })
+        } else if (!ignore) {
+          setJobs(res.jobs)
+          setTotalPages(res.pagination.totalPages || 1)
+        }
       } catch (err) {
         if (!ignore) {
           setError(err instanceof Error ? err.message : t('employer:jobs.loadFailed'))
           setJobs([])
         }
       } finally {
-        if (!ignore) setLoading(false)
+        if (!ignore && !redirected) setLoading(false)
       }
     }
     run()
     return () => {
       ignore = true
     }
-  }, [tab, reloadKey])
+  }, [tab, page, reloadKey, router])
 
   // Auto-dismiss the transient success notice.
   useEffect(() => {
@@ -106,7 +153,7 @@ function MyJobsContent() {
     // Re-listing a job whose paid window has ended spends 1 Job Post, so ask
     // first. The Expired tab is exactly those jobs — the BE picks it with the same
     // test it bills on, so we do not re-test on the device clock. Resuming a job
-    // still inside its window (Active tab) is free: no prompt.
+    // still inside its window (Inactive tab) is free: no prompt.
     if (tab === 'expired' && !window.confirm(t('employer:jobs.confirmRelist'))) return
     runAction(() => employerAPI.activateJob(job.id), job.id)
   }
@@ -128,6 +175,14 @@ function MyJobsContent() {
     }
   }
 
+  const tabs: { key: EmployerJobTab; label: string }[] = [
+    { key: 'pending', label: t('employer:jobs.tabs.pending') },
+    { key: 'active', label: t('employer:jobs.tabs.active') },
+    { key: 'inactive', label: t('employer:jobs.tabs.inactive') },
+    { key: 'expired', label: t('employer:jobs.tabs.expired') },
+    { key: 'cancelled', label: t('employer:jobs.tabs.rejected') },
+  ]
+
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
       <EmployerHeader />
@@ -145,14 +200,14 @@ function MyJobsContent() {
 
           {/* Tabs */}
           <div className="flex gap-2 sm:gap-3 mb-6 border-b border-gray-200 overflow-x-auto overflow-y-hidden">
-            {([
-              { key: 'active', label: t('employer:jobs.tabs.active') },
-              { key: 'expired', label: t('employer:jobs.tabs.expired') },
-              { key: 'cancelled', label: t('employer:jobs.tabs.rejected') },
-            ] as { key: Tab; label: string }[]).map((tabItem) => (
+            {tabs.map((tabItem) => (
               <button
                 key={tabItem.key}
-                onClick={() => setTab(tabItem.key)}
+                ref={(el) => {
+                  tabButtons.current[tabItem.key] = el
+                }}
+                aria-current={tab === tabItem.key ? 'page' : undefined}
+                onClick={() => goToTab(tabItem.key)}
                 className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
                   tab === tabItem.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
@@ -197,9 +252,15 @@ function MyJobsContent() {
               {jobs.map((job) => {
                 const busy = actioningId === job.id
                 const isActive = job.status === 'ACTIVE'
-                const badge = jobStatusMeta(job)
                 const awaitingReview = isJobAwaitingReview(job)
                 const rejected = isJobRejected(job)
+                // In the Pending Review tab every row is waiting for an admin — a live one
+                // included (a content scan re-queues a live post without taking it down), and
+                // `jobStatusMeta` would call that one plain "Active".
+                const underReview = tab === 'pending' && isJobUnderReview(job)
+                const badge = underReview
+                  ? { label: t('employer:jobs.underReview'), pill: 'bg-amber-50 text-amber-700' }
+                  : jobStatusMeta(job)
                 return (
                   <div key={job.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-6">
@@ -210,6 +271,9 @@ function MyJobsContent() {
                         </div>
                         {awaitingReview && (
                           <p className="text-sm text-amber-700 mb-2">{t('employer:jobs.awaitingReviewHint')}</p>
+                        )}
+                        {underReview && isActive && (
+                          <p className="text-sm text-amber-700 mb-2">{t('employer:jobs.underReviewLiveHint')}</p>
                         )}
                         {rejected && (
                           <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -231,18 +295,20 @@ function MyJobsContent() {
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2">
                         {/* An expired job can still be viewed and its applicants read;
-                            only editing and deleting stay on the Active tab. A
-                            rejected job gets View only. */}
+                            only editing and deleting are limited to posts still inside
+                            their paid window. A rejected job gets View only. */}
                         {!rejectedTab && (
                           <Link href={`/employer/candidates?jobId=${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                             <Users className="w-4 h-4" /> {t('employer:jobs.candidates')}
                           </Link>
                         )}
-                        <Link href={`/employer/jobs/${job.id}`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                        <Link href={withReturnTo(`/employer/jobs/${job.id}`, here)} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                           <Eye className="w-4 h-4" /> {t('employer:jobs.view')}
                         </Link>
-                        {tab === 'active' && (
-                          <Link href={`/employer/jobs/${job.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                        {/* Edit is hidden for a rejected post (the BE refuses it); Delete is not —
+                            the BE lets an employer delete any of their own posts. */}
+                        {editableTab && !rejected && (
+                          <Link href={withReturnTo(`/employer/jobs/${job.id}/edit`, here)} className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
                             <Pencil className="w-4 h-4" /> {t('employer:jobs.edit')}
                           </Link>
                         )}
@@ -263,7 +329,7 @@ function MyJobsContent() {
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} {t('employer:jobs.activate')}
                           </button>
                         )}
-                        {tab === 'active' && (
+                        {editableTab && (
                           <button
                             onClick={() => handleDelete(job.id)}
                             disabled={busy}
@@ -279,6 +345,43 @@ function MyJobsContent() {
               })}
             </div>
           )}
+
+          {/* Pagination */}
+          {!loading && !error && jobs.length > 0 && totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8 sm:mt-10 lg:mt-12">
+              <button
+                disabled={page <= 1}
+                onClick={() => goToPage(Math.max(1, page - 1))}
+                className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {totalPages <= 10 ? (
+                Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goToPage(i + 1)}
+                    className={`w-11 h-11 flex items-center justify-center rounded text-base transition-colors ${
+                      page === i + 1 ? 'bg-primary-50 text-primary-100' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))
+              ) : (
+                <span className="px-3 text-sm text-[#717182]">{t('seeker:jobFeed.pageOf', { page, total: totalPages })}</span>
+              )}
+
+              <button
+                disabled={page >= totalPages}
+                onClick={() => goToPage(Math.min(totalPages, page + 1))}
+                className="w-11 h-11 flex items-center justify-center border border-[#dddddd] rounded bg-[#eeeeee] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
@@ -290,7 +393,10 @@ function MyJobsContent() {
 export default function MyJobsPage() {
   return (
     <ProtectedRoute requiredRole="employer">
-      <MyJobsContent />
+      {/* useSearchParams needs a Suspense boundary for the production build */}
+      <Suspense>
+        <MyJobsContent />
+      </Suspense>
     </ProtectedRoute>
   )
 }

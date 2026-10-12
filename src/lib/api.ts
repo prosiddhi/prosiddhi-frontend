@@ -510,6 +510,10 @@ export interface Job {
   [key: string]: unknown
 }
 
+/** The five My Jobs tabs the BE serves via `?tab=`. `cancelled` is shown to employers as "Rejected". */
+export const EMPLOYER_JOB_TABS = ['pending', 'active', 'inactive', 'expired', 'cancelled'] as const
+export type EmployerJobTab = (typeof EMPLOYER_JOB_TABS)[number]
+
 export interface JobsPagination {
   total: number
   page: number
@@ -1984,11 +1988,13 @@ export const employerAPI = {
   },
 
   // Get employer's posted jobs. GET /api/jobs/employer/me/jobs?tab= → { jobs, pagination }
-  // The BE splits jobs by `liveUntil` into three exclusive tabs — active (live, or
-  // awaiting review), expired (paid window over; re-listing costs 1 POST credit)
-  // and cancelled (rejected by an admin) — so the client does no filtering.
-  // `tab` defaults to active, which is also what the BE serves when it is omitted.
-  getMyJobs: async (page = 1, limit = 10, tab: 'active' | 'expired' | 'cancelled' = 'active') => {
+  // The BE splits jobs into five exclusive tabs (see EMPLOYER_JOB_TABS) — pending
+  // review, active (live), inactive (paused), expired (paid window over; re-listing
+  // costs 1 POST credit) and cancelled (rejected by an admin) — so the client does no
+  // filtering. `tab` defaults to active, which is also what the BE serves when it is
+  // omitted. An UNKNOWN tab is also served as active, so a client that sends a tab an
+  // older BE does not know would show the Active list under the wrong heading.
+  getMyJobs: async (page = 1, limit = 10, tab: EmployerJobTab = 'active') => {
     return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}&tab=${tab}`)
   },
 
