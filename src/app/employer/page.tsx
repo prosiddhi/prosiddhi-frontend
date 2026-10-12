@@ -374,12 +374,12 @@ function EmployerDashboardContent() {
                     return (
                       <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
                         <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant.name)}</span>
+                          <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant?.name)}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant.name || t('employer:dashboard.applicantFallback')}</p>
-                          <p className="text-xs sm:text-sm text-[#717182] truncate">{app.job.title}</p>
-                          {app.applicant.location && (
+                          <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant?.name || t('employer:dashboard.applicantFallback')}</p>
+                          <p className="text-xs sm:text-sm text-[#717182] truncate">{app.job?.title}</p>
+                          {app.applicant?.location && (
                             <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5">
                               <MapPin className="w-3 h-3" /> {app.applicant.location}
                             </p>

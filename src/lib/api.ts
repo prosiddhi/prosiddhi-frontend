@@ -2030,8 +2030,10 @@ export const employerAPI = {
   // GET /api/applications/employer/all → { applications, pagination }
   // `isBookmarked: true` filters to bookmarked only. The BE also accepts false,
   // but the portal has no use for it, so false here means "no filter".
+  // A harmless read, so it carries a time limit; `signal` lets the page cancel it.
   getEmployerAllApplications: async (
-    params: { page?: number; limit?: number; jobId?: string; status?: string; isBookmarked?: boolean; search?: string } = {}
+    params: { page?: number; limit?: number; jobId?: string; status?: string; isBookmarked?: boolean; search?: string } = {},
+    opts?: { signal?: AbortSignal }
   ) => {
     const qs = new URLSearchParams()
     qs.set('page', String(params.page ?? 1))
@@ -2040,7 +2042,10 @@ export const employerAPI = {
     if (params.status) qs.set('status', params.status)
     if (params.isBookmarked) qs.set('isBookmarked', 'true')
     if (params.search) qs.set('search', params.search)
-    return apiRequest<EmployerApplicationsPage>(`/applications/employer/all?${qs.toString()}`)
+    return apiRequest<EmployerApplicationsPage>(`/applications/employer/all?${qs.toString()}`, {
+      signal: opts?.signal,
+      timeoutMs: DASHBOARD_TIMEOUT_MS,
+    })
   },
 
   // Full candidate detail (employer-gated). GET /api/applications/candidate/:applicationId

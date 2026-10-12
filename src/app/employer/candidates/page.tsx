@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { employerAPI, type EmployerApplicationItem } from '@/lib/api'
+import { employerAPI, ApiError, type EmployerApplicationItem } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
@@ -31,6 +31,10 @@ const TABS: Tab[] = [
   { key: 'bookmarked', label: 'Bookmarked', filter: { isBookmarked: true } },
 ]
 
+// After a 429 Retry stays disabled this long, as on the dashboard panels: the server's
+// limit window is 15 minutes, so asking again at once would only be refused again.
+const RATE_LIMIT_COOLDOWN_MS = 2 * 60 * 1000
+
 function CandidatesContent() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
@@ -42,9 +46,21 @@ function CandidatesContent() {
   const [items, setItems] = useState<EmployerApplicationItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  // Why the last load failed ('' if it did not). A kind, not text, so the message is
+  // translated at render and follows a language change.
+  const [error, setError] = useState<'' | 'failed' | 'rateLimited' | 'noAccess'>('')
   const [reloadKey, setReloadKey] = useState(0)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  // True once the Retry cooldown after a 429 is over. Reset on every load, so it is
+  // false from the first render of a rate-limited error (Retry never shows enabled).
+  const [cooledOff, setCooledOff] = useState(false)
+  const coolingDown = error === 'rateLimited' && !cooledOff
+
+  useEffect(() => {
+    if (error !== 'rateLimited') return
+    const timer = setTimeout(() => setCooledOff(true), RATE_LIMIT_COOLDOWN_MS)
+    return () => clearTimeout(timer)
+  }, [error])
 
   const activeTab = TABS.find((t) => t.key === tabKey)
 
@@ -83,28 +99,48 @@ function CandidatesContent() {
 
   useEffect(() => {
     let ignore = false
+    const controller = new AbortController()
     const run = async () => {
       setLoading(true)
       setError('')
+      setCooledOff(false)
+      // A 401, or a 403 PASSWORD_CHANGE_REQUIRED, has already started the central
+      // redirect: stay on the spinner rather than flash an error or "no candidates".
+      let redirecting = false
       try {
-        const res = await employerAPI.getEmployerAllApplications({
-          page: 1,
-          limit: 50,
-          jobId,
-          ...activeTab?.filter,
-          search: search || undefined,
-        })
+        const res = await employerAPI.getEmployerAllApplications(
+          {
+            page: 1,
+            limit: 50,
+            jobId,
+            ...activeTab?.filter,
+            search: search || undefined,
+          },
+          { signal: controller.signal }
+        )
+        // A body without the list or the total is a failure, not an empty result.
+        if (!Array.isArray(res?.applications) || typeof res.pagination?.total !== 'number') {
+          throw new Error('Unexpected applications response')
+        }
         if (!ignore) {
           setItems(res.applications)
           setTotal(res.pagination.total)
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : t('employer:candidates.loadFailed'))
+          if (err instanceof ApiError && (err.status === 401 || err.code === 'PASSWORD_CHANGE_REQUIRED')) {
+            redirecting = true
+          } else if (err instanceof ApiError && err.status === 403) {
+            setError('noAccess')
+          } else if (err instanceof ApiError && err.status === 429) {
+            setError('rateLimited')
+          } else {
+            setError('failed')
+          }
           setItems([])
         }
       } finally {
-        if (!ignore) {
+        if (!ignore && !redirecting) {
           setLoading(false)
           setHasLoadedOnce(true)
         }
@@ -113,6 +149,7 @@ function CandidatesContent() {
     run()
     return () => {
       ignore = true
+      controller.abort()
     }
   }, [activeTab, search, jobId, reloadKey])
 
@@ -177,8 +214,23 @@ function CandidatesContent() {
             {!loading && error && items.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-                <p className="text-red-600 mb-4 max-w-md">{error}</p>
-                <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">{t('buttons.retry')}</button>
+                <p className="text-red-600 mb-4 max-w-md">
+                  {error === 'noAccess'
+                    ? t('employer:dashboard.errors.noAccess')
+                    : error === 'rateLimited'
+                      ? t('employer:dashboard.errors.rateLimited')
+                      : t('employer:candidates.loadFailed')}
+                </p>
+                {/* A refusal (403) cannot change by asking again, so it gets no Retry. */}
+                {error !== 'noAccess' && (
+                  <button
+                    onClick={() => setReloadKey((k) => k + 1)}
+                    disabled={coolingDown}
+                    className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary-50"
+                  >
+                    {t('buttons.retry')}
+                  </button>
+                )}
               </div>
             )}
 
