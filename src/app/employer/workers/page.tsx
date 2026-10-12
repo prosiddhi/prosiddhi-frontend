@@ -13,6 +13,7 @@ import Link from 'next/link'
 import {
   candidateAPI,
   employerAPI,
+  type Job,
   type WorkerSnippet,
   type WorkerSearchPage,
   type UnlockedCandidate,
@@ -38,6 +39,21 @@ type Tab = 'search' | 'unlocked'
 
 const PAGE_SIZE = 12
 const MIN_QUERY = 2
+
+/** The most recently posted job of the lot (a job with no usable date counts as oldest). */
+function newestPosted(jobs: Job[]): Job | undefined {
+  let newest: Job | undefined
+  let newestAt = -Infinity
+  for (const job of jobs) {
+    const parsed = Date.parse(job.postedAt ?? '')
+    const at = Number.isNaN(parsed) ? -Infinity : parsed
+    if (!newest || at > newestAt) {
+      newest = job
+      newestAt = at
+    }
+  }
+  return newest
+}
 
 function WorkerCard({ w }: { w: WorkerSnippet }) {
   const { t } = useTranslation()
@@ -354,17 +370,30 @@ function WorkersSearchContent() {
     seededRef.current = true
     ;(async () => {
       try {
-        // Five, not one: `getMyJobs` has no status filter, so the newest row can
-        // be CANCELLED or INACTIVE while the copy says "your most recent job".
-        // Prefer a live one, fall back to the newest of any status rather than
-        // showing nothing.
-        const mine = await employerAPI.getMyJobs(1, 5)
-        const rows = mine.jobs ?? []
-        const latest = rows.find((j) => (j.status ?? '').toUpperCase() === 'ACTIVE') ?? rows[0]
+        // A live job first. `getMyJobs` serves the Active tab by default, which on the
+        // current backend is live posts only — so a post still waiting for review or
+        // one the employer paused is NOT in it. (An older backend mixed all three
+        // into Active, hence the status check on a handful of rows.)
+        const live = await employerAPI.getMyJobs(1, 5, 'active')
+        const liveRows = live.jobs ?? []
+        let latest: Job | undefined = liveRows.find((j) => (j.status ?? '').toUpperCase() === 'ACTIVE') ?? liveRows[0]
 
-        // Re-checked AFTER the await, and this is the reason the ref exists: the
-        // guard at the top of the effect ran before this request went out, so an
-        // employer who typed and pressed Search while it was in flight was
+        // No live job — typically a new employer whose first post is still awaiting
+        // review, which is exactly who this seed is for. Fall back to the newest post
+        // that is paused or pending review. Expired and rejected posts are left out:
+        // they are not "your most recent job". Both are asked for together and only
+        // when Active came back empty, so most employers pay for one request.
+        if (!latest) {
+          const [paused, pending] = await Promise.all([
+            employerAPI.getMyJobs(1, 5, 'inactive'),
+            employerAPI.getMyJobs(1, 5, 'pending'),
+          ])
+          latest = newestPosted([...(paused.jobs ?? []), ...(pending.jobs ?? [])])
+        }
+
+        // Re-checked AFTER every await above, and this is the reason the ref exists:
+        // the guard at the top of the effect ran before any request went out, so an
+        // employer who typed and pressed Search while they were in flight was
         // invisible to it.
         //
         // ⚠️ This line is NOT redundant with the identical check after the
