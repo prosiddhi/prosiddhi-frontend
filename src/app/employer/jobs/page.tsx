@@ -39,6 +39,10 @@ import { showToast } from '@/lib/toast'
 
 const PAGE_SIZE = 10
 
+// After a 429 Retry stays disabled this long, as on the dashboard panels: the server's
+// limit window is 15 minutes, so asking again at once would only be refused again.
+const RATE_LIMIT_COOLDOWN_MS = 2 * 60 * 1000
+
 // What an empty tab says. Literal keys, so they stay greppable. `cancelled` is what an
 // admin rejection leaves behind, and is shown to the employer as "Rejected".
 const EMPTY_COPY: Record<EmployerJobTab, { title: string; body: string }> = {
@@ -74,8 +78,20 @@ function MyJobsContent() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  // Why the last load failed ('' if it did not). A kind, not text, so the message is
+  // translated at render and follows a language change.
+  const [error, setError] = useState<'' | 'failed' | 'rateLimited' | 'noAccess'>('')
   const [reloadKey, setReloadKey] = useState(0)
+  // True once the Retry cooldown after a 429 is over. Reset on every load, so it is
+  // false from the first render of a rate-limited error (Retry never shows enabled).
+  const [cooledOff, setCooledOff] = useState(false)
+  const coolingDown = error === 'rateLimited' && !cooledOff
+
+  useEffect(() => {
+    if (error !== 'rateLimited') return
+    const timer = setTimeout(() => setCooledOff(true), RATE_LIMIT_COOLDOWN_MS)
+    return () => clearTimeout(timer)
+  }, [error])
   const [actioningId, setActioningId] = useState<string | null>(null)
   // Transient success notice (e.g. "1 post credit refunded" after a delete).
   const [notice, setNotice] = useState('')
@@ -91,12 +107,21 @@ function MyJobsContent() {
   useEffect(() => {
     let ignore = false
     let redirected = false
+    const controller = new AbortController()
     const run = async () => {
       setLoading(true)
       setError('')
+      setCooledOff(false)
+      // A 401, or a 403 PASSWORD_CHANGE_REQUIRED, has already started the central
+      // redirect: stay on the spinner rather than flash an error or an empty tab.
+      let redirecting = false
       try {
         // The BE splits the tabs itself, so nothing is filtered here.
-        const res = await employerAPI.getMyJobs(page, PAGE_SIZE, tab)
+        const res = await employerAPI.getMyJobs(page, PAGE_SIZE, tab, { signal: controller.signal })
+        // A body without the list or the page count is a failure, not an empty tab.
+        if (!Array.isArray(res?.jobs) || typeof res.pagination?.totalPages !== 'number') {
+          throw new Error('Unexpected jobs response')
+        }
         if (!ignore && res.jobs.length === 0 && page > res.pagination.totalPages && res.pagination.totalPages > 0) {
           // The last row of this page just went (deleted, paused, moved tab), or a stale
           // ?page= is past the end: jump to the last real page. Only when that is a
@@ -110,16 +135,25 @@ function MyJobsContent() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : t('employer:jobs.loadFailed'))
+          if (err instanceof ApiError && (err.status === 401 || err.code === 'PASSWORD_CHANGE_REQUIRED')) {
+            redirecting = true
+          } else if (err instanceof ApiError && err.status === 403) {
+            setError('noAccess')
+          } else if (err instanceof ApiError && err.status === 429) {
+            setError('rateLimited')
+          } else {
+            setError('failed')
+          }
           setJobs([])
         }
       } finally {
-        if (!ignore && !redirected) setLoading(false)
+        if (!ignore && !redirected && !redirecting) setLoading(false)
       }
     }
     run()
     return () => {
       ignore = true
+      controller.abort()
     }
   }, [tab, page, reloadKey, router])
 
@@ -227,10 +261,23 @@ function MyJobsContent() {
           {!loading && error && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
-              <p className="text-red-600 mb-4 max-w-md">{error}</p>
-              <button onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors">
-                {t('buttons.retry')}
-              </button>
+              <p className="text-red-600 mb-4 max-w-md">
+                {error === 'noAccess'
+                  ? t('employer:dashboard.errors.noAccess')
+                  : error === 'rateLimited'
+                    ? t('employer:dashboard.errors.rateLimited')
+                    : t('employer:jobs.loadFailed')}
+              </p>
+              {/* A refusal (403) cannot change by asking again, so it gets no Retry. */}
+              {error !== 'noAccess' && (
+                <button
+                  onClick={() => setReloadKey((k) => k + 1)}
+                  disabled={coolingDown}
+                  className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary-50"
+                >
+                  {t('buttons.retry')}
+                </button>
+              )}
             </div>
           )}
 

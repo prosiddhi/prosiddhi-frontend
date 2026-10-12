@@ -1994,8 +1994,12 @@ export const employerAPI = {
   // filtering. `tab` defaults to active, which is also what the BE serves when it is
   // omitted. An UNKNOWN tab is also served as active, so a client that sends a tab an
   // older BE does not know would show the Active list under the wrong heading.
-  getMyJobs: async (page = 1, limit = 10, tab: EmployerJobTab = 'active') => {
-    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}&tab=${tab}`)
+  // A harmless read, so it carries a time limit; `signal` lets the page cancel it.
+  getMyJobs: async (page = 1, limit = 10, tab: EmployerJobTab = 'active', opts?: { signal?: AbortSignal }) => {
+    return apiRequest<JobsPage>(`/jobs/employer/me/jobs?page=${page}&limit=${limit}&tab=${tab}`, {
+      signal: opts?.signal,
+      timeoutMs: DASHBOARD_TIMEOUT_MS,
+    })
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
