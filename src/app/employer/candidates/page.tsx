@@ -4,8 +4,16 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Suspense, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { employerAPI, ApiError, type EmployerApplicationItem } from '@/lib/api'
+import {
+  candidatesUrl,
+  parseCandidateJobId,
+  parseCandidatePage,
+  parseCandidateTab,
+  type CandidateTab,
+} from '@/lib/candidatesNav'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
 import {
@@ -22,7 +30,7 @@ import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 // `filter` is spread into the list request: a pipeline `status`, or the bookmark
 // flag (a bookmark is not a status). "All" has none.
-type Tab = { key: string; label: string; filter?: { status?: string; isBookmarked?: boolean } }
+type Tab = { key: CandidateTab; label: string; filter?: { status?: string; isBookmarked?: boolean } }
 
 const TABS: Tab[] = [
   { key: 'all', label: 'All' },
@@ -38,27 +46,38 @@ const RATE_LIMIT_COOLDOWN_MS = 2 * 60 * 1000
 
 const PAGE_SIZE = 50
 
+// The committed search lives here, not in the URL: it can be a name, an email or a phone
+// number. Per signed-in user, so a second account in the same tab never sees it.
+const SEARCH_STORAGE_PREFIX = 'prosiddhi:employer-candidates-search:'
+
 function CandidatesContent() {
   const { t } = useTranslation()
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const jobId = searchParams.get('jobId') ?? undefined
+  const { user } = useAuth()
 
-  const [tabKey, setTabKey] = useState('all')
+  // Tab, page and job live in the URL, so refresh, Back and Forward land where the
+  // employer was. Anything invalid falls back to a default (All, page 1, no job).
+  const tabKey = parseCandidateTab(searchParams.get('tab'))
+  const urlPage = parseCandidatePage(searchParams.get('page'))
+  const jobId = parseCandidateJobId(searchParams.get('jobId'))
+
   const [searchDraft, setSearchDraft] = useState('')
-  const [search, setSearch] = useState('')
+  // The committed search. `null` until sessionStorage has been read (it cannot be during
+  // server rendering), and the list waits for that so it never loads once without the
+  // stored search and again with it.
+  //
+  // It belongs to the session, not to a history entry: Back and Forward restore tab,
+  // page and job, but the search stays whatever was last committed.
+  const [search, setSearch] = useState<string | null>(null)
+  // A search change cannot also change the URL in the same instant, so while the URL
+  // still holds the old page (a router.replace to page 1 is on its way) that one page
+  // number is read as 1. Cleared as soon as the URL has moved on.
+  const [ignoredPage, setIgnoredPage] = useState<number | null>(null)
+  const page = urlPage === ignoredPage ? 1 : urlPage
   const [items, setItems] = useState<EmployerApplicationItem[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  // The page belongs to the filters it was chosen under (tab, search, job). When any of
-  // them changes, the page is reset to 1 right here during render (React's supported
-  // way to adjust state when an input changes): React re-renders at once with the new
-  // state and the effect below sees only the settled value, so a filter change makes
-  // one request, and coming back to an earlier filter starts at page 1, not where that
-  // filter was left. `page` reads 1 for the pass that triggers the reset.
-  const filterKey = `${tabKey}\u0000${search}\u0000${jobId ?? ''}`
-  const [pageState, setPageState] = useState({ key: filterKey, page: 1 })
-  if (pageState.key !== filterKey) setPageState({ key: filterKey, page: 1 })
-  const page = pageState.key === filterKey ? pageState.page : 1
   const [loading, setLoading] = useState(true)
   // Why the last load failed ('' if it did not). A kind, not text, so the message is
   // translated at render and follows a language change.
@@ -77,6 +96,63 @@ function CandidatesContent() {
   }, [error])
 
   const activeTab = TABS.find((t) => t.key === tabKey)
+
+  const searchStorageKey = user?.id ? `${SEARCH_STORAGE_PREFIX}${user.id}` : null
+
+  // Read the stored search once the signed-in user is known. Storage can be missing or
+  // blocked (private mode), and then there is simply no stored search. Without a user id
+  // there is no key to read, so release the list with an empty search (not saved) rather
+  // than leave it waiting on the spinner for a key that may never come.
+  useEffect(() => {
+    if (!searchStorageKey) {
+      setSearch((current) => current ?? '')
+      return
+    }
+    let stored = ''
+    try {
+      stored = window.sessionStorage.getItem(searchStorageKey) ?? ''
+    } catch {
+      // Blocked storage — start with no search.
+    }
+    setSearch(stored)
+    setSearchDraft(stored)
+  }, [searchStorageKey])
+
+  useEffect(() => {
+    if (ignoredPage !== null && urlPage !== ignoredPage) setIgnoredPage(null)
+  }, [urlPage, ignoredPage])
+
+  // Filter changes drop `page` from the URL, so they land on page 1.
+  const goToTab = (next: CandidateTab) => {
+    if (next === tabKey) return
+    router.push(candidatesUrl({ tab: next, jobId }), { scroll: false })
+  }
+
+  const goToPage = (next: number) => {
+    router.push(candidatesUrl({ tab: tabKey, jobId, page: next }), { scroll: false })
+    // The pager sits under up to 50 rows; bring the new page's first row into view.
+    resultsRef.current?.scrollIntoView({ block: 'start' })
+  }
+
+  const commitSearch = (raw: string) => {
+    const next = raw.trim()
+    setSearchDraft(next)
+    if (next === search) return
+    setSearch(next)
+    try {
+      if (searchStorageKey) {
+        if (next) window.sessionStorage.setItem(searchStorageKey, next)
+        else window.sessionStorage.removeItem(searchStorageKey)
+      }
+    } catch {
+      // Blocked storage — the search still applies for this page view.
+    }
+    // A new search starts at page 1.
+    if (urlPage > 1) {
+      setIgnoredPage(urlPage)
+      router.replace(candidatesUrl({ tab: tabKey, jobId }), { scroll: false })
+    }
+  }
 
   // The results area swaps between the spinner, an error, "no candidates",
   // and the list in one React commit (e.g. a tab with results -> an empty
@@ -112,6 +188,8 @@ function CandidatesContent() {
   }, [loading, error, items])
 
   useEffect(() => {
+    // Wait for the stored search (see `search`); the spinner shows until then.
+    if (search === null) return
     let ignore = false
     const controller = new AbortController()
     const run = async () => {
@@ -147,10 +225,11 @@ function CandidatesContent() {
           // the last real page. Only when the page really is past the end: the BE counts
           // and lists in two parallel queries, so an empty page with totalPages >= page
           // is possible, and "correcting" to the same page would not reload and would
-          // leave the spinner up. Here the target is always a different page, so the
-          // load runs again and the spinner stays until it does.
+          // leave the spinner up. Here the target is always a different page, so the URL
+          // changes, the load runs again, and the spinner stays until it does.
+          // Replaced, not pushed: the page that does not exist should not be a Back stop.
           pageChanged = true
-          setPageState({ key: filterKey, page: Math.max(1, res.pagination.totalPages) })
+          router.replace(candidatesUrl({ tab: tabKey, jobId, page: Math.max(1, res.pagination.totalPages) }), { scroll: false })
         } else if (!ignore) {
           setItems(res.applications)
           setTotal(res.pagination.total)
@@ -181,13 +260,7 @@ function CandidatesContent() {
       ignore = true
       controller.abort()
     }
-  }, [activeTab, search, jobId, filterKey, page, reloadKey])
-
-  const goToPage = (next: number) => {
-    setPageState({ key: filterKey, page: next })
-    // The pager sits under up to 50 rows; bring the new page's first row into view.
-    resultsRef.current?.scrollIntoView({ block: 'start' })
-  }
+  }, [activeTab, tabKey, search, jobId, page, reloadKey, router])
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -214,12 +287,12 @@ function CandidatesContent() {
               <input
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && setSearch(searchDraft.trim())}
+                onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchDraft)}
                 placeholder={t('employer:candidates.searchPlaceholder')}
                 className="w-full h-11 pl-10 pr-4 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50"
               />
             </div>
-            <button onClick={() => setSearch(searchDraft.trim())} className="h-11 px-5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm">
+            <button onClick={() => commitSearch(searchDraft)} className="h-11 px-5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm">
               {t('employer:candidates.search')}
             </button>
           </div>
@@ -229,7 +302,7 @@ function CandidatesContent() {
             {TABS.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setTabKey(tab.key)}
+                onClick={() => goToTab(tab.key)}
                 className={`px-3 sm:px-5 py-3 text-sm sm:text-base font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
                   tabKey === tab.key ? 'border-primary-50 text-primary-50' : 'border-transparent text-[#717182] hover:text-black'
                 }`}
