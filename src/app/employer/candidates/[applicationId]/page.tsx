@@ -1,13 +1,15 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { useParams, useSearchParams } from 'next/navigation'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
 import { statusMeta } from '@/lib/applicationStatus'
+import { candidatesReturnUrl } from '@/lib/candidatesNav'
 import {
   ChevronLeft,
   Mail,
@@ -27,7 +29,7 @@ import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 function CandidateDetailContent() {
   const { t } = useTranslation()
-  const router = useRouter()
+  const searchParams = useSearchParams()
   const params = useParams()
   const applicationId = Array.isArray(params.applicationId) ? params.applicationId[0] : (params.applicationId as string)
 
@@ -167,10 +169,13 @@ function CandidateDetailContent() {
 
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
+          {/* Back always goes to a candidates list: the one this was opened from (tab, page,
+              job), or else the list for this candidate's job. It is usable while the
+              candidate loads or fails, when only `from` can say where to go. */}
+          <Link href={candidatesReturnUrl(searchParams.get('from'), app?.job?.id)} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:candidateDetail.backToCandidates')}</span>
-          </button>
+          </Link>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[#717182]">
@@ -367,7 +372,10 @@ function CandidateDetailContent() {
 export default function CandidateDetailPage() {
   return (
     <ProtectedRoute requiredRole="employer">
-      <CandidateDetailContent />
+      {/* useSearchParams needs a Suspense boundary for the production build */}
+      <Suspense>
+        <CandidateDetailContent />
+      </Suspense>
     </ProtectedRoute>
   )
 }

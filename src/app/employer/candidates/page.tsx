@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { employerAPI, ApiError, type EmployerApplicationItem } from '@/lib/api'
 import {
+  candidateDetailUrl,
   candidatesUrl,
   parseCandidateJobId,
   parseCandidatePage,
@@ -359,7 +360,7 @@ function CandidatesContent() {
                   return (
                     <Link
                       key={app.id}
-                      href={`/employer/candidates/${app.id}`}
+                      href={candidateDetailUrl(app.id, candidatesUrl({ tab: tabKey, jobId, page }))}
                       className="block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
                     >
                       <div className="flex items-center gap-4">

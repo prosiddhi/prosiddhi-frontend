@@ -5,6 +5,8 @@
 // and a URL ends up in browser history and server logs. The page keeps it in
 // sessionStorage instead.
 
+import { safeInternalPath } from '@/lib/safeRedirect'
+
 const CANDIDATES_PATH = '/employer/candidates'
 
 /** The list's tabs. The page's own tab table is typed against this, so they cannot drift. */
@@ -50,4 +52,33 @@ export function candidatesUrl({
   if (page > 1) qs.set('page', String(page))
   const query = qs.toString()
   return query ? `${CANDIDATES_PATH}?${query}` : CANDIDATES_PATH
+}
+
+/** A candidate's detail link that remembers the list URL it was opened from. */
+export function candidateDetailUrl(applicationId: string, from: string): string {
+  return `${CANDIDATES_PATH}/${applicationId}?from=${encodeURIComponent(from)}`
+}
+
+/**
+ * Where the detail page's Back goes. `from` comes from the address bar, so it is not
+ * trusted: it must be an internal link to the candidates list itself, and even then only
+ * its tab, page and job are read — the URL that comes out is rebuilt from those validated
+ * values, never echoed, so no other parameter can ride along.
+ *
+ * Anything else (missing, another site, another page) falls back to the list for the
+ * candidate's own job, or the plain list when that job is not known (yet).
+ */
+export function candidatesReturnUrl(from: string | null, fallbackJobId?: string | null): string {
+  const safe = safeInternalPath(from)
+  if (safe) {
+    const url = new URL(safe, 'http://placeholder.invalid')
+    if (url.pathname === CANDIDATES_PATH) {
+      return candidatesUrl({
+        tab: parseCandidateTab(url.searchParams.get('tab')),
+        page: parseCandidatePage(url.searchParams.get('page')),
+        jobId: parseCandidateJobId(url.searchParams.get('jobId')),
+      })
+    }
+  }
+  return candidatesUrl({ jobId: parseCandidateJobId(fallbackJobId ?? null) })
 }
