@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Eye,
   XCircle,
+  Undo2,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
@@ -282,13 +283,16 @@ function EmployerDashboardContent() {
                   <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
                     {t('employer:dashboard.overviewTitle')}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
                     <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
                     <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} href={candidatesUrl({ tab: 'pending' })} />
                     <StatTile label={t('employer:dashboard.stats.reviewed')} value={stats.reviewedApplications} icon={<Eye className="w-5 h-5" />} />
                     <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
                     <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
                     <StatTile label={t('employer:candidates.tabs.rejected')} value={stats.rejectedApplications} icon={<XCircle className="w-5 h-5" />} />
+                    {typeof stats.withdrawnApplications === 'number' && (
+                      <StatTile label={t('employer:candidates.tabs.withdrawn')} value={stats.withdrawnApplications} icon={<Undo2 className="w-5 h-5" />} />
+                    )}
                   </div>
                 </section>
               </>
@@ -324,6 +328,9 @@ function EmployerDashboardContent() {
                           <span><span className="font-semibold text-black">{job.pendingCount}</span> {t('employer:dashboard.pendingCount')}</span>
                           <span><span className="font-semibold text-black">{job.shortlistedCount}</span> {t('employer:dashboard.shortlistedCount')}</span>
                           <span><span className="font-semibold text-black">{job.acceptedCount}</span> {t('employer:dashboard.acceptedCount')}</span>
+                          {typeof job.withdrawnCount === 'number' && (
+                            <span><span className="font-semibold text-black">{job.withdrawnCount}</span> <span className="lowercase">{t('employer:candidates.tabs.withdrawn')}</span></span>
+                          )}
                         </div>
                         {job.postedAt && (
                           <p className="mt-2 text-xs text-[#717182]">{t('employer:dashboard.posted', { time: relativeTime(job.postedAt) })}</p>
