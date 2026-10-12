@@ -8,7 +8,8 @@ import { CreditWallet } from '@/components/employer/CreditWallet'
 import { InlineError } from '@/components/feedback/InlineError'
 import { employerAPI, candidateAPI, ApiError } from '@/lib/api'
 import { relativeTime, initials } from '@/lib/jobFormat'
-import { statusMeta, jobStatusMeta, isJobRejected } from '@/lib/applicationStatus'
+import { statusMeta, jobStatusMeta, isJobAwaitingReview, isJobRejected } from '@/lib/applicationStatus'
+import { myJobsUrl, withReturnTo } from '@/lib/myJobsNav'
 import {
   Plus,
   Briefcase,
@@ -331,7 +332,11 @@ function EmployerDashboardContent() {
                     return clickable ? (
                       <Link
                         key={job.id}
-                        href={`/employer/candidates?jobId=${job.id}`}
+                        href={
+                          isJobAwaitingReview(job)
+                            ? withReturnTo(`/employer/jobs/${job.id}`, myJobsUrl('pending'))
+                            : `/employer/candidates?jobId=${job.id}`
+                        }
                         className={`${cardClass} cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150`}
                       >
                         {body}
