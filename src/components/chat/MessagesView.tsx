@@ -329,6 +329,9 @@ export function MessagesView({ showFooter = true }: { showFooter?: boolean }) {
     return () => {
       ignore = true
     }
+    // `t` is only the load-error fallback text. Listing it would re-run this effect
+    // (and refetch) on every language change, so it is deliberately left out.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey])
 
   const selectConversation = (id: string | null) => {

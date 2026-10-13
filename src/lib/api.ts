@@ -2853,7 +2853,7 @@ export const notificationAPI = {
 // If the admin-removal thread touches this file, this marker is the seam.
 
 // Export everything
-export default {
+const api = {
   authAPI,
   meAPI,
   otpAPI,
@@ -2867,3 +2867,5 @@ export default {
   chatAPI,
   notificationAPI,
 }
+
+export default api
