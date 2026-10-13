@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
@@ -90,7 +91,7 @@ export default function RegisterVerifyEmailPage() {
       update({ emailVerified: true })
       router.push('/register/categories')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:verifyEmail.errorInvalid'))
+      setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
       document.getElementById('eotp-0')?.focus()
     } finally {
@@ -108,7 +109,7 @@ export default function RegisterVerifyEmailPage() {
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:verifyEmail.errorResend'))
+      setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorResend'))
     } finally {
       setResendLoading(false)
     }

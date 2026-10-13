@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
@@ -77,7 +78,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       setOtp('')
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('profile:seeker.emailModal.sendError'))
+      setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.sendError'))
     } finally {
       setSending(false)
     }
@@ -101,7 +102,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       await onSuccess()
       setStep('success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('profile:seeker.emailModal.verifyError'))
+      setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.verifyError'))
     } finally {
       setVerifying(false)
     }
