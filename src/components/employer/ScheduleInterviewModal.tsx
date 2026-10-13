@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, CalendarClock, Loader2, AlertCircle } from 'lucide-react'
 import { employerAPI, fieldErrorsByPath } from '@/lib/api'
+import { DatePicker } from '@/components/form/DatePicker'
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean
@@ -40,6 +41,9 @@ export function ScheduleInterviewModal({
   onAccepted,
 }: ScheduleInterviewModalProps) {
   const { t } = useTranslation()
+  const dateId = useId()
+  const timeId = useId()
+  const notesId = useId()
   const [withInterview, setWithInterview] = useState(true)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -131,17 +135,17 @@ export function ScheduleInterviewModal({
             <div className="space-y-4 mb-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.dateLabel')}</label>
-                  <input type="date" min={localToday()} value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  <label htmlFor={dateId} className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.dateLabel')}</label>
+                  <DatePicker id={dateId} min={localToday()} value={date} onChange={setDate} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.timeLabel')}</label>
-                  <input type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder={t('employer:scheduleInterview.timePlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  <label htmlFor={timeId} className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.timeLabel')}</label>
+                  <input id={timeId} type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder={t('employer:scheduleInterview.timePlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.notesLabel')}</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('employer:scheduleInterview.notesPlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 resize-none" />
+                <label htmlFor={notesId} className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.notesLabel')}</label>
+                <textarea id={notesId} value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('employer:scheduleInterview.notesPlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 resize-none" />
               </div>
             </div>
           )}

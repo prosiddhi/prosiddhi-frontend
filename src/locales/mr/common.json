@@ -169,6 +169,11 @@
     "confirm": "खात्री करा",
     "viewDetails": "तपशील पहा"
   },
+  "datePicker": {
+    "select": "तारीख निवडा",
+    "clear": "साफ करा",
+    "today": "आज"
+  },
   "status": {
     "loading": "लोड होत आहे…",
     "loadingMore": "आणखी लोड होत आहे…",

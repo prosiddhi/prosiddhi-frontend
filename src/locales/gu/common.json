@@ -169,6 +169,11 @@
     "confirm": "ખાતરી કરો",
     "viewDetails": "વિગતો જુઓ"
   },
+  "datePicker": {
+    "select": "તારીખ પસંદ કરો",
+    "clear": "સાફ કરો",
+    "today": "આજે"
+  },
   "status": {
     "loading": "લોડ થઈ રહ્યું છે…",
     "loadingMore": "વધુ લોડ થઈ રહ્યું છે…",

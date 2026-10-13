@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { CreditWallet } from '@/components/employer/CreditWallet'
+import { DatePicker } from '@/components/form/DatePicker'
 
 const PAGE_SIZE = 20
 
@@ -209,26 +210,24 @@ function LedgerContent() {
                   <label htmlFor="ledger-from" className="block text-xs text-[#717182] mb-1">
                     {t('employer:ledger.filters.fromLabel')}
                   </label>
-                  <input
+                  <DatePicker
                     id="ledger-from"
-                    type="date"
                     value={from}
                     max={to || undefined}
-                    onChange={(e) => setFrom(e.target.value)}
-                    className="h-11 px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
+                    onChange={setFrom}
+                    className="h-11 min-w-[10.5rem] px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
                   />
                 </div>
                 <div>
                   <label htmlFor="ledger-to" className="block text-xs text-[#717182] mb-1">
                     {t('employer:ledger.filters.toLabel')}
                   </label>
-                  <input
+                  <DatePicker
                     id="ledger-to"
-                    type="date"
                     value={to}
                     min={from || undefined}
-                    onChange={(e) => setTo(e.target.value)}
-                    className="h-11 px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
+                    onChange={setTo}
+                    className="h-11 min-w-[10.5rem] px-3 border border-[#dddddd] rounded-lg text-sm bg-white"
                   />
                 </div>
                 <button

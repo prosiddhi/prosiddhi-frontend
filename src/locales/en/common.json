@@ -169,6 +169,11 @@
     "confirm": "Confirm",
     "viewDetails": "View Details"
   },
+  "datePicker": {
+    "select": "Select date",
+    "clear": "Clear",
+    "today": "Today"
+  },
   "status": {
     "loading": "Loading…",
     "loadingMore": "Loading more…",

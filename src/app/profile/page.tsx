@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import { nameProblem } from '@/lib/nameValidation'
 import { Field } from '@/components/form/Field'
+import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -639,10 +640,10 @@ function SeekerProfileContent() {
                         </p>
                       </Field>
                       <Field label={t('profile:seeker.dateOfBirth')} className={fieldLabelCls}>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={dateOfBirth}
-                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          defaultMonth={yearsAgoISO(18)}
+                          onChange={setDateOfBirth}
                           className={inputCls}
                         />
                       </Field>
@@ -781,14 +782,13 @@ function SeekerProfileContent() {
                             <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
                           </Field>
                           <Field label={t('profile:seeker.startDate')} className={fieldLabelCls}>
-                            <input type="date" value={exp.startDate ?? ''} onChange={(e) => setExp(exp.key, 'startDate', e.target.value)} className={inputCls} />
+                            <DatePicker value={exp.startDate ?? ''} onChange={(v) => setExp(exp.key, 'startDate', v)} className={inputCls} />
                           </Field>
                           <Field label={t('profile:seeker.endDate')} className={fieldLabelCls}>
-                            <input
-                              type="date"
+                            <DatePicker
                               value={exp.endDate ?? ''}
                               disabled={exp.currentlyWorking}
-                              onChange={(e) => setExp(exp.key, 'endDate', e.target.value)}
+                              onChange={(v) => setExp(exp.key, 'endDate', v)}
                               className={`${inputCls} disabled:bg-gray-100`}
                             />
                           </Field>

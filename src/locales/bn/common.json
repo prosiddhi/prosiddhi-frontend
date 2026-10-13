@@ -169,6 +169,11 @@
     "confirm": "নিশ্চিত করুন",
     "viewDetails": "বিস্তারিত দেখুন"
   },
+  "datePicker": {
+    "select": "তারিখ নির্বাচন করুন",
+    "clear": "মুছুন",
+    "today": "আজ"
+  },
   "status": {
     "loading": "লোড হচ্ছে…",
     "loadingMore": "আরও লোড হচ্ছে…",

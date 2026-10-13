@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
@@ -12,6 +12,7 @@ import { IdentifierError } from '@/components/form/IdentifierError'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
+import { DatePicker } from '@/components/form/DatePicker'
 
 const SIZE_VALUES: CompanySize[] = [
   'SIZE_1_10',
@@ -25,6 +26,7 @@ const SIZE_VALUES: CompanySize[] = [
 export default function CompanyDetailsPage() {
   const router = useRouter()
   const { t } = useTranslation()
+  const foundedId = useId()
   const { login } = useAuth()
   const { data, update, reset, hydrated } = useEmployerRegistration()
   const [form, setForm] = useState({
@@ -269,8 +271,8 @@ export default function CompanyDetailsPage() {
                 <input type="text" value={form.companyAddress} onChange={(e) => set('companyAddress', e.target.value)} placeholder={t('employerRegister:companyDetails.companyAddressPlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.foundedDate')} <span className="text-red-500">*</span></label>
-                <input type="date" value={form.companyFoundedDate} onChange={(e) => set('companyFoundedDate', e.target.value)} disabled={loading} className={inputCls} />
+                <label htmlFor={foundedId} className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.foundedDate')} <span className="text-red-500">*</span></label>
+                <DatePicker id={foundedId} value={form.companyFoundedDate} onChange={(v) => set('companyFoundedDate', v)} disabled={loading} minYear={1800} className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2" htmlFor="company-size">{t('employerRegister:companyDetails.companySize')} <span className="text-red-500">*</span></label>

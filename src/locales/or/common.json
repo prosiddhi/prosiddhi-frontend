@@ -169,6 +169,11 @@
     "confirm": "ନିଶ୍ଚିତ କରନ୍ତୁ",
     "viewDetails": "ବିବରଣୀ ଦେଖନ୍ତୁ"
   },
+  "datePicker": {
+    "select": "ତାରିଖ ବାଛନ୍ତୁ",
+    "clear": "ସଫା କରନ୍ତୁ",
+    "today": "ଆଜି"
+  },
   "status": {
     "loading": "ଲୋଡ୍ ହେଉଛି…",
     "loadingMore": "ଆଉ ଲୋଡ୍ ହେଉଛି…",

@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 import { nameProblem } from '@/lib/nameValidation'
 import { Field } from '@/components/form/Field'
+import { DatePicker } from '@/components/form/DatePicker'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 const EMPLOYER_DOC_TYPES = [
@@ -565,7 +566,7 @@ function EmployerProfileContent() {
                           <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder={t('profile:employer.companyAddressPlaceholder')} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.foundedDate')} className={fieldLabelCls}>
-                          <input type="date" value={companyFoundedDate} onChange={(e) => setCompanyFoundedDate(e.target.value)} className={inputCls} />
+                          <DatePicker value={companyFoundedDate} onChange={setCompanyFoundedDate} minYear={1800} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.companySize')} className={fieldLabelCls}>
                           <select value={companySize} onChange={(e) => setCompanySize(e.target.value as CompanySize)} className={inputCls}>
