@@ -13,6 +13,8 @@ import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isAtLeast18 } from '@/lib/dateInput'
+import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
+import { SELECT_CHEVRON_CLS } from '@/components/form/selectChevron'
 
 export default function RegisterProfilePage() {
   const router = useRouter()
@@ -172,21 +174,24 @@ export default function RegisterProfilePage() {
     }
   }
 
-  const handleBack = () => router.push('/register/otp')
+  // This screen is only reachable with a verified (or not-required) phone, so
+  // the OTP screen has nothing to offer here — it forwards straight back. Go to
+  // the phone step, which shows the number and lets the user change it.
+  const handleBack = () => router.push('/register/phone')
 
   return (
     <div className="relative min-h-screen bg-white">
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen">
-        <div className="w-[527px] bg-primary-50 relative flex-shrink-0">
+        <div className="w-[45%] xl:w-1/2 bg-primary-50 relative flex-shrink-0 lg:sticky lg:top-0 lg:h-screen self-start">
           <div className="relative h-full flex flex-col">
-            <div className="px-12 pt-20">
-              <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
+            <div className="px-10 pt-12">
+              <h2 className="text-[30px] font-bold text-white leading-[1.2] max-w-[448px]">
                 {t('auth:profile.panelHeading')}
               </h2>
             </div>
-            <div className="absolute bottom-0 left-0 w-full">
-              <div className="relative w-[522px] h-[348px]">
+            <div className="flex-1 flex items-center justify-center px-10 pb-10">
+              <div className="relative w-full max-w-[480px] aspect-[3/2]">
                 <Image src="/assets/421.svg" alt="Illustration" fill className="object-contain" priority />
               </div>
             </div>
@@ -194,13 +199,13 @@ export default function RegisterProfilePage() {
         </div>
 
         <div className="flex-1 bg-white overflow-auto">
-          <div className="max-w-[1400px] mx-auto px-16 py-16">
-            <div className="flex items-start justify-between mb-24">
-              <div className="relative w-[236px] h-[66px]">
+          <div className="w-full min-h-screen flex flex-col max-w-[560px] mx-auto px-6 py-5">
+            <div className="flex items-start justify-between mt-auto mb-6">
+              <div className="relative w-[180px] h-[50px]">
                 <Image src="/assets/prosiddhi-logo-horizontal.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-5 py-3 rounded-lg hover:bg-error-600">
-                <span className="text-[18px]">{t('auth:register.close')}</span>
+                <span className="text-base">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
@@ -209,26 +214,26 @@ export default function RegisterProfilePage() {
               step="profile"
               includeEmailStep={!!email.trim()}
               onBack={handleBack}
-              className="mb-16"
+              className="mb-6"
             />
 
-            <div className="max-w-[1200px]">
-              <div className="mb-16">
-                <h1 className="text-[56px] font-bold text-black leading-tight mb-4">{t('auth:profile.title')}</h1>
-                <p className="text-[24px] text-[#767676]">{t('auth:profile.subtitle')}</p>
+            <div className="mb-auto max-w-[720px]">
+              <div className="mb-6">
+                <h1 className="text-[36px] font-bold text-black leading-tight mb-3">{t('auth:profile.title')}</h1>
+                <p className="text-lg text-[#767676]">{t('auth:profile.subtitle')}</p>
               </div>
 
               {error && (
-                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg max-w-[953px]">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg max-w-[640px]">
                   <p className="text-red-600">{error}</p>
                 </div>
               )}
 
               {/* Profile Image */}
-              <div className="mb-12 max-w-[953px]">
-                <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.profilePicture')}</label>
+              <div className="mb-8 max-w-[640px]">
+                <label className="text-base font-medium text-black mb-2 block">{t('auth:profile.profilePicture')}</label>
                 <div className="flex items-center gap-6">
-                  <div className="relative w-[120px] h-[120px] rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className="relative w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                     {profileImage ? (
                       <Image src={profileImage} alt="Profile" fill className="object-cover" />
                     ) : (
@@ -247,20 +252,20 @@ export default function RegisterProfilePage() {
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-8 mb-12">
-                <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.fullNameLabel')}</label>
+              <div className="space-y-6 mb-8">
+                <div className="max-w-[640px]">
+                  <label className="text-base font-medium text-black mb-2 block">{t('auth:profile.fullNameLabel')}</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
                     placeholder={t('auth:profile.fullNamePlaceholder')}
-                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
+                    className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base"
                   />
                 </div>
 
-                <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">
+                <div className="max-w-[640px]">
+                  <label className="text-base font-medium text-black mb-2 block">
                     {t('auth:profile.emailLabel')}{' '}
                     <span className="text-[#767676] font-normal">{t('auth:profile.emailOptional')}</span>
                   </label>
@@ -271,28 +276,29 @@ export default function RegisterProfilePage() {
                     onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
                     placeholder={t('auth:profile.emailPlaceholder')}
                     disabled={loading}
-                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] disabled:opacity-50"
+                    className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base disabled:opacity-50"
                   />
                   <p className="text-[16px] text-[#767676] mt-3">{t('auth:profile.emailHint')}</p>
                 </div>
 
-                <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block">{t('auth:profile.dobLabel')}</label>
-                  <input
-                    type="date"
+                <div className="max-w-[640px]">
+                  <label className="text-base font-medium text-black mb-2 block" htmlFor="dob-lg">{t('auth:profile.dobLabel')}</label>
+                  <DatePicker
+                    id="dob-lg"
                     value={dateOfBirth}
-                    onChange={(e) => { setDateOfBirth(e.target.value); if (error) setError('') }}
-                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
+                    defaultMonth={yearsAgoISO(18)}
+                    onChange={(v) => { setDateOfBirth(v); if (error) setError('') }}
+                    className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base"
                   />
                 </div>
 
-                <div className="max-w-[953px]">
-                  <label className="text-[20px] font-medium text-black mb-6 block" htmlFor="gender-lg">{t('auth:profile.genderLabel')}</label>
+                <div className="max-w-[640px]">
+                  <label className="text-base font-medium text-black mb-2 block" htmlFor="gender-lg">{t('auth:profile.genderLabel')}</label>
                   <select
                     id="gender-lg"
                     value={gender}
                     onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
-                    className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px]"
+                    className={`w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base ${SELECT_CHEVRON_CLS}`}
                   >
                     <option value="">{t('auth:profile.genderSelect')}</option>
                     <option value="MALE">{t('auth:profile.genderMale')}</option>
@@ -302,13 +308,13 @@ export default function RegisterProfilePage() {
                 </div>
               </div>
 
-              <div className="flex justify-end max-w-[953px]">
+              <div className="flex justify-end max-w-[640px]">
                 <button
                   onClick={handleNext}
                   disabled={loading}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-10 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
-                  <span className="text-[20px]">
+                  <span className="text-base">
                     {loading ? t('auth:profile.sendingCode') : t('buttons.next')}
                   </span>
                   <ChevronRight className="w-6 h-6" />
@@ -332,8 +338,8 @@ export default function RegisterProfilePage() {
         </div>
 
         <div className="flex-1 overflow-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-4">{t('auth:profile.title')}</h1>
-          <p className="text-base text-gray-600 mb-8">{t('auth:profile.subtitle')}</p>
+          <h1 className="text-2xl font-bold mb-3">{t('auth:profile.title')}</h1>
+          <p className="text-base text-gray-600 mb-6">{t('auth:profile.subtitle')}</p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -341,14 +347,14 @@ export default function RegisterProfilePage() {
             </div>
           )}
 
-          <div className="space-y-6 mb-8">
+          <div className="space-y-5 mb-6">
             <div>
               <label className="text-base font-medium mb-2 block">{t('auth:profile.fullNameLabel')}</label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
-                className="w-full h-14 px-3 border rounded-lg"
+                className="w-full h-12 px-3 border rounded-lg"
               />
             </div>
 
@@ -364,18 +370,19 @@ export default function RegisterProfilePage() {
                 onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
                 placeholder={t('auth:profile.emailPlaceholder')}
                 disabled={loading}
-                className="w-full h-14 px-3 border rounded-lg disabled:opacity-50"
+                className="w-full h-12 px-3 border rounded-lg disabled:opacity-50"
               />
               <p className="text-sm text-[#767676] mt-2">{t('auth:profile.emailHint')}</p>
             </div>
 
             <div>
-              <label className="text-base font-medium mb-2 block">{t('auth:profile.dobLabel')}</label>
-              <input
-                type="date"
+              <label className="text-base font-medium mb-2 block" htmlFor="dob-sm">{t('auth:profile.dobLabel')}</label>
+              <DatePicker
+                id="dob-sm"
                 value={dateOfBirth}
-                onChange={(e) => { setDateOfBirth(e.target.value); if (error) setError('') }}
-                className="w-full h-14 px-3 border rounded-lg"
+                defaultMonth={yearsAgoISO(18)}
+                onChange={(v) => { setDateOfBirth(v); if (error) setError('') }}
+                className="w-full h-12 px-3 border rounded-lg"
               />
             </div>
 
@@ -385,7 +392,7 @@ export default function RegisterProfilePage() {
                 id="gender-sm"
                 value={gender}
                 onChange={(e) => { setGender(e.target.value); if (error) setError('') }}
-                className="w-full h-14 px-3 border rounded-lg"
+                className={`w-full h-12 px-3 border rounded-lg ${SELECT_CHEVRON_CLS}`}
               >
                 <option value="">{t('auth:profile.genderSelect')}</option>
                 <option value="MALE">{t('auth:profile.genderMale')}</option>

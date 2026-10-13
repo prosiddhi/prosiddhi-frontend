@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import type { TaxonomyTriple } from '@/lib/api'
+import { SELECT_ONLY_CHEVRON_CLS } from '@/components/form/selectChevron'
 
 export default function RegisterCategoriesPage() {
   const router = useRouter()
@@ -80,15 +81,15 @@ export default function RegisterCategoriesPage() {
     <div className="relative min-h-screen bg-white">
       <div className="flex min-h-screen">
         {/* Left blue panel (desktop) */}
-        <div className="hidden lg:block w-[527px] bg-primary-50 relative flex-shrink-0">
+        <div className="hidden lg:block w-[45%] xl:w-1/2 bg-primary-50 relative flex-shrink-0 lg:sticky lg:top-0 lg:h-screen self-start">
           <div className="relative h-full flex flex-col">
-            <div className="px-12 pt-20">
-              <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
+            <div className="px-10 pt-12">
+              <h2 className="text-[30px] font-bold text-white leading-[1.2] max-w-[448px]">
                 {t('auth:categories.panelHeading')}
               </h2>
             </div>
-            <div className="absolute bottom-0 left-0 w-full">
-              <div className="relative w-[522px] h-[348px]">
+            <div className="flex-1 flex items-center justify-center px-10 pb-10">
+              <div className="relative w-full max-w-[480px] aspect-[3/2]">
                 <Image src="/assets/421.svg" alt="Illustration" fill className="object-contain" priority />
               </div>
             </div>
@@ -97,13 +98,13 @@ export default function RegisterCategoriesPage() {
 
         {/* Form */}
         <div className="flex-1 bg-white overflow-auto">
-          <div className="max-w-[1400px] mx-auto px-4 lg:px-16 py-8 lg:py-16">
-            <div className="flex items-start justify-between mb-10 lg:mb-24">
-              <div className="relative w-[160px] lg:w-[236px] h-[44px] lg:h-[66px]">
+          <div className="w-full lg:min-h-screen lg:flex lg:flex-col max-w-[1400px] lg:max-w-[560px] mx-auto px-4 lg:px-6 py-6 lg:py-5">
+            <div className="flex items-start justify-between lg:mt-auto mb-6">
+              <div className="relative w-[160px] lg:w-[180px] h-[44px] lg:h-[50px]">
                 <Image src="/assets/prosiddhi-logo-horizontal.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
-                <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>
+                <span className="text-sm lg:text-base">{t('auth:register.close')}</span>
                 <X className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
@@ -112,17 +113,17 @@ export default function RegisterCategoriesPage() {
               step="categories"
               includeEmailStep={!!data.email}
               onBack={handleBack}
-              className="mb-10 lg:mb-16"
+              className="mb-6 lg:mb-8"
             />
 
-            <div className="max-w-[953px]">
-              <div className="mb-10 lg:mb-16">
-                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">{t('auth:categories.title')}</h1>
-                <p className="text-base lg:text-[24px] text-[#767676]">{t('auth:categories.subtitle')}</p>
+            <div className="lg:mb-auto max-w-[640px]">
+              <div className="mb-6 lg:mb-8 lg:[@media(max-height:800px)]:mb-4">
+                <h1 className="text-2xl lg:text-[36px] font-bold text-black leading-tight mb-3 lg:[@media(max-height:800px)]:mb-2">{t('auth:categories.title')}</h1>
+                <p className="text-base lg:text-lg text-[#767676]">{t('auth:categories.subtitle')}</p>
               </div>
 
               {error && (
-                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600">{error}</p>
                 </div>
               )}
@@ -131,17 +132,17 @@ export default function RegisterCategoriesPage() {
                 value={triple}
                 onChange={handleTripleChange}
                 required
-                className="space-y-8 mb-12"
-                labelClassName="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block"
-                selectClassName="w-full h-14 lg:h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="space-y-6 lg:[@media(max-height:800px)]:space-y-5 mb-8 lg:[@media(max-height:800px)]:mb-6"
+                labelClassName="text-base font-medium text-black mb-2 block"
+                selectClassName={`w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base bg-white disabled:opacity-50 disabled:cursor-not-allowed ${SELECT_ONLY_CHEVRON_CLS}`}
               />
 
               <div className="flex justify-end">
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-10 py-3 rounded-lg hover:bg-primary-60"
                 >
-                  <span className="text-base lg:text-[20px]">{t('buttons.next')}</span>
+                  <span className="text-base">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>

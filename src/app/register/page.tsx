@@ -97,14 +97,14 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
       {/* Register Modal */}
-      <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[900px] px-6 sm:px-10 py-8 sm:py-10 shadow-xl overflow-auto max-h-[90vh]">
+      <div className="relative bg-white border border-[#dedede] rounded-[10px] w-full max-w-[760px] px-5 sm:px-8 py-6 sm:py-7 shadow-xl overflow-auto max-h-[90vh]">
         {/* Close Button */}
         <Link
           href="/"
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
+          className="absolute top-3 right-3 p-2 hover:bg-gray-100 rounded transition-colors"
           aria-label={t('auth:register.close')}
         >
-          <X className="w-6 h-6 text-gray-600" />
+          <X className="w-5 h-5 text-gray-600" />
         </Link>
 
         {/* Content */}
@@ -112,7 +112,7 @@ export default function RegisterPage() {
           {/* Logo — this screen was a bare modal with no branding at all, which
               on a page asking for personal details reads as untrustworthy.
               Matches /register/password, which already renders it. */}
-          <div className="relative w-[160px] sm:w-[200px] h-[44px] sm:h-[56px] mb-6">
+          <div className="relative w-[140px] sm:w-[170px] h-[38px] sm:h-[46px] mb-4">
             <Image
               src="/assets/prosiddhi-logo-horizontal.png"
               alt={t('app.name')}
@@ -122,35 +122,35 @@ export default function RegisterPage() {
             />
           </div>
 
-          <RegistrationProgress step="language" className="mb-8" />
+          <RegistrationProgress step="language" className="mb-5" />
 
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-3 leading-tight">
+          <div className="mb-5">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black mb-2 leading-tight">
               {t('auth:register.welcomeGuest')}
             </h1>
-            <p className="text-base sm:text-lg text-[#767676]">
+            <p className="text-sm sm:text-base text-[#767676]">
               {t('auth:register.subtitle')}
             </p>
           </div>
 
           {/* Language Selection */}
-          <div className="mb-8">
+          <div className="mb-5">
             {/* Label with Audio Icon */}
-            <div className="flex items-center gap-2 mb-4">
-              <label className="text-base sm:text-lg font-medium text-black">
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-sm sm:text-base font-medium text-black">
                 {t('auth:register.selectLanguage')}
               </label>
               <VoiceButton label={t('auth:register.selectLanguageVoice')} iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
             {/* Language Grid - Responsive */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
               {languages.map((language) => (
                 <button
                   key={language.value}
                   onClick={() => handleLanguageSelect(language.value)}
-                  className={`h-14 sm:h-16 rounded-lg border transition-all ${
+                  className={`h-12 rounded-lg border transition-all ${
                     selectedLanguage === language.value
                       ? 'border-primary-50 bg-primary-10'
                       : 'border-[#b5b5b5] hover:border-primary-40'
@@ -172,7 +172,7 @@ export default function RegisterPage() {
 
                     {/* Language Text */}
                     <span
-                      className={`text-sm sm:text-base lg:text-lg ${
+                      className={`text-sm sm:text-base ${
                         selectedLanguage === language.value
                           ? 'text-primary-70 font-medium'
                           : 'text-black'
@@ -187,9 +187,9 @@ export default function RegisterPage() {
           </div>
 
           {/* Role Selection — defects 5 + 13 */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <label className="text-base sm:text-lg font-medium text-black">
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-sm sm:text-base font-medium text-black">
                 {t('auth:register.chooseRole')}
               </label>
               <VoiceButton
@@ -199,7 +199,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {roleOptions.map(({ value, label, description, Icon }) => {
                 const selected = role === value
                 return (
@@ -208,26 +208,26 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => handleRoleSelect(value)}
                     aria-pressed={selected}
-                    className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-all ${
+                    className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-all ${
                       selected
                         ? 'border-primary-50 bg-primary-10'
                         : 'border-[#b5b5b5] hover:border-primary-40'
                     }`}
                   >
                     <div
-                      className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+                      className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
                         selected ? 'bg-white' : 'bg-gray-100'
                       }`}
                     >
                       <Icon
-                        className={`w-6 h-6 ${
+                        className={`w-5 h-5 ${
                           selected ? 'text-primary-50' : 'text-gray-600'
                         }`}
                       />
                     </div>
                     <div className="min-w-0">
                       <h3
-                        className={`text-base sm:text-lg font-semibold ${
+                        className={`text-sm sm:text-base font-semibold ${
                           selected ? 'text-primary-70' : 'text-black'
                         }`}
                       >
@@ -246,17 +246,17 @@ export default function RegisterPage() {
           {error && (
             <div
               role="alert"
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
             >
               <p className="text-red-600">{error}</p>
             </div>
           )}
 
           {/* Next Button */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-2">
             <button
               onClick={handleNext}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-3 rounded-lg transition-colors order-2 sm:order-1"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-8 py-2.5 min-h-[44px] rounded-lg transition-colors order-2 sm:order-1"
             >
               <span className="text-base font-medium">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />

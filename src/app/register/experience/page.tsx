@@ -123,18 +123,18 @@ export default function RegisterExperiencePage() {
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen">
         {/* Left Side - Blue Section (Fixed Width) */}
-        <div className="w-[527px] bg-primary-50 relative flex-shrink-0">
+        <div className="w-[45%] xl:w-1/2 bg-primary-50 relative flex-shrink-0 lg:sticky lg:top-0 lg:h-screen self-start">
           <div className="relative h-full flex flex-col">
             {/* Text Content */}
-            <div className="px-12 pt-20">
-              <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
+            <div className="px-10 pt-12">
+              <h2 className="text-[30px] font-bold text-white leading-[1.2] max-w-[448px]">
                 {t('auth:experience.panelHeading')}
               </h2>
             </div>
 
             {/* Illustration at Bottom */}
-            <div className="absolute bottom-0 left-0 w-full">
-              <div className="relative w-[522px] h-[348px]">
+            <div className="flex-1 flex items-center justify-center px-10 pb-10">
+              <div className="relative w-full max-w-[480px] aspect-[3/2]">
                 <Image
                   src="/assets/421.svg"
                   alt=""
@@ -149,11 +149,11 @@ export default function RegisterExperiencePage() {
 
         {/* Right Side - Form Section */}
         <div className="flex-1 bg-white overflow-auto">
-          <div className="max-w-[1400px] mx-auto px-16 py-16">
+          <div className="w-full min-h-screen flex flex-col max-w-[560px] mx-auto px-6 py-5">
             {/* Header */}
-            <div className="flex items-start justify-between mb-12">
+            <div className="flex items-start justify-between mt-auto mb-6">
               {/* Logo */}
-              <div className="relative w-[236px] h-[66px]">
+              <div className="relative w-[180px] h-[50px]">
                 <Image
                   src="/assets/prosiddhi-logo-horizontal.png"
                   alt={t('app.name')}
@@ -168,36 +168,36 @@ export default function RegisterExperiencePage() {
                 href="/"
                 className="flex items-center gap-2 bg-error-500 hover:bg-error-600 text-white px-5 py-3 rounded-lg transition-colors"
               >
-                <span className="text-[18px]">{t('auth:register.close')}</span>
+                <span className="text-base">{t('auth:register.close')}</span>
                 <X className="w-5 h-5" />
               </Link>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-[1200px]">
+            <div className="mb-auto max-w-[720px]">
               {/* Page Title */}
-              <div className="mb-8">
-                <h1 className="text-[56px] font-bold text-black mb-4 leading-tight">
+              <div className="mb-6 lg:[@media(max-height:800px)]:mb-4">
+                <h1 className="text-[36px] font-bold text-black mb-3 leading-tight">
                   {t('auth:experience.title')}
                 </h1>
-                <p className="text-[24px] text-[#767676]">
+                <p className="text-lg text-[#767676]">
                   {t('auth:experience.subtitle')}
                 </p>
               </div>
 
-              <RegistrationProgress step="experience" includeEmailStep={!!data.email} className="mb-16" />
+              <RegistrationProgress step="experience" includeEmailStep={!!data.email} onBack={handleBack} className="mb-6" />
 
               {/* Work Experiences Section */}
-              <div className="mb-12">
+              <div className="mb-8 lg:[@media(max-height:800px)]:mb-5">
                 <div className="flex items-center gap-3 mb-6">
-                  <h2 className="text-[28px] font-medium text-black">
+                  <h2 className="text-xl font-medium text-black">
                     {t('auth:experience.workHeading')}
                   </h2>
                   <VoiceButton label={t('auth:experience.workVoice')} iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
                 {/* Experience Entries */}
-                <div className="space-y-6 mb-4">
+                <div className="space-y-6 mb-3">
                   {experiences.map((exp, index) => (
                     // Fractional columns, not the fixed 434/265/265 this had
                     // (DEF-031). Those add up to 1036px before the Remove
@@ -213,7 +213,7 @@ export default function RegisterExperiencePage() {
                     >
                       {/* Designation */}
                       <div>
-                        <label className="text-[20px] font-medium text-black mb-4 block">
+                        <label className="text-base font-medium text-black mb-3 block">
                           {t('auth:experience.designationLabel')}
                         </label>
                         <input
@@ -221,13 +221,13 @@ export default function RegisterExperiencePage() {
                           value={exp.designation}
                           onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                           placeholder={t('auth:experience.designationPlaceholder')}
-                          className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
 
                       {/* From Year */}
                       <div>
-                        <label className="text-[20px] font-medium text-black mb-4 block">
+                        <label className="text-base font-medium text-black mb-3 block">
                           {t('auth:experience.fromYearLabel')}
                         </label>
                         <input
@@ -235,13 +235,13 @@ export default function RegisterExperiencePage() {
                           value={exp.fromYear}
                           onChange={(e) => handleExperienceChange(exp.id, 'fromYear', e.target.value)}
                           placeholder={t('auth:experience.fromYearPlaceholder')}
-                          className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
 
                       {/* To Year */}
                       <div>
-                        <label className="text-[20px] font-medium text-black mb-4 block">
+                        <label className="text-base font-medium text-black mb-3 block">
                           {t('auth:experience.toYearLabel')}
                         </label>
                         <input
@@ -249,7 +249,7 @@ export default function RegisterExperiencePage() {
                           value={exp.toYear}
                           onChange={(e) => handleExperienceChange(exp.id, 'toYear', e.target.value)}
                           placeholder={t('auth:experience.toYearPlaceholder')}
-                          className="w-full h-[69px] px-3 border border-[#b5b5b5] rounded-[10px] text-[20px] text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                         />
                       </div>
 
@@ -259,7 +259,7 @@ export default function RegisterExperiencePage() {
                           type="button"
                           onClick={() => handleRemoveExperience(exp.id)}
                           aria-label={t('auth:experience.removeRowAria', { number: index + 1 })}
-                          className="h-[69px] w-[69px] flex items-center justify-center rounded-[10px] border border-[#b5b5b5] text-[#767676] hover:border-error-500 hover:text-error-500 transition-colors"
+                          className="h-12 w-12 flex items-center justify-center rounded-[10px] border border-[#b5b5b5] text-[#767676] hover:border-error-500 hover:text-error-500 transition-colors"
                         >
                           <Trash2 className="w-6 h-6" />
                         </button>
@@ -271,7 +271,7 @@ export default function RegisterExperiencePage() {
                 {/* Add Experience Button */}
                 <button
                   onClick={handleAddExperience}
-                  className="flex items-center gap-2 text-[20px] font-medium text-[#4d4d4d] hover:text-primary-70 transition-colors"
+                  className="flex items-center gap-2 text-base font-medium text-[#4d4d4d] hover:text-primary-70 transition-colors"
                 >
                   <Plus className="w-6 h-6" />
                   <span>{t('auth:experience.addExperiences')}</span>
@@ -281,7 +281,7 @@ export default function RegisterExperiencePage() {
               {/* Document Upload Section */}
               <div className="mb-20">
                 <div className="flex items-center gap-3 mb-6">
-                  <label className="text-[20px] font-medium text-black">
+                  <label className="text-base font-medium text-black">
                     {t('auth:experience.uploadHeading')}
                   </label>
                   <VoiceButton label={t('auth:experience.uploadVoice')} iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
@@ -298,11 +298,11 @@ export default function RegisterExperiencePage() {
                 
                 <button
                   onClick={handleDocumentClick}
-                  className="w-full max-w-[1006px] h-[142px] border border-[#b5b5b5] rounded-[10px] bg-white hover:bg-gray-50 transition-colors flex flex-col items-center justify-center"
+                  className="w-full max-w-[640px] h-28 border border-[#b5b5b5] rounded-[10px] bg-white hover:bg-gray-50 transition-colors flex flex-col items-center justify-center"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Upload className="w-6 h-6 text-black" />
-                    <span className="text-[20px] font-medium text-black">{t('auth:experience.upload')}</span>
+                    <span className="text-base font-medium text-black">{t('auth:experience.upload')}</span>
                   </div>
                   
                   <p className="text-[16px] text-black mb-1">
@@ -316,29 +316,29 @@ export default function RegisterExperiencePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between max-w-[1006px] mb-16">
+              <div className="flex items-center justify-between max-w-[640px] mb-6">
                 {/* Back Button */}
                 <button
                   onClick={handleBack}
                   className="flex items-center gap-2 border border-secondary-70 hover:bg-secondary-10 text-black px-5 py-3 rounded-lg transition-colors h-[50px]"
                 >
                   <ChevronLeft className="w-6 h-6" />
-                  <span className="text-[18px]">{t('buttons.back')}</span>
+                  <span className="text-base">{t('buttons.back')}</span>
                 </button>
 
                 {/* Next Button */}
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-12 py-3 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-10 py-3 rounded-lg transition-colors"
                 >
-                  <span className="text-[20px]">{t('buttons.next')}</span>
+                  <span className="text-base">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
 
               {/* Sign In Link */}
-              <div className="text-center max-w-[1006px]">
-                <p className="text-[20px]">
+              <div className="text-center max-w-[640px]">
+                <p className="text-base">
                   <span className="text-black">{t('auth:experience.alreadyHaveAccount')}</span>
                   <Link
                     href="/login"
@@ -382,7 +382,7 @@ export default function RegisterExperiencePage() {
         <div className="flex-1 bg-white px-4 py-8 overflow-auto">
           {/* Page Title */}
           <div className="mb-6">
-            <h1 className="text-3xl sm:text-4xl font-bold text-black mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
               {t('auth:experience.title')}
             </h1>
             <p className="text-base text-[#767676]">
@@ -390,11 +390,11 @@ export default function RegisterExperiencePage() {
             </p>
           </div>
 
-          <RegistrationProgress step="experience" includeEmailStep={!!data.email} className="mb-8" />
+          <RegistrationProgress step="experience" includeEmailStep={!!data.email} onBack={handleBack} className="mb-6" />
 
           {/* Work Experiences Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
               <h2 className="text-xl font-medium text-black">
                 {t('auth:experience.workHeading')}
               </h2>
@@ -402,7 +402,7 @@ export default function RegisterExperiencePage() {
             </div>
 
             {/* Experience Entries */}
-            <div className="space-y-6 mb-4">
+            <div className="space-y-6 mb-3">
               {experiences.map((exp, index) => (
                 <div key={exp.id} className="space-y-4 pb-4 border-b border-gray-100 last:border-b-0">
                   {/* Designation */}
@@ -427,7 +427,7 @@ export default function RegisterExperiencePage() {
                       value={exp.designation}
                       onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                       placeholder={t('auth:experience.designationPlaceholder')}
-                      className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                      className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                     />
                   </div>
 
@@ -443,7 +443,7 @@ export default function RegisterExperiencePage() {
                         value={exp.fromYear}
                         onChange={(e) => handleExperienceChange(exp.id, 'fromYear', e.target.value)}
                         placeholder={t('auth:experience.fromYearPlaceholder')}
-                        className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                        className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       />
                     </div>
 
@@ -457,7 +457,7 @@ export default function RegisterExperiencePage() {
                         value={exp.toYear}
                         onChange={(e) => handleExperienceChange(exp.id, 'toYear', e.target.value)}
                         placeholder={t('auth:experience.toYearPlaceholder')}
-                        className="w-full h-14 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                        className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
                       />
                     </div>
                   </div>
@@ -476,8 +476,8 @@ export default function RegisterExperiencePage() {
           </div>
 
           {/* Document Upload Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
               <label className="text-base font-medium text-black">
                 {t('auth:experience.uploadHeading')}
               </label>
@@ -512,13 +512,13 @@ export default function RegisterExperiencePage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3 mb-8">
+          <div className="space-y-3 mb-6">
             {/* Next Button */}
             <button
               onClick={handleNext}
               className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-6 py-3 rounded-lg transition-colors"
             >
-              <span className="text-lg">{t('buttons.next')}</span>
+              <span className="text-base">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />
             </button>
 
@@ -528,7 +528,7 @@ export default function RegisterExperiencePage() {
               className="w-full flex items-center justify-center gap-2 border border-secondary-70 hover:bg-secondary-10 text-black px-6 py-3 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-lg">{t('buttons.back')}</span>
+              <span className="text-base">{t('buttons.back')}</span>
             </button>
           </div>
 

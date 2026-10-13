@@ -202,7 +202,13 @@ export default function RegisterPasswordPage() {
     }
   }
 
-  const handleReverifyPhone = () => router.push('/register/phone')
+  // The backend says this phone is NOT verified, so the browser's `phoneVerified`
+  // flag is stale. Clear it first: otherwise the phone step's "same verified
+  // number" shortcut would send the user straight back here without a new code.
+  const handleReverifyPhone = () => {
+    update({ phoneVerified: false })
+    router.push('/register/phone')
+  }
 
   const handleBack = () => router.push('/register/experience')
 
@@ -210,15 +216,15 @@ export default function RegisterPasswordPage() {
     <div className="relative min-h-screen bg-white">
       <div className="flex min-h-screen">
         {/* Left blue panel (desktop) */}
-        <div className="hidden lg:block w-[527px] bg-primary-50 relative flex-shrink-0">
+        <div className="hidden lg:block w-[45%] xl:w-1/2 bg-primary-50 relative flex-shrink-0 lg:sticky lg:top-0 lg:h-screen self-start">
           <div className="relative h-full flex flex-col">
-            <div className="px-12 pt-20">
-              <h2 className="text-[40px] font-bold text-white leading-[1.2] max-w-[448px]">
+            <div className="px-10 pt-12">
+              <h2 className="text-[30px] font-bold text-white leading-[1.2] max-w-[448px]">
                 {t('auth:password.panelHeading')}
               </h2>
             </div>
-            <div className="absolute bottom-0 left-0 w-full">
-              <div className="relative w-[522px] h-[348px]">
+            <div className="flex-1 flex items-center justify-center px-10 pb-10">
+              <div className="relative w-full max-w-[480px] aspect-[3/2]">
                 <Image src="/assets/421.svg" alt="Illustration" fill className="object-contain" priority />
               </div>
             </div>
@@ -226,13 +232,13 @@ export default function RegisterPasswordPage() {
         </div>
 
         <div className="flex-1 bg-white overflow-auto">
-          <div className="max-w-[1400px] mx-auto px-4 lg:px-16 py-8 lg:py-16">
-            <div className="flex items-start justify-between mb-10 lg:mb-24">
-              <div className="relative w-[160px] lg:w-[236px] h-[44px] lg:h-[66px]">
+          <div className="w-full lg:min-h-screen lg:flex lg:flex-col max-w-[1400px] lg:max-w-[560px] mx-auto px-4 lg:px-6 py-6 lg:py-5">
+            <div className="flex items-start justify-between lg:mt-auto mb-6">
+              <div className="relative w-[160px] lg:w-[180px] h-[44px] lg:h-[50px]">
                 <Image src="/assets/prosiddhi-logo-horizontal.png" alt="Logo" fill className="object-contain object-left" priority />
               </div>
               <Link href="/" className="flex items-center gap-2 bg-error-500 text-white px-3 lg:px-5 py-2 lg:py-3 rounded-lg hover:bg-error-600">
-                <span className="text-sm lg:text-[18px]">{t('auth:register.close')}</span>
+                <span className="text-sm lg:text-base">{t('auth:register.close')}</span>
                 <X className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
@@ -241,20 +247,20 @@ export default function RegisterPasswordPage() {
               step="password"
               includeEmailStep={!!data.email}
               onBack={handleBack}
-              className="mb-10 lg:mb-16"
+              className="mb-6 lg:mb-8"
             />
 
-            <div className="max-w-[953px]">
-              <div className="mb-10 lg:mb-16">
-                <h1 className="text-3xl lg:text-[56px] font-bold text-black leading-tight mb-4">{t('auth:password.title')}</h1>
-                <p className="text-base lg:text-[24px] text-[#767676]">{t('auth:password.subtitle')}</p>
+            <div className="lg:mb-auto max-w-[640px]">
+              <div className="mb-6 lg:mb-8 lg:[@media(max-height:800px)]:mb-4">
+                <h1 className="text-2xl lg:text-[36px] font-bold text-black leading-tight mb-3 lg:[@media(max-height:800px)]:mb-2">{t('auth:password.title')}</h1>
+                <p className="text-base lg:text-lg text-[#767676]">{t('auth:password.subtitle')}</p>
               </div>
 
               {/* A name carried over from a journey started before the DEF-030 rule.
                   Shown here with a link to the field, rather than redirecting — see
                   the note by `nameIssue`. */}
               {nameIssue && (
-                <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600">
                     {t(nameIssue === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters')}
                   </p>
@@ -269,7 +275,7 @@ export default function RegisterPasswordPage() {
               )}
 
               {error && (
-                <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600 whitespace-pre-line">{error}</p>
                   {needsPhoneReverify && (
                     <button
@@ -283,9 +289,9 @@ export default function RegisterPasswordPage() {
                 </div>
               )}
 
-              <div className="space-y-8 mb-12">
+              <div className="space-y-6 lg:[@media(max-height:800px)]:space-y-5 mb-8 lg:[@media(max-height:800px)]:mb-6">
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:password.passwordLabel')}</label>
+                  <label className="text-base font-medium text-black mb-2 block">{t('auth:password.passwordLabel')}</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -294,7 +300,7 @@ export default function RegisterPasswordPage() {
                       onBlur={() => setPasswordTouched(true)}
                       placeholder={t('auth:password.passwordPlaceholder')}
                       disabled={loading}
-                      className={`w-full h-14 lg:h-[69px] px-3 pr-16 border rounded-[10px] text-base lg:text-[20px] ${
+                      className={`w-full h-12 px-3 pr-16 border rounded-[10px] text-base ${
                         passwordTouched && !isStrongPassword(password)
                           ? 'border-red-500'
                           : 'border-[#b5b5b5]'
@@ -320,7 +326,7 @@ export default function RegisterPasswordPage() {
                 </div>
 
                 <div>
-                  <label className="text-base lg:text-[20px] font-medium text-black mb-4 lg:mb-6 block">{t('auth:password.confirmLabel')}</label>
+                  <label className="text-base font-medium text-black mb-2 block">{t('auth:password.confirmLabel')}</label>
                   <div className="relative">
                     <input
                       type={showConfirm ? 'text' : 'password'}
@@ -328,7 +334,7 @@ export default function RegisterPasswordPage() {
                       onChange={(e) => { setConfirmPassword(e.target.value); if (error) setError('') }}
                       placeholder={t('auth:password.confirmPlaceholder')}
                       disabled={loading}
-                      className="w-full h-14 lg:h-[69px] px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base lg:text-[20px]"
+                      className="w-full h-12 px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base"
                     />
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2">
                       {showConfirm ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
@@ -353,9 +359,9 @@ export default function RegisterPasswordPage() {
                   // Blocked while the carried-over name is invalid — the message
                   // above says why and links to the field.
                   disabled={loading || nameIssue !== null}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-12 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-10 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                 >
-                  <span className="text-base lg:text-[20px]">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
+                  <span className="text-base">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </div>
