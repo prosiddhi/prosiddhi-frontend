@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -11,7 +12,6 @@ import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { useAuthConfig } from '@/hooks/useAuthConfig'
 
 const OTP_LENGTH = 6
 
@@ -19,7 +19,6 @@ export default function RegisterOTPPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { data, update, hydrated } = useSeekerRegistration()
-  const { requirePhoneVerification, loading: authConfigLoading } = useAuthConfig()
   const phoneNumber = data.phoneNumber
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
@@ -44,27 +43,8 @@ export default function RegisterOTPPage() {
     // /otp/verify both refuse a verified number — so show nothing and move on.
     // The flag is a convenience, not proof: registration re-checks the
     // verification with the backend.
-    if (data.phoneVerified && !advancingRef.current) {
-      router.replace('/register/profile')
-      return
-    }
-    // R1-BE-01 / D-1: a stale bookmark or the back button can land here while
-    // the server no longer requires a phone code — no code was ever sent (the
-    // phone step skips straight past this screen when the flag is off), so
-    // there is nothing to verify. Forward to where that step already sends
-    // a skipped user.
-    //
-    // Wait for authConfigLoading to clear before acting on this: the default
-    // is `false` for the brief window before /auth/config resolves (a
-    // deliberate, already-approved choice for what to RENDER), but here it
-    // drives a REDIRECT, not a render. Acting on the transient default would
-    // send someone reloading mid-OTP-entry all the way back to /register/phone
-    // — the very next guard (on /register/profile) correctly bounces them
-    // there on seeing a genuinely-unverified phone, compounding the mistake.
-    // A user submitting the OTP form itself is unaffected either way; this
-    // only guards the automatic redirect that runs on mount/reload.
-    if (!authConfigLoading && !requirePhoneVerification) router.replace('/register/profile')
-  }, [hydrated, phoneNumber, data.phoneVerified, requirePhoneVerification, authConfigLoading, router])
+    if (data.phoneVerified && !advancingRef.current) router.replace('/register/profile')
+  }, [hydrated, phoneNumber, data.phoneVerified, router])
 
   useEffect(() => {
     if (countdown > 0) {
@@ -117,7 +97,7 @@ export default function RegisterOTPPage() {
       update({ phoneVerified: true })
       router.push('/register/profile')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:otp.errorInvalid'))
+      setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
       document.getElementById('otp-0')?.focus()
     } finally {
@@ -140,7 +120,7 @@ export default function RegisterOTPPage() {
       setCanResend(false)
       setCountdown(30)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:otp.errorResend'))
+      setError(otpErrorMessage(err, t, 'auth:otp.errorResend'))
     } finally {
       setResendLoading(false)
     }
