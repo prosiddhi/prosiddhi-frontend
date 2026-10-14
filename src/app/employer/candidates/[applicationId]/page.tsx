@@ -69,6 +69,9 @@ function CandidateDetailContent() {
     return () => {
       ignore = true
     }
+    // `t` is only the load-error fallback text. Listing it would re-run this effect
+    // (and refetch) on every language change, so it is deliberately left out.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId, reloadKey])
 
   const refetch = () => setReloadKey((k) => k + 1)

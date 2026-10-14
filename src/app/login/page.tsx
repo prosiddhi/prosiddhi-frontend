@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, X } from 'lucide-react'
@@ -20,7 +21,6 @@ import {
   type UserRole,
   type AuthUser,
 } from '@/lib/api'
-import { useAuthConfig } from '@/hooks/useAuthConfig'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164 } from '@/lib/identifier'
 import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
@@ -155,7 +155,6 @@ function LoginContent() {
   const returnUrl = searchParams.get('returnUrl')
   const { t } = useTranslation()
   const { login, updateUser } = useAuth()
-  const { requirePhoneVerification, loading: authConfigLoading } = useAuthConfig()
 
   const [role, setRole] = useState<LoginRole>('seeker')
   // Set once the destination is known, unless the user has already picked. A
@@ -326,7 +325,7 @@ function LoginContent() {
       )
       return true
     }
-    setError(err instanceof Error ? err.message : t('auth:login.errorLogin'))
+    setError(otpErrorMessage(err, t, 'auth:login.errorLogin'))
     return false
   }
 
@@ -385,7 +384,7 @@ function LoginContent() {
       setOtpSent(true)
       phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:login.errorSendOtp'))
+      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
     } finally {
       setLoading(false)
     }
@@ -467,33 +466,21 @@ function LoginContent() {
     }
   }
 
-  // Shared tail for both bind-phone paths (with or without an OTP). The
-  // session's user was stamped PENDING_OTP_VERIFICATION / phoneNumber: null at
-  // Google sign-up; a successful changePhone() call — either branch — always
-  // flips PENDING_OTP_VERIFICATION -> ACTIVE server-side for a first bind
-  // (auth.service.ts changePhone, `shouldActivate`). That fact isn't in the
-  // response body (it returns only `{ phoneNumber }`), but it's true by
+  // Tail of the phone bind. The session's user was stamped
+  // PENDING_OTP_VERIFICATION / phoneNumber: null at Google sign-up; a successful
+  // changePhone() call always flips PENDING_OTP_VERIFICATION -> ACTIVE
+  // server-side (auth.service.ts changePhone, `shouldActivate`). That fact isn't
+  // in the response body (it returns only `{ phoneNumber }`), but it's true by
   // construction of having reached this line, so patching it locally isn't a
   // manufactured claim. `phoneVerified` is deliberately NOT patched here: the
-  // backend doesn't return it, AuthUser has no such field, and its real value
-  // (true only when the OTP branch actually verified one) belongs to the
-  // backend alone.
+  // backend doesn't return it and AuthUser has no such field.
   const completeBind = (e164: string) => {
     updateUser({ phoneNumber: e164, accountStatus: 'ACTIVE' })
     if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
     router.push(bindUser ? homeRouteForRole(bindUser.role) : '/')
   }
 
-  // Sends the real code and primes the verify form — the normal path below,
-  // and the stale-cache fallback inside the skip branch, both need it.
-  const startOtpVerify = async (e164: string) => {
-    await otpAPI.send(e164)
-    setOtpSent(true)
-    bindVerifyForm.reset({ otp: EMPTY_OTP })
-  }
-
-  // --- Phone-bind step 1: send OTP to the new phone (or, R1-BE-01 / D-1,
-  // bind it directly when the server says no code is required) ---
+  // --- Phone-bind step 1: send OTP to the new phone ---
   const onBindSendOtp: SubmitHandler<SendOtpValues> = async ({ phone }) => {
     try {
       setLoading(true)
@@ -501,44 +488,11 @@ function LoginContent() {
       const e164 = toE164(phone)
       if (!e164) return
 
-      // A Google sign-up's account has no phone at all yet, so this is always
-      // changePhone's isFirstBind case — no code is required while the flag
-      // is off, and none could arrive anyway (no SMS channel exists).
-      if (skipOtpBind) {
-        try {
-          await authAPI.changePhone(e164)
-          completeBind(e164)
-        } catch (bindErr) {
-          // Stale-cache guard: useAuthConfig's cache is fetched once per tab
-          // and is never refreshed except by a reload, so it can lag a real
-          // config flip (e.g. the documented flip back to true once SMS
-          // delivery ships). Re-check the LIVE value directly — not by
-          // matching bindErr's message, which is just "OTP is required to
-          // change your phone number" either way — before deciding what
-          // this failure means.
-          const liveRequiresVerification = await authAPI
-            .getConfig()
-            .then((c) => c.requirePhoneVerification)
-            .catch(() => false) // Couldn't confirm either way — treat bindErr as real, below.
-          if (liveRequiresVerification) {
-            // The flag really did flip since our cached read: a code IS
-            // required now. Send one and drop into the normal verify step
-            // instead of leaving the user stuck with no way to continue.
-            await startOtpVerify(e164)
-            return
-          }
-          // Still false: this is a real changePhone rejection (e.g. the
-          // number is already in use), not staleness. No OTP was ever
-          // involved in this branch, so show that failure itself rather
-          // than the OTP-send fallback below.
-          setError(bindErr instanceof Error ? bindErr.message : t('auth:login.errorLogin'))
-        }
-        return
-      }
-
-      await startOtpVerify(e164)
+      await otpAPI.send(e164)
+      setOtpSent(true)
+      bindVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.')
+      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
     } finally {
       setLoading(false)
     }
@@ -555,7 +509,7 @@ function LoginContent() {
       await authAPI.changePhone(e164, code)
       completeBind(e164)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+      setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid'))
       bindVerifyForm.setValue('otp', EMPTY_OTP)
       bindOtpInputRef.current?.focusFirst()
     } finally {
@@ -582,70 +536,6 @@ function LoginContent() {
   const bannerMessage = error || (activeValidationKey ? t(activeValidationKey) : '')
 
   const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
-
-  // R1-BE-01 / D-1: whether the Google phone-bind step can skip the OTP
-  // round-trip entirely. Gated on authConfigLoading, not just
-  // requirePhoneVerification — see useAuthConfig's own doc comment for why
-  // its loading-default is false. Hoisted once so the submit handler and the
-  // button label below can't disagree about which behavior is active.
-  const skipOtpBind = !authConfigLoading && !requirePhoneVerification
-
-  // C:PR-04 — same condition as `skipOtpBind` above (both mean "the server
-  // has confirmed REQUIRE_PHONE_VERIFICATION is off"), kept as its own named
-  // binding because the two gate different features that only coincide
-  // today: this one hides phone-OTP as a LOGIN method — BE-A06 refuses
-  // `POST /auth/login-phone-send` and the verify call (`POST /auth/login`
-  // with `{identifier, otp}`, TD-43) with `503 PHONE_OTP_LOGIN_DISABLED` once
-  // the flag is off — while `skipOtpBind` skips the OTP round-trip on a
-  // first phone BIND. Derived from `skipOtpBind` rather than re-reading the
-  // two hook fields a second time, so the two can't drift apart on what the
-  // flag itself says; only a real product split between "login" and "bind"
-  // should ever make them differ.
-  const phoneOtpLoginDisabled = skipOtpBind
-
-  // Whether the phoneOtp tab has anything on it worth keeping visible: a
-  // code already sent, a send/verify request in flight, or an unread error
-  // from either. Reading `error` with no tab check of its own is safe here —
-  // every way onto this tab (`switchToPhoneOtp`) and both its submit
-  // handlers clear `error` first, so a non-empty `error` while
-  // `tab === 'phoneOtp'` can only be a message THIS tab's own last attempt
-  // produced, never a leftover from elsewhere. Shared by the render guard
-  // below and the auto-redirect effect so the two can't disagree about what
-  // counts as "the user has started" — see both use sites for why that
-  // agreement matters.
-  const phoneOtpTabActive = otpSent || loading || !!error
-
-  // A user can only reach the phoneOtp tab through the link this same flag
-  // hides below, so once it's confirmed off nothing can send them there
-  // again — except someone already on it from the loading window, where the
-  // link was still showing (`skipOtpBind`'s comment above covers why loading
-  // defaults to not-disabled).
-  //
-  // Gated on `!phoneOtpTabActive`, not just `tab === 'phoneOtp'`, so this can
-  // only auto-correct the UNSTARTED phone-number-entry step: never a code
-  // the user already sent, never while a request for this tab is in flight,
-  // and never right after one settles into a failure the user hasn't read
-  // yet. That last case is the one worth spelling out — without it, this
-  // sequence loses the user's result silently: config resolves "disabled"
-  // while Send is in flight (deferred by `loading`); the request settles
-  // with the backend's own 503 `PHONE_OTP_LOGIN_DISABLED`; `onSendOtp`'s
-  // catch sets `error` to that message and `otpSent` stays `false`; on the
-  // very next render this effect would otherwise see `!otpSent && !loading`
-  // satisfied and fire, calling `setError('')` and switching tabs before the
-  // message the user was just shown ever painted. Once `phoneOtpTabActive`
-  // includes `error`, that render leaves this effect a no-op instead.
-  //
-  // Mirrors what `switchTab` does for the tab's own "back" control, inlined
-  // so every dependency here is real and none needs suppressing. Settles
-  // after one run once it does fire: the next render sees
-  // `tab === 'phonePassword'`, the condition is false, and the effect no-ops.
-  useEffect(() => {
-    if (tab !== 'phoneOtp' || mode !== 'login' || !phoneOtpLoginDisabled || phoneOtpTabActive) return
-    const currentPhone = phoneOtpSendForm.getValues('phone')
-    if (currentPhone) phonePasswordForm.setValue('identifier', currentPhone)
-    setTab('phonePassword')
-    setError('')
-  }, [tab, mode, phoneOtpLoginDisabled, phoneOtpTabActive, phoneOtpSendForm, phonePasswordForm])
 
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
@@ -798,21 +688,7 @@ function LoginContent() {
           )}
 
           {/* --- Phone + OTP tab --- */}
-          {/* C:PR-04: also gated on `!phoneOtpLoginDisabled || phoneOtpTabActive`,
-              not just the effect above — and on the SAME `phoneOtpTabActive`
-              the effect uses, deliberately, so the two can't disagree about
-              when the user has "started". A fresh, unstarted entry into this
-              tab is fully blocked the instant the flag is confirmed off
-              (closes a future direct-tab-entry path even before the effect
-              gets a chance to run); a request in flight, a code already
-              sent, or an unread error from either keeps rendering — hiding
-              any of those would tear the screen (or the in-flight submit's
-              own form) away just as forcibly as the redirect the effect was
-              written to avoid. Worst case if the flag really did flip:
-              Verify is submitted and the backend answers its own 503 on
-              this same screen, same as before this ticket — not a forced
-              tab switch. */}
-          {mode === 'login' && tab === 'phoneOtp' && (!phoneOtpLoginDisabled || phoneOtpTabActive) && (
+          {mode === 'login' && tab === 'phoneOtp' && (
             <div className="space-y-5">
               <PhoneNumberField
                 id="phone"
@@ -942,21 +818,14 @@ function LoginContent() {
                   >
                     {t('auth:login.forgotPassword')}
                   </Link>
-                  {/* An alternative way to sign in — keeps the medium weight.
-                      C:PR-04: hidden while phone-OTP login is disabled
-                      server-side (BE-A06) — offering it would be a guaranteed
-                      503, not an alternative. The tab and its send/verify
-                      forms are untouched, so this reappears with no rebuild
-                      once REQUIRE_PHONE_VERIFICATION goes back on. */}
-                  {!phoneOtpLoginDisabled && (
-                    <button
-                      type="button"
-                      onClick={switchToPhoneOtp}
-                      className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
-                    >
-                      {t('auth:login.useOtpInstead')}
-                    </button>
-                  )}
+                  {/* An alternative way to sign in — keeps the medium weight. */}
+                  <button
+                    type="button"
+                    onClick={switchToPhoneOtp}
+                    className={`inline-flex items-center min-h-[44px] px-2 text-center ${TEXT_LINK_CLS}`}
+                  >
+                    {t('auth:login.useOtpInstead')}
+                  </button>
                 </div>
               </div>
             </form>
@@ -1063,15 +932,8 @@ function LoginContent() {
                     required
                     register={bindSendForm.register('phone')}
                   />
-                  {/* R1-BE-01 / D-1: while a code isn't required, this button
-                      binds the phone directly — reusing the generic Continue/
-                      Loading copy rather than "Send OTP"/"Sending…", which
-                      would describe a code that never goes out. No new locale
-                      keys: both are existing, already-shared strings. */}
                   <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
-                    {skipOtpBind
-                      ? loading ? t('status.loading') : t('buttons.continue')
-                      : loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
+                    {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
               ) : (

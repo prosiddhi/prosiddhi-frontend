@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
@@ -11,7 +12,6 @@ import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { useAuthConfig } from '@/hooks/useAuthConfig'
 
 // Normalise user input to E.164 (BE jobSeekerRegisterSchema requires it).
 // Bare 10-digit numbers are assumed Indian (+91); an explicit +<country> is kept.
@@ -31,7 +31,6 @@ export default function RegisterPhonePage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { data, update, hydrated } = useSeekerRegistration()
-  const { requirePhoneVerification, loading: authConfigLoading } = useAuthConfig()
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -56,23 +55,6 @@ export default function RegisterPhonePage() {
     const e164 = toE164(phoneNumber)
     if (!e164) {
       setError(t('auth:phone.errorInvalid'))
-      return
-    }
-
-    // R1-BE-01 / D-1: while the server says a phone code isn't required, skip
-    // sending one entirely — `phoneVerified: true` here means "this step is
-    // complete", not "the number was confirmed by OTP". It is never sent to
-    // the backend as a literal claim; the backend decides real verification
-    // state itself via REQUIRE_PHONE_VERIFICATION and re-checks regardless.
-    //
-    // Gate on authConfigLoading, not just requirePhoneVerification: the hook's
-    // default is `false` for the brief window before /auth/config resolves.
-    // Acting on that transient default here would skip a genuinely-required
-    // OTP send on a cold cache + fast submit. While it's still loading, fall
-    // through to the existing send-OTP path — the safe default either way.
-    if (!authConfigLoading && !requirePhoneVerification) {
-      update({ phoneNumber: e164, phoneVerified: true })
-      router.push('/register/profile')
       return
     }
 
@@ -105,7 +87,7 @@ export default function RegisterPhonePage() {
 
       router.push('/register/otp')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:phone.errorFailed'))
+      setError(otpErrorMessage(err, t, 'auth:phone.errorFailed'))
     } finally {
       setLoading(false)
     }

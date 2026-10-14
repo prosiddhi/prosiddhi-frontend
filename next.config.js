@@ -33,19 +33,11 @@ const apiOrigin = (() => {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
 
   // Emit a self-contained server build (.next/standalone) for lean Docker images.
   // Required by the Dockerfile in this repo. Has no effect on `next start` / `next dev`.
   output: 'standalone',
 
-  // Do not fail the production build on ESLint errors — lint is run as a
-  // separate dev/CI step (`npm run lint`). TypeScript type-checking still
-  // runs during the build and WILL block on real type errors.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -63,6 +55,11 @@ const nextConfig = {
         pathname: '/uploads/**',
       },
     ],
+    // Next 16 refuses to optimize images from private/loopback addresses. Our local
+    // API runs on localhost, so allow it for `next dev` only. Production stays strict:
+    // `next start` against a localhost or private-IP API will not optimise uploaded
+    // images, so point NEXT_PUBLIC_API_URL at a public origin there.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === 'development',
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

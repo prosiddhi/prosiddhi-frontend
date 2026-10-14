@@ -172,7 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * (DEF-025 — "after logging in as a different user, the previous user's page
    * is shown").
    *
-   * Next 14 caches the RSC payload of every route the browser has visited, and
+   * The App Router caches the RSC payload of routes the browser has visited (every
+   * route in Next 14, where this was found), and
    * `router.push()` does not invalidate it. So after signing out of one account
    * and into another in the same tab, navigating back to a route the PREVIOUS
    * user visited can serve their cached render. Storage and React state were

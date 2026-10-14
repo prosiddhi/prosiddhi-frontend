@@ -245,6 +245,10 @@ function SeekerProfileContent() {
     return () => {
       ignore = true
     }
+    // `t` is only the load-error fallback text. Listing it would re-run this effect on
+    // every language change, refetch, and hydrate() over any unsaved edits, so it is
+    // deliberately left out.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrate])
 
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {

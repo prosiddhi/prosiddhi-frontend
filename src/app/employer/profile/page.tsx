@@ -223,6 +223,10 @@ function EmployerProfileContent() {
     return () => {
       ignore = true
     }
+    // `t` is only the load-error fallback text. Listing it would re-run this effect on
+    // every language change, refetch, and hydrate() over any unsaved edits, so it is
+    // deliberately left out.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrate])
 
   // Called by handleSave after a successful update — the PUT response doesn't
