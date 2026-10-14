@@ -29,7 +29,7 @@ the DB VM if you split them). Idempotent — safe to re-run.
 sudo apt update && sudo apt -y upgrade
 sudo apt -y install nginx git curl ufw ca-certificates gnupg build-essential
 
-# --- 2. Node.js 20 LTS (Next 14 + Express; matches backend's node:20) ----------
+# --- 2. Node.js 20 LTS (Next 16 + Express; matches backend's node:20) ----------
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt -y install nodejs
 node -v && npm -v        # expect v20.x

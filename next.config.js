@@ -38,7 +38,6 @@ const nextConfig = {
   // Required by the Dockerfile in this repo. Has no effect on `next start` / `next dev`.
   output: 'standalone',
 
-  
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -57,7 +56,9 @@ const nextConfig = {
       },
     ],
     // Next 16 refuses to optimize images from private/loopback addresses. Our local
-    // API runs on localhost, so allow it for `next dev` only.
+    // API runs on localhost, so allow it for `next dev` only. Production stays strict:
+    // `next start` against a localhost or private-IP API will not optimise uploaded
+    // images, so point NEXT_PUBLIC_API_URL at a public origin there.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === 'development',
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
