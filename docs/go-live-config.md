@@ -64,7 +64,7 @@ The app reads only **two** browser env vars:
 
 | Env | Value for prod | Status |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | the prod backend API base (e.g. `https://api.prosiddhi.com/api`) | ⏳ |
+| `NEXT_PUBLIC_API_URL` | the prod backend API base (e.g. `https://api.prosiddhi.com/api/v1`) | ⏳ |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | the Google OAuth client ID (same as backend's `GOOGLE_CLIENT_ID`) | ⏳ value in `.env.example`; confirm it's the production client |
 
 Also: the landing page is live at `https://prosiddhi.com` ✅. Everything else the portal needs is the **backend config in §1** (email, Razorpay, etc.).
@@ -137,7 +137,7 @@ Two phases. Today the app runs on `http://103.225.224.149:3000` (FE) / `:5000` (
 | Config | Now (dev IP) | At cutover (prosiddhi.com, HTTPS) |
 |---|---|---|
 | Google `javascript_origins` | `http://localhost:3000` only — **the IP cannot be registered** | add `https://prosiddhi.com` (+ `www`) |
-| FE `NEXT_PUBLIC_API_URL` | `http://103.225.224.149:5000/api` | `https://api.prosiddhi.com/api` |
+| FE `NEXT_PUBLIC_API_URL` | `http://103.225.224.149:5000/api/v1` | `https://api.prosiddhi.com/api/v1` |
 | FE `NEXT_PUBLIC_APP_URL` | `http://103.225.224.149:3000` | `https://prosiddhi.com` |
 | Admin `NEXT_PUBLIC_API_URL` | dev BE | prod BE |
 | BE `FRONTEND_URL` (invite links) | `http://103.225.224.149:3000` | `https://prosiddhi.com` |
