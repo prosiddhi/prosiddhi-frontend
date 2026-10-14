@@ -583,7 +583,6 @@ function SeekerProfileContent() {
                         phoneNumber={phoneNumber}
                         verified={phoneVerified}
                         editing
-                        hideChange
                         notProvided={t('profile:seeker.notProvided')}
                         verifiedText={t('profile:seeker.phoneStatusVerified')}
                         changeLabel={t('profile:seeker.changePhone')}
