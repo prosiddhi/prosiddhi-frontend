@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build for the ProSiddhi web app (Next.js 14, standalone output).
+# Multi-stage build for the ProSiddhi web app (Next.js 16, standalone output).
 # Produces a small runtime image suitable for Cloud Run / GKE.
 
 # ---- deps: install production + dev deps for the build ----

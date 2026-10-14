@@ -1,6 +1,6 @@
 # ProSiddhi — Web App
 
-The ProSiddhi Job Portal web frontend (seeker + employer + admin), built with **Next.js 14 (App Router)**, TypeScript, and Tailwind CSS.
+The ProSiddhi Job Portal web frontend (seeker + employer + admin), built with **Next.js 16 (App Router)**, TypeScript, and Tailwind CSS.
 
 This is a **standalone repository** — it was extracted from the `job-portal-fe` monorepo (`apps/web`) and is now the canonical home for the web frontend.
 
@@ -8,14 +8,14 @@ This is a **standalone repository** — it was extracted from the `job-portal-fe
 
 ## Tech stack
 
-- Next.js 14.2.x (App Router, Node server runtime)
-- React 18, TypeScript 5
+- Next.js 16.4 (App Router, Node server runtime)
+- React 19, TypeScript 5
 - Tailwind CSS, Radix UI primitives, lucide-react
-- TanStack Query + Zustand (state), Axios (HTTP), react-hook-form + Zod (forms)
+- TanStack Query + Zustand (state), `fetch` client in `src/lib/api.ts` (HTTP), react-hook-form + Zod (forms)
 
 ## Prerequisites
 
-- Node.js >= 18.17
+- Node.js >= 20.9 (the `engines` field in package.json)
 - npm (this repo uses plain npm — no pnpm/workspace tooling)
 
 ## Local development

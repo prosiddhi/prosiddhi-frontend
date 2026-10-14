@@ -4,7 +4,7 @@
 **Author date:** 2026-05-11. **Target:** QA handover **2026-06-22**.
 **Anchors:** [PRODUCT.md §5 (locked scope)](PRODUCT.md) (D2 + Q3 + module inventory) and the live BE code in `prosiddhi-backend/src/` (the authoritative "what is built today").
 
-This is a project-specific security spec for the actual stack: **Express 5 + Prisma 6 + Zod 4 + JWT (HS256) + PBKDF2 + Multer + Winston** on the BE; Next.js 14 / React Native (Expo) on the clients. It is not a generic OWASP checklist — every line is tied to an existing file, an audit finding, or a locked decision.
+This is a project-specific security spec for the actual stack: **Express 5 + Prisma 6 + Zod 4 + JWT (HS256) + PBKDF2 + Multer + Winston** on the BE; Next.js 16 / React Native (Expo) on the clients. It is not a generic OWASP checklist — every line is tied to an existing file, an audit finding, or a locked decision.
 
 ---
 
