@@ -11,7 +11,7 @@ This is a **standalone repository** — it was extracted from the `job-portal-fe
 - Next.js 16.4 (App Router, Node server runtime)
 - React 19, TypeScript 5
 - Tailwind CSS, Radix UI primitives, lucide-react
-- TanStack Query + Zustand (state), Axios (HTTP), react-hook-form + Zod (forms)
+- TanStack Query + Zustand (state), `fetch` client in `src/lib/api.ts` (HTTP), react-hook-form + Zod (forms)
 
 ## Prerequisites
 
