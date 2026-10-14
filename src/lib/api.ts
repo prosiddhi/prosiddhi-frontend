@@ -15,6 +15,11 @@ import type { SupportedLanguage } from '@/i18n/languages'
 // or rejected account from an ordinary expired session. Two per-call options opt
 // a 401 out of all of this: `preserveSessionOnCode` (a re-auth proof failed) and
 // `isCredentialCheck` (a sign-in attempt failed).
+//
+// Refresh: the access token is short-lived (BE default 1h). A `401 TOKEN_EXPIRED`
+// on an authenticated call is therefore traded, once, for a new token through
+// `POST /auth/refresh` (the HttpOnly refresh cookie is the credential), and the
+// call is replayed once. See `recoverExpiredToken`.
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
@@ -217,8 +222,219 @@ export class RequestTimeoutError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Session refresh
+// ---------------------------------------------------------------------------
+
+/** Fired on `window` after a refresh stored a new access token; AuthContext listens. */
+export const AUTH_TOKEN_REFRESHED_EVENT = 'auth:token-refreshed'
+/** Fired on `window` when the session has ended and must be dropped; AuthContext listens. */
+export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized'
+
+// The BE's 401 code for an access token that is expired (or unreadable).
+const TOKEN_EXPIRED_CODE = 'TOKEN_EXPIRED'
+
+// Every endpoint that sets the refresh cookie on a browser login/registration.
+// Only these (plus refresh/logout below) send `credentials: 'include'` — without
+// it a cross-origin browser discards the Set-Cookie, and the session could never
+// be refreshed. All other requests keep the fetch default.
+const SESSION_COOKIE_ENDPOINTS = new Set([
+  '/auth/login',
+  '/auth/google/login',
+  '/jobseekers/login',
+  '/employers/login',
+  '/jobseekers/register',
+  '/employers/register/individual',
+  '/employers/register/business',
+])
+
+// Longest we wait on the refresh call. Requests parked behind it wait this long
+// at most, and then fail without ending the session.
+const REFRESH_TIMEOUT_MS = 15000
+// Longest the sign-out call may run. The UI never waits on it at all.
+const LOGOUT_TIMEOUT_MS = 5000
+
+type RefreshOutcome =
+  | { kind: 'ok' }
+  // The BE refused the session (401). `code` is SESSION_REVOKED / ACCOUNT_SUSPENDED / ...
+  | { kind: 'ended'; code?: string }
+  // 5xx, 429, network failure, timeout, odd body: nothing is known about the session.
+  | { kind: 'unavailable' }
+  // Another tab signed out while the refresh was in flight.
+  | { kind: 'signed-out' }
+  // The BE issued a token for a different user than the one that asked (see runRefresh),
+  // or storage now holds a different user's session. Nothing is replayed, stored or cleared.
+  | { kind: 'identity-changed' }
+  // 403: the BE refused this site (origin not allowed). A configuration fault, not a
+  // verdict on the session, so the session is kept.
+  | { kind: 'refused' }
+
+// One refresh at a time per tab. Concurrent expired requests all await this.
+let refreshInFlight: Promise<RefreshOutcome> | null = null
+
+/** Never rejects. `staleToken` is the expired token the caller sent. */
+async function runRefresh(staleToken: string): Promise<RefreshOutcome> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS)
+  try {
+    // Raw fetch on purpose: no Bearer header, no 401 handling, no recursion.
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    const body: unknown = await res.json().catch(() => null)
+    if (res.status === 401) {
+      const code = (body as { code?: unknown } | null)?.code
+      return { kind: 'ended', code: typeof code === 'string' ? code : undefined }
+    }
+    if (res.status === 403) return { kind: 'refused' }
+    if (!res.ok) return { kind: 'unavailable' }
+
+    const token = (body as { data?: { token?: unknown } } | null)?.data?.token
+    // Shape check only: a JWT has three dot-separated parts. The signature is the
+    // server's to check. The `userId` claim is decoded just below for identity matching
+    // only (see tokenUserId); that is not signature verification.
+    if (typeof token !== 'string' || token.split('.').length !== 3) return { kind: 'unavailable' }
+
+    // The refresh cookie is shared by every tab, so the BE may answer for a different
+    // user than the one whose token expired (another tab signed in as someone else and
+    // this response's Set-Cookie landed after it). Never store or use such a token.
+    // The new token must name the same user as the one it replaces; one we cannot read
+    // is refused too. This cannot undo the cookie itself: the browser has already
+    // accepted that response's Set-Cookie.
+    const expectedUserId = tokenUserId(staleToken)
+    if (expectedUserId === null || tokenUserId(token) !== expectedUserId) return { kind: 'identity-changed' }
+
+    // Write only if storage still holds the token we replaced. A different value
+    // means another tab got there first (a newer refresh, or a new sign-in) and
+    // must not be overwritten by this response; null means a sign-out.
+    const current = getAuthToken()
+    if (current === null) return { kind: 'signed-out' }
+    if (current === staleToken) {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+      window.dispatchEvent(new CustomEvent(AUTH_TOKEN_REFRESHED_EVENT, { detail: { token } }))
+    }
+    return { kind: 'ok' }
+  } catch {
+    // Network error, abort/timeout, or storage refused the write.
+    return { kind: 'unavailable' }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function refreshAccessToken(staleToken: string): Promise<RefreshOutcome> {
+  if (refreshInFlight) return refreshInFlight
+  const flight = runRefresh(staleToken).finally(() => {
+    if (refreshInFlight === flight) refreshInFlight = null
+  })
+  refreshInFlight = flight
+  return flight
+}
+
+// What a caller does next: replay with exactly this token, or one of the refresh outcomes.
+type ExpiryRecovery = Exclude<RefreshOutcome, { kind: 'ok' }> | { kind: 'retry'; token: string }
+
+/**
+ * The `userId` claim of a JWT, or null if the token is missing or unreadable.
+ *
+ * Identity matching ONLY. The payload is decoded without verifying the signature, so
+ * it proves nothing about the token; the server still authorises every request. It is
+ * used to keep a request, its refreshed token and its replay on one user, reading the
+ * identity from the token itself rather than from a second storage key that another
+ * tab may be mid-way through writing.
+ */
+function tokenUserId(token: string | null): string | null {
+  if (!token) return null
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const id: unknown = (JSON.parse(window.atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))) as {
+      userId?: unknown
+    }).userId
+    return typeof id === 'string' && id ? id : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A request sent with `sentToken` came back `401 TOKEN_EXPIRED`. Get a usable token
+ * into storage if one can be had, and say which exact token to replay with. Does not
+ * touch the session itself: the caller decides what `ended` means.
+ */
+async function recoverExpiredToken(sentToken: string): Promise<ExpiryRecovery> {
+  const sentUserId = tokenUserId(sentToken)
+  // Storage may have moved on since the request left (this or another tab already
+  // refreshed, or signed in again). Then there is nothing to refresh.
+  //
+  // A different token is replayed only for the SAME user. Another tab can sign in as
+  // someone else while this request is in flight; replaying it with that token would
+  // run the first user's action under the second user's account. A token whose user
+  // cannot be read is treated as a change too.
+  const settled = (): ExpiryRecovery | null => {
+    const latest = getAuthToken()
+    if (latest === null) return { kind: 'signed-out' }
+    if (latest === sentToken) return null
+    return sentUserId !== null && tokenUserId(latest) === sentUserId
+      ? { kind: 'retry', token: latest }
+      : { kind: 'identity-changed' }
+  }
+  const before = settled()
+  if (before) return before
+
+  const outcome = await refreshAccessToken(sentToken)
+  // Re-check storage: a failed refresh must not end a session another tab has renewed,
+  // and after a success storage holds the new token (ours, or a same-user one from
+  // another tab). Still holding the old token after a success means nothing was stored.
+  const after = settled()
+  if (after) return after
+  if (outcome.kind === 'ok') return { kind: 'unavailable' }
+  return outcome
+}
+
+/**
+ * Drop the local session and tell AuthContext (which redirects) — but only if storage
+ * still holds `sentToken`, the token the failed request carried. Anything else is a
+ * newer session from another tab, which must survive. Returns whether it ended.
+ */
+function endSessionLocally(code: string | undefined, sentToken: string | null): boolean {
+  if (getAuthToken() !== sentToken) return false
+  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+  window.localStorage.removeItem(AUTH_USER_KEY)
+  window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT, { detail: { code } }))
+  return true
+}
+
+/**
+ * Tell the server to end this browser's session (`POST /auth/logout`). Best effort:
+ * never throws, gives up after LOGOUT_TIMEOUT_MS, and the caller must not wait on
+ * it. Local state is cleared by the caller whatever happens here.
+ */
+export async function endServerSession(): Promise<void> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), LOGOUT_TIMEOUT_MS)
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      signal: controller.signal,
+      // Survives the navigation that follows a sign-out.
+      keepalive: true,
+    })
+  } catch {
+    // Offline, refused (403/429 come back as responses, not here), or timed out.
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // The request itself: auth header, error classification, central 401 handling.
 // Returns the unwrapped `.data` payload. Callers use `apiRequest` below.
+// `replayToken` is internal: set only on the single replay after a token refresh, to
+// the exact token that replay was approved to use (it is not read from storage again).
 async function performRequest<T>(
   endpoint: string,
   {
@@ -239,7 +455,8 @@ async function performRequest<T>(
      * login page's `?returnUrl=`).
      */
     isCredentialCheck?: boolean
-  } = {}
+  } = {},
+  replayToken?: string
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
@@ -254,7 +471,7 @@ async function performRequest<T>(
   }
 
   // Attach Bearer token when present (works for JSON and FormData calls alike).
-  const token = getAuthToken()
+  const token = replayToken ?? getAuthToken()
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
@@ -263,6 +480,8 @@ async function performRequest<T>(
     ...options,
     headers,
   }
+  // Only the calls that set the refresh cookie send credentials (see the list above).
+  if (SESSION_COOKIE_ENDPOINTS.has(endpoint.split('?')[0])) config.credentials = 'include'
 
   // A network-level failure (offline, DNS, the dev tunnel being down) makes
   // fetch REJECT — distinct from an HTTP error response. Surface it app-wide via
@@ -318,11 +537,43 @@ async function performRequest<T>(
     const code = typeof body?.code === 'string' ? body.code : undefined
     // Centralized auth-expiry handling. Clear storage and let AuthContext react.
     const keepSession = preserveSessionOnCode !== undefined && code === preserveSessionOnCode
-    if (response.status === 401 && !keepSession && !isCredentialCheck && typeof window !== 'undefined') {
-      window.localStorage.removeItem(AUTH_TOKEN_KEY)
-      window.localStorage.removeItem(AUTH_USER_KEY)
-      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { code } }))
+    // The code AuthContext is told about. Normally this response's; after a refused
+    // refresh it is the refresh's, which is what says "suspended" or "rejected".
+    let unauthorizedCode = code
+    let endSession = response.status === 401 && !keepSession && !isCredentialCheck && typeof window !== 'undefined'
+
+    // An expired access token on a signed-in call: refresh once and replay once.
+    // Never for a sign-in attempt (no token sent, and `isCredentialCheck`), never on
+    // a replay (`replayToken`), and never for a body that cannot be sent twice.
+    if (
+      endSession &&
+      code === TOKEN_EXPIRED_CODE &&
+      token &&
+      replayToken === undefined &&
+      !(typeof ReadableStream !== 'undefined' && options.body instanceof ReadableStream)
+    ) {
+      const recovery = await recoverExpiredToken(token)
+      if (recovery.kind === 'retry') {
+        return performRequest<T>(endpoint, { preserveSessionOnCode, isCredentialCheck, ...options }, recovery.token)
+      }
+      if (recovery.kind === 'ended') {
+        unauthorizedCode = recovery.code ?? code
+      } else {
+        // Refresh failed without the server ending the session (outage, network, 429),
+        // or another tab signed out and owns the redirect. Keep what is stored.
+        endSession = false
+        if (recovery.kind === 'unavailable') {
+          throw new Error("Couldn't refresh your session. Check your connection and try again.")
+        }
+        if (recovery.kind === 'refused') {
+          throw new Error("The server didn't accept a session refresh from this site. Please contact support.")
+        }
+        if (recovery.kind === 'identity-changed') {
+          throw new Error('Your session changed. Please sign in again.')
+        }
+      }
     }
+    if (endSession) endSessionLocally(unauthorizedCode, token)
     // An admin reset the password mid-session, so the stored flag is stale. Unlike
     // a 401 the session is still valid — AuthContext flags it (idempotently) and
     // routes to the change screen.
@@ -2300,13 +2551,24 @@ export const subscriptionAPI = {
   },
 
   // Fetch an invoice PDF as a Blob. The endpoint streams binary (not the JSON
-  // envelope) and needs the Bearer header, so it bypasses apiRequest.
+  // envelope) and needs the Bearer header, so it bypasses apiRequest — and
+  // therefore repeats its expired-token handling: one refresh, one replay.
   // GET /api/employers/me/invoices/:id/pdf.
   fetchInvoicePdf: async (id: string): Promise<Blob> => {
-    const token = getAuthToken()
-    const res = await fetch(`${API_BASE_URL}/employers/me/invoices/${id}/pdf`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    const url = `${API_BASE_URL}/employers/me/invoices/${id}/pdf`
+    const send = (token: string | null) =>
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+
+    const sentToken = getAuthToken()
+    let res = await send(sentToken)
+    if (res.status === 401 && sentToken) {
+      const body: unknown = await res.clone().json().catch(() => null)
+      if ((body as { code?: unknown } | null)?.code === TOKEN_EXPIRED_CODE) {
+        const recovery = await recoverExpiredToken(sentToken)
+        if (recovery.kind === 'retry') res = await send(recovery.token)
+        else if (recovery.kind === 'ended') endSessionLocally(recovery.code ?? TOKEN_EXPIRED_CODE, sentToken)
+      }
+    }
     if (!res.ok) {
       throw new Error(`Failed to download invoice (status ${res.status})`)
     }

@@ -12,8 +12,11 @@ import {
 import { usePathname, useRouter } from 'next/navigation'
 import {
   AUTH_TOKEN_KEY,
+  AUTH_TOKEN_REFRESHED_EVENT,
+  AUTH_UNAUTHORIZED_EVENT,
   AUTH_USER_KEY,
   accountEndedReason,
+  endServerSession,
   type AuthUser,
 } from '@/lib/api'
 import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
@@ -148,6 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (redirectTo?: string) => {
       // ProtectedRoute's fallback target (always the bare /login).
       loggingOutToRef.current = '/login'
+      // End the server session (and its refresh cookie). Started first so the cookie
+      // goes with it, but never awaited: the UI signs out at once, and the call is
+      // best effort with its own timeout. Local state is cleared whatever it does.
+      void endServerSession()
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
       setToken(null)
@@ -221,8 +228,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push(to)
       // Cache purge is handled by the identity effect, same as logout().
     }
-    window.addEventListener('auth:unauthorized', onUnauthorized)
-    return () => window.removeEventListener('auth:unauthorized', onUnauthorized)
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized)
+    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized)
+  }, [router, token])
+
+  // A token refresh in THIS tab stored a new access token (lib/api.ts). The storage
+  // event below never fires in the tab that made the write, so state is told here.
+  useEffect(() => {
+    const onTokenRefreshed = (e: Event) => {
+      const next = (e as CustomEvent<{ token?: string }>).detail?.token
+      if (next) setToken(next)
+    }
+    window.addEventListener(AUTH_TOKEN_REFRESHED_EVENT, onTokenRefreshed)
+    return () => window.removeEventListener(AUTH_TOKEN_REFRESHED_EVENT, onTokenRefreshed)
+  }, [])
+
+  // Another tab changed the session in localStorage: a refresh, a sign-in as someone
+  // else, or a sign-out. Storage is the source of truth, so follow it. Only ever
+  // reads what the other tab wrote; this tab writes nothing here, so a stale tab
+  // cannot overwrite a newer token.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea !== window.localStorage) return
+      // `key === null` is localStorage.clear().
+      if (e.key !== null && e.key !== AUTH_TOKEN_KEY && e.key !== AUTH_USER_KEY) return
+
+      if (e.key === null || (e.key === AUTH_TOKEN_KEY && e.newValue === null)) {
+        // Signed out elsewhere. No server call (the other tab made it) and nothing
+        // to clear. Skip if this tab is already signed out.
+        if (!token) return
+        loggingOutToRef.current = '/login'
+        setToken(null)
+        setUser(null)
+        router.push('/login')
+        return
+      }
+      if (e.key === AUTH_TOKEN_KEY && e.newValue) {
+        setToken(e.newValue)
+        return
+      }
+      if (e.key === AUTH_USER_KEY && e.newValue) {
+        try {
+          setUser(JSON.parse(e.newValue) as AuthUser)
+        } catch {
+          // Unreadable value from the other tab — keep the user we have.
+        }
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [router, token])
 
   // React to 403 PASSWORD_CHANGE_REQUIRED from the API client: the session is
