@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
@@ -50,6 +51,10 @@ export default function EmployerVerifyPage() {
     return () => clearInterval(interval)
   }, [timer])
 
+  // The user-facing message for a settled call that failed; '' if it succeeded.
+  const failureOf = (result: PromiseSettledResult<unknown>, fallbackKey: string) =>
+    result.status === 'rejected' ? otpErrorMessage(result.reason, t, fallbackKey) : ''
+
   const handleVerify = async () => {
     const needPhone = !data.phoneVerified
     const needEmail = !data.emailVerified
@@ -87,13 +92,11 @@ export default function EmployerVerifyPage() {
     })
 
     if (!phoneOk) {
-      const err = (phoneResult as PromiseRejectedResult).reason
-      setPhoneError(err instanceof Error ? err.message : t('employerRegister:verify.phoneInvalid'))
+      setPhoneError(failureOf(phoneResult, 'employerRegister:verify.phoneInvalid'))
       setPhoneOtp('')
     }
     if (!emailOk) {
-      const err = (emailResult as PromiseRejectedResult).reason
-      setEmailError(err instanceof Error ? err.message : t('employerRegister:verify.emailInvalid'))
+      setEmailError(failureOf(emailResult, 'employerRegister:verify.emailInvalid'))
       setEmailOtp('')
     }
 
@@ -115,13 +118,18 @@ export default function EmployerVerifyPage() {
           ? Promise.resolve(null)
           : emailOtpAPI.send(data.email, 'REGISTRATION'),
       ])
+      const phoneErr = failureOf(phoneResult, 'auth:otp.errorResend')
+      const emailErr = failureOf(emailResult, 'auth:otp.errorResend')
+      setPhoneError(phoneErr)
+      setEmailError(emailErr)
       update({
         devPhoneOtp:
           IS_DEV_BUILD && phoneResult.status === 'fulfilled' ? phoneResult.value?.otp : undefined,
         devEmailOtp:
           IS_DEV_BUILD && emailResult.status === 'fulfilled' ? emailResult.value?.otp : undefined,
       })
-      setTimer(30)
+      // A refused resend ("please wait") must not restart the countdown.
+      if (!phoneErr && !emailErr) setTimer(30)
     } finally {
       setResending(false)
     }

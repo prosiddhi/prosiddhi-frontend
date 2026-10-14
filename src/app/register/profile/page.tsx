@@ -2,6 +2,7 @@
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { otpErrorMessage } from '@/lib/otpError'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { EmailPromptDialog } from '@/components/auth/EmailPromptDialog'
 import { ChevronRight, ChevronLeft, X, ImageIcon, Pencil } from 'lucide-react'
@@ -138,8 +139,7 @@ export default function RegisterProfilePage() {
 
     // Validation has passed. Email stays optional, but without one a forgotten
     // password cannot be recovered — so ask, every time Next is pressed with the
-    // field blank. Independent of requirePhoneVerification: the backend refuses
-    // phone password reset either way.
+    // field blank.
     if (!trimmedEmail) {
       setShowEmailPrompt(true)
       return
@@ -168,7 +168,7 @@ export default function RegisterProfilePage() {
       })
       router.push('/register/verify-email')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth:profile.errorEmailSend'))
+      setError(otpErrorMessage(err, t, 'auth:profile.errorEmailSend'))
     } finally {
       setLoading(false)
     }

@@ -826,20 +826,7 @@ export interface ForgotPasswordResult {
   otp?: string
 }
 
-// GET /auth/config's payload (R1-BE-01) — public server switches the sign-in
-// and registration screens need. Today one field; more may join it later.
-export interface AuthConfig {
-  requirePhoneVerification: boolean
-}
-
 export const authAPI = {
-  // GET /auth/config — public, no auth. Backend caches 60s; useAuthConfig adds
-  // a session cache on top for pages that mount this more than once (register,
-  // login).
-  getConfig: async () => {
-    return apiRequest<AuthConfig>('/auth/config')
-  },
-
   // Email+password OR phone+otp login. Role selects the endpoint.
   login: async (role: LoginRole, credentials: LoginCredentials) => {
     return apiRequest<LoginResult>(loginEndpoint(role), {
@@ -983,16 +970,7 @@ export const authAPI = {
   // phone-verification step). Authenticated — relies on the JWT already stored
   // by login(). Verify+update: BE checks `otp` against `newPhoneNumber` and
   // flips PENDING_OTP_VERIFICATION → ACTIVE. POST /api/auth/change-phone.
-  //
-  // R1-BE-01 / D-1: `otp` is optional because the FIRST bind on an account
-  // with no phone yet (a brand-new Google sign-up) needs no code while the
-  // server says phone verification isn't required — see changePhone's
-  // isFirstBind branch in auth.service.ts. Omit it and JSON.stringify drops
-  // the key entirely, matching the backend's optional `otp` in
-  // changePhoneSchema. A CHANGE on an account that already has a phone still
-  // requires a real otp regardless of the flag — that call site (the profile
-  // page's PhoneVerifyModal) always passes one, unaffected by this.
-  changePhone: async (newPhoneNumber: string, otp?: string) => {
+  changePhone: async (newPhoneNumber: string, otp: string) => {
     return apiRequest<{ phoneNumber: string }>('/auth/change-phone', {
       method: 'POST',
       body: JSON.stringify({ newPhoneNumber, otp }),
@@ -2875,7 +2853,7 @@ export const notificationAPI = {
 // If the admin-removal thread touches this file, this marker is the seam.
 
 // Export everything
-export default {
+const api = {
   authAPI,
   meAPI,
   otpAPI,
@@ -2889,3 +2867,5 @@ export default {
   chatAPI,
   notificationAPI,
 }
+
+export default api
