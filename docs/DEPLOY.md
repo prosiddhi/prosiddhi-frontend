@@ -125,14 +125,14 @@ curl http://localhost:5000/health     # -> {"status":"healthy", ...}
 ## 3. Web portal — `prosiddhi-web` (port 3000)
 
 `NEXT_PUBLIC_API_URL` is baked in at **build time** (it falls back to
-`http://localhost:5000/api` if missing — `src/lib/api.ts`). Set it **before** building and
+`http://localhost:5000/api/v1` if missing — `src/lib/api.ts`). Set it **before** building and
 **rebuild** whenever it changes.
 
 ```bash
 cd /opt/prosiddhi && git clone <prosiddhi-frontend repo> && cd prosiddhi-frontend
 npm ci
 cat > .env.local <<'ENV'
-NEXT_PUBLIC_API_URL=https://api.<domain>/api
+NEXT_PUBLIC_API_URL=https://api.<domain>/api/v1
 ENV
 npm run build                                  # bakes the API URL in
 pm2 start "npm run start -- -p 3000" --name prosiddhi-web --cwd /opt/prosiddhi/prosiddhi-frontend
@@ -204,7 +204,7 @@ TLS via certbot) is correct.
 4. Create schema: **`db push`** (Option A) or baseline migration (Option B) — §4.
 5. (When seed file lands from Asrar) `npm run prisma:seed`.
 6. `pm2 start dist/index.js --cwd <repo>` → verify `:5000/health`.
-7. Frontend: set `NEXT_PUBLIC_API_URL=https://api.<domain>/api` → `npm run build` → `pm2 start`.
+7. Frontend: set `NEXT_PUBLIC_API_URL=https://api.<domain>/api/v1` → `npm run build` → `pm2 start`.
 8. Nginx for `api.` + `app.` hosts + `/uploads` alias matching `UPLOAD_DIR`; DNS + TLS.
 9. Bootstrap first admin: `POST https://api.<domain>/api/admin/create` (open until first admin exists).
 10. `pm2 save` + confirm `pm2 startup` so both apps survive reboot.
