@@ -41,6 +41,7 @@ import {
   Mail,
 } from 'lucide-react'
 import { nameProblem } from '@/lib/nameValidation'
+import { checkEmail } from '@/lib/email'
 import { Field } from '@/components/form/Field'
 import { DatePicker } from '@/components/form/DatePicker'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
@@ -317,6 +318,13 @@ function EmployerProfileContent() {
       fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
     if (problem) {
       setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
+      return
+    }
+    // Optional, but a typed company email must be well-formed. Checked every
+    // time, not only when edited: the payload below always carries it, and the BE
+    // already rejects a malformed one, so this adds no new way to be locked out.
+    if (companyEmail.trim() && !checkEmail(companyEmail).ok) {
+      setSaveError(t('employerRegister:companyDetails.emailInvalid'))
       return
     }
     // The BE checks the GSTIN format and the registration number length, so guard

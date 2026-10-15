@@ -6,6 +6,7 @@ import { otpErrorMessage } from '@/lib/otpError'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { checkEmail } from '@/lib/email'
 
 export type EmailVerifyMode = 'add' | 'change' | 'verify'
 
@@ -20,7 +21,6 @@ interface EmailVerifyModalProps {
 }
 
 const RESEND_COOLDOWN_SECONDS = 30
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-100 disabled:text-gray-500'
@@ -29,6 +29,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
   const { t } = useTranslation()
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
   const [email, setEmail] = useState('')
+  const [emailTouched, setEmailTouched] = useState(false)
   const [otp, setOtp] = useState('')
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
@@ -42,6 +43,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
     if (isOpen) {
       setStep('email')
       setEmail(mode === 'verify' ? currentEmail ?? '' : '')
+      setEmailTouched(false)
       setOtp('')
       setError('')
       setCooldown(0)
@@ -64,8 +66,12 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
 
   if (!isOpen) return null
 
-  const trimmedEmail = email.trim()
-  const canSendOtp = mode === 'verify' ? !!trimmedEmail : EMAIL_RE.test(trimmedEmail)
+  const emailCheck = checkEmail(email)
+  // verify mode re-sends the address already on the account, so it keeps its old
+  // behaviour: no format gate, just whatever is stored.
+  const trimmedEmail = emailCheck.ok ? emailCheck.value : email.trim()
+  const canSendOtp = mode === 'verify' ? !!trimmedEmail : emailCheck.ok
+  const showEmailError = mode !== 'verify' && emailTouched && !!email.trim() && !emailCheck.ok
 
   const sendOtp = async () => {
     if (!canSendOtp || sending) return
@@ -170,10 +176,15 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
                     value={email}
                     disabled={mode === 'verify'}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setEmailTouched(true)}
                     placeholder={t('profile:seeker.emailModal.emailPlaceholder')}
                     className={inputCls}
                     autoFocus={mode !== 'verify'}
+                    aria-invalid={showEmailError}
                   />
+                  {showEmailError && (
+                    <p role="alert" className="mt-2 text-sm text-red-600">{t('auth:profile.errorEmail')}</p>
+                  )}
                 </div>
               ) : (
                 <div className="mb-4">

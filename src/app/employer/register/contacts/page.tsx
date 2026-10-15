@@ -8,6 +8,7 @@ import { X } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { checkEmail } from '@/lib/email'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 
@@ -73,11 +74,12 @@ export default function EmployerContactsPage() {
       setError(t('employerRegister:contacts.phoneInvalid'))
       return
     }
-    const trimmedEmail = email.trim()
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+    const emailCheck = checkEmail(email)
+    if (!emailCheck.ok) {
       setError(t('employerRegister:contacts.emailInvalid'))
       return
     }
+    const trimmedEmail = emailCheck.value
 
     try {
       setLoading(true)

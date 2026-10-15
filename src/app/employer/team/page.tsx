@@ -26,6 +26,7 @@ import { formatShortDate } from '@/lib/jobFormat'
 import { inviteErrorKey } from '@/lib/inviteErrors'
 import { invitePath } from '@/lib/inviteToken'
 import { teamAPI, type TeamSummary, type InviteResult } from '@/lib/api'
+import { checkEmail } from '@/lib/email'
 import {
   ChevronLeft,
   Users,
@@ -40,6 +41,7 @@ import {
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
+const TEAM_INVITE_EMAIL_MAX_LENGTH = 200
 
 function TeamContent() {
   const { t } = useTranslation()
@@ -85,14 +87,21 @@ function TeamContent() {
 
   const handleInvite = async () => {
     if (inviting) return // guard: Enter-key repeat / double-click
-    const value = email.trim()
-    if (!value) return
+    if (!email.trim()) return
+    // 200 is the BE's team-invite limit (team.validator.ts); the shared default is 254.
+    const check = checkEmail(email, TEAM_INVITE_EMAIL_MAX_LENGTH)
+    if (!check.ok) {
+      // Leave lastInvite alone: the link on screen is the only copy there will ever
+      // be, and a typo in the next address must not throw it away.
+      setInviteError(t('auth:profile.errorEmail'))
+      return
+    }
     setInviting(true)
     setInviteError('')
     setLastInvite(null)
     setCopied(false)
     try {
-      const res = await teamAPI.invite(value)
+      const res = await teamAPI.invite(check.value)
       setLastInvite(res)
       setEmail('')
       await load() // refresh roster + seat counts

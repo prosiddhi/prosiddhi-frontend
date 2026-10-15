@@ -11,6 +11,7 @@ import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifie
 import { IdentifierError } from '@/components/form/IdentifierError'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
+import { checkEmail } from '@/lib/email'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { DatePicker } from '@/components/form/DatePicker'
 
@@ -113,7 +114,9 @@ export default function CompanyDetailsPage() {
       setError(t('employerRegister:companyDetails.nameTooShort'))
       return
     }
-    if (!form.companyEmail.includes('@')) {
+    // Validate only: the payload below sends the typed casing on purpose, since the
+    // BE stores companyEmail as given. Do not switch it to the normalised value.
+    if (!checkEmail(form.companyEmail).ok) {
       setError(t('employerRegister:companyDetails.emailInvalid'))
       return
     }

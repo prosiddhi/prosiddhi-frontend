@@ -1,3 +1,5 @@
+import { checkEmail } from '@/lib/email'
+
 /**
  * Turning what somebody typed into something the API can look up.
  *
@@ -71,14 +73,11 @@ export function toMobileInputDigits(raw: string): string | null {
  */
 export function toIdentifier(raw: string): string | null {
   if (!raw.includes('@')) return toE164(raw)
-  const trimmed = raw.trim()
   // Shape-check the email too. The field used to be `type="email"`, so the
   // browser refused "boss@acme" before it could be submitted; making it accept
   // phone numbers as well took that check away, and a half-typed address came
   // back as "Invalid credentials" — blaming the password for a missing ".com".
-  // Deliberately loose: something@something.something, no attempt to be a
-  // full RFC validator. The server is the authority; this only catches the
-  // typo that would otherwise be reported as a wrong password.
-  const email = trimmed.toLowerCase()
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email : null
+  // The rule is the shared one in email.ts, which matches the backend's.
+  const result = checkEmail(raw)
+  return result.ok ? result.value : null
 }

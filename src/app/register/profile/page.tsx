@@ -14,6 +14,7 @@ import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isAtLeast18 } from '@/lib/dateInput'
+import { checkEmail } from '@/lib/email'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 import { SELECT_CHEVRON_CLS } from '@/components/form/selectChevron'
 
@@ -81,7 +82,7 @@ export default function RegisterProfilePage() {
     // address at all (PRODUCT.md §2), and the backend supports registering with
     // a phone alone. Only validate the FORMAT, and only when something was
     // actually typed. Do not reintroduce a required check here.
-    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+    if (email.trim() && !checkEmail(email).ok) {
       setError(t('auth:profile.errorEmail'))
       return false
     }
@@ -135,7 +136,10 @@ export default function RegisterProfilePage() {
     if (!hydrated || showEmailPrompt || advancingRef.current) return
     if (!validateForm()) return
 
-    const trimmedEmail = email.trim()
+    // validateForm() already rejected a malformed address, so a failed check
+    // here can only mean the field is blank.
+    const emailCheck = checkEmail(email)
+    const trimmedEmail = emailCheck.ok ? emailCheck.value : ''
 
     // Validation has passed. Email stays optional, but without one a forgotten
     // password cannot be recovered — so ask, every time Next is pressed with the
