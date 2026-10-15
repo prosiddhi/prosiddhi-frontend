@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, Eye, EyeOff } from 'lucide-react'
@@ -31,6 +31,7 @@ export default function RegisterPasswordPage() {
   const { data, update, reset, hydrated } = useSeekerRegistration()
   const [password, setPassword] = useState('')
   const [passwordTouched, setPasswordTouched] = useState(false)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -90,7 +91,13 @@ export default function RegisterPasswordPage() {
     // being gone, and this is the call that creates the account.
     if (nameIssue) return
     if (!isStrongPassword(password)) {
-      setError(t('auth:password.errorRule'))
+      // No banner: the live checklist shows which rules are unmet. Marking the
+      // field touched ends its neutral starting state, which matters for an
+      // empty password (the input has no `required`). Focus also scrolls the
+      // field into view, so the button never seems to do nothing.
+      setError('')
+      setPasswordTouched(true)
+      passwordInputRef.current?.focus()
       return
     }
     if (password !== confirmPassword) {
@@ -294,6 +301,7 @@ export default function RegisterPasswordPage() {
                   <label className="text-base font-medium text-black mb-2 block">{t('auth:password.passwordLabel')}</label>
                   <div className="relative">
                     <input
+                      ref={passwordInputRef}
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
@@ -311,7 +319,7 @@ export default function RegisterPasswordPage() {
                     </button>
                   </div>
                   <div className="mt-2">
-                    <PasswordRequirementsChecklist password={password} />
+                    <PasswordRequirementsChecklist password={password} touched={passwordTouched} />
                   </div>
                   {/* Every rule the BE rejected, not just the first — a weak
                       password commonly fails both the length and the

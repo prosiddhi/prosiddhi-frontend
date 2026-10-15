@@ -28,8 +28,12 @@ import {
  * The checks a NEW password must pass, in the order Change password reports them:
  * the i18n key of the first one that fails, or null when the pair is good.
  */
+const WEAK_PASSWORD_KEY = 'settings.password.weak'
+
+type PasswordField = 'currentPassword' | 'newPassword' | 'confirmPassword'
+
 function passwordPairProblem(password: string, confirmation: string): string | null {
-  if (!isStrongPassword(password)) return 'settings.password.weak'
+  if (!isStrongPassword(password)) return WEAK_PASSWORD_KEY
   if (password !== confirmation) return 'settings.password.mismatch'
   return null
 }
@@ -100,8 +104,17 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
+  // Bumped after a successful change: remounting the checklist forgets that
+  // something was typed, so the emptied field reads neutral again.
+  const [checklistKey, setChecklistKey] = useState(0)
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPasswords, setShowPasswords] = useState(false)
+  // One flag per input: each eye shows or hides only its own field. The Google
+  // first-password form reuses New + Confirm (Current is not rendered there).
+  const [visible, setVisible] = useState<Record<PasswordField, boolean>>({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -136,6 +149,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
     setError('')
 
     const problem = passwordPairProblem(newPassword, confirmPassword)
+    if (problem === WEAK_PASSWORD_KEY) return // the live checklist already shows the unmet rules
     if (problem) {
       setError(t(problem))
       return
@@ -151,6 +165,8 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      setNewPasswordTouched(false)
+      setChecklistKey((k) => k + 1)
       showToast(t('settings.password.success'), 'success')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings.password.failed'))
@@ -173,6 +189,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
     setNewPassword('')
     setConfirmPassword('')
     setNewPasswordTouched(false)
+    setChecklistKey((k) => k + 1)
     setSignInMethods((methods) => methods && { ...methods, hasPassword: true })
   }
 
@@ -220,8 +237,19 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
     }
   }
 
-  const toggleShowPasswords = () => setShowPasswords((v) => !v)
-  const showPasswordsLabel = showPasswords ? t('settings.password.hide') : t('settings.password.show')
+  // Singular labels (already shipped for /login and /forgot-password) — the
+  // `settings.password.show/hide` pair says "passwords", which no longer fits.
+  const eyeToggleFor = (field: PasswordField) => (
+    <button
+      type="button"
+      onClick={() => setVisible((v) => ({ ...v, [field]: !v[field] }))}
+      aria-label={visible[field] ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+      aria-pressed={visible[field]}
+      className={eyeToggleCls}
+    >
+      {visible[field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+    </button>
+  )
 
   return (
     <>
@@ -341,22 +369,14 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                         <div className="relative">
                           <input
                             id="currentPassword"
-                            type={showPasswords ? 'text' : 'password'}
+                            type={visible.currentPassword ? 'text' : 'password'}
                             autoComplete="current-password"
                             required
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             className={passwordInputCls}
                           />
-                          <button
-                            type="button"
-                            onClick={toggleShowPasswords}
-                            aria-label={showPasswordsLabel}
-                            aria-pressed={showPasswords}
-                            className={eyeToggleCls}
-                          >
-                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                          {eyeToggleFor('currentPassword')}
                         </div>
                       </div>
                     )}
@@ -373,7 +393,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                         <div className="relative">
                           <input
                             id="newPassword"
-                            type={showPasswords ? 'text' : 'password'}
+                            type={visible.newPassword ? 'text' : 'password'}
                             autoComplete="new-password"
                             required
                             value={newPassword}
@@ -386,15 +406,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                                 : 'border-[#b5b5b5] focus:ring-primary-50'
                             }`}
                           />
-                          <button
-                            type="button"
-                            onClick={toggleShowPasswords}
-                            aria-label={showPasswordsLabel}
-                            aria-pressed={showPasswords}
-                            className={eyeToggleCls}
-                          >
-                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                          {eyeToggleFor('newPassword')}
                         </div>
                       </div>
 
@@ -405,22 +417,14 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                         <div className="relative">
                           <input
                             id="confirmPassword"
-                            type={showPasswords ? 'text' : 'password'}
+                            type={visible.confirmPassword ? 'text' : 'password'}
                             autoComplete="new-password"
                             required
                             value={confirmPassword}
                             onChange={(e) => { setConfirmPassword(e.target.value); if (isFirstPassword) setError('') }}
                             className={passwordInputCls}
                           />
-                          <button
-                            type="button"
-                            onClick={toggleShowPasswords}
-                            aria-label={showPasswordsLabel}
-                            aria-pressed={showPasswords}
-                            className={eyeToggleCls}
-                          >
-                            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                          {eyeToggleFor('confirmPassword')}
                         </div>
                       </div>
                     </div>
@@ -430,7 +434,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                         that one field instead of the new-password pair as a
                         whole. */}
                     <div id="passwordRule">
-                      <PasswordRequirementsChecklist password={newPassword} />
+                      <PasswordRequirementsChecklist key={checklistKey} password={newPassword} touched={newPasswordTouched} />
                     </div>
 
                     {error && (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X, Eye, EyeOff } from 'lucide-react'
@@ -35,6 +35,7 @@ export default function AccountSetupPage() {
   // R1-BE-03 — WhatsApp opt-in. Unchecked by default; never blocks submission.
   const [whatsappConsent, setWhatsappConsent] = useState(data.whatsappConsent)
   const [passwordTouched, setPasswordTouched] = useState(false)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -90,7 +91,13 @@ export default function AccountSetupPage() {
       return
     }
     if (!isStrongPassword(password)) {
-      setError(t('employerRegister:account.passwordWeak'))
+      // No banner: the live checklist shows which rules are unmet. Marking the
+      // field touched ends its neutral starting state, which matters for an
+      // empty password (the input has no `required`). Focus also scrolls the
+      // field into view, so the button never seems to do nothing.
+      setError('')
+      setPasswordTouched(true)
+      passwordInputRef.current?.focus()
       return
     }
     if (password !== confirmPassword) {
@@ -278,6 +285,7 @@ export default function AccountSetupPage() {
               <div className="relative">
                 <input
                   id="password"
+                  ref={passwordInputRef}
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
@@ -294,7 +302,7 @@ export default function AccountSetupPage() {
                 </button>
               </div>
               <div className="mt-2">
-                <PasswordRequirementsChecklist password={password} />
+                <PasswordRequirementsChecklist password={password} touched={passwordTouched} />
               </div>
               {/* Every rule the BE rejected — a weak password usually fails both
                   the length and the composition rule at once. */}

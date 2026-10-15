@@ -26,8 +26,11 @@ const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
 
 type Stage = 'identifier' | 'otp' | 'reset' | 'done'
 
+// The weak-password message is not shown: the live checklist already says which rules are unmet.
+const WEAK_KEY = 'auth:forgot.errorRule'
+
 const resetPasswordSchema = newPasswordSchema({
-  weak: 'auth:forgot.errorRule',
+  weak: WEAK_KEY,
   mismatch: 'auth:forgot.errorMismatch',
 })
 
@@ -62,7 +65,9 @@ export default function ForgotPasswordPage() {
   const newPassword = resetForm.watch('newPassword')
   const resetErrors = resetForm.formState.errors
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  // One flag per input: each eye shows or hides only its own field.
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   // `loading` is set only after RHF's async validation, so it cannot stop a second
@@ -212,7 +217,22 @@ export default function ForgotPasswordPage() {
       : stage === 'reset'
       ? passwordFormMessageKey(resetErrors)
       : undefined
-  const bannerMessage = error || (validationKey ? t(validationKey) : '')
+  // A weak password is left to the checklist, so it gets no banner.
+  const bannerMessage = error || (validationKey && validationKey !== WEAK_KEY ? t(validationKey) : '')
+
+  // The eye for one password field. Labels are borrowed from /login rather than
+  // adding keys that would need translating into ten languages.
+  const passwordToggle = (visible: boolean, onToggle: () => void) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+      aria-label={visible ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+      aria-pressed={visible}
+    >
+      {visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+    </button>
+  )
 
   const inputCls =
     'w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50'
@@ -420,7 +440,7 @@ export default function ForgotPasswordPage() {
                         onChange={(e) => { field.onChange(e); clearResetMessage() }}
                         onBlur={() => { field.onBlur(); setNewPasswordTouched(true) }}
                         id="newPassword"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showNewPassword ? 'text' : 'password'}
                         placeholder={t('auth:forgot.newPasswordPlaceholder')}
                         disabled={loading}
                         className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
@@ -432,42 +452,33 @@ export default function ForgotPasswordPage() {
                       />
                     )}
                   />
-                  {/* Was a bare icon with no accessible name and no tap target —
-                      a screen reader announced only "button". Borrows the two
-                      labels /login already ships rather than adding keys that
-                      would need translating into ten languages for a control
-                      whose wording is identical. */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+                  {passwordToggle(showNewPassword, () => setShowNewPassword((v) => !v))}
                 </div>
                 <div className="mt-2">
-                  <PasswordRequirementsChecklist password={newPassword} />
+                  <PasswordRequirementsChecklist password={newPassword} touched={newPasswordTouched} />
                 </div>
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
-                <Controller
-                  name="confirmPassword"
-                  control={resetForm.control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      onChange={(e) => { field.onChange(e); clearResetMessage() }}
-                      id="confirmPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder={t('auth:forgot.confirmPlaceholder')}
-                      disabled={loading}
-                      className={inputCls}
-                      required
-                    />
-                  )}
-                />
+                <div className="relative">
+                  <Controller
+                    name="confirmPassword"
+                    control={resetForm.control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        onChange={(e) => { field.onChange(e); clearResetMessage() }}
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder={t('auth:forgot.confirmPlaceholder')}
+                        disabled={loading}
+                        className={`${inputCls} pr-12`}
+                        required
+                      />
+                    )}
+                  />
+                  {passwordToggle(showConfirmPassword, () => setShowConfirmPassword((v) => !v))}
+                </div>
               </div>
               <button type="submit" disabled={loading} className={primaryBtnCls}>
                 {loading ? t('auth:forgot.saving') : t('auth:forgot.resetPassword')}

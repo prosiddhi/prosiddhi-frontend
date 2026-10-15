@@ -16,8 +16,11 @@ import {
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { passwordInputCls, eyeToggleCls } from '@/components/settings/formClasses'
 
+// The weak-password message is not shown: the live checklist already says which rules are unmet.
+const WEAK_KEY = 'settings.password.weak'
+
 const schema = changePasswordSchema({
-  weak: 'settings.password.weak',
+  weak: WEAK_KEY,
   mismatch: 'settings.password.mismatch',
   sameAsCurrent: 'settings.password.sameAsCurrent',
 })
@@ -50,21 +53,25 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
   })
   const newPassword = watch('newPassword')
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
-  const [showPasswords, setShowPasswords] = useState(false)
+  // One flag per input: each eye shows or hides only its own field.
+  const [visible, setVisible] = useState<Record<keyof ChangePasswordValues, boolean>>({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   // `saving` is set only after RHF's async validation, so it cannot stop a second
   // submit that arrives in between. The ref is taken synchronously, first.
   const submitting = useRef(false)
 
-  const toggleShowPasswords = () => setShowPasswords((v) => !v)
-  const showPasswordsLabel = showPasswords ? t('settings.password.hide') : t('settings.password.show')
-  const inputType = showPasswords ? 'text' : 'password'
+  const inputTypeFor = (field: keyof ChangePasswordValues) => (visible[field] ? 'text' : 'password')
 
   // The schema reports the first failing rule (strength, match, same-as-current)
-  // as an i18n key; a server error, when there is one, wins over it.
+  // as an i18n key; a server error, when there is one, wins over it. A weak
+  // password is left to the checklist, so it gets no banner.
   const validationKey = passwordFormMessageKey(errors)
-  const bannerMessage = error || (validationKey ? t(validationKey) : '')
+  const bannerMessage = error || (validationKey && validationKey !== WEAK_KEY ? t(validationKey) : '')
 
   const onValid: SubmitHandler<ChangePasswordValues> = async (values) => {
     setSaving(true)
@@ -99,15 +106,17 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
     })
   }
 
-  const eyeToggle = (
+  // Singular labels (already shipped for /login and /forgot-password) — the
+  // `settings.password.show/hide` pair says "passwords", which no longer fits.
+  const eyeToggleFor = (field: keyof ChangePasswordValues) => (
     <button
       type="button"
-      onClick={toggleShowPasswords}
-      aria-label={showPasswordsLabel}
-      aria-pressed={showPasswords}
+      onClick={() => setVisible((v) => ({ ...v, [field]: !v[field] }))}
+      aria-label={visible[field] ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+      aria-pressed={visible[field]}
       className={eyeToggleCls}
     >
-      {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      {visible[field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
     </button>
   )
 
@@ -125,7 +134,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
               <input
                 {...field}
                 id="currentPassword"
-                type={inputType}
+                type={inputTypeFor('currentPassword')}
                 autoComplete="current-password"
                 required
                 aria-describedby="currentPasswordHint"
@@ -133,7 +142,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
               />
             )}
           />
-          {eyeToggle}
+          {eyeToggleFor('currentPassword')}
         </div>
         <p id="currentPasswordHint" className="mt-1 text-xs text-[#717182]">
           {t('passwordChangeRequired.currentHint')}
@@ -156,7 +165,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
                   setNewPasswordTouched(true)
                 }}
                 id="newPassword"
-                type={inputType}
+                type={inputTypeFor('newPassword')}
                 autoComplete="new-password"
                 required
                 aria-describedby="passwordRule"
@@ -168,7 +177,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
               />
             )}
           />
-          {eyeToggle}
+          {eyeToggleFor('newPassword')}
         </div>
       </div>
 
@@ -184,19 +193,19 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
               <input
                 {...field}
                 id="confirmPassword"
-                type={inputType}
+                type={inputTypeFor('confirmPassword')}
                 autoComplete="new-password"
                 required
                 className={passwordInputCls}
               />
             )}
           />
-          {eyeToggle}
+          {eyeToggleFor('confirmPassword')}
         </div>
       </div>
 
       <div id="passwordRule">
-        <PasswordRequirementsChecklist password={newPassword} />
+        <PasswordRequirementsChecklist password={newPassword} touched={newPasswordTouched} />
       </div>
 
       {bannerMessage && (
