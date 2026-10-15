@@ -100,7 +100,9 @@ const post = (page) =>
       const focused = await page.evaluate(() => document.activeElement?.id ?? '')
       check(
         'the next problem moves focus to ITS field',
-        focused === 'job-description',
+        // Page order: Location sits above Description, and Title and Category are
+        // filled, so Location is the first thing left to fix.
+        focused === 'job-location',
         `focus on ${JSON.stringify(focused)}`,
       )
       check(

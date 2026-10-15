@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { JobForm } from '@/components/job/JobForm'
 import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
-import { employerAPI, type PostJobData } from '@/lib/api'
+import { employerAPI, fieldErrorsByPath, type PostJobData } from '@/lib/api'
 import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
 import { myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
@@ -25,6 +25,8 @@ function NewJobContent() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  // The BE's per-field validation errors from the last failed save, shown at the fields.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>()
   // Reactive gate: flipped if a publish attempt is rejected for 0 credits
   // (covers the race where the balance hit 0 after this page loaded).
   const [blockedNoCredits, setBlockedNoCredits] = useState(false)
@@ -40,6 +42,7 @@ function NewJobContent() {
   const handleSubmit = async (data: PostJobData) => {
     setSubmitting(true)
     setError('')
+    setFieldErrors(undefined)
     try {
       const job = await employerAPI.postJob(data)
       // Pre-moderation: a new post is offline until an admin approves it. Say so,
@@ -61,6 +64,7 @@ function NewJobContent() {
         void reloadWallet()
       } else {
         setError(message)
+        setFieldErrors(fieldErrorsByPath(err))
       }
       setSubmitting(false)
     }
@@ -104,7 +108,7 @@ function NewJobContent() {
                   {t('employer:jobNew.trialNote')}
                 </p>
               )}
-              <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+              <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} onSubmit={handleSubmit} />
             </>
           )}
         </div>

@@ -411,7 +411,17 @@
       "descriptionMin": "Description must be at least 50 characters.",
       "locationRequired": "Location is required.",
       "jobTypeRequired": "Please choose a job type.",
-      "salaryRange": "Maximum salary must be ≥ minimum salary."
+      "salaryRange": "Maximum salary must be ≥ minimum salary.",
+      "titleMax": "Title must be 200 characters or fewer.",
+      "categoryMax": "Category must be 100 characters or fewer.",
+      "companyMax": "Company name must be 200 characters or fewer.",
+      "locationMax": "Location must be 255 characters or fewer.",
+      "descriptionMax": "Description must be 5000 characters or fewer.",
+      "requirementsMax": "Requirements must be 3000 characters or fewer.",
+      "skillsMax": "Add no more than 20 skills.",
+      "salaryInvalid": "Enter a number that is 0 or more.",
+      "positionsRange": "Enter a whole number from 1 to 1000.",
+      "fixFields": "Please fix the highlighted fields."
     },
     "sectionBasics": "Basics",
     "sectionPay": "Pay",

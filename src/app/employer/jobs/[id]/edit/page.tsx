@@ -9,6 +9,7 @@ import { JobForm } from '@/components/job/JobForm'
 import {
   jobSeekerAPI,
   employerAPI,
+  fieldErrorsByPath,
   type PostJobData,
   type JobTypeValue,
   type PaymentTypeValue,
@@ -33,6 +34,8 @@ function EditJobContent() {
   const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  // The BE's per-field validation errors from the last failed save, shown at the fields.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>()
 
   useEffect(() => {
     let ignore = false
@@ -88,6 +91,7 @@ function EditJobContent() {
   const handleSubmit = async (data: PostJobData) => {
     setSubmitting(true)
     setError('')
+    setFieldErrors(undefined)
     try {
       const job = await employerAPI.updateJob(jobId, data)
       // A material edit pulls an approved post back into review (and offline).
@@ -98,6 +102,7 @@ function EditJobContent() {
       router.push(isJobUnderReview(job) ? myJobsUrl('pending') : backUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('employer:jobEdit.saveFailed'))
+      setFieldErrors(fieldErrorsByPath(err))
       setSubmitting(false)
     }
   }
@@ -129,7 +134,7 @@ function EditJobContent() {
           )}
 
           {!loading && !loadError && initial && (
-            <JobForm initial={initial} submitLabel={t('employer:jobEdit.submitLabel')} submitting={submitting} error={error} onSubmit={handleSubmit} />
+            <JobForm initial={initial} submitLabel={t('employer:jobEdit.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} onSubmit={handleSubmit} />
           )}
         </div>
       </main>

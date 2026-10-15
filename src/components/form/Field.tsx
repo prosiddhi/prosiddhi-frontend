@@ -1,6 +1,7 @@
 'use client'
 
 import { Children, cloneElement, isValidElement, useId, type ReactNode } from 'react'
+import { FieldError } from '@/components/form/FieldError'
 
 /**
  * A labelled form field: the label, and the control it names.
@@ -38,13 +39,28 @@ export function Field({
   children,
   full,
   className = 'text-sm font-medium text-black mb-1.5 block',
+  required,
+  optionalLabel,
+  error,
 }: {
-  label: string
+  label: ReactNode
   children: ReactNode
   /** Span both columns of the parent grid. */
   full?: boolean
   /** Overridable so each host form keeps its own label styling. */
   className?: string
+  /** Adds the red `*` and `aria-required` on the control. */
+  required?: boolean
+  /** Already-translated "(Optional)" text, shown after the label. Ignored when `required`. */
+  optionalLabel?: string
+  /**
+   * Already-translated error text. Shows under the control, and sets
+   * `aria-invalid` and `aria-describedby` on it. The red border is the caller's:
+   * only the caller knows its own input classes. `required` and `error` assume the
+   * first child is the native control; a composite control (like TaxonomyPicker)
+   * should render its own FieldError.
+   */
+  error?: string
 }) {
   const generatedId = useId()
   let controlId: string | undefined
@@ -55,13 +71,34 @@ export function Field({
     linked = true
     const existing = (child.props as { id?: string }).id
     controlId = existing ?? generatedId
-    return existing ? child : cloneElement(child as React.ReactElement<{ id?: string }>, { id: controlId })
+    // Only the props this field actually sets, so an aria attribute the child
+    // already carries is never overwritten with undefined.
+    const control = cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+      id: controlId,
+      ...(required && { 'aria-required': true }),
+      ...(error && { 'aria-invalid': true, 'aria-describedby': `${controlId}-error` }),
+    })
+    // The message goes straight under the control, ahead of any hint or counter the
+    // caller put after it.
+    return (
+      <>
+        {control}
+        <FieldError id={`${controlId}-error`} message={error} />
+      </>
+    )
   })
 
   return (
     <div className={full ? 'sm:col-span-2' : ''}>
       <label className={className} htmlFor={controlId}>
         {label}
+        {required && (
+          <span className="text-red-500" aria-hidden="true">
+            {' '}
+            *
+          </span>
+        )}
+        {!required && optionalLabel && <span className="text-gray-400 font-normal"> {optionalLabel}</span>}
       </label>
       {labelled}
     </div>

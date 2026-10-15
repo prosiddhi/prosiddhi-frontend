@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useController, useForm, type FieldErrors } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   type PostJobData,
   type JobTypeValue,
-  type PaymentTypeValue,
-  type UrgencyLevelValue,
   type TaxonomyTriple,
 } from '@/lib/api'
 import {
@@ -19,40 +19,35 @@ import {
 } from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
+import { Field } from '@/components/form/Field'
+import { INVALID_CLS } from '@/components/form/FieldError'
 import { humanizeJobType, formatSalary, initials, canonicalLocation } from '@/lib/jobFormat'
+import {
+  JOB_TYPES,
+  PAYMENT_TYPES,
+  URGENCY_LEVELS,
+  jobFormSchema,
+  parseSkills,
+  type JobFormValues,
+} from '@/lib/validation/jobSchema'
 import { Clock, Briefcase, MapPin, IndianRupee, Loader2, AlertCircle } from 'lucide-react'
-
-const JOB_TYPES: JobTypeValue[] = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'TEMPORARY', 'INTERNSHIP']
-const PAYMENT_TYPES: PaymentTypeValue[] = ['HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'FIXED']
-const URGENCY_LEVELS: UrgencyLevelValue[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
 interface JobFormProps {
   initial?: Partial<PostJobData>
   submitLabel: string
   submitting: boolean
   error?: string
+  /**
+   * The BE's field-level validation errors from the last failed save (the parent
+   * passes `fieldErrorsByPath(err)`). Each one is shown at its field; the entered
+   * values are untouched. A field the form does not have is ignored, and the
+   * parent's `error` text still covers it.
+   */
+  serverFieldErrors?: Record<string, string[]>
   onSubmit: (data: PostJobData) => void
 }
 
-interface FormState {
-  title: string
-  companyName: string
-  category: string
-  sector: string
-  jobTitle: string
-  description: string
-  requirements: string
-  skills: string
-  location: string
-  salaryMin: string
-  salaryMax: string
-  paymentType: PaymentTypeValue
-  jobType: JobTypeValue | ''
-  urgencyLevel: UrgencyLevelValue
-  numberOfPositions: string
-}
-
-function buildInitialState(initial?: Partial<PostJobData>): FormState {
+function buildInitialState(initial?: Partial<PostJobData>): JobFormValues {
   return {
     title: initial?.title ?? '',
     companyName: initial?.companyName ?? '',
@@ -77,26 +72,35 @@ const inputCls =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent'
 const sectionTitleCls = 'text-base font-semibold text-black'
 
-// Required-field marker (DEF-024). The form gave no sign which fields were
-// mandatory, so the first thing an employer learned about it was a validation
-// error after pressing Post.
-//
-// These five are exactly what `validate()` below enforces, which is in turn
-// exactly what createJobSchema requires with no default
-// (prosiddhi-backend/src/validators/job.validator.ts): title, category,
-// description, location, jobType. Nothing else is marked - salary, skills,
-// requirements, company name, urgency and positions all post fine empty, and
-// claiming otherwise would just be a different kind of wrong.
-//
-// aria-hidden on the star; `aria-required` on the control is what a screen
-// reader actually reads.
-function Req() {
-  return (
-    <span className="text-red-500" aria-hidden="true">
-      {' '}
-      *
-    </span>
-  )
+// Which fields get the `*` (DEF-024): title, category, description, location,
+// jobType - exactly what createJobSchema requires with no default
+// (prosiddhi-backend/src/validators/job.validator.ts). Everything else posts fine
+// empty. Salary, skills, requirements, company name, sector and job title say
+// "(Optional)". Pay period, urgency and positions say neither: they always hold a
+// value because the form supplies a default.
+
+// The order the fields appear on the page. On a failed Submit focus goes to the
+// first one with a problem in THIS order, not in the order react-hook-form
+// happened to register them (the category control registers first, above the
+// title it sits under).
+const FIELD_ORDER: (keyof JobFormValues)[] = [
+  'title',
+  'category',
+  'companyName',
+  'location',
+  'description',
+  'salaryMin',
+  'salaryMax',
+  'requirements',
+  'skills',
+  'jobType',
+  'numberOfPositions',
+]
+
+/** The form field a BE error path belongs to, if the form has one. Only skills is named differently. */
+function formFieldForServerPath(path: string) {
+  const root = path.split('.')[0]
+  return FIELD_ORDER.find((f) => f === (root === 'skillsRequired' ? 'skills' : root))
 }
 
 /**
@@ -191,13 +195,37 @@ function locationHint(args: {
   return { key: 'employer:jobForm.locationUnknown', tone: 'warn' }
 }
 
-export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: JobFormProps) {
+export function JobForm({ initial, submitLabel, submitting, error, serverFieldErrors, onSubmit }: JobFormProps) {
   const { t } = useTranslation()
-  const [f, setF] = useState<FormState>(() => buildInitialState(initial))
-  const [validationError, setValidationError] = useState('')
-  // Which control the validation error belongs to — drives `aria-invalid` and
-  // where focus goes. '' when the failure has no addressable field.
-  const [invalidField, setInvalidField] = useState('')
+  // 'onTouched': a field is checked the first time it loses focus, and again on
+  // every change after that - so a problem shows when the employer leaves the box,
+  // and goes away the moment the value is right, without another Submit.
+  //
+  // shouldFocusError is off because react-hook-form would focus in registration
+  // order, which is not page order; `onInvalid` below does it from FIELD_ORDER.
+  const {
+    register,
+    control,
+    watch,
+    setValue,
+    setError,
+    trigger,
+    setFocus,
+    handleSubmit: validateAndSubmit,
+    formState: { errors, touchedFields, submitCount },
+  } = useForm<JobFormValues>({
+    resolver: zodResolver(jobFormSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+    shouldFocusError: false,
+    defaultValues: buildInitialState(initial),
+  })
+  const f = watch()
+  // Category lives inside TaxonomyPicker, so it is wired through a controller
+  // rather than `register`. Its ref is what lets a failed Submit focus it.
+  const {
+    field: { onChange: setCategory, onBlur: blurCategory, ref: categoryRef },
+  } = useController({ control, name: 'category' })
   // TD-03.
   const [gpsFix, setGpsFix] = useState<Coords | null>(null)
   // TD-42 — the employer asked for the stored pin to be removed.
@@ -211,10 +239,16 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
   // Which came last, the typed text or the fix. See coordsToWrite.
   const [textIsNewer, setTextIsNewer] = useState(false)
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
-    setF((prev) => ({ ...prev, [key]: value }))
+  // A schema message is an i18n key; a server message is the BE's own text.
+  const errorText = (name: keyof JobFormValues) => {
+    const e = errors[name]
+    if (!e?.message) return undefined
+    return e.type === 'server' ? e.message : t(e.message)
+  }
+  const fieldCls = (name: keyof JobFormValues) => (errors[name] ? `${inputCls} ${INVALID_CLS}` : inputCls)
+  const optionalLabel = `(${t('status.optional')})`
 
-  // The pin the server already holds. Read from `initial`, not FormState —
+  // The pin the server already holds. Read from `initial`, not the form values —
   // nothing on this form edits it directly; only the location button replaces
   // it. Rebuilt each render, which is two null checks feeding pure functions.
   const savedPin =
@@ -222,12 +256,12 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       ? { lat: initial.latitude, lon: initial.longitude }
       : null
   const translateCity = (key: string) => t(cityLabelKey(key))
-  // ONE decision, used twice: `handleSubmit` sends `decision.coords` and the
+  // ONE decision, used twice: `onValid` sends `decision.coords` and the
   // line under the input describes `decision.reason`. What the employer is told
   // and what is actually written cannot drift apart, because they are the same
   // call.
   //
-  // NOT memoised on `f`. `set()` clones the whole FormState on every keystroke in
+  // NOT memoised on `f`: `watch()` returns a new object on every keystroke in
   // every field, so a memo keyed on `f` never hits — it would read as an
   // optimisation while rebuilding this on each character typed into the salary
   // box (docs/location-plan.md flags exactly that trap). Keyed on `f.location` it
@@ -270,84 +304,63 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
   // The cascading picker emits the full triple; mirror it into the flat form
   // fields (empty levels come back as undefined → stored as '').
-  const setTaxonomy = (next: TaxonomyTriple) =>
-    setF((prev) => ({
-      ...prev,
-      category: next.category ?? '',
-      sector: next.sector ?? '',
-      jobTitle: next.jobTitle ?? '',
-    }))
-
-  const skillsArray = f.skills
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-
-  /**
-   * The first problem, and WHICH control has it (TD-45).
-   *
-   * It used to return a bare string. The message was then painted in red for
-   * sighted users and that was the whole of it: nothing marked the offending
-   * field, and pressing Post with a screen reader announced nothing at all.
-   * Returning the id lets the caller move focus there and mark it invalid, which
-   * is the difference between "something is wrong somewhere on this form" and
-   * being put on the box to fix.
-   *
-   * `field` is a DOM id where one exists. Category is the exception — it lives
-   * inside TaxonomyPicker, whose ids come from `useId` because it renders on
-   * four screens — so that case announces without moving focus. Better than
-   * today either way, and honest about the gap.
-   */
-  const validate = (): { field?: string; message: string } => {
-    const fail = (message: string, field?: string) => ({ field, message })
-    if (f.title.trim().length < 5) return fail(t('employer:jobForm.validation.titleMin'), 'job-title')
-    if (f.category.trim().length < 2) return fail(t('employer:jobForm.validation.categoryRequired'))
-    if (f.description.trim().length < 50) return fail(t('employer:jobForm.validation.descriptionMin'), 'job-description')
-    if (f.location.trim().length < 3) return fail(t('employer:jobForm.validation.locationRequired'), 'job-location')
-    if (!f.jobType) return fail(t('employer:jobForm.validation.jobTypeRequired'), 'job-type')
-    const min = f.salaryMin ? Number(f.salaryMin) : undefined
-    const max = f.salaryMax ? Number(f.salaryMax) : undefined
-    if (min != null && max != null && max < min) {
-      return fail(t('employer:jobForm.validation.salaryRange'), 'job-salary-max')
-    }
-    return { message: '' }
+  const setTaxonomy = (next: TaxonomyTriple) => {
+    setCategory(next.category ?? '')
+    setValue('sector', next.sector ?? '')
+    setValue('jobTitle', next.jobTitle ?? '')
   }
 
-  const handleSubmit = () => {
-    const { field, message } = validate()
-    if (message) {
-      setValidationError(message)
-      setInvalidField(field ?? '')
-      // Move to the problem rather than describing it. Focus stayed on the Post
-      // button before, so a keyboard or screen-reader user had to hunt for a
-      // field the page had not identified. `preventScroll` is deliberately off:
-      // the offending control is often above the fold-out of a long form.
-      if (field) {
-        requestAnimationFrame(() => document.getElementById(field)?.focus())
-      }
-      return
+  const skillsArray = parseSkills(f.skills)
+
+  // Salary Max carries the "max is below min" error, so it has to be re-checked
+  // when Min changes - but only if Max has been looked at already; otherwise
+  // editing Min first would flag a box the employer has not reached.
+  const recheckSalaryMax = () => {
+    if (touchedFields.salaryMax || errors.salaryMax || submitCount > 0) void trigger('salaryMax')
+  }
+
+  // The BE names a field by its payload key; the form's own key differs only for skills.
+  // setError's message stays until that field is edited and re-validated.
+  useEffect(() => {
+    if (!serverFieldErrors) return
+    const failed = new Set<string>()
+    for (const [path, messages] of Object.entries(serverFieldErrors)) {
+      const name = formFieldForServerPath(path)
+      if (!name) continue
+      setError(name, { type: 'server', message: messages.join(' ') })
+      failed.add(name)
     }
-    setValidationError('')
-    setInvalidField('')
+    const first = FIELD_ORDER.find((f) => failed.has(f))
+    if (first) setFocus(first)
+  }, [serverFieldErrors, setError, setFocus])
+
+  // Failed Submit: put the cursor on the first problem, in page order (TD-45).
+  // Every invalid field is already marked and explained; this picks where to start.
+  const onInvalid = (invalid: FieldErrors<JobFormValues>) => {
+    const first = FIELD_ORDER.find((name) => invalid[name])
+    if (first) setFocus(first)
+  }
+
+  const onValid = (values: JobFormValues) => {
     const data: PostJobData = {
-      title: f.title.trim(),
-      description: f.description.trim(),
-      category: f.category.trim(),
+      title: values.title.trim(),
+      description: values.description.trim(),
+      category: values.category.trim(),
       // Canonicalised, not raw — see canonicalLocation. A job stored under a
       // translated city name is a job that only matches seekers in that one
       // language.
-      location: canonicalLocation(f.location),
-      jobType: f.jobType as JobTypeValue,
-      paymentType: f.paymentType,
-      urgencyLevel: f.urgencyLevel,
-      numberOfPositions: f.numberOfPositions ? Number(f.numberOfPositions) : 1,
-      ...(f.companyName.trim() ? { companyName: f.companyName.trim() } : {}),
-      ...(f.sector ? { sector: f.sector } : {}),
-      ...(f.jobTitle ? { jobTitle: f.jobTitle } : {}),
-      ...(f.requirements.trim() ? { requirements: f.requirements.trim() } : {}),
+      location: canonicalLocation(values.location),
+      jobType: values.jobType as JobTypeValue,
+      paymentType: values.paymentType,
+      urgencyLevel: values.urgencyLevel,
+      numberOfPositions: values.numberOfPositions ? Number(values.numberOfPositions) : 1,
+      ...(values.companyName.trim() ? { companyName: values.companyName.trim() } : {}),
+      ...(values.sector ? { sector: values.sector } : {}),
+      ...(values.jobTitle ? { jobTitle: values.jobTitle } : {}),
+      ...(values.requirements.trim() ? { requirements: values.requirements.trim() } : {}),
       ...(skillsArray.length ? { skillsRequired: skillsArray } : {}),
-      ...(f.salaryMin ? { salaryMin: Number(f.salaryMin) } : {}),
-      ...(f.salaryMax ? { salaryMax: Number(f.salaryMax) } : {}),
+      ...(values.salaryMin ? { salaryMin: Number(values.salaryMin) } : {}),
+      ...(values.salaryMax ? { salaryMax: Number(values.salaryMax) } : {}),
       // TD-03 — the job's coordinates. Without these `getNearbyForSeeker` drops
       // the job on a null check before any distance maths runs, and the 20-point
       // location score cannot fire: it needs the JOB's pair as well as the
@@ -356,10 +369,6 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
       // `decision` is computed once in the render body and shared with the hint
       // line under the location input (TD-41), so what the employer was told and
       // what is sent are the same verdict rather than two derivations of it.
-      //
-      // It moved into the render body FOR that reason. An older note here argued
-      // the opposite — compute it in the submit handler, because nothing on the
-      // screen displayed it. Something does now.
       // An explicit removal wins over everything the rule computed. It is only
       // ever reachable from the `pinned` states, where the stored pin is the
       // problem — see `clearPin`.
@@ -368,7 +377,24 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
     onSubmit(data)
   }
 
-  const shownError = validationError || error
+  // Server messages for a field this form does not have (no input to hang them on).
+  const unmappedServerErrors = Object.entries(serverFieldErrors ?? {})
+    .filter(([path]) => !formFieldForServerPath(path))
+    .flatMap(([, messages]) => messages)
+
+  // After a failed Submit the summary says so; the per-field messages say what.
+  // Server messages with no field to sit on are listed beside it so they are not
+  // lost. The parent's general `error` is the fallback when there is neither -
+  // it is skipped otherwise because it is only the generic "Validation failed"
+  // that these messages already explain.
+  const hasFieldErrors = submitCount > 0 && Object.keys(errors).length > 0
+  const shownMessages = [
+    ...new Set([
+      ...(hasFieldErrors ? [t('employer:jobForm.validation.fixFields')] : []),
+      ...unmappedServerErrors,
+    ]),
+  ]
+  if (shownMessages.length === 0 && error) shownMessages.push(error)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -382,32 +408,33 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
         <section className="space-y-4">
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionBasics')}</h2>
 
-          <div>
-            <label className={labelCls} htmlFor="job-title">{t('employer:jobForm.jobTitleLabel')}<Req /></label>
-            <input id="job-title" aria-required aria-invalid={invalidField === 'job-title'} className={inputCls} value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={t('employer:jobForm.jobTitlePlaceholder')} />
-          </div>
+          <Field label={t('employer:jobForm.jobTitleLabel')} className={labelCls} required error={errorText('title')}>
+            <input id="job-title" className={fieldCls('title')} placeholder={t('employer:jobForm.jobTitlePlaceholder')} {...register('title')} />
+          </Field>
 
-          {/* category only: sector and jobTitle are optional server-side. */}
+          {/* Category is required; sector and jobTitle are optional server-side. */}
           <TaxonomyPicker
             required={['category']}
+            optional={['sector', 'jobTitle']}
             value={{
               category: f.category || undefined,
               sector: f.sector || undefined,
               jobTitle: f.jobTitle || undefined,
             }}
             onChange={setTaxonomy}
+            categoryError={errorText('category')}
+            onCategoryBlur={blurCategory}
+            categoryRef={categoryRef}
             className="grid grid-cols-1 sm:grid-cols-3 gap-4"
             selectClassName={inputCls}
             labelClassName={labelCls}
           />
 
-          <div>
-            <label className={labelCls} htmlFor="job-company">{t('employer:jobForm.companyNameLabel')}</label>
-            <input className={inputCls} id="job-company" value={f.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employer:jobForm.companyNamePlaceholder')} />
-          </div>
+          <Field label={t('employer:jobForm.companyNameLabel')} className={labelCls} optionalLabel={optionalLabel} error={errorText('companyName')}>
+            <input id="job-company" className={fieldCls('companyName')} placeholder={t('employer:jobForm.companyNamePlaceholder')} {...register('companyName')} />
+          </Field>
 
-          <div>
-            <label className={labelCls} htmlFor="job-location">{t('employer:jobForm.locationLabel')}<Req /></label>
+          <Field label={t('employer:jobForm.locationLabel')} className={labelCls} required error={errorText('location')}>
             {/* Free text with a datalist, NOT a select. A seeker outside our ten
                 cities loses Near By; an employer outside them could not post the
                 job at all, and that is a product call rather than a form
@@ -417,16 +444,10 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
                 product ever restricts it. */}
             <input
               id="job-location"
-              aria-required
-              aria-invalid={invalidField === 'job-location'}
               list="job-location-cities"
-              className={inputCls}
-              value={f.location}
-              onChange={(e) => {
-                set('location', e.target.value)
-                setTextIsNewer(true)
-              }}
+              className={fieldCls('location')}
               placeholder={t('employer:jobForm.locationPlaceholder')}
+              {...register('location', { onChange: () => setTextIsNewer(true) })}
             />
             {/* `value` is the ENGLISH name, `label` the reader's own. Picking an
                 option inserts the value, so a Tamil-speaking employer sees
@@ -493,13 +514,17 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
                 {t('employer:jobForm.locationCleared')}
               </p>
             )}
-          </div>
+          </Field>
 
-          <div>
-            <label className={labelCls} htmlFor="job-description">{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span><Req /></label>
-            <textarea id="job-description" aria-required aria-invalid={invalidField === 'job-description'} className={inputCls} rows={5} maxLength={5000} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder={t('employer:jobForm.descriptionPlaceholder')} />
-            <p className="text-xs text-gray-400 mt-0.5">{f.description.trim().length}/5000</p>
-          </div>
+          <Field
+            label={<>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span></>}
+            className={labelCls}
+            required
+            error={errorText('description')}
+          >
+            <textarea id="job-description" className={fieldCls('description')} rows={5} placeholder={t('employer:jobForm.descriptionPlaceholder')} {...register('description')} />
+            <p className={`text-xs mt-0.5 ${errors.description ? 'text-red-600' : 'text-gray-400'}`}>{f.description.trim().length}/5000</p>
+          </Field>
         </section>
 
         {/* Section: Pay */}
@@ -507,22 +532,19 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionPay')}</h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <label className={labelCls} htmlFor="job-salary-min">{t('employer:jobForm.minSalaryLabel')}</label>
-              <input type="number" min={0} className={inputCls} id="job-salary-min" value={f.salaryMin} onChange={(e) => set('salaryMin', e.target.value)} placeholder={t('employer:jobForm.optional')} />
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="job-salary-max">{t('employer:jobForm.maxSalaryLabel')}</label>
-              <input type="number" min={0} className={inputCls} id="job-salary-max" aria-invalid={invalidField === 'job-salary-max'} value={f.salaryMax} onChange={(e) => set('salaryMax', e.target.value)} placeholder={t('employer:jobForm.optional')} />
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="job-pay-period">{t('employer:jobForm.payPeriodLabel')}</label>
-              <select className={inputCls} id="job-pay-period" value={f.paymentType} onChange={(e) => set('paymentType', e.target.value as PaymentTypeValue)}>
+            <Field label={t('employer:jobForm.minSalaryLabel')} className={labelCls} optionalLabel={optionalLabel} error={errorText('salaryMin')}>
+              <input type="number" min={0} id="job-salary-min" className={fieldCls('salaryMin')} {...register('salaryMin', { onChange: recheckSalaryMax })} />
+            </Field>
+            <Field label={t('employer:jobForm.maxSalaryLabel')} className={labelCls} optionalLabel={optionalLabel} error={errorText('salaryMax')}>
+              <input type="number" min={0} id="job-salary-max" className={fieldCls('salaryMax')} {...register('salaryMax')} />
+            </Field>
+            <Field label={t('employer:jobForm.payPeriodLabel')} className={labelCls}>
+              <select id="job-pay-period" className={inputCls} {...register('paymentType')}>
                 {PAYMENT_TYPES.map((p) => (
                   <option key={p} value={p}>{t(`employer:jobForm.paymentType.${p}`)}</option>
                 ))}
               </select>
-            </div>
+            </Field>
           </div>
         </section>
 
@@ -530,38 +552,38 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
         <section className="space-y-4 border-t border-gray-100 pt-6">
           <h2 className={sectionTitleCls}>{t('employer:jobForm.sectionDetails')}</h2>
 
-          <div>
-            <label className={labelCls} htmlFor="job-requirements">{t('employer:jobForm.requirementsLabel')}</label>
-            <textarea className={inputCls} rows={3} maxLength={3000} id="job-requirements" value={f.requirements} onChange={(e) => set('requirements', e.target.value)} placeholder={t('employer:jobForm.requirementsPlaceholder')} />
-          </div>
+          <Field label={t('employer:jobForm.requirementsLabel')} className={labelCls} optionalLabel={optionalLabel} error={errorText('requirements')}>
+            <textarea id="job-requirements" className={fieldCls('requirements')} rows={3} placeholder={t('employer:jobForm.requirementsPlaceholder')} {...register('requirements')} />
+          </Field>
 
-          <div>
-            <label className={labelCls} htmlFor="job-skills">{t('employer:jobForm.skillsLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.skillsHint')}</span></label>
-            <input className={inputCls} id="job-skills" value={f.skills} onChange={(e) => set('skills', e.target.value)} placeholder={t('employer:jobForm.skillsPlaceholder')} />
-          </div>
+          <Field
+            label={<>{t('employer:jobForm.skillsLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.skillsHint')}</span></>}
+            className={labelCls}
+            optionalLabel={optionalLabel}
+            error={errorText('skills')}
+          >
+            <input id="job-skills" className={fieldCls('skills')} placeholder={t('employer:jobForm.skillsPlaceholder')} {...register('skills')} />
+          </Field>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <label className={labelCls} htmlFor="job-type">{t('employer:jobForm.jobTypeLabel')}<Req /></label>
-              <select id="job-type" aria-required aria-invalid={invalidField === 'job-type'} className={inputCls} value={f.jobType} onChange={(e) => set('jobType', e.target.value as JobTypeValue)}>
+            <Field label={t('employer:jobForm.jobTypeLabel')} className={labelCls} required error={errorText('jobType')}>
+              <select id="job-type" className={fieldCls('jobType')} {...register('jobType')}>
                 <option value="">{t('employer:jobForm.selectPlaceholder')}</option>
                 {JOB_TYPES.map((jt) => (
                   <option key={jt} value={jt}>{humanizeJobType(jt)}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="job-urgency">{t('employer:jobForm.urgencyLabel')}</label>
-              <select className={inputCls} id="job-urgency" value={f.urgencyLevel} onChange={(e) => set('urgencyLevel', e.target.value as UrgencyLevelValue)}>
+            </Field>
+            <Field label={t('employer:jobForm.urgencyLabel')} className={labelCls}>
+              <select id="job-urgency" className={inputCls} {...register('urgencyLevel')}>
                 {URGENCY_LEVELS.map((u) => (
                   <option key={u} value={u}>{t(`employer:jobForm.urgency.${u}`)}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="job-positions">{t('employer:jobForm.positionsLabel')}</label>
-              <input type="number" min={1} className={inputCls} id="job-positions" value={f.numberOfPositions} onChange={(e) => set('numberOfPositions', e.target.value)} />
-            </div>
+            </Field>
+            <Field label={t('employer:jobForm.positionsLabel')} className={labelCls} error={errorText('numberOfPositions')}>
+              <input type="number" min={1} id="job-positions" className={fieldCls('numberOfPositions')} {...register('numberOfPositions')} />
+            </Field>
           </div>
 
           {/* Duration, "Expires On" and the two contact toggles used to sit here.
@@ -575,8 +597,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
 
         {/* TD-45. `role="alert"` so pressing Post ANNOUNCES the problem. Without
             it a screen-reader user pressed the button, heard nothing, and kept
-            focus on the button with no idea the form had refused — the error was
-            painted for sighted users only.
+            focus on the button with no idea the form had refused.
 
             ALWAYS RENDERED, empty when there is nothing wrong, for the reason
             TD-41 wrote down: a live region mounted together with its first
@@ -585,23 +606,28 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
             container up front is what makes the announcement happen at all.
 
             `role="alert"` rather than `role="status"` — this one interrupts,
-            because the employer has just pressed a button and nothing happened. */}
+            because the employer has just pressed a button and nothing happened.
+            The field that is wrong carries its own message (see Field). */}
         <div
           role="alert"
           className={
-            shownError ? 'flex items-center gap-2 text-red-600 text-sm' : 'sr-only'
+            shownMessages.length ? 'flex items-start gap-2 text-red-600 text-sm' : 'sr-only'
           }
         >
-          {shownError && (
+          {shownMessages.length > 0 && (
             <>
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{shownError}</span>
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>
+                {shownMessages.map((message) => (
+                  <p key={message}>{message}</p>
+                ))}
+              </div>
             </>
           )}
         </div>
 
         <button
-          onClick={handleSubmit}
+          onClick={validateAndSubmit(onValid, onInvalid)}
           disabled={submitting}
           className="w-full px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
@@ -633,7 +659,7 @@ export function JobForm({ initial, submitLabel, submitting, error, onSubmit }: J
                 {f.jobType && (
                   <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                     <Clock className="w-3 h-3 text-[#3386a9]" />
-                    <span className="text-xs text-black">{humanizeJobType(f.jobType)}</span>
+                    <span className="text-xs text-black">{humanizeJobType(f.jobType as JobTypeValue)}</span>
                   </div>
                 )}
                 {f.category && (

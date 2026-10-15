@@ -11,11 +11,12 @@
 // selectClassName / labelClassName so it can match each host form; `variant`
 // switches placeholder wording between a form ("Select a…") and a filter ("All…").
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, X } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyCategory, TaxonomyTriple } from '@/lib/api'
+import { FieldError, INVALID_CLS } from '@/components/form/FieldError'
 
 /** The three levels, by the key each one carries in a TaxonomyTriple. */
 export type TaxonomyLevel = 'category' | 'sector' | 'jobTitle'
@@ -53,6 +54,20 @@ interface TaxonomyPickerProps {
    * Drives `aria-required` as well as the visual `*`.
    */
   required?: boolean | TaxonomyLevel[]
+  /**
+   * Levels to label "(Optional)". Off by default, so other screens look as before.
+   */
+  optional?: TaxonomyLevel[]
+  /**
+   * Validation state for the Category select, owned by the host form (the job
+   * form). All three are inert when omitted. `categoryError` is already-translated
+   * text; it shows under the select, turns the border red and sets
+   * `aria-invalid`/`aria-describedby`. `categoryRef` lets the form focus the
+   * select on a failed submit.
+   */
+  categoryError?: string
+  onCategoryBlur?: () => void
+  categoryRef?: Ref<HTMLSelectElement>
   className?: string
   selectClassName?: string
   labelClassName?: string
@@ -127,6 +142,10 @@ export function TaxonomyPicker({
   searchable = true,
   disabled = false,
   required = false,
+  optional = [],
+  categoryError,
+  onCategoryBlur,
+  categoryRef,
   className,
   selectClassName = DEFAULT_SELECT_CLS,
   labelClassName = DEFAULT_LABEL_CLS,
@@ -243,6 +262,8 @@ export function TaxonomyPicker({
         {' '}
         *
       </span>
+    ) : optional.includes(level) ? (
+      <span className="text-gray-400 font-normal"> ({t('status.optional')})</span>
     ) : null
 
   return (
@@ -422,10 +443,14 @@ export function TaxonomyPicker({
         </label>
         <select
           id={`${id}-category`}
-          className={selectClassName}
+          ref={categoryRef}
+          className={categoryError ? `${selectClassName} ${INVALID_CLS}` : selectClassName}
           value={value.category ?? ''}
           aria-required={isRequired('category')}
+          aria-invalid={categoryError ? true : undefined}
+          aria-describedby={categoryError ? `${id}-category-error` : undefined}
           onChange={(e) => handleCategory(e.target.value)}
+          onBlur={onCategoryBlur}
           disabled={controlsDisabled}
         >
           <option value="">
@@ -441,6 +466,7 @@ export function TaxonomyPicker({
             </option>
           ))}
         </select>
+        <FieldError id={`${id}-category-error`} message={categoryError} />
       </div>
 
       {/* Sector */}
