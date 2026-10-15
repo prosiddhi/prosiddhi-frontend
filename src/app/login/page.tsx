@@ -40,6 +40,7 @@ import { IdentifierField } from '@/components/auth/IdentifierField'
 import { PasswordField } from '@/components/auth/PasswordField'
 import { PhoneNumberField } from '@/components/auth/PhoneNumberField'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
+import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -229,6 +230,10 @@ function LoginContent() {
   const [otpSent, setOtpSent] = useState(false)
   const otpInputRef = useRef<OtpInputHandle>(null)
   const bindOtpInputRef = useRef<OtpInputHandle>(null)
+  // True while a resend is in flight. Verify and "Change phone" are disabled
+  // meanwhile: the new code invalidates the old one, and a late response must not
+  // reset boxes on a step the user has left.
+  const [resending, setResending] = useState(false)
 
   const handleClose = () => router.push('/')
 
@@ -389,6 +394,35 @@ function LoginContent() {
       setLoading(false)
     }
   }
+
+  // Resend for the phone-OTP tab and the bind step. Same API call and the same
+  // error path as the first send. The boxes are cleared and refocused only once
+  // the request succeeds, so a refused resend keeps what the user typed. No
+  // success message and no timer: a backend "Please wait" arrives as the error.
+  // Double-click protection lives in ResendOtpButton.
+  const resendOtp = async (send: (e164: string) => Promise<unknown>, rawPhone: string, onSent: () => void) => {
+    const e164 = toE164(rawPhone)
+    if (!e164) return
+    setError('')
+    try {
+      await send(e164)
+      onSent()
+    } catch (err) {
+      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
+    }
+  }
+
+  const onResendLoginOtp = () =>
+    resendOtp(authAPI.loginPhoneSend, phoneOtpSendForm.getValues('phone'), () => {
+      phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
+      otpInputRef.current?.focusFirst()
+    })
+
+  const onResendBindOtp = () =>
+    resendOtp(otpAPI.send, bindSendForm.getValues('phone'), () => {
+      bindVerifyForm.reset({ otp: EMPTY_OTP })
+      bindOtpInputRef.current?.focusFirst()
+    })
 
   // --- Phone/OTP step 2: verify (login with identifier=phone, otp) ---
   const onVerifyOtp: SubmitHandler<VerifyOtpValues> = async ({ otp }) => {
@@ -732,16 +766,23 @@ function LoginContent() {
                       field-gap below the button AND carried its own 44px of tap
                       padding on top of that. */}
                   <div>
-                    <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                    <button type="submit" disabled={loading || resending} className={PRIMARY_BTN_CLS}>
                       {loading ? t('auth:login.verifying') : t('auth:login.verifySignIn')}
                     </button>
+                    <ResendOtpButton
+                      onResend={onResendLoginOtp}
+                      onBusyChange={setResending}
+                      disabled={loading}
+                      className={`mt-2 ${TEXT_LINK_CLS}`}
+                    />
                     <button
                       type="button"
+                      disabled={resending}
                       onClick={() => {
                         setOtpSent(false)
                         setError('')
                       }}
-                      className={`mt-2 w-full inline-flex items-center justify-center min-h-[44px] ${TEXT_LINK_CLS}`}
+                      className={`w-full disabled:opacity-50 inline-flex items-center justify-center min-h-[44px] ${TEXT_LINK_CLS}`}
                     >
                       {t('auth:login.changePhone')}
                     </button>
@@ -960,16 +1001,23 @@ function LoginContent() {
                       )}
                     />
                   </div>
-                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                  <button type="submit" disabled={loading || resending} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.verifying') : t('auth:bindPhone.verifyContinue')}
                   </button>
+                  <ResendOtpButton
+                    onResend={onResendBindOtp}
+                    onBusyChange={setResending}
+                    disabled={loading}
+                    className={TEXT_LINK_CLS}
+                  />
                   <button
                     type="button"
+                    disabled={resending}
                     onClick={() => {
                       setOtpSent(false)
                       setError('')
                     }}
-                    className={`w-full min-h-[44px] ${TEXT_LINK_CLS}`}
+                    className={`w-full disabled:opacity-50 min-h-[44px] ${TEXT_LINK_CLS}`}
                   >
                     {t('auth:bindPhone.changePhone')}
                   </button>

@@ -19,6 +19,7 @@ import {
 } from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { IdentifierField } from '@/components/auth/IdentifierField'
+import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 
 const OTP_LENGTH = 6
@@ -73,6 +74,11 @@ export default function ForgotPasswordPage() {
   // `loading` is set only after RHF's async validation, so it cannot stop a second
   // reset submit that arrives in between. The ref is taken synchronously, first.
   const resetting = useRef(false)
+  // The neutral resend confirmation. Double-click protection lives in ResendOtpButton;
+  // `resending` mirrors its busy state so Verify, Back and the boxes stay locked
+  // until the response lands.
+  const [resendNotice, setResendNotice] = useState(false)
+  const [resending, setResending] = useState(false)
 
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
@@ -99,6 +105,25 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  // Resend from the code screen: the same call and error path as the first send,
+  // using the stored normalized identifier. Boxes clear and refocus only on a
+  // successful response; a refused resend keeps what the user typed. The notice
+  // is deliberately neutral — a 200 does not prove a fresh code was generated.
+  const handleResend = async () => {
+    if (!identifier) return
+    setError('')
+    setResendNotice(false)
+    try {
+      const res = await authAPI.forgotPassword(identifier)
+      setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
+      setOtp(EMPTY_OTP)
+      focusOtpBox(0)
+      setResendNotice(true)
+    } catch (err) {
+      setError(otpErrorMessage(err, t, 'auth:forgot.errorSendFailed'))
+    }
+  }
+
   // Stage 2 — collect the code and advance. We do NOT pre-verify here: the BE
   // reset-password endpoint verifies the OTP itself (and verifyOTP throws
   // "already verified" if called twice), so a separate /email-otp/verify call
@@ -115,6 +140,7 @@ export default function ForgotPasswordPage() {
       return
     }
     setError('')
+    setResendNotice(false)
     setStage('reset')
   }
 
@@ -337,6 +363,12 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
+          {resendNotice && stage === 'otp' && (
+            <div role="status" className="mb-5 p-4 bg-gray-50 border border-[#dedede] rounded-lg">
+              <p className="text-[#555] text-sm">{t('auth:forgot.resendNotice')}</p>
+            </div>
+          )}
+
           {/* Stage 1 — identifier (email or mobile number) */}
           {stage === 'identifier' && (
             <form onSubmit={identifierForm.handleSubmit(onSendCode)} className="space-y-5">
@@ -404,7 +436,7 @@ export default function ForgotPasswordPage() {
                       /* Select on focus so tapping a filled box overtypes it
                          rather than leaving the caret beside the digit. */
                       onFocus={(e) => e.target.select()}
-                      disabled={loading}
+                      disabled={loading || resending}
                       aria-label={`${t('auth:forgot.codeLabel')} ${i + 1}`}
                       className="w-full h-12 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
                     />
@@ -412,10 +444,16 @@ export default function ForgotPasswordPage() {
                 </div>
               </div>
               <div>
-                <button type="submit" disabled={loading || code.length !== OTP_LENGTH} className={primaryBtnCls}>
+                <button type="submit" disabled={loading || resending || code.length !== OTP_LENGTH} className={primaryBtnCls}>
                   {loading ? t('auth:forgot.verifying') : t('auth:forgot.verifyCode')}
                 </button>
-                <button type="button" onClick={() => { setStage('identifier'); setOtp(EMPTY_OTP); setError('') }} className={backBtnCls}>
+                <ResendOtpButton
+                  onResend={handleResend}
+                  onBusyChange={setResending}
+                  disabled={loading}
+                  className="mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
+                />
+                <button type="button" disabled={resending} onClick={() => { setStage('identifier'); setOtp(EMPTY_OTP); setError(''); setResendNotice(false) }} className={`${backBtnCls} disabled:opacity-50`}>
                   <ArrowLeft className="w-4 h-4 shrink-0" /> {t('auth:forgot.useDifferentIdentifier')}
                 </button>
               </div>
