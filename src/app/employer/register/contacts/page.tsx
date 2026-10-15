@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ClipboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
@@ -8,20 +8,8 @@ import { X } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
-
-// Bare 10-digit numbers are assumed Indian (+91); an explicit +<country> is kept.
-function toE164(raw: string): string | null {
-  const trimmed = raw.trim()
-  if (trimmed.startsWith('+')) {
-    const digits = trimmed.slice(1).replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null
-  }
-  const digits = trimmed.replace(/\D/g, '')
-  if (digits.length === 10) return `+91${digits}`
-  if (digits.length > 10 && digits.length <= 15) return `+${digits}`
-  return null
-}
 
 /**
  * Collect BOTH employer contacts on one screen, then send both codes.
@@ -56,6 +44,28 @@ export default function EmployerContactsPage() {
     // One-shot on hydrate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated])
+
+  // Typed or pasted. Refused text keeps the old value and says why, so a paste
+  // like "98765 43210" is not quietly reshaped into a number nobody entered.
+  const handlePhoneChange = (raw: string) => {
+    const digits = toMobileInputDigits(raw)
+    if (digits === null) {
+      setError(t('employerRegister:contacts.phoneInvalid'))
+      return
+    }
+    setPhoneNumber(digits)
+    if (error) setError('')
+  }
+
+  // A whole supported number pasted over/behind existing digits replaces the
+  // field (see toMobileInputDigits); any other paste falls through to onChange.
+  const handlePhonePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const digits = toMobileDigits(e.clipboardData.getData('text'))
+    if (!digits) return
+    e.preventDefault()
+    setPhoneNumber(digits)
+    if (error) setError('')
+  }
 
   const handleNext = async () => {
     const e164 = toE164(phoneNumber)
@@ -174,9 +184,10 @@ export default function EmployerContactsPage() {
                 id="phone"
                 type="tel"
                 value={phoneNumber}
-                onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '')); if (error) setError('') }}
+                inputMode="numeric"
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                onPaste={handlePhonePaste}
                 placeholder={t('employerRegister:contacts.phonePlaceholder')}
-                maxLength={10}
                 disabled={loading}
                 className={inputCls}
               />

@@ -11,92 +11,45 @@
  */
 
 /**
- * Western digits from any script's digits.
+ * The 10 digits of an Indian mobile number, or `null` when `raw` is not one.
  *
- * `/\D/` in JavaScript means `[^0-9]`, so it does not merely ignore Devanagari
- * ९८७६५ or Tamil ௯௮௭ — it DELETES them. A Hindi or Tamil keyboard user typing
- * their own phone number produced `+91` and an "invalid credentials" error with
- * nothing on screen to explain it. We ship ten languages; several of them have
- * their own digits, and this is the field every one of those users starts at.
+ * India only, strict: `^[6-9]\d{9}$`, optionally behind a `+91`, `91` or `0`
+ * prefix. ASCII digits only, and nothing is trimmed or stripped — a space,
+ * hyphen, letter, other-script digit or any other punctuation fails, as do
+ * `00` prefixes and other countries. `\d` in JavaScript is [0-9].
  *
- * `Number.isInteger(+ch)` is not enough — it accepts '٣' inconsistently across
- * engines. Unicode's decimal-digit property is the reliable test, and `.value`
- * gives the western digit for any of them.
+ * Returns null rather than guessing: a login built from a mistyped number is
+ * indistinguishable from a wrong password.
  */
-function toWesternDigits(value: string): string {
-  let out = ''
-  for (const ch of value) {
-    const digit = digitValue(ch)
-    out += digit === null ? ch : String(digit)
-  }
-  return out
+const INDIAN_MOBILE = /^(?:\+91|91|0)?([6-9]\d{9})$/
+
+export function toMobileDigits(raw: string): string | null {
+  return INDIAN_MOBILE.exec(raw)?.[1] ?? null
 }
 
-/**
- * The 0-9 value of a decimal digit written in ANY script, or null if not a digit.
- *
- * Unicode lays each script's digits out as a contiguous run of ten starting at
- * that script's zero, so the distance back to the first non-digit IS the value.
- * `Number('٣')` is NaN and NFKD does not fold these to ASCII, so this walk is
- * the reliable way.
- */
-function digitValue(ch: string): number | null {
-  if (!/\p{Nd}/u.test(ch)) return null
-  const cp = ch.codePointAt(0)!
-  for (let offset = 0; offset <= 9; offset++) {
-    if (!/\p{Nd}/u.test(String.fromCodePoint(cp - offset - 1))) return offset
-  }
-  return null
-}
-
-/**
- * A typed phone number → E.164, or `null` when it is not a plausible number.
- *
- * Returns null rather than guessing: a login attempt built from a mistyped
- * number is indistinguishable from a wrong password, so the user is told their
- * credentials are invalid when the real problem is a missing digit.
- *
- * Handles the three ways people here actually write a number:
- *   9876543210          → +919876543210
- *   0 98765 43210       → +919876543210   (the trunk prefix)
- *   91 98765 43210      → +919876543210   (country code, no plus)
- */
+/** `raw` as E.164 (`+91XXXXXXXXXX`), or `null` — the API payload format. */
 export function toE164(raw: string): string | null {
-  const trimmed = toWesternDigits(raw.trim())
-  if (trimmed.startsWith('+')) {
-    const digits = trimmed.slice(1).replace(/\D/g, '')
-    // A leading + means the country code is already there — so a bare 10 digits
-    // after it is an Indian number MISSING its code, not an international one.
-    // Returning `+9876543210` verbatim shipped a number that is not E.164 and
-    // that the backend's phoneRegex rejects with a raw zod message.
-    if (digits.length === 10) return `+91${digits}`
-    // And a country code never starts with 0, so `+0…` is a typo, not a number.
-    if (digits.startsWith('0')) return null
-    return digits.length >= 11 && digits.length <= 15 ? `+${digits}` : null
-  }
-  let digits = trimmed.replace(/\D/g, '')
-  // "00" is the other way of writing "+" — 0091 98765 43210.
-  if (digits.startsWith('00')) digits = digits.slice(2)
-  // Trunk prefix: "0 98765 43210" is how a number is written on a poster.
-  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1)
+  const digits = toMobileDigits(raw)
+  return digits ? `+91${digits}` : null
+}
 
-  if (digits.length === 10) return `+91${digits}`
-  // An international number, but only if it can be one. A country code never
-  // starts with 0, and E.164 allows 15 digits total, so `+0…` and anything over
-  // 15 are typos rather than numbers and get null.
-  //
-  // ⚠️ This does NOT catch an 11-digit Indian typo. "98765432100" comes back as
-  // "+98765432100", because +98 is Iran and nothing here can tell a fat-fingered
-  // Indian mobile from a real Iranian one. An earlier version of this comment
-  // claimed that case was rejected; it never was. The mobile session caught it
-  // while porting, and pinned the real behaviour in its own tests rather than
-  // matching the port to the prose — which was the right way round.
-  //
-  // Left as it is deliberately: refusing 11-digit numbers would break every
-  // genuine international user to catch one class of Indian typo, and the
-  // backend's own phoneRegex is the last word either way.
-  if (digits.length >= 11 && digits.length <= 15 && !digits.startsWith('0')) return `+${digits}`
-  return null
+/**
+ * What a capped 10-digit phone input should show after the user types or pastes
+ * `raw`, or `null` when the change must be refused (the caller keeps the
+ * previous value and shows the invalid-number message):
+ *   - a whole supported number → its 10 digits;
+ *   - up to 10 digits typed so far → kept as they are;
+ *   - anything else → null.
+ *
+ * onChange only sees the text AFTER the browser merged a paste into the field,
+ * so "+919876543210" pasted behind "98765" arrives as "98765+919876543210".
+ * Inputs therefore also pass the clipboard text alone through `toMobileDigits`
+ * in onPaste, and replace the field when it is a whole number.
+ * Do not give the input a `maxLength`: the browser would cut a paste to length
+ * before either handler sees it.
+ */
+export function toMobileInputDigits(raw: string): string | null {
+  return toMobileDigits(raw) ?? (/^\d{0,10}$/.test(raw) ? raw : null)
 }
 
 /**
@@ -117,8 +70,8 @@ export function toE164(raw: string): string | null {
  * number, so the caller can say so instead of sending it.
  */
 export function toIdentifier(raw: string): string | null {
+  if (!raw.includes('@')) return toE164(raw)
   const trimmed = raw.trim()
-  if (!trimmed.includes('@')) return toE164(trimmed)
   // Shape-check the email too. The field used to be `type="email"`, so the
   // browser refused "boss@acme" before it could be submitted; making it accept
   // phone numbers as well took that check away, and a half-typed address came

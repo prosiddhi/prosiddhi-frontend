@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ClipboardEvent } from 'react'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
@@ -11,21 +11,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-
-// Normalise user input to E.164 (BE jobSeekerRegisterSchema requires it).
-// Bare 10-digit numbers are assumed Indian (+91); an explicit +<country> is kept.
-function toE164(raw: string): string | null {
-  const trimmed = raw.trim()
-  if (trimmed.startsWith('+')) {
-    const digits = trimmed.slice(1).replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null
-  }
-  const digits = trimmed.replace(/\D/g, '')
-  if (digits.length === 10) return `+91${digits}`
-  if (digits.length > 10 && digits.length <= 15) return `+${digits}`
-  return null
-}
 
 export default function RegisterPhonePage() {
   const router = useRouter()
@@ -43,8 +30,31 @@ export default function RegisterPhonePage() {
   useEffect(() => {
     if (!hydrated || prefilledRef.current) return
     prefilledRef.current = true
-    if (data.phoneNumber) setPhoneNumber((prev) => prev || data.phoneNumber)
+    // The stored number is E.164; the field holds the 10 digits only.
+    if (data.phoneNumber) setPhoneNumber((prev) => prev || data.phoneNumber.replace(/^\+91/, ''))
   }, [hydrated, data.phoneNumber])
+
+  // Typed or pasted. Refused text keeps the old value and says why, so a paste
+  // like "98765 43210" is not quietly reshaped into a number nobody entered.
+  const handlePhoneChange = (raw: string) => {
+    const digits = toMobileInputDigits(raw)
+    if (digits === null) {
+      setError(t('auth:phone.errorInvalid'))
+      return
+    }
+    setPhoneNumber(digits)
+    if (error) setError('')
+  }
+
+  // A whole supported number pasted over/behind existing digits replaces the
+  // field (see toMobileInputDigits); any other paste falls through to onChange.
+  const handlePhonePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const digits = toMobileDigits(e.clipboardData.getData('text'))
+    if (!digits) return
+    e.preventDefault()
+    setPhoneNumber(digits)
+    if (error) setError('')
+  }
 
   const handleNext = async () => {
     if (!phoneNumber.trim()) {
@@ -177,11 +187,10 @@ export default function RegisterPhonePage() {
                 <input
                   id="phone"
                   type="tel"
+                  inputMode="numeric"
                   value={phoneNumber}
-                  onChange={(e) => {
-                    setPhoneNumber(e.target.value)
-                    if (error) setError('')
-                  }}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onPaste={handlePhonePaste}
                   placeholder={t('auth:phone.phonePlaceholder')}
                   disabled={loading}
                   className="w-full max-w-[640px] h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
@@ -254,11 +263,10 @@ export default function RegisterPhonePage() {
             <input
               id="phone-mobile"
               type="tel"
+              inputMode="numeric"
               value={phoneNumber}
-              onChange={(e) => {
-                setPhoneNumber(e.target.value)
-                if (error) setError('')
-              }}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              onPaste={handlePhonePaste}
               placeholder={t('auth:phone.phonePlaceholder')}
               disabled={loading}
               className="w-full h-12 px-3 border border-gray-300 rounded-lg text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"

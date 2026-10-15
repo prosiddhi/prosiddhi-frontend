@@ -6,6 +6,7 @@ import { otpErrorMessage } from '@/lib/otpError'
 import { X, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 
 interface PhoneVerifyModalProps {
   isOpen: boolean
@@ -20,12 +21,6 @@ const RESEND_COOLDOWN_SECONDS = 30
 
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-100 disabled:text-gray-500'
-
-// The input only ever holds digits, capped at 10 (see the onChange below), so a
-// bare 10-digit number is the only shape reaching here — Indian mobile, +91 default.
-function toE164(digitsOnly: string): string | null {
-  return digitsOnly.length === 10 ? `+91${digitsOnly}` : null
-}
 
 export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSuccess }: PhoneVerifyModalProps) {
   const { t } = useTranslation()
@@ -160,9 +155,27 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                   <input
                     type="tel"
                     inputMode="numeric"
-                    maxLength={10}
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) => {
+                      // Judge what was typed or pasted before capping it, so
+                      // "919876543210" is never cut down to a different number.
+                      const digits = toMobileInputDigits(e.target.value)
+                      if (digits === null) {
+                        setError(t('auth:phone.errorInvalid'))
+                        return
+                      }
+                      setPhoneNumber(digits)
+                      setError('')
+                    }}
+                    onPaste={(e) => {
+                      // A whole supported number replaces the field (see
+                      // toMobileInputDigits); any other paste falls through to onChange.
+                      const digits = toMobileDigits(e.clipboardData.getData('text'))
+                      if (!digits) return
+                      e.preventDefault()
+                      setPhoneNumber(digits)
+                      setError('')
+                    }}
                     placeholder={t('profile:seeker.phoneModal.phonePlaceholder')}
                     className={inputCls}
                     autoFocus
