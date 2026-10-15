@@ -398,17 +398,24 @@ function LoginContent() {
   // Resend for the phone-OTP tab and the bind step. Same API call and the same
   // error path as the first send. The boxes are cleared and refocused only once
   // the request succeeds, so a refused resend keeps what the user typed. No
-  // success message and no timer: a backend "Please wait" arrives as the error.
-  // Double-click protection lives in ResendOtpButton.
-  const resendOtp = async (send: (e164: string) => Promise<unknown>, rawPhone: string, onSent: () => void) => {
+  // success message: a backend "Please wait" arrives as the error. Returns true
+  // only when a new code was requested; ResendOtpButton restarts its countdown on
+  // that. Double-click protection and the countdown live in ResendOtpButton.
+  const resendOtp = async (
+    send: (e164: string) => Promise<unknown>,
+    rawPhone: string,
+    onSent: () => void,
+  ): Promise<boolean> => {
     const e164 = toE164(rawPhone)
-    if (!e164) return
+    if (!e164) return false
     setError('')
     try {
       await send(e164)
       onSent()
+      return true
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
+      return false
     }
   }
 
@@ -772,6 +779,7 @@ function LoginContent() {
                     <ResendOtpButton
                       onResend={onResendLoginOtp}
                       onBusyChange={setResending}
+                      startOnMount
                       disabled={loading}
                       className={`mt-2 ${TEXT_LINK_CLS}`}
                     />
@@ -1007,6 +1015,7 @@ function LoginContent() {
                   <ResendOtpButton
                     onResend={onResendBindOtp}
                     onBusyChange={setResending}
+                    startOnMount
                     disabled={loading}
                     className={TEXT_LINK_CLS}
                   />

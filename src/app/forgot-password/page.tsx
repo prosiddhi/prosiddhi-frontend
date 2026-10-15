@@ -120,8 +120,9 @@ export default function ForgotPasswordPage() {
   // using the stored normalized identifier. Boxes clear and refocus only on a
   // successful response; a refused resend keeps what the user typed. The notice
   // is deliberately neutral — a 200 does not prove a fresh code was generated.
-  const handleResend = async () => {
-    if (!identifier) return
+  // Returns true only on a 200, which is when ResendOtpButton restarts its countdown.
+  const handleResend = async (): Promise<boolean> => {
+    if (!identifier) return false
     setError('')
     setResendNotice(false)
     try {
@@ -137,8 +138,10 @@ export default function ForgotPasswordPage() {
       setShowConfirmPassword(false)
       focusOtpBox(0)
       setResendNotice(true)
+      return true
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:forgot.errorSendFailed'))
+      return false
     }
   }
 
@@ -542,6 +545,7 @@ export default function ForgotPasswordPage() {
                 <ResendOtpButton
                   onResend={handleResend}
                   onBusyChange={setResending}
+                  startOnMount
                   disabled={loading}
                   className="mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                 />
