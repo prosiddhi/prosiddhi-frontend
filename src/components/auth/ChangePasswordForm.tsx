@@ -1,13 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import {
+  changePasswordSchema,
+  passwordFormMessageKey,
+  type ChangePasswordValues,
+} from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { passwordInputCls, eyeToggleCls } from '@/components/settings/formClasses'
+
+const schema = changePasswordSchema({
+  weak: 'settings.password.weak',
+  mismatch: 'settings.password.mismatch',
+  sameAsCurrent: 'settings.password.sameAsCurrent',
+})
 
 interface ChangePasswordFormProps {
   /** Called once the BE has accepted the new password. */
@@ -23,48 +36,67 @@ interface ChangePasswordFormProps {
  */
 export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
   const { t } = useTranslation()
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+  // Submit-only validation: the message stays until the next submit, never live.
+  const {
+    control,
+    watch,
+    handleSubmit: validateAndSubmit,
+    formState: { errors },
+  } = useForm<ChangePasswordValues>({
+    resolver: zodResolver(schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+  })
+  const newPassword = watch('newPassword')
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // `saving` is set only after RHF's async validation, so it cannot stop a second
+  // submit that arrives in between. The ref is taken synchronously, first.
+  const submitting = useRef(false)
 
   const toggleShowPasswords = () => setShowPasswords((v) => !v)
   const showPasswordsLabel = showPasswords ? t('settings.password.hide') : t('settings.password.show')
   const inputType = showPasswords ? 'text' : 'password'
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (saving) return
-    setError('')
+  // The schema reports the first failing rule (strength, match, same-as-current)
+  // as an i18n key; a server error, when there is one, wins over it.
+  const validationKey = passwordFormMessageKey(errors)
+  const bannerMessage = error || (validationKey ? t(validationKey) : '')
 
-    if (!isStrongPassword(newPassword)) {
-      setError(t('settings.password.weak'))
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setError(t('settings.password.mismatch'))
-      return
-    }
-    if (newPassword === currentPassword) {
-      setError(t('settings.password.sameAsCurrent'))
-      return
-    }
-
+  const onValid: SubmitHandler<ChangePasswordValues> = async (values) => {
     setSaving(true)
     try {
-      await authAPI.changePassword(currentPassword, newPassword)
+      await authAPI.changePassword(values.currentPassword, values.newPassword)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings.password.failed'))
       setSaving(false)
+      submitting.current = false
       return
     }
     // Left `saving` on: the caller is about to navigate away, and a second submit in
     // that gap would just be refused by the BE ("must be different").
     showToast(t('settings.password.success'), 'success')
     onSuccess()
+  }
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (saving || submitting.current) {
+      e.preventDefault()
+      return
+    }
+    submitting.current = true
+    setError('')
+    void validateAndSubmit(onValid, () => {
+      submitting.current = false
+    })(e).catch((err) => {
+      // The resolver itself threw: neither callback ran, so release here or the
+      // form stays locked with an enabled button. Re-thrown, not swallowed.
+      submitting.current = false
+      throw err
+    })
   }
 
   const eyeToggle = (
@@ -86,15 +118,20 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
           {t('settings.password.current')}
         </label>
         <div className="relative">
-          <input
-            id="currentPassword"
-            type={inputType}
-            autoComplete="current-password"
-            required
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            aria-describedby="currentPasswordHint"
-            className={passwordInputCls}
+          <Controller
+            name="currentPassword"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="currentPassword"
+                type={inputType}
+                autoComplete="current-password"
+                required
+                aria-describedby="currentPasswordHint"
+                className={passwordInputCls}
+              />
+            )}
           />
           {eyeToggle}
         </div>
@@ -108,20 +145,28 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
           {t('settings.password.new')}
         </label>
         <div className="relative">
-          <input
-            id="newPassword"
-            type={inputType}
-            autoComplete="new-password"
-            required
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            onBlur={() => setNewPasswordTouched(true)}
-            aria-describedby="passwordRule"
-            className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-              newPasswordTouched && !isStrongPassword(newPassword)
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-[#b5b5b5] focus:ring-primary-50'
-            }`}
+          <Controller
+            name="newPassword"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                onBlur={() => {
+                  field.onBlur()
+                  setNewPasswordTouched(true)
+                }}
+                id="newPassword"
+                type={inputType}
+                autoComplete="new-password"
+                required
+                aria-describedby="passwordRule"
+                className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                  newPasswordTouched && !isStrongPassword(newPassword)
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-[#b5b5b5] focus:ring-primary-50'
+                }`}
+              />
+            )}
           />
           {eyeToggle}
         </div>
@@ -132,14 +177,19 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
           {t('settings.password.confirm')}
         </label>
         <div className="relative">
-          <input
-            id="confirmPassword"
-            type={inputType}
-            autoComplete="new-password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className={passwordInputCls}
+          <Controller
+            name="confirmPassword"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="confirmPassword"
+                type={inputType}
+                autoComplete="new-password"
+                required
+                className={passwordInputCls}
+              />
+            )}
           />
           {eyeToggle}
         </div>
@@ -149,10 +199,10 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
         <PasswordRequirementsChecklist password={newPassword} />
       </div>
 
-      {error && (
+      {bannerMessage && (
         <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span className="whitespace-pre-line">{error}</span>
+          <span className="whitespace-pre-line">{bannerMessage}</span>
         </p>
       )}
 

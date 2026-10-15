@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
-import { useForm, type SubmitHandler } from 'react-hook-form'
+import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
@@ -12,6 +12,11 @@ import { authAPI } from '@/lib/api'
 import { toIdentifier } from '@/lib/identifier'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/validation/authSchemas'
+import {
+  newPasswordSchema,
+  passwordFormMessageKey,
+  type NewPasswordValues,
+} from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { IdentifierField } from '@/components/auth/IdentifierField'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
@@ -20,6 +25,11 @@ const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
 
 type Stage = 'identifier' | 'otp' | 'reset' | 'done'
+
+const resetPasswordSchema = newPasswordSchema({
+  weak: 'auth:forgot.errorRule',
+  mismatch: 'auth:forgot.errorMismatch',
+})
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -42,12 +52,22 @@ export default function ForgotPasswordPage() {
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
   const otpRefs = useRef<Array<HTMLInputElement | null>>([])
   const [devOtp, setDevOtp] = useState<string | undefined>()
-  const [newPassword, setNewPassword] = useState('')
+  // Stage 3's fields. Submit-only validation; typing clears the message.
+  const resetForm = useForm<NewPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    defaultValues: { newPassword: '', confirmPassword: '' },
+  })
+  const newPassword = resetForm.watch('newPassword')
+  const resetErrors = resetForm.formState.errors
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // `loading` is set only after RHF's async validation, so it cannot stop a second
+  // reset submit that arrives in between. The ref is taken synchronously, first.
+  const resetting = useRef(false)
 
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
@@ -145,36 +165,54 @@ export default function ForgotPasswordPage() {
   }
 
   // Stage 3 — set the new password (BE verifies the OTP, then consumes it).
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!isStrongPassword(newPassword)) {
-      setError(t('auth:forgot.errorRule'))
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setError(t('auth:forgot.errorMismatch'))
-      return
-    }
+  const onReset: SubmitHandler<NewPasswordValues> = async (values) => {
     try {
       setLoading(true)
-      setError('')
-      await authAPI.resetPassword(identifier, code, newPassword)
+      await authAPI.resetPassword(identifier, code, values.newPassword)
       setStage('done')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed'))
     } finally {
       setLoading(false)
+      resetting.current = false
     }
   }
 
+  const handleReset = (e: React.FormEvent<HTMLFormElement>) => {
+    if (loading || resetting.current) {
+      e.preventDefault()
+      return
+    }
+    resetting.current = true
+    setError('')
+    void resetForm.handleSubmit(onReset, () => {
+      resetting.current = false
+    })(e).catch((err) => {
+      // The resolver itself threw: neither callback ran, so release here or the
+      // form stays locked with an enabled button. Re-thrown, not swallowed.
+      resetting.current = false
+      throw err
+    })
+  }
+
+  // Typing in either password field clears whatever message was showing —
+  // server error or validation.
+  const clearResetMessage = () => {
+    if (error) setError('')
+    resetForm.clearErrors()
+  }
+
   // The one banner shown across every stage — a server-side failure (`error`)
-  // always wins; otherwise the identifier form's own validation message is
+  // always wins; otherwise the current stage's form validation message is
   // shown, translated from the i18n key zodResolver attached to it. Same
   // pattern /login uses for its single error banner.
-  const bannerMessage =
-    error || (stage === 'identifier' && identifierForm.formState.errors.identifier?.message
-      ? t(identifierForm.formState.errors.identifier.message)
-      : '')
+  const validationKey =
+    stage === 'identifier'
+      ? identifierForm.formState.errors.identifier?.message
+      : stage === 'reset'
+      ? passwordFormMessageKey(resetErrors)
+      : undefined
+  const bannerMessage = error || (validationKey ? t(validationKey) : '')
 
   const inputCls =
     'w-full h-12 px-4 border border-[#b5b5b5] rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50'
@@ -370,20 +408,29 @@ export default function ForgotPasswordPage() {
               <div>
                 <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.newPasswordLabel')}</label>
                 <div className="relative">
-                  <input
-                    id="newPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); if (error) setError('') }}
-                    onBlur={() => setNewPasswordTouched(true)}
-                    placeholder={t('auth:forgot.newPasswordPlaceholder')}
-                    disabled={loading}
-                    className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
-                      newPasswordTouched && !isStrongPassword(newPassword)
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-[#b5b5b5] focus:ring-primary-50'
-                    }`}
-                    required
+                  {/* Controller, not register: the input is disabled while the
+                      request is in flight, and a disabled DOM input must not be
+                      what supplies the value. */}
+                  <Controller
+                    name="newPassword"
+                    control={resetForm.control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        onChange={(e) => { field.onChange(e); clearResetMessage() }}
+                        onBlur={() => { field.onBlur(); setNewPasswordTouched(true) }}
+                        id="newPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={t('auth:forgot.newPasswordPlaceholder')}
+                        disabled={loading}
+                        className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
+                          newPasswordTouched && !isStrongPassword(newPassword)
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-[#b5b5b5] focus:ring-primary-50'
+                        }`}
+                        required
+                      />
+                    )}
                   />
                   {/* Was a bare icon with no accessible name and no tap target —
                       a screen reader announced only "button". Borrows the two
@@ -405,15 +452,21 @@ export default function ForgotPasswordPage() {
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
-                <input
-                  id="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); if (error) setError('') }}
-                  placeholder={t('auth:forgot.confirmPlaceholder')}
-                  disabled={loading}
-                  className={inputCls}
-                  required
+                <Controller
+                  name="confirmPassword"
+                  control={resetForm.control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      onChange={(e) => { field.onChange(e); clearResetMessage() }}
+                      id="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={t('auth:forgot.confirmPlaceholder')}
+                      disabled={loading}
+                      className={inputCls}
+                      required
+                    />
+                  )}
                 />
               </div>
               <button type="submit" disabled={loading} className={primaryBtnCls}>
