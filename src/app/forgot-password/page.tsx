@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
@@ -25,7 +25,9 @@ import { IS_DEV_BUILD } from '@/lib/devBuild'
 const OTP_LENGTH = 6
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
 
-type Stage = 'identifier' | 'otp' | 'reset' | 'done'
+// The code boxes and the new-password fields share the 'otp' stage: the password
+// fields appear under the boxes once `codeEntered` is set.
+type Stage = 'identifier' | 'otp' | 'done'
 
 // The weak-password message is not shown: the live checklist already says which rules are unmet.
 const WEAK_KEY = 'auth:forgot.errorRule'
@@ -39,6 +41,9 @@ export default function ForgotPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const [stage, setStage] = useState<Stage>('identifier')
+  // True once the user has entered six digits and pressed Continue. This is NOT
+  // server verification: the BE checks the code only in the reset-password call.
+  const [codeEntered, setCodeEntered] = useState(false)
   // The raw field value (email OR phone) lives in RHF below; this is the
   // NORMALIZED value — lowercased email or E.164 phone — that toIdentifier(raw)
   // produced, kept for the OTP subtitle and the final reset-password call. Same
@@ -80,6 +85,12 @@ export default function ForgotPasswordPage() {
   const [resendNotice, setResendNotice] = useState(false)
   const [resending, setResending] = useState(false)
 
+  // When Continue reveals the password fields, move focus to the first one. RHF's
+  // setFocus uses the ref the Controller already registers, so no extra ref.
+  useEffect(() => {
+    if (codeEntered) resetForm.setFocus('newPassword')
+  }, [codeEntered, resetForm])
+
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
 
@@ -117,6 +128,13 @@ export default function ForgotPasswordPage() {
       const res = await authAPI.forgotPassword(identifier)
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setOtp(EMPTY_OTP)
+      setCodeEntered(false)
+      // The password fields are hidden for the new code: start them clean so no
+      // old value, error, red border or revealed text comes back with them.
+      resetForm.reset()
+      setNewPasswordTouched(false)
+      setShowNewPassword(false)
+      setShowConfirmPassword(false)
       focusOtpBox(0)
       setResendNotice(true)
     } catch (err) {
@@ -141,7 +159,7 @@ export default function ForgotPasswordPage() {
     }
     setError('')
     setResendNotice(false)
-    setStage('reset')
+    setCodeEntered(true)
   }
 
   const focusOtpBox = (index: number) => {
@@ -214,6 +232,13 @@ export default function ForgotPasswordPage() {
       e.preventDefault()
       return
     }
+    // The boxes stay editable under the password fields, so the code can have
+    // been cut short since Continue.
+    if (code.length !== OTP_LENGTH) {
+      e.preventDefault()
+      setError(t('auth:forgot.errorCodeIncomplete'))
+      return
+    }
     resetting.current = true
     setError('')
     void resetForm.handleSubmit(onReset, () => {
@@ -240,7 +265,7 @@ export default function ForgotPasswordPage() {
   const validationKey =
     stage === 'identifier'
       ? identifierForm.formState.errors.identifier?.message
-      : stage === 'reset'
+      : stage === 'otp' && codeEntered
       ? passwordFormMessageKey(resetErrors)
       : undefined
   // A weak password is left to the checklist, so it gets no banner.
@@ -332,16 +357,16 @@ export default function ForgotPasswordPage() {
               <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
                 {stage === 'identifier'
                   ? t('auth:forgot.titleEmail')
-                  : stage === 'otp'
-                  ? t('auth:forgot.titleOtp')
-                  : t('auth:forgot.titleReset')}
+                  : codeEntered
+                  ? t('auth:forgot.titleReset')
+                  : t('auth:forgot.titleOtp')}
               </h1>
               <p className="text-base sm:text-lg text-[#777776]">
                 {stage === 'identifier'
                   ? t('auth:forgot.subtitleIdentifier')
-                  : stage === 'otp'
-                  ? t('auth:forgot.subtitleOtp', { identifier })
-                  : t('auth:forgot.subtitleReset')}
+                  : codeEntered
+                  ? t('auth:forgot.subtitleReset')
+                  : t('auth:forgot.subtitleOtp', { identifier })}
               </p>
             </div>
           )}
@@ -396,9 +421,11 @@ export default function ForgotPasswordPage() {
             </form>
           )}
 
-          {/* Stage 2 — otp */}
+          {/* Stage 2 — code, then (after Continue) the new password, on one screen.
+              One form so the code boxes stay mounted and editable when the
+              password fields appear; Enter submits whichever step is showing. */}
           {stage === 'otp' && (
-            <form onSubmit={handleVerifyOtp} className="space-y-5">
+            <form onSubmit={codeEntered ? handleReset : handleVerifyOtp} className="space-y-5">
               <div>
                 <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
                   {t('auth:forgot.codeLabel')}
@@ -443,9 +470,74 @@ export default function ForgotPasswordPage() {
                   ))}
                 </div>
               </div>
+
+              {codeEntered && (
+                <>
+                  <div>
+                    <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.newPasswordLabel')}</label>
+                    <div className="relative">
+                      {/* Controller, not register: the input is disabled while the
+                          request is in flight, and a disabled DOM input must not be
+                          what supplies the value. */}
+                      <Controller
+                        name="newPassword"
+                        control={resetForm.control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            onChange={(e) => { field.onChange(e); clearResetMessage() }}
+                            onBlur={() => { field.onBlur(); setNewPasswordTouched(true) }}
+                            id="newPassword"
+                            type={showNewPassword ? 'text' : 'password'}
+                            placeholder={t('auth:forgot.newPasswordPlaceholder')}
+                            disabled={loading}
+                            className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
+                              newPasswordTouched && !isStrongPassword(newPassword)
+                                ? 'border-red-500 focus:ring-red-500'
+                                : 'border-[#b5b5b5] focus:ring-primary-50'
+                            }`}
+                            required
+                          />
+                        )}
+                      />
+                      {passwordToggle(showNewPassword, () => setShowNewPassword((v) => !v))}
+                    </div>
+                    <div className="mt-2">
+                      <PasswordRequirementsChecklist password={newPassword} touched={newPasswordTouched} />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
+                    <div className="relative">
+                      <Controller
+                        name="confirmPassword"
+                        control={resetForm.control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            onChange={(e) => { field.onChange(e); clearResetMessage() }}
+                            id="confirmPassword"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            placeholder={t('auth:forgot.confirmPlaceholder')}
+                            disabled={loading}
+                            className={`${inputCls} pr-12`}
+                            required
+                          />
+                        )}
+                      />
+                      {passwordToggle(showConfirmPassword, () => setShowConfirmPassword((v) => !v))}
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
                 <button type="submit" disabled={loading || resending || code.length !== OTP_LENGTH} className={primaryBtnCls}>
-                  {loading ? t('auth:forgot.verifying') : t('auth:forgot.verifyCode')}
+                  {!codeEntered
+                    ? t('buttons.continue')
+                    : loading
+                    ? t('auth:forgot.saving')
+                    : t('auth:forgot.resetPassword')}
                 </button>
                 <ResendOtpButton
                   onResend={handleResend}
@@ -453,78 +545,14 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                   className="mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                 />
-                <button type="button" disabled={resending} onClick={() => { setStage('identifier'); setOtp(EMPTY_OTP); setError(''); setResendNotice(false) }} className={`${backBtnCls} disabled:opacity-50`}>
+                <button type="button" disabled={resending || loading} onClick={() => { setStage('identifier'); setCodeEntered(false); setOtp(EMPTY_OTP); resetForm.reset(); setNewPasswordTouched(false); setError(''); setResendNotice(false) }} className={`${backBtnCls} disabled:opacity-50`}>
                   <ArrowLeft className="w-4 h-4 shrink-0" /> {t('auth:forgot.useDifferentIdentifier')}
                 </button>
               </div>
             </form>
           )}
 
-          {/* Stage 3 — new password */}
-          {stage === 'reset' && (
-            <form onSubmit={handleReset} className="space-y-5">
-              <div>
-                <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.newPasswordLabel')}</label>
-                <div className="relative">
-                  {/* Controller, not register: the input is disabled while the
-                      request is in flight, and a disabled DOM input must not be
-                      what supplies the value. */}
-                  <Controller
-                    name="newPassword"
-                    control={resetForm.control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        onChange={(e) => { field.onChange(e); clearResetMessage() }}
-                        onBlur={() => { field.onBlur(); setNewPasswordTouched(true) }}
-                        id="newPassword"
-                        type={showNewPassword ? 'text' : 'password'}
-                        placeholder={t('auth:forgot.newPasswordPlaceholder')}
-                        disabled={loading}
-                        className={`w-full h-12 px-4 pr-12 border rounded-lg text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
-                          newPasswordTouched && !isStrongPassword(newPassword)
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-[#b5b5b5] focus:ring-primary-50'
-                        }`}
-                        required
-                      />
-                    )}
-                  />
-                  {passwordToggle(showNewPassword, () => setShowNewPassword((v) => !v))}
-                </div>
-                <div className="mt-2">
-                  <PasswordRequirementsChecklist password={newPassword} touched={newPasswordTouched} />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.confirmLabel')}</label>
-                <div className="relative">
-                  <Controller
-                    name="confirmPassword"
-                    control={resetForm.control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        onChange={(e) => { field.onChange(e); clearResetMessage() }}
-                        id="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder={t('auth:forgot.confirmPlaceholder')}
-                        disabled={loading}
-                        className={`${inputCls} pr-12`}
-                        required
-                      />
-                    )}
-                  />
-                  {passwordToggle(showConfirmPassword, () => setShowConfirmPassword((v) => !v))}
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className={primaryBtnCls}>
-                {loading ? t('auth:forgot.saving') : t('auth:forgot.resetPassword')}
-              </button>
-            </form>
-          )}
-
-          {/* Stage 4 — done */}
+          {/* Stage 3 — done */}
           {stage === 'done' && (
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
