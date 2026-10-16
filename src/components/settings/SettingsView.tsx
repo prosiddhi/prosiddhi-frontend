@@ -6,13 +6,14 @@ import { useTranslation } from 'react-i18next'
 import { GoogleLogin } from '@react-oauth/google'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, RefreshCw, Trash2, User } from 'lucide-react'
+import { AlertCircle, Check, Download, Eye, EyeOff, Globe, Loader2, Lock, LogOut, RefreshCw, Trash2, User } from 'lucide-react'
 import { Footer } from '@/components/home/Footer'
 import { LANGUAGE_OPTIONS } from '@/components/navigation/LanguageSwitcher'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, employerAPI, jobSeekerAPI, meAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
+import { saveBlob } from '@/lib/saveBlob'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import {
   changePasswordSchema,
@@ -68,6 +69,56 @@ function EyeToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }
     >
       {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
     </button>
+  )
+}
+
+/**
+ * "Download my data" — the right of access the Privacy Policy promises. Saves the
+ * JSON file from GET /me/export; any role.
+ */
+function DownloadMyDataSection() {
+  const { t } = useTranslation()
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const blob = await meAPI.downloadMyData()
+      // The person's own calendar date (en-CA formats as YYYY-MM-DD).
+      saveBlob(blob, `prosiddhi-my-data-${new Date().toLocaleDateString('en-CA')}.json`)
+    } catch (err) {
+      // A 401 has already ended the session (apiRequest); offline has its banner.
+      // 429 gets its own words: "try again in a few minutes" is literally true then.
+      if (err instanceof ApiError && err.status === 401) return
+      showToast(
+        t(err instanceof ApiError && err.status === 429 ? 'settings.downloadData.rateLimited' : 'settings.downloadData.failed'),
+        'error',
+      )
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <section className={cardCls}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className={sectionHeadingCls}>
+            <Download className={sectionHeadingIconCls} /> {t('settings.downloadData.title')}
+          </h2>
+          <p className="text-sm text-[#717182] mt-1">{t('settings.downloadData.description')}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className={`${outlineBtnBaseCls} border border-primary-50 text-primary-50 hover:bg-primary-50 hover:text-primary-100 focus-visible:ring-primary-50 disabled:opacity-60`}
+        >
+          {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {downloading ? t('settings.downloadData.downloading') : t('settings.downloadData.button')}
+        </button>
+      </div>
+    </section>
   )
 }
 
@@ -639,6 +690,8 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                 </>
               )}
             </section>
+
+            <DownloadMyDataSection />
 
             {/* Sign out — label/description left, action right, so the card
                 reads as one deliberate row instead of stacked content parked

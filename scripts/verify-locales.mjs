@@ -169,6 +169,14 @@ function compare(label, lang, enFlat, tgtFlat, style) {
     const tgt = tgtFlat[k]
     stringsChecked++
 
+    // legal.json policy sections (PolicyDocument.tsx): a block marker such as
+    // `{"company": true}` is a boolean, and a section `id` is a page anchor
+    // (/privacy#retention). Neither is copy — both must equal English exactly.
+    if (typeof en === 'boolean' || /\.sections\.\d+\.id$/.test(k)) {
+      if (tgt !== en) err(label, `${k}: must equal English (${JSON.stringify(en)}), got ${JSON.stringify(tgt)}`)
+      continue
+    }
+
     if (typeof tgt !== 'string') {
       err(label, `${k}: value is ${typeof tgt}, expected string`)
       continue
@@ -190,6 +198,17 @@ function compare(label, lang, enFlat, tgtFlat, style) {
     const tpc = cmp(tp)
     if (epc.join('|') !== tpc.join('|')) {
       err(label, `${k}: placeholder mismatch — EN [${epc.join(', ')}] vs ${lang} [${tpc.join(', ')}]`)
+    }
+
+    // 2b. <Trans> tag parity (portal only). `<delete>how to delete</delete>` renders a link;
+    // a dropped, renamed or unclosed tag shows raw brackets or loses the link, and the
+    // placeholder check above cannot see it. Order may change between languages; the set
+    // of tags may not.
+    if (style !== 'icu') {
+      const tags = (s) => (s.match(/<\/?[a-z]+>/g) ?? []).sort().join(' ')
+      if (tags(en) !== tags(tgt)) {
+        err(label, `${k}: tag mismatch — EN [${tags(en)}] vs ${lang} [${tags(tgt)}]`)
+      }
     }
 
     // 3. script coverage

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { formatShortDate } from '@/lib/jobFormat'
 import { subscriptionAPI, type InvoicesPage } from '@/lib/api'
+import { saveBlob } from '@/lib/saveBlob'
 import {
   ChevronLeft,
   ChevronRight,
@@ -56,14 +57,7 @@ function InvoicesContent() {
     setDownloadError('')
     try {
       const blob = await subscriptionAPI.fetchInvoicePdf(id)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${number.replace(/[/\\]/g, '-')}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+      saveBlob(blob, `${number.replace(/[/\\]/g, '-')}.pdf`)
     } catch (err) {
       setDownloadError(err instanceof Error ? err.message : t('employer:invoices.downloadFailed'))
     } finally {

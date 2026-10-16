@@ -441,6 +441,7 @@ async function performRequest<T>(
   {
     preserveSessionOnCode,
     isCredentialCheck,
+    asBlob,
     ...options
   }: RequestInit & {
     /**
@@ -456,6 +457,12 @@ async function performRequest<T>(
      * login page's `?returnUrl=`).
      */
     isCredentialCheck?: boolean
+    /**
+     * A file download (invoice PDF, "Download my data"): a success answers the body
+     * as a Blob instead of unwrapping JSON. Errors are handled exactly as for any
+     * other call — session end, consent, password change, offline banner, refresh.
+     */
+    asBlob?: boolean
   } = {},
   replayToken?: string
 ): Promise<T> {
@@ -555,7 +562,7 @@ async function performRequest<T>(
     ) {
       const recovery = await recoverExpiredToken(token)
       if (recovery.kind === 'retry') {
-        return performRequest<T>(endpoint, { preserveSessionOnCode, isCredentialCheck, ...options }, recovery.token)
+        return performRequest<T>(endpoint, { preserveSessionOnCode, isCredentialCheck, asBlob, ...options }, recovery.token)
       }
       if (recovery.kind === 'ended') {
         unauthorizedCode = recovery.code ?? code
@@ -599,6 +606,10 @@ async function performRequest<T>(
       code,
       details
     )
+  }
+
+  if (asBlob) {
+    return (await response.blob()) as T
   }
 
   // 204 / empty bodies: nothing to unwrap.
@@ -1410,6 +1421,12 @@ export const meAPI = {
       method: 'POST',
       body: JSON.stringify({ versions }),
     })
+  },
+
+  // GET /api/v1/me/export — "Download my data" (DPDP right of access). A JSON file of
+  // this person's own data and who it was shared with. Any role; 5 per window.
+  downloadMyData: async (): Promise<Blob> => {
+    return apiRequest<Blob>('/me/export', { asBlob: true })
   },
 
   // DELETE /api/me — self-service account deletion (BE-A08, Google Play
@@ -2609,29 +2626,9 @@ export const subscriptionAPI = {
     return apiRequest<InvoicesPage>(`/employers/me/invoices?page=${page}&limit=${limit}`)
   },
 
-  // Fetch an invoice PDF as a Blob. The endpoint streams binary (not the JSON
-  // envelope) and needs the Bearer header, so it bypasses apiRequest — and
-  // therefore repeats its expired-token handling: one refresh, one replay.
-  // GET /api/employers/me/invoices/:id/pdf.
+  // Fetch an invoice PDF as a Blob. GET /api/employers/me/invoices/:id/pdf.
   fetchInvoicePdf: async (id: string): Promise<Blob> => {
-    const url = `${API_BASE_URL}/employers/me/invoices/${id}/pdf`
-    const send = (token: string | null) =>
-      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-
-    const sentToken = getAuthToken()
-    let res = await send(sentToken)
-    if (res.status === 401 && sentToken) {
-      const body: unknown = await res.clone().json().catch(() => null)
-      if ((body as { code?: unknown } | null)?.code === TOKEN_EXPIRED_CODE) {
-        const recovery = await recoverExpiredToken(sentToken)
-        if (recovery.kind === 'retry') res = await send(recovery.token)
-        else if (recovery.kind === 'ended') endSessionLocally(recovery.code ?? TOKEN_EXPIRED_CODE, sentToken)
-      }
-    }
-    if (!res.ok) {
-      throw new Error(`Failed to download invoice (status ${res.status})`)
-    }
-    return res.blob()
+    return apiRequest<Blob>(`/employers/me/invoices/${id}/pdf`, { asBlob: true })
   },
 
   // The org's credit statement — every POST/DOWNLOAD movement, newest first.

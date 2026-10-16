@@ -56,8 +56,10 @@ export const GRIEVANCE_OFFICER = {
  * wording changes — it is what users and auditors read as the effective date.
  * Kept separate so a privacy change never re-dates the Terms.
  */
-export const TERMS_LAST_UPDATED = '2026-10-08'
-export const PRIVACY_LAST_UPDATED = '2026-10-07'
+// Keep each equal to the matching version in prosiddhi-backend src/config/legal.ts:
+// that is the version people are asked to accept.
+export const TERMS_LAST_UPDATED = '2026-10-17'
+export const PRIVACY_LAST_UPDATED = '2026-10-17'
 export const REFUND_LAST_UPDATED = '2026-10-16'
 export const DELIVERY_LAST_UPDATED = '2026-10-16'
 

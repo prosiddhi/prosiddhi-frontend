@@ -93,6 +93,14 @@
       "setSuccess": "Password set. You can now sign in with your email and password, or with Google.",
       "alreadySet": "This account already has a password. Use Change password instead."
     },
+    "downloadData": {
+      "title": "Download my data",
+      "description": "Get a copy of the information we hold about you, and who it was shared with, as a file.",
+      "button": "Download",
+      "downloading": "Preparing…",
+      "failed": "We couldn't prepare your data. Please try again in a few minutes.",
+      "rateLimited": "You have downloaded your data several times just now. Please try again in 15 minutes."
+    },
     "signOut": {
       "title": "Sign out",
       "description": "You'll need to sign in again to use your account."
