@@ -6,6 +6,8 @@ import { otpErrorMessage } from '@/lib/otpError'
 import { X, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { OtpInput } from '@/components/auth/OtpInput'
+import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 
 interface PhoneVerifyModalProps {
@@ -26,7 +28,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   const { t } = useTranslation()
   const [step, setStep] = useState<'phone' | 'otp' | 'success'>('phone')
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [otp, setOtp] = useState('')
+  const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
@@ -39,7 +41,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
     if (isOpen) {
       setStep('phone')
       setPhoneNumber('')
-      setOtp('')
+      setOtp(EMPTY_OTP)
       setError('')
       setCooldown(0)
       setDevOtp(undefined)
@@ -71,7 +73,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
       const res = await otpAPI.send(e164)
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setStep('otp')
-      setOtp('')
+      setOtp(EMPTY_OTP)
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.phoneModal.sendError'))
@@ -86,11 +88,11 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   }
 
   const verifyOtp = async () => {
-    if (!e164 || otp.trim().length !== 6 || verifying) return
+    if (!e164 || otp.join('').length !== 6 || verifying) return
     setVerifying(true)
     setError('')
     try {
-      await authAPI.changePhone(e164, otp.trim())
+      await authAPI.changePhone(e164, otp.join(''))
       await onSuccess()
       setStep('success')
     } catch (err) {
@@ -183,17 +185,16 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                 </div>
               ) : (
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-black mb-1.5 block">
+                  <label id="phone-otp-label" className="text-sm font-medium text-black mb-1.5 block">
                     {t('profile:seeker.phoneModal.otpLabel')}
                   </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
+                  <OtpInput
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder={t('profile:seeker.phoneModal.otpPlaceholder')}
-                    className={`${inputCls} tracking-widest`}
+                    onChange={setOtp}
+                    idPrefix="phone-otp"
+                    labelledBy="phone-otp-label"
+                    ariaLabel={t('auth:otp.codeVoice')}
+                    disabled={verifying}
                     autoFocus
                   />
                   <div className="flex items-center justify-between mt-2">
@@ -245,7 +246,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                 ) : (
                   <button
                     onClick={verifyOtp}
-                    disabled={otp.trim().length !== 6 || verifying}
+                    disabled={otp.join('').length !== 6 || verifying}
                     className="flex-1 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {verifying && <Loader2 className="w-5 h-5 animate-spin" />}

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, MailCheck } from 'lucide-react'
 import Image from 'next/image'
@@ -31,6 +32,7 @@ export default function RegisterVerifyEmailPage() {
   const { t } = useTranslation()
   const { data, update, hydrated } = useSeekerRegistration()
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
+  const otpInputRef = useRef<OtpInputHandle>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
@@ -54,22 +56,9 @@ export default function RegisterVerifyEmailPage() {
     }
   }, [countdown])
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    if (value && !/^\d$/.test(value)) return
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
-    if (value && index < OTP_LENGTH - 1) {
-      document.getElementById(`eotp-${index + 1}`)?.focus()
-    }
+  const handleOtpChange = (next: string[]) => {
+    setOtp(next)
     if (error) setError('')
-  }
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      document.getElementById(`eotp-${index - 1}`)?.focus()
-    }
   }
 
   const handleVerify = async () => {
@@ -93,7 +82,7 @@ export default function RegisterVerifyEmailPage() {
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
-      document.getElementById('eotp-0')?.focus()
+      otpInputRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
@@ -179,21 +168,20 @@ export default function RegisterVerifyEmailPage() {
               )}
 
               <div className="mb-6">
-                <div className="flex items-center gap-2 lg:gap-4 mb-6">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`eotp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      disabled={loading}
-                      className="min-w-0 flex-1 max-w-12 h-11 lg:flex-none lg:w-12 lg:h-12 text-center border border-[#b5b5b5] rounded-[10px] text-xl lg:text-lg font-bold text-black focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"
-                    />
-                  ))}
+                {/* The boxes had no label. The wording is borrowed from /forgot-password
+                    (no asterisk, translated in all ten languages). */}
+                <span id="eotp-label" className="sr-only">{t('auth:forgot.codeLabel')}</span>
+                {/* Width cap matches the old row: six 48px boxes plus gaps. */}
+                <div className="max-w-[328px] lg:max-w-[368px] mb-6">
+                  <OtpInput
+                    ref={otpInputRef}
+                    value={otp}
+                    onChange={handleOtpChange}
+                    idPrefix="eotp"
+                    labelledBy="eotp-label"
+                    ariaLabel={t('auth:forgot.codeLabel')}
+                    disabled={loading}
+                  />
                 </div>
 
                 <button

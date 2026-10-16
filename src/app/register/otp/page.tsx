@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
@@ -29,6 +30,9 @@ export default function RegisterOTPPage() {
   // Set the moment this screen's own successful verify moves on, so the
   // "already verified" redirect below does not navigate a second time.
   const advancingRef = useRef(false)
+  // Both layouts stay mounted (CSS hides one), so each has its own box group and handle.
+  const desktopOtpRef = useRef<OtpInputHandle>(null)
+  const mobileOtpRef = useRef<OtpInputHandle>(null)
 
   // Guard: wait for the restore before judging — the phone survives a refresh
   // now, but not before sessionStorage has been read.
@@ -55,27 +59,9 @@ export default function RegisterOTPPage() {
     }
   }, [countdown])
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    if (value && !/^\d$/.test(value)) return
-
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
-
-    if (value && index < OTP_LENGTH - 1) {
-      const nextInput = document.getElementById(`otp-${index + 1}`)
-      nextInput?.focus()
-    }
-
+  const handleOtpChange = (next: string[]) => {
+    setOtp(next)
     if (error) setError('')
-  }
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`)
-      prevInput?.focus()
-    }
   }
 
   const handleVerify = async () => {
@@ -99,7 +85,9 @@ export default function RegisterOTPPage() {
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid'))
       setOtp(Array(OTP_LENGTH).fill(''))
-      document.getElementById('otp-0')?.focus()
+      // Only the visible layout's boxes can take focus; the hidden one is a no-op.
+      desktopOtpRef.current?.focusFirst()
+      mobileOtpRef.current?.focusFirst()
     } finally {
       setLoading(false)
     }
@@ -206,27 +194,22 @@ export default function RegisterOTPPage() {
 
               <div className="mb-8 lg:[@media(max-height:800px)]:mb-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <label className="text-base font-medium text-black">
+                  <label id="otp-label" className="text-base font-medium text-black">
                     {t('auth:otp.codeLabel')}
                   </label>
                   <VoiceButton label={t('auth:otp.codeVoice')} iconClassName="w-5 h-5 text-primary-50" className="p-1" />
                 </div>
                 
-                <div className="flex items-center gap-4 mb-6">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`otp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      disabled={loading}
-                      className="w-12 h-12 text-center border border-[#b5b5b5] rounded-[10px] text-lg font-bold text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent disabled:opacity-50"
-                    />
-                  ))}
+                <div className="max-w-[368px] mb-6">
+                  <OtpInput
+                    ref={desktopOtpRef}
+                    value={otp}
+                    onChange={handleOtpChange}
+                    idPrefix="otp"
+                    labelledBy="otp-label"
+                    ariaLabel={t('auth:otp.codeVoice')}
+                    disabled={loading}
+                  />
                 </div>
 
                 <button
@@ -295,31 +278,26 @@ export default function RegisterOTPPage() {
           )}
 
           <div className="mb-6">
-            <label className="text-base font-medium text-black mb-3 block">
+            <label id="otp-mobile-label" className="text-base font-medium text-black mb-3 block">
               {t('auth:otp.codeLabel')}
             </label>
-            <div className="flex items-center gap-2 mb-3">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-mobile-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  disabled={loading}
-                  className="min-w-0 flex-1 h-12 text-center border border-gray-300 rounded-lg text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"
-                />
-              ))}
+            <div className="mb-3">
+              <OtpInput
+                ref={mobileOtpRef}
+                value={otp}
+                onChange={handleOtpChange}
+                idPrefix="otp-mobile"
+                labelledBy="otp-mobile-label"
+                ariaLabel={t('auth:otp.codeVoice')}
+                disabled={loading}
+              />
             </div>
             <button
               onClick={handleResend}
               disabled={!canResend || resendLoading}
               className="text-primary-50 text-sm disabled:opacity-50"
             >
-              {resendLoading ? 'Sending...' : canResend ? 'Resend Code' : `Resend in ${countdown}s`}
+              {resendLoading ? t('auth:otp.sending') : canResend ? t('auth:otp.resendCode') : t('auth:otp.resendIn', { countdown })}
             </button>
           </div>
 

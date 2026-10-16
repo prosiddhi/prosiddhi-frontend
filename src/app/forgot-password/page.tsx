@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { authAPI } from '@/lib/api'
 import { toIdentifier } from '@/lib/identifier'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
-import { forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/validation/authSchemas'
+import { EMPTY_OTP, forgotIdentifierSchema, type ForgotIdentifierValues } from '@/lib/validation/authSchemas'
 import {
   newPasswordSchema,
   passwordFormMessageKey,
@@ -19,11 +19,11 @@ import {
 } from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { IdentifierField } from '@/components/auth/IdentifierField'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 
 const OTP_LENGTH = 6
-const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '')
 
 // The code boxes and the new-password fields share the 'otp' stage: the password
 // fields appear under the boxes once `codeEntered` is set.
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
   // "exactly 6" rule are unchanged. Same shape the three other OTP screens in
   // this app already use.
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([])
+  const otpInputRef = useRef<OtpInputHandle>(null)
   const [devOtp, setDevOtp] = useState<string | undefined>()
   // Stage 3's fields. Submit-only validation; typing clears the message.
   const resetForm = useForm<NewPasswordValues>({
@@ -136,7 +136,7 @@ export default function ForgotPasswordPage() {
       setNewPasswordTouched(false)
       setShowNewPassword(false)
       setShowConfirmPassword(false)
-      focusOtpBox(0)
+      otpInputRef.current?.focusFirst()
       setResendNotice(true)
       return true
     } catch (err) {
@@ -165,55 +165,10 @@ export default function ForgotPasswordPage() {
     setCodeEntered(true)
   }
 
-  const focusOtpBox = (index: number) => {
-    otpRefs.current[Math.min(Math.max(index, 0), OTP_LENGTH - 1)]?.focus()
-  }
-
-  const writeOtp = (next: string[]) => {
+  // Clears the error as soon as the code is edited, as the old per-box handlers did.
+  const handleOtpChange = (next: string[]) => {
     setOtp(next)
     if (error) setError('')
-  }
-
-  // `slice(-1)` so typing into a box that already holds a digit REPLACES it
-  // rather than being swallowed by maxLength — what every OTP field does.
-  const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
-    const next = [...otp]
-    next[index] = digit
-    writeOtp(next)
-    if (digit && index < OTP_LENGTH - 1) focusOtpBox(index + 1)
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      // From an empty box, one press should clear the previous digit AND move
-      // there — otherwise it takes two presses to delete one digit.
-      e.preventDefault()
-      const next = [...otp]
-      next[index - 1] = ''
-      writeOtp(next)
-      focusOtpBox(index - 1)
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      e.preventDefault()
-      focusOtpBox(index - 1)
-    } else if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
-      e.preventDefault()
-      focusOtpBox(index + 1)
-    }
-  }
-
-  // Paste needs its own handler: the change handler only ever sees ONE
-  // character, so without this a pasted "502109" lands as a single "9" in
-  // whichever box had focus. Pasting is how most people enter a code they were
-  // just emailed, so this is the primary path, not an edge case.
-  const handleOtpPaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH - index)
-    if (!digits) return
-    e.preventDefault()
-    const next = [...otp]
-    for (let i = 0; i < digits.length; i++) next[index + i] = digits[i]
-    writeOtp(next)
-    focusOtpBox(index + digits.length)
   }
 
   // Stage 3 — set the new password (BE verifies the OTP, then consumes it).
@@ -444,34 +399,15 @@ export default function ForgotPasswordPage() {
                     boxes plus gaps overflow the ~310px content box at 390px. The
                     grid divides whatever width exists, so they shrink to fit and
                     stay equal at every width. */}
-                <div role="group" aria-labelledby="otp-label" className="grid grid-cols-6 gap-2 sm:gap-3">
-                  {otp.map((digit, i) => (
-                    <input
-                      key={i}
-                      id={`otp-${i}`}
-                      ref={(el) => {
-                        otpRefs.current[i] = el
-                      }}
-                      type="text"
-                      inputMode="numeric"
-                      /* one-time-code on the FIRST box only — that is where the
-                         platform offers the autofill chip, and repeating it
-                         across all six makes some keyboards offer it six times. */
-                      autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      onPaste={(e) => handleOtpPaste(i, e)}
-                      /* Select on focus so tapping a filled box overtypes it
-                         rather than leaving the caret beside the digit. */
-                      onFocus={(e) => e.target.select()}
-                      disabled={loading || resending}
-                      aria-label={`${t('auth:forgot.codeLabel')} ${i + 1}`}
-                      className="w-full h-12 sm:h-14 text-center text-xl font-semibold border border-[#b5b5b5] rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
-                    />
-                  ))}
-                </div>
+                <OtpInput
+                  ref={otpInputRef}
+                  value={otp}
+                  onChange={handleOtpChange}
+                  idPrefix="otp"
+                  labelledBy="otp-label"
+                  ariaLabel={t('auth:forgot.codeLabel')}
+                  disabled={loading || resending}
+                />
               </div>
 
               {codeEntered && (

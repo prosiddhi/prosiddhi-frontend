@@ -7,6 +7,8 @@ import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { checkEmail } from '@/lib/email'
+import { OtpInput } from '@/components/auth/OtpInput'
+import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 
 export type EmailVerifyMode = 'add' | 'change' | 'verify'
 
@@ -30,7 +32,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
   const [email, setEmail] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
-  const [otp, setOtp] = useState('')
+  const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
@@ -44,7 +46,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       setStep('email')
       setEmail(mode === 'verify' ? currentEmail ?? '' : '')
       setEmailTouched(false)
-      setOtp('')
+      setOtp(EMPTY_OTP)
       setError('')
       setCooldown(0)
       setDevOtp(undefined)
@@ -81,7 +83,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       const res = await emailOtpAPI.send(trimmedEmail, mode === 'verify' ? 'REGISTRATION' : 'CHANGE_EMAIL')
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setStep('otp')
-      setOtp('')
+      setOtp(EMPTY_OTP)
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.sendError'))
@@ -96,14 +98,14 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
   }
 
   const verifyOtp = async () => {
-    if (otp.trim().length !== 6 || verifying) return
+    if (otp.join('').length !== 6 || verifying) return
     setVerifying(true)
     setError('')
     try {
       if (mode === 'verify') {
-        await authAPI.verifyEmailOtp(trimmedEmail, otp.trim())
+        await authAPI.verifyEmailOtp(trimmedEmail, otp.join(''))
       } else {
-        await authAPI.changeEmail(trimmedEmail, otp.trim())
+        await authAPI.changeEmail(trimmedEmail, otp.join(''))
       }
       await onSuccess()
       setStep('success')
@@ -188,17 +190,16 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
                 </div>
               ) : (
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-black mb-1.5 block">
+                  <label id="email-otp-label" className="text-sm font-medium text-black mb-1.5 block">
                     {t('profile:seeker.emailModal.otpLabel')}
                   </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
+                  <OtpInput
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder={t('profile:seeker.emailModal.otpPlaceholder')}
-                    className={`${inputCls} tracking-widest`}
+                    onChange={setOtp}
+                    idPrefix="email-otp"
+                    labelledBy="email-otp-label"
+                    ariaLabel={t('auth:otp.codeVoice')}
+                    disabled={verifying}
                     autoFocus
                   />
                   <div className="flex items-center justify-between mt-2">
@@ -254,7 +255,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
                 ) : (
                   <button
                     onClick={verifyOtp}
-                    disabled={otp.trim().length !== 6 || verifying}
+                    disabled={otp.join('').length !== 6 || verifying}
                     className="flex-1 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {verifying && <Loader2 className="w-5 h-5 animate-spin" />}
