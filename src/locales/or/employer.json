@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "ପ୍ରାର୍ଥୀ",
     "title": "ପ୍ରାର୍ଥୀ",
+    "activelyLooking": "ସକ୍ରିୟ ଭାବରେ ଚାକିରି ଖୋଜୁଛନ୍ତି",
+    "activelyLookingHint": "ଏହି ପ୍ରାର୍ଥୀ ନୂଆ ସୁଯୋଗ ଖୋଜୁଛନ୍ତି।",
     "count_one": "{{count}} ପ୍ରାର୍ଥୀ",
     "count_other": "{{count}} ପ୍ରାର୍ଥୀ",
     "countForJob_one": "ଏହି ଚାକିରି ପାଇଁ {{count}} ପ୍ରାର୍ଥୀ",

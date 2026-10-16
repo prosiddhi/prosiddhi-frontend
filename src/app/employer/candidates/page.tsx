@@ -29,6 +29,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 // `filter` is spread into the list request: a pipeline `status`, or the bookmark
 // flag (a bookmark is not a status). "All" has none.
@@ -474,6 +475,14 @@ function CandidatesContent() {
                         <div className="flex-1 min-w-0">
                           <p className="text-base font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
                           <p className="text-sm text-[#717182] truncate">{app.job?.title}</p>
+                          {seeker?.isActivelyLooking === true && (
+                            // The whole card is a link, so the tooltip wrapper is not given its own tab stop.
+                            <Tooltip content={t('employer:candidates.activelyLookingHint')} focusable={false} align="start">
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#e3f5ff] text-[#236987]">
+                                {t('employer:candidates.activelyLooking')}
+                              </span>
+                            </Tooltip>
+                          )}
                           {seeker?.location && (
                             <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {seeker.location}</p>
                           )}

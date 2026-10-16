@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "ഉദ്യോഗാർത്ഥികൾ",
     "title": "ഉദ്യോഗാർത്ഥികൾ",
+    "activelyLooking": "സജീവമായി ജോലി അന്വേഷിക്കുന്നു",
+    "activelyLookingHint": "ഈ ഉദ്യോഗാർത്ഥി പുതിയ അവസരങ്ങൾ അന്വേഷിക്കുന്നു.",
     "count_one": "{{count}} ഉദ്യോഗാർത്ഥി",
     "count_other": "{{count}} ഉദ്യോഗാർത്ഥികൾ",
     "countForJob_one": "ഈ ജോലിക്ക് {{count}} ഉദ്യോഗാർത്ഥി",

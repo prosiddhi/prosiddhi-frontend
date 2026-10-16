@@ -2090,6 +2090,8 @@ export interface EmployerApplicationItem {
     location?: string | null
     profilePhoto?: string | null
     bio?: string | null
+    /** Seeker-set badge. Absent on an older backend, so only a literal `true` counts. */
+    isActivelyLooking?: boolean | null
     user?: { email?: string; phoneNumber?: string }
     skills?: CandidateSkill[]
     workExperience?: CandidateWorkExperience[]

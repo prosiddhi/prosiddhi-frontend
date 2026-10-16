@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "Candidates",
     "title": "Candidates",
+    "activelyLooking": "Actively Looking",
+    "activelyLookingHint": "This candidate is actively looking for new opportunities.",
     "count_one": "{{count}} candidate",
     "count_other": "{{count}} candidates",
     "countForJob_one": "{{count}} candidate for this job",
