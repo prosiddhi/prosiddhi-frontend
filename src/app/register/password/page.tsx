@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
@@ -12,7 +14,20 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import {
+  newPasswordSchema,
+  passwordFormMessageKey,
+  type NewPasswordValues,
+} from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
+
+// The weak-password message is not shown: the live checklist already says which rules are unmet.
+const WEAK_KEY = 'auth:password.errorRule'
+
+const schema = newPasswordSchema({
+  weak: WEAK_KEY,
+  mismatch: 'auth:password.errorMismatch',
+})
 
 /**
  * The account-creation step.
@@ -26,13 +41,25 @@ export default function RegisterPasswordPage() {
   const { t } = useTranslation()
   const { login } = useAuth()
   // `update` is used only for `whatsappConsent` — not secret, safe to persist.
-  // The password itself still never goes through it; it goes straight from
-  // local state into register() + login().
+  // The password itself still never goes through it: it stays in the form's own
+  // state and goes straight into register() (and the login fallback).
   const { data, update, reset, hydrated } = useSeekerRegistration()
-  const [password, setPassword] = useState('')
+  // Submit-only validation.
+  const {
+    control,
+    watch,
+    setFocus,
+    clearErrors,
+    handleSubmit: validateAndSubmit,
+    formState: { errors },
+  } = useForm<NewPasswordValues>({
+    resolver: zodResolver(schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    defaultValues: { newPassword: '', confirmPassword: '' },
+  })
+  const password = watch('newPassword')
   const [passwordTouched, setPasswordTouched] = useState(false)
-  const passwordInputRef = useRef<HTMLInputElement>(null)
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -54,6 +81,9 @@ export default function RegisterPasswordPage() {
   // the name banner flashes red over a registration that actually worked. Neither
   // check has any job left to do once the account exists — so stop running them.
   const [accountCreated, setAccountCreated] = useState(false)
+  // `loading` is set only after RHF's async validation, so it cannot stop a second
+  // submit that arrives in between. The ref is taken synchronously, first.
+  const submitting = useRef(false)
 
   // Guard: must have reached here through the full flow. Email is NOT a
   // prerequisite (it is optional) — the taxonomy choice is.
@@ -78,36 +108,53 @@ export default function RegisterPasswordPage() {
   // link straight to the field. Same shape as the phone re-verify path below.
   const nameIssue = hydrated && !accountCreated ? nameProblem(data.fullName ?? '') : null
 
-  const handleCreate = async () => {
+  // The schema reports the first failing rule (strength, then match) as an i18n
+  // key; a server error, when there is one, wins over it. A weak password is left
+  // to the checklist, so it gets no banner.
+  const validationKey = passwordFormMessageKey(errors)
+  const bannerMessage = error || (validationKey && validationKey !== WEAK_KEY ? t(validationKey) : '')
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     // The account already exists. This guard must come FIRST: `nameIssue` is
     // forced to null once accountCreated latches, which disarms both the check
     // below and the button's `disabled` attribute — so a second click during the
     // async route transition would post `register` with a blank fullName and
     // phoneNumber.
-    if (accountCreated) return
+    if (accountCreated) {
+      e.preventDefault()
+      return
+    }
 
     // The disabled button is presentation; THIS is the rule. Leaving the DEF-030
     // check to a `disabled` attribute alone puts it one markup edit away from
     // being gone, and this is the call that creates the account.
-    if (nameIssue) return
-    if (!isStrongPassword(password)) {
-      // No banner: the live checklist shows which rules are unmet. Marking the
-      // field touched ends its neutral starting state, which matters for an
-      // empty password (the input has no `required`). Focus also scrolls the
-      // field into view, so the button never seems to do nothing.
-      setError('')
-      setPasswordTouched(true)
-      passwordInputRef.current?.focus()
+    if (nameIssue || loading || submitting.current) {
+      e.preventDefault()
       return
     }
-    if (password !== confirmPassword) {
-      setError(t('auth:password.errorMismatch'))
-      return
-    }
+    submitting.current = true
+    setError('')
+    void validateAndSubmit(onValid, (invalid) => {
+      submitting.current = false
+      // No banner for a weak password: the live checklist shows which rules are
+      // unmet. Marking the field touched ends its neutral starting state, which
+      // matters for an empty password (the input has no `required`). Focus also
+      // scrolls the field into view, so the button never seems to do nothing.
+      if (invalid.newPassword) {
+        setPasswordTouched(true)
+        setFocus('newPassword')
+      }
+    })(e).catch((err) => {
+      // The resolver itself threw: neither callback ran, so release here or the
+      // form stays locked with an enabled button. Re-thrown, not swallowed.
+      submitting.current = false
+      throw err
+    })
+  }
 
+  const onValid: SubmitHandler<NewPasswordValues> = async ({ newPassword }) => {
     try {
       setLoading(true)
-      setError('')
       setFieldErrors([])
       setNeedsPhoneReverify(false)
 
@@ -117,7 +164,7 @@ export default function RegisterPasswordPage() {
       const created = await jobSeekerAPI.register({
         fullName: data.fullName,
         email: data.email,
-        password,
+        password: newPassword,
         phoneNumber: data.phoneNumber,
         preferredCategory: data.preferredCategory || undefined,
         preferredSector: data.preferredSector,
@@ -148,7 +195,7 @@ export default function RegisterPasswordPage() {
           ? { token: created.token, user: created.user }
           : await authAPI.login('seeker', {
               identifier: data.email || data.phoneNumber,
-              password,
+              password: newPassword,
             })
 
       // Hand the session to AuthContext, then clear the registration state,
@@ -165,7 +212,15 @@ export default function RegisterPasswordPage() {
       // on success — leaving a live "Create account" button on a flow that had
       // already registered, for the whole of the async route transition.
       setLoading(false)
+      submitting.current = false
     }
+  }
+
+  // Typing in either field clears whatever message was showing — server error or
+  // validation.
+  const clearMessage = () => {
+    if (error) setError('')
+    clearErrors()
   }
 
   /**
@@ -281,9 +336,9 @@ export default function RegisterPasswordPage() {
                 </div>
               )}
 
-              {error && (
+              {bannerMessage && (
                 <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 whitespace-pre-line">{error}</p>
+                  <p className="text-red-600 whitespace-pre-line">{bannerMessage}</p>
                   {needsPhoneReverify && (
                     <button
                       type="button"
@@ -296,83 +351,112 @@ export default function RegisterPasswordPage() {
                 </div>
               )}
 
-              <div className="space-y-6 lg:[@media(max-height:800px)]:space-y-5 mb-8 lg:[@media(max-height:800px)]:mb-6">
-                <div>
-                  <label className="text-base font-medium text-black mb-2 block">{t('auth:password.passwordLabel')}</label>
-                  <div className="relative">
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-6 lg:[@media(max-height:800px)]:space-y-5 mb-8 lg:[@media(max-height:800px)]:mb-6">
+                  <div>
+                    <label htmlFor="newPassword" className="text-base font-medium text-black mb-2 block">{t('auth:password.passwordLabel')}</label>
+                    <div className="relative">
+                      <Controller
+                        name="newPassword"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            id="newPassword"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            onChange={(e) => { field.onChange(e); clearMessage() }}
+                            onBlur={() => { field.onBlur(); setPasswordTouched(true) }}
+                            placeholder={t('auth:password.passwordPlaceholder')}
+                            disabled={loading}
+                            className={`w-full h-12 px-3 pr-16 border rounded-[10px] text-base ${
+                              passwordTouched && !isStrongPassword(password)
+                                ? 'border-red-500'
+                                : 'border-[#b5b5b5]'
+                            }`}
+                          />
+                        )}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                        aria-pressed={showPassword}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2"
+                      >
+                        {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                      </button>
+                    </div>
+                    <div className="mt-2">
+                      <PasswordRequirementsChecklist password={password} touched={passwordTouched} />
+                    </div>
+                    {/* Every rule the BE rejected, not just the first — a weak
+                        password commonly fails both the length and the
+                        composition rule, and fixing one at a time is miserable. */}
+                    {fieldErrors.length > 0 && (
+                      <ul role="alert" className="mt-2 list-disc pl-5 space-y-1">
+                        {fieldErrors.map((message) => (
+                          <li key={message} className="text-sm text-red-600">{message}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="text-base font-medium text-black mb-2 block">{t('auth:password.confirmLabel')}</label>
+                    <div className="relative">
+                      <Controller
+                        name="confirmPassword"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            id="confirmPassword"
+                            type={showConfirm ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            onChange={(e) => { field.onChange(e); clearMessage() }}
+                            placeholder={t('auth:password.confirmPlaceholder')}
+                            disabled={loading}
+                            className="w-full h-12 px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base"
+                          />
+                        )}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        aria-label={showConfirm ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                        aria-pressed={showConfirm}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2"
+                      >
+                        {showConfirm ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm lg:text-base text-[#4d4d4d]">
                     <input
-                      ref={passwordInputRef}
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => { setPassword(e.target.value); if (error) setError('') }}
-                      onBlur={() => setPasswordTouched(true)}
-                      placeholder={t('auth:password.passwordPlaceholder')}
-                      disabled={loading}
-                      className={`w-full h-12 px-3 pr-16 border rounded-[10px] text-base ${
-                        passwordTouched && !isStrongPassword(password)
-                          ? 'border-red-500'
-                          : 'border-[#b5b5b5]'
-                      }`}
+                      type="checkbox"
+                      checked={data.whatsappConsent}
+                      onChange={(e) => update({ whatsappConsent: e.target.checked })}
+                      className="w-4 h-4 accent-primary-50"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2">
-                      {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <PasswordRequirementsChecklist password={password} touched={passwordTouched} />
-                  </div>
-                  {/* Every rule the BE rejected, not just the first — a weak
-                      password commonly fails both the length and the
-                      composition rule, and fixing one at a time is miserable. */}
-                  {fieldErrors.length > 0 && (
-                    <ul role="alert" className="mt-2 list-disc pl-5 space-y-1">
-                      {fieldErrors.map((message) => (
-                        <li key={message} className="text-sm text-red-600">{message}</li>
-                      ))}
-                    </ul>
-                  )}
+                    {t('auth:password.whatsappConsentLabel')}
+                  </label>
                 </div>
 
-                <div>
-                  <label className="text-base font-medium text-black mb-2 block">{t('auth:password.confirmLabel')}</label>
-                  <div className="relative">
-                    <input
-                      type={showConfirm ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => { setConfirmPassword(e.target.value); if (error) setError('') }}
-                      placeholder={t('auth:password.confirmPlaceholder')}
-                      disabled={loading}
-                      className="w-full h-12 px-3 pr-16 border border-[#b5b5b5] rounded-[10px] text-base"
-                    />
-                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2">
-                      {showConfirm ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                    </button>
-                  </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    // Blocked while the carried-over name is invalid — the message
+                    // above says why and links to the field.
+                    disabled={loading || nameIssue !== null}
+                    className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-10 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
+                  >
+                    <span className="text-base">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
                 </div>
-
-                <label className="flex items-center gap-2 text-sm lg:text-base text-[#4d4d4d]">
-                  <input
-                    type="checkbox"
-                    checked={data.whatsappConsent}
-                    onChange={(e) => update({ whatsappConsent: e.target.checked })}
-                    className="w-4 h-4 accent-primary-50"
-                  />
-                  {t('auth:password.whatsappConsentLabel')}
-                </label>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={handleCreate}
-                  // Blocked while the carried-over name is invalid — the message
-                  // above says why and links to the field.
-                  disabled={loading || nameIssue !== null}
-                  className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-10 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
-                >
-                  <span className="text-base">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
