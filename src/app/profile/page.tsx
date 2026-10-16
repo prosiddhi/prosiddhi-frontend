@@ -1,7 +1,7 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
@@ -18,17 +18,24 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isAtLeast18, toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
+  locationAPI,
   resolveMediaUrl,
   type SeekerProfile,
+  type SeekerProfileUpdate,
   type ProfileWorkExperience,
   type JobSeekerSkillLink,
   type SkillCatalogItem,
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
-import { coordsToWrite, cityContaining, cityLabelKey, CITY_KEYS, type Coords } from '@/lib/cities'
-import { canonicalLocation } from '@/lib/jobFormat'
+import type { Coords } from '@/lib/cities'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
+import {
+  StateCitySelect,
+  cityDisplayName,
+  toSelectedCity,
+  type SelectedCity,
+} from '@/components/location/StateCitySelect'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -159,7 +166,29 @@ function SeekerProfileContent() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
+  // The free-text location of a seeker who has no structured home city yet (every seeker from
+  // before cities existed). It is shown, never edited and never sent: only picking a city
+  // replaces it, and the backend does that.
   const [location, setLocation] = useState('')
+  // Home city (where the seeker lives) and preferred cities (where they want to work) are two
+  // separate things with two separate saves. `saved*` is what the server holds; a field is sent
+  // only when it differs from that, because the BE replaces the whole preferred list when the
+  // key is present and rewrites location + coordinates when `cityId` is.
+  const [homeCity, setHomeCity] = useState<SelectedCity | null>(null)
+  const [savedHomeCity, setSavedHomeCity] = useState<SelectedCity | null>(null)
+  // The seeker pressed "Remove my saved city". Only this clears the city on the server: the
+  // picker also empties the city by itself whenever the State select changes, and someone just
+  // looking at another state must not lose the city they saved.
+  const [homeCityRemoved, setHomeCityRemoved] = useState(false)
+  const [preferredCities, setPreferredCities] = useState<SelectedCity[]>([])
+  const [savedPreferredIds, setSavedPreferredIds] = useState<string[]>([])
+  // "Use my location": the nearest-city lookup in flight, and what it said.
+  const [locating, setLocating] = useState(false)
+  const [locationNote, setLocationNote] = useState<{ ok: boolean; text: string } | null>(null)
+  // The lookup in flight. Aborted when a newer one starts, when the form is reloaded (Cancel, or
+  // a refetch after saving) and when the page unmounts, so a late answer can never put its city
+  // into a form it does not belong to.
+  const locateAbort = useRef<AbortController | null>(null)
   // BR-1 — editable here (PUT /jobseekers/profile accepts both), same as at
   // registration. `dateOfBirth` is kept in <input type="date">'s own
   // yyyy-mm-dd format (via toDateInput) rather than the API's ISO timestamp,
@@ -168,12 +197,6 @@ function SeekerProfileContent() {
   const [gender, setGender] = useState<'' | 'MALE' | 'FEMALE' | 'OTHER'>('')
   const [profileUpdatedAt, setProfileUpdatedAt] = useState<string | null>(null)
   const [accountStatus, setAccountStatus] = useState<string | null>(null)
-  // TD-02. `savedCoords` is what the server holds; `gpsFix` is a precise fix
-  // taken during THIS edit and not yet saved.
-  const [savedCoords, setSavedCoords] = useState<Coords | null>(null)
-  const [gpsFix, setGpsFix] = useState<Coords | null>(null)
-  // Which came last, the typed text or the fix. See coordsToWrite.
-  const [textIsNewer, setTextIsNewer] = useState(false)
   const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
@@ -205,14 +228,18 @@ function SeekerProfileContent() {
     setGender(js?.gender ?? '')
     setProfileUpdatedAt(js?.updatedAt ?? null)
     setAccountStatus(p.accountStatus ?? null)
-    // Stored coordinates are all-or-nothing — the backend writes both or neither.
-    const lat = js?.latitude
-    const lon = js?.longitude
-    setSavedCoords(lat != null && lon != null ? { lat, lon } : null)
-    // A fix belongs to the edit session that took it, not to the record we just
-    // loaded, so a re-fetch after saving clears it.
-    setGpsFix(null)
-    setTextIsNewer(false)
+    // Cities arrive with their state NAME, which is what StateCitySelect needs to pre-fill.
+    const city = js?.city ? toSelectedCity(js.city) : null
+    const preferred = (js?.preferredCities ?? []).map((saved) => toSelectedCity(saved.city))
+    setHomeCity(city)
+    setSavedHomeCity(city)
+    setHomeCityRemoved(false)
+    setPreferredCities(preferred)
+    setSavedPreferredIds(preferred.map((c) => c.id))
+    // A lookup belongs to the edit session that started it, not to the record just loaded.
+    locateAbort.current?.abort()
+    setLocating(false)
+    setLocationNote(null)
     setTriple({
       category: js?.preferredCategory || undefined,
       sector: js?.preferredSector || undefined,
@@ -261,6 +288,9 @@ function SeekerProfileContent() {
     // deliberately left out.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrate])
+
+  // Leaving the page cancels a "Use my location" lookup that is still running.
+  useEffect(() => () => locateAbort.current?.abort(), [])
 
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -340,65 +370,77 @@ function SeekerProfileContent() {
     updateUser({ email: fresh.email, phoneNumber: fresh.phoneNumber })
   }
 
-  // The coordinate this save would write, if any (TD-02). The rule itself lives
-  // in @/lib/cities because the employer job form needs exactly the same one —
-  // see coordsToWrite for why distance decides it and not the location text.
+  // What this save sends for the two location fields. Each goes out only when the seeker
+  // changed it, so an unrelated save (a new bio, a switched language) can neither rewrite the
+  // home city, wipe the legacy text, nor replace the preferred list with what happened to load.
   //
-  // Memoised because this sits in the body of a large form: without it, every
-  // keystroke in the bio, the name or any experience row rebuilds the ten
-  // translated city labels — ~10 t() calls and a Map — to recompute a value
-  // that cannot have changed.
-  // `.coords` — coordsToWrite also reports WHY it chose what it chose, which the
-  // employer job form needs to describe the save in words (TD-41). This screen
-  // only needs the coordinate: its three states are answerable from whether one
-  // is pending and whether one is already stored.
-  const decision = useMemo(
-    () =>
-      coordsToWrite({
-        gpsFix,
-        saved: savedCoords,
-        text: location,
-        textIsNewer,
-        translate: (key) => t(cityLabelKey(key)),
-      }),
-    [gpsFix, savedCoords, location, textIsNewer, t]
-  )
-  const pendingFix = decision.coords
+  // An EMPTY picker is not by itself a request to clear the city (see homeCityRemoved), so an
+  // empty home city counts as a change only after the explicit remove.
+  const homeCityChanged = homeCity
+    ? homeCity.id !== savedHomeCity?.id
+    : savedHomeCity !== null && homeCityRemoved
+  const preferredChanged =
+    preferredCities.length !== savedPreferredIds.length ||
+    preferredCities.some((c) => !savedPreferredIds.includes(c.id))
 
-  // TD-44 — the four states the seeker's line can be in, decided ONCE from the
-  // same verdict the save uses.
+  // Every change of the home city goes through here, from the picker or from "Use my location".
+  // A hand-made change ends any lookup still running (its answer would overwrite the choice) and
+  // drops the note about the last lookup, which no longer describes the form.
   //
-  // The old version branched on "is a coordinate stored", which cannot tell
-  // "your pin still matches what you typed" from "your pin is somewhere you no
-  // longer are". Those need opposite sentences.
-  //
-  // `stalePin` is the one that was missing and the reason this ticket exists: a
-  // seeker with a saved Bangalore pin who types "Nagpur" gets no new coordinate
-  // — we cannot place Nagpur — so nothing changes and they keep seeing Bangalore
-  // jobs. Saying "you will see jobs near you" there is false in the way that
-  // matters most, because it is the reassuring one.
-  const stalePin = decision.reason === 'none' && !!savedCoords && location.trim().length > 0
-  // Which city the pin is actually in. '' when the stored coordinate sits
-  // outside every city we know — a fix taken at a warehouse on the outskirts —
-  // which needs its own wording, exactly as the employer form found. Without
-  // the split, `cityLabelKey('')` resolves to a missing key and i18next renders
-  // the key itself on screen.
-  const stuckIn = stalePin ? cityContaining(savedCoords!) : ''
-  const locationKey = pendingFix
-    ? 'profile:seeker.locationCaptured'
-    : stalePin
-      ? stuckIn
-        ? 'profile:seeker.locationStale'
-        : 'profile:seeker.locationStaleUnnamed'
-      : savedCoords
-        ? 'profile:seeker.locationOn'
-        : 'profile:seeker.locationOff'
-  const locationCity = stuckIn ? t(cityLabelKey(stuckIn)) : ''
-  const locationTone = stalePin
-    ? 'text-amber-700'
-    : pendingFix || savedCoords
-      ? 'text-green-700'
-      : 'text-[#717182]'
+  // Both are useCallbacks with no dependencies (a ref and state setters only): `changeHomeCity`
+  // is the picker's `onChange`, and a new function on each render would defeat its React.memo
+  // and rebuild the city list on every keystroke in the bio or name.
+  const applyHomeCity = useCallback((next: SelectedCity | null) => {
+    setHomeCity(next)
+    // Any city picked replaces an earlier removal; an empty picker leaves it as it was.
+    if (next) setHomeCityRemoved(false)
+  }, [])
+  const changeHomeCity = useCallback(
+    (next: SelectedCity | null) => {
+      locateAbort.current?.abort()
+      setLocating(false)
+      setLocationNote(null)
+      applyHomeCity(next)
+    },
+    [applyHomeCity]
+  )
+
+  // The line shown while a saved city sits behind an empty picker: kept, or about to be removed.
+  const savedCityKey = homeCityRemoved ? 'profile:seeker.savedHomeCityRemoving' : 'profile:seeker.savedHomeCity'
+  const savedCityTone = homeCityRemoved ? 'text-amber-700' : 'text-black'
+
+  const removeHomeCity = () => {
+    changeHomeCity(null)
+    setHomeCityRemoved(true)
+  }
+
+  // "Use my location": the browser point is only used to find the nearest city, and only that
+  // city is kept. The coordinate itself is never sent: with a `cityId` the BE would overwrite it.
+  const handleLocated = async ({ lat, lon }: Coords, accuracy?: number) => {
+    locateAbort.current?.abort()
+    const controller = new AbortController()
+    locateAbort.current = controller
+    setLocating(true)
+    setLocationNote(null)
+    try {
+      // `accuracy` lets the BE refuse a reading too coarse to name a city (worse than 2 km).
+      const { city } = await locationAPI.getNearestCity({ lat, lng: lon, accuracy }, { signal: controller.signal })
+      if (controller.signal.aborted) return
+      if (city) {
+        const picked = toSelectedCity(city)
+        applyHomeCity(picked)
+        setLocationNote({ ok: true, text: t('profile:seeker.locationPicked', { city: cityDisplayName(picked) }) })
+      } else {
+        setLocationNote({ ok: false, text: t('profile:seeker.locationNoCity') })
+      }
+    } catch {
+      // An abort rejects too; it is not a failure the seeker should be told about.
+      if (controller.signal.aborted) return
+      setLocationNote({ ok: false, text: t('profile:seeker.locationLookupFailed') })
+    } finally {
+      if (!controller.signal.aborted) setLocating(false)
+    }
+  }
 
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
@@ -442,21 +484,19 @@ function SeekerProfileContent() {
           description: r.description?.trim() || undefined,
         }))
 
+      // Each location field goes out only when the seeker changed it (see homeCityChanged).
+      // `location`, `latitude` and `longitude` are never sent from here: picking a city makes
+      // the BE write all three from it, and the legacy text must survive every other save.
+      const locationPatch: Pick<SeekerProfileUpdate, 'cityId' | 'preferredCityIds'> = {}
+      // `null` (the seeker cleared the city) drops the link and keeps the text.
+      if (homeCityChanged) locationPatch.cityId = homeCity?.id ?? null
+      // `[]` is sent only for a list the seeker emptied on purpose: the BE replaces the lot.
+      if (preferredChanged) locationPatch.preferredCityIds = preferredCities.map((c) => c.id)
+
       await jobSeekerAPI.updateProfile({
         fullName: fullName.trim() || undefined,
         bio: bio.trim() || undefined,
-        // Canonicalised, not raw — see canonicalLocation. Typing a city in your
-        // own script and having it stored verbatim empties your own cold-start
-        // recommendations.
-        location: canonicalLocation(location) || undefined,
-        // TD-02. The backend has accepted these for months and this client never
-        // sent them, so every seeker carried a null coordinate: "Near By" returned
-        // nothing for everybody and the 20-point location component of the
-        // recommendation score was always 0. Sent as undefined (dropped by
-        // JSON.stringify) when there is no fix — the BE schema is `.optional()`,
-        // NOT `.nullable()`, so an explicit null is a 400.
-        latitude: pendingFix?.lat,
-        longitude: pendingFix?.lon,
+        ...locationPatch,
         preferredCategory: triple.category || undefined,
         preferredSector: triple.sector || undefined,
         preferredJobTitle: triple.jobTitle || undefined,
@@ -633,60 +673,79 @@ function SeekerProfileContent() {
                         changeLabel={t('profile:seeker.changePhone')}
                         onChangeClick={() => setPhoneModalOpen(true)}
                       />
-                      <Field label={t('profile:seeker.location')} className={fieldLabelCls}>
-                        {/* Typing must NOT discard a fix already taken: pressing the
-                            button and then naming your area is the ordinary way to
-                            use this, and clearing here threw the good coordinate
-                            away and saved nothing. */}
-                        {/* Same datalist as the job form, and it is not cosmetic.
-                            The backend's cold-start recommendation runs
-                            `job.location CONTAINS seeker.location` — the SEEKER's
-                            text is the needle. Jobs now store canonical English, so
-                            a Kannada seeker who types "ಬೆಂಗಳೂರು" matches nothing and
-                            gets an EMPTY recommendation list, not a shorter one.
-                            `value` is English, `label` their own script: they read
-                            ಬೆಂಗಳೂರು, we store "Bangalore", both sides of the match
-                            line up. Free text still works for anywhere else. */}
-                        <input
-                          value={location}
-                          onChange={(e) => {
-                            setLocation(e.target.value)
-                            setTextIsNewer(true)
-                          }}
-                          placeholder={t('profile:seeker.locationPlaceholder')}
-                          list="seeker-location-cities"
-                          className={inputCls}
-                        />
-                        <datalist id="seeker-location-cities">
-                          {CITY_KEYS.map((key) => (
-                            <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
-                          ))}
-                        </datalist>
-                        <UseMyLocation
-                          onLocated={(c) => {
-                            setGpsFix(c)
-                            setTextIsNewer(false)
-                          }}
-                          className="mt-2"
-                        />
-                        {/* Three states, and the difference matters: the coordinate
-                            is invisible, so this line is the only feedback there is.
-                            It must never call an unsaved change saved. */}
-                        {/* TD-44. The green "You will see jobs near you" used to
-                            show whenever a coordinate was STORED, whatever the box
-                            said. So a seeker who moved and typed "Nagpur" over their
-                            Bangalore pin was told, in green, that they would see
-                            jobs near them — and went on seeing Bangalore jobs. It is
-                            the same lie TD-41 fixed on the employer side, on the
-                            half with more people behind it.
-
-                            `reason` comes from the same `coordsToWrite` the save
-                            uses, so the line cannot disagree with what is written —
-                            that was the whole point of returning it. */}
-                        <p className={`text-xs mt-1.5 ${locationTone}`} role="status">
-                          {t(locationKey, { city: locationCity })}
+                      {/* Home city: where the seeker LIVES. Not the same thing as the cities
+                          they want to work in, which is the next block. */}
+                      <div role="group" aria-labelledby="seeker-home-location" className="sm:col-span-2">
+                        <p id="seeker-home-location" className={fieldLabelCls}>
+                          {t('profile:seeker.location')}
                         </p>
-                      </Field>
+                        {/* A seeker from before cities existed has only this text. It stays until
+                            they pick a city, and picking one replaces it on the server. */}
+                        {!homeCity && !savedHomeCity && location.trim() && (
+                          <p className="mb-2 text-sm text-[#717182]">
+                            {t('profile:seeker.locationLegacy', { text: location })}
+                          </p>
+                        )}
+                        {/* The saved city stays on screen while the picker is empty, which it is
+                            whenever the State select is changed. Saving then sends nothing,
+                            unless the seeker pressed Remove, and the second sentence says what
+                            that does not do: the BE keeps the old text and pin. */}
+                        {!homeCity && savedHomeCity && (
+                          <p className={`mb-2 text-sm ${savedCityTone}`} role="status">
+                            {t(savedCityKey, { city: cityDisplayName(savedHomeCity) })}
+                          </p>
+                        )}
+                        <StateCitySelect
+                          value={homeCity}
+                          onChange={changeHomeCity}
+                          disabled={saving}
+                          selectClassName={inputCls}
+                          labelClassName={fieldLabelCls}
+                        />
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <UseMyLocation onLocated={handleLocated} disabled={saving || locating} />
+                          {/* The only way to clear a saved city: emptying the picker is not one,
+                              because changing the State select empties it too. */}
+                          {savedHomeCity && !homeCityRemoved && (
+                            <button
+                              type="button"
+                              onClick={removeHomeCity}
+                              disabled={saving}
+                              className="min-h-[44px] px-2 text-sm text-red-600 underline disabled:opacity-50"
+                            >
+                              {t('profile:seeker.removeHomeCity')}
+                            </button>
+                          )}
+                        </div>
+                        {/* The point is invisible, so this line is the only feedback there is.
+                            It never calls an unsaved city saved: the city sits in the picker above
+                            and goes out with Save. */}
+                        <p
+                          className={`text-xs mt-1.5 ${locationNote ? (locationNote.ok ? 'text-green-700' : 'text-red-600') : 'text-[#717182]'}`}
+                          role="status"
+                        >
+                          {locating
+                            ? t('profile:seeker.locationLookingUp')
+                            : (locationNote?.text ?? t('profile:seeker.locationHint'))}
+                        </p>
+                      </div>
+                      {/* Preferred work cities: where the seeker WANTS to work. Employers see
+                          these, never the home city above. */}
+                      <div role="group" aria-labelledby="seeker-preferred-cities" className="sm:col-span-2">
+                        <p id="seeker-preferred-cities" className={fieldLabelCls}>
+                          {t('profile:seeker.preferredCities')}
+                        </p>
+                        <p className="mb-2 text-xs text-[#717182]">{t('profile:seeker.preferredCitiesHint')}</p>
+                        <StateCitySelect
+                          multiple
+                          max={3}
+                          value={preferredCities}
+                          onChange={setPreferredCities}
+                          disabled={saving}
+                          selectClassName={inputCls}
+                          labelClassName={fieldLabelCls}
+                        />
+                      </div>
                       <Field label={t('profile:seeker.dateOfBirth')} className={fieldLabelCls}>
                         <DatePicker
                           value={dateOfBirth}
@@ -743,7 +802,17 @@ function SeekerProfileContent() {
                         changeLabel={t('profile:seeker.changePhone')}
                         onChangeClick={() => setPhoneModalOpen(true)}
                       />
-                      <ReadOnlyField label={t('profile:seeker.location')} value={location} notProvided={t('profile:seeker.notProvided')} />
+                      {/* "City, State" once a city is picked; the legacy text until then. */}
+                      <ReadOnlyField
+                        label={t('profile:seeker.location')}
+                        value={homeCity ? cityDisplayName(homeCity) : location}
+                        notProvided={t('profile:seeker.notProvided')}
+                      />
+                      <ReadOnlyField
+                        label={t('profile:seeker.preferredCities')}
+                        value={preferredCities.map(cityDisplayName).join(' · ')}
+                        notProvided={t('profile:seeker.notProvided')}
+                      />
                       <ReadOnlyField label={t('profile:seeker.dateOfBirth')} value={formatDateOfBirth(dateOfBirth)} notProvided={t('profile:seeker.notProvided')} />
                       <ReadOnlyField label={t('profile:seeker.gender')} value={genderLabel(t, gender)} notProvided={t('profile:seeker.notProvided')} />
                     </div>
