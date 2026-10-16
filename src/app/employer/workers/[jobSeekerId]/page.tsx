@@ -12,12 +12,12 @@ import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { TopUpModal } from '@/components/employer/TopUpModal'
+import { PreferredCities } from '@/components/employer/PreferredCities'
 import { useCredits } from '@/hooks/useCredits'
 import { candidateAPI, type CandidateProfile } from '@/lib/api'
 import { initials, formatMonthYear } from '@/lib/jobFormat'
 import {
   ChevronLeft,
-  MapPin,
   Briefcase,
   Mail,
   Phone,
@@ -137,9 +137,7 @@ function CandidateContent() {
                     </div>
                     {profile.preferredJobTitle && <p className="text-[#717182]">{profile.preferredJobTitle}</p>}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-[#717182]">
-                      {profile.location && (
-                        <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.location}</span>
-                      )}
+                      <PreferredCities cities={profile.preferredCities} iconClassName="w-4 h-4" />
                       {profile.preferredSector && (
                         <span className="flex items-center gap-1"><Briefcase className="w-4 h-4" /> {profile.preferredSector}</span>
                       )}

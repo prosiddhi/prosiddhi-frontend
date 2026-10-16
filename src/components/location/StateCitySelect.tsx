@@ -51,6 +51,16 @@ interface CommonProps {
   error?: string
   /** Lets the host form focus the city select on a failed submit. */
   cityRef?: Ref<HTMLSelectElement>
+  /**
+   * Called when the USER changes the State select, with the state's code or null for "no
+   * state". It is how a host learns of a state chosen WITHOUT a city (a "whole state" filter);
+   * the city callbacks never fire for that. Pair it with `initialStateCode` if the host can
+   * unmount and remount the picker. Optional and additive: a form that only cares about the
+   * city, like the job form, ignores both.
+   */
+  onStateChange?: (stateCode: number | null) => void
+  /** The state to start on, read once on mount: a host restoring a state it saved from `onStateChange`. */
+  initialStateCode?: number | null
   onBlur?: () => void
   /** Override the default "State" / "City" labels (already translated). */
   stateLabel?: string
@@ -119,7 +129,7 @@ function StateCitySelectInner(props: StateCitySelectProps) {
 
   // The state being browsed. `null` until the user picks one; in single mode the
   // saved city's state fills in until then (matched by name — see the header).
-  const [browsed, setBrowsed] = useState<number | null>(null)
+  const [browsed, setBrowsed] = useState<number | null>(props.initialStateCode ?? null)
   const savedState = singleValue?.stateName ? states.find((s) => s.name === singleValue.stateName) : undefined
 
   // The form handed us a different city (another record loaded, or a reset): if it
@@ -155,6 +165,7 @@ function StateCitySelectInner(props: StateCitySelectProps) {
   const handleState = (raw: string) => {
     const next = raw === '' ? null : Number(raw)
     setBrowsed(next)
+    props.onStateChange?.(next)
     if (!single?.value) return
     // Single mode: a city of another state no longer applies. Choosing the state
     // the city is already in keeps it. With no `stateName` to compare, the effect
