@@ -17,6 +17,7 @@ import { Search, X } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyCategory, TaxonomyTriple } from '@/lib/api'
 import { FieldError, INVALID_CLS } from '@/components/form/FieldError'
+import { DEFAULT_SELECT_CLS, DEFAULT_LABEL_CLS } from '@/components/form/selectClasses'
 
 /** The three levels, by the key each one carries in a TaxonomyTriple. */
 export type TaxonomyLevel = 'category' | 'sector' | 'jobTitle'
@@ -129,10 +130,6 @@ function searchJobTitles(all: FlatJobTitle[], query: string, limit = 8): FlatJob
   }
   return [...starts, ...contains].slice(0, limit)
 }
-
-const DEFAULT_SELECT_CLS =
-  'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed'
-const DEFAULT_LABEL_CLS = 'block text-sm font-medium text-black mb-1'
 
 export function TaxonomyPicker({
   value,

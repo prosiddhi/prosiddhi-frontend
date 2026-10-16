@@ -6,12 +6,14 @@ import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { JobForm } from '@/components/job/JobForm'
+import { toSelectedCity, type SelectedCity } from '@/components/location/StateCitySelect'
 import {
   jobSeekerAPI,
   employerAPI,
   teamAPI,
   fieldErrorsByPath,
-  type PostJobData,
+  type JobFields,
+  type UpdateJobData,
   type JobTypeValue,
   type PaymentTypeValue,
   type UrgencyLevelValue,
@@ -30,7 +32,11 @@ function EditJobContent() {
   // The My Jobs tab / page this edit was opened from; Back and a plain save return there.
   const backUrl = myJobsReturnUrl(useSearchParams().get('from'))
 
-  const [initial, setInitial] = useState<Partial<PostJobData> | null>(null)
+  const [initial, setInitial] = useState<Partial<JobFields> | null>(null)
+  // The job's cities for the picker, and — only for a job that has none — its saved
+  // location text. That text is what puts the form in legacy mode (see JobForm).
+  const [initialCities, setInitialCities] = useState<SelectedCity[]>([])
+  const [legacyLocation, setLegacyLocation] = useState<string>()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -62,6 +68,14 @@ function EditJobContent() {
           setLoadError(t('employer:jobEdit.loadFailed'))
           return
         }
+        // `cities` comes with each state's name, which is what the picker needs to draw
+        // "City, State". A job with none (posted before cities existed) is edited in legacy
+        // mode: no city is required and its own location text is shown. A response that
+        // lacks `cities` altogether is treated the same way, so the save then omits
+        // `cityIds` and keeps whatever the job has.
+        const cities = (job.cities ?? []).map(({ city }) => toSelectedCity(city))
+        setInitialCities(cities)
+        setLegacyLocation(cities.length === 0 ? (job.location ?? '') : undefined)
         setInitial({
           title: job.title,
           description: job.description ?? '',
@@ -70,15 +84,6 @@ function EditJobContent() {
           jobTitle: job.jobTitle ?? undefined,
           requirements: job.requirements ?? undefined,
           skillsRequired: job.skillsRequired ?? [],
-          location: job.location ?? '',
-          // JobForm reads these through `coordsToWrite`'s `saved` argument, NOT
-          // through FormState — they are not editable, and only the location
-          // button replaces them. That is what stops a title edit flattening a
-          // job's pin to the city centre.
-          // `radius` was carried here too and was dead on arrival; that field is
-          // now gone from PostJobData entirely rather than left as a trap.
-          latitude: job.latitude ?? undefined,
-          longitude: job.longitude ?? undefined,
           salaryMin: job.salaryMin ?? undefined,
           salaryMax: job.salaryMax ?? undefined,
           paymentType: (job.paymentType as PaymentTypeValue) ?? undefined,
@@ -106,7 +111,7 @@ function EditJobContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId])
 
-  const handleSubmit = async (data: PostJobData) => {
+  const handleSubmit = async (data: UpdateJobData) => {
     if (!initial) return // `initial` is only set once ownership is verified
     setSubmitting(true)
     setError('')
@@ -153,7 +158,7 @@ function EditJobContent() {
           )}
 
           {!loading && !loadError && initial && (
-            <JobForm initial={initial} submitLabel={t('employer:jobEdit.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} onSubmit={handleSubmit} />
+            <JobForm mode="edit" initial={initial} initialCities={initialCities} legacyLocation={legacyLocation} submitLabel={t('employer:jobEdit.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} onSubmit={handleSubmit} />
           )}
         </div>
       </main>
