@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { GoogleLogin } from '@react-oauth/google'
+import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertCircle, Check, Eye, EyeOff, Globe, Loader2, Lock, LogOut, RefreshCw, Trash2, User } from 'lucide-react'
 import { Footer } from '@/components/home/Footer'
 import { LANGUAGE_OPTIONS } from '@/components/navigation/LanguageSwitcher'
@@ -12,6 +14,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ApiError, authAPI, employerAPI, jobSeekerAPI, meAPI } from '@/lib/api'
 import { showToast } from '@/lib/toast'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
+import {
+  changePasswordSchema,
+  passwordFormMessageKey,
+  type ChangePasswordValues,
+} from '@/lib/validation/passwordFormSchemas'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { DeleteAccountModal } from '@/components/settings/DeleteAccountModal'
 import { NotificationPrefsSection } from '@/components/settings/NotificationPrefsSection'
@@ -24,18 +31,237 @@ import {
   sectionHeadingIconCls,
 } from '@/components/settings/formClasses'
 
-/**
- * The checks a NEW password must pass, in the order Change password reports them:
- * the i18n key of the first one that fails, or null when the pair is good.
- */
 const WEAK_PASSWORD_KEY = 'settings.password.weak'
 
 type PasswordField = 'currentPassword' | 'newPassword' | 'confirmPassword'
+// The Google first-password form has no Current field.
+type NewPasswordField = Exclude<PasswordField, 'currentPassword'>
 
+/**
+ * The checks the Google first-password form runs on its NEW password pair: the
+ * i18n key of the first one that fails, or null when the pair is good. Change
+ * password gets the same order from `changePasswordSchema`.
+ */
 function passwordPairProblem(password: string, confirmation: string): string | null {
   if (!isStrongPassword(password)) return WEAK_PASSWORD_KEY
   if (password !== confirmation) return 'settings.password.mismatch'
   return null
+}
+
+const changePasswordFormSchema = changePasswordSchema({
+  weak: WEAK_PASSWORD_KEY,
+  mismatch: 'settings.password.mismatch',
+  sameAsCurrent: 'settings.password.sameAsCurrent',
+})
+
+// Singular labels (already shipped for /login and /forgot-password) — the
+// `settings.password.show/hide` pair says "passwords", which no longer fits.
+function EyeToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+      aria-pressed={shown}
+      className={eyeToggleCls}
+    >
+      {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+    </button>
+  )
+}
+
+/**
+ * Current + new + confirm, saved with POST /auth/change-password. Shown for an
+ * account that already has a password; the Google first-password form stays in
+ * SettingsView (its fields are saved by the Google button, not by submitting).
+ */
+function ChangePasswordSection({ initialError = '' }: { initialError?: string }) {
+  const { t } = useTranslation()
+  // Submit-only validation: the message stays until the next submit, never live.
+  const {
+    control,
+    watch,
+    reset,
+    handleSubmit: validateAndSubmit,
+    formState: { errors },
+  } = useForm<ChangePasswordValues>({
+    resolver: zodResolver(changePasswordFormSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+  })
+  const newPassword = watch('newPassword')
+  const [newPasswordTouched, setNewPasswordTouched] = useState(false)
+  // Bumped after a successful change: remounting the checklist forgets that
+  // something was typed, so the emptied field reads neutral again.
+  const [checklistKey, setChecklistKey] = useState(0)
+  // One flag per input: each eye shows or hides only its own field.
+  const [visible, setVisible] = useState<Record<PasswordField, boolean>>({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  })
+  const [saving, setSaving] = useState(false)
+  // Starts with the parent's message: a first-password save that finds the password
+  // already set swaps the card to this form and says why, as one form used to.
+  const [error, setError] = useState(initialError)
+  // `saving` is set only after RHF's async validation, so it cannot stop a second
+  // submit that arrives in between. The ref is taken synchronously, first.
+  const submitting = useRef(false)
+
+  // The schema reports the first failing rule (strength, match, same-as-current)
+  // as an i18n key; a server error, when there is one, wins over it. A weak
+  // password is left to the checklist, so it gets no banner.
+  const validationKey = passwordFormMessageKey(errors)
+  const bannerMessage = error || (validationKey && validationKey !== WEAK_PASSWORD_KEY ? t(validationKey) : '')
+
+  const onValid: SubmitHandler<ChangePasswordValues> = async (values) => {
+    setSaving(true)
+    try {
+      await authAPI.changePassword(values.currentPassword, values.newPassword)
+      reset()
+      setNewPasswordTouched(false)
+      setChecklistKey((k) => k + 1)
+      showToast(t('settings.password.success'), 'success')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('settings.password.failed'))
+    } finally {
+      setSaving(false)
+      submitting.current = false
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (saving || submitting.current) {
+      e.preventDefault()
+      return
+    }
+    submitting.current = true
+    setError('')
+    void validateAndSubmit(onValid, () => {
+      submitting.current = false
+    })(e).catch((err) => {
+      // The resolver itself threw: neither callback ran, so release here or the
+      // form stays locked with an enabled button. Re-thrown, not swallowed.
+      submitting.current = false
+      throw err
+    })
+  }
+
+  const eyeToggleFor = (field: PasswordField) => (
+    <EyeToggle shown={visible[field]} onToggle={() => setVisible((v) => ({ ...v, [field]: !v[field] }))} />
+  )
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="currentPassword" className="block text-sm text-gray-700 mb-1">
+          {t('settings.password.current')}
+        </label>
+        <div className="relative">
+          <Controller
+            name="currentPassword"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="currentPassword"
+                type={visible.currentPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                className={passwordInputCls}
+              />
+            )}
+          />
+          {eyeToggleFor('currentPassword')}
+        </div>
+      </div>
+
+      {/* New + Confirm sit side by side above `sm` — the same paired
+          layout Account already uses for its fields — so the card
+          fills its width intentionally instead of one narrow column
+          trailing off into empty space. */}
+      <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div>
+          <label htmlFor="newPassword" className="block text-sm text-gray-700 mb-1">
+            {t('settings.password.new')}
+          </label>
+          <div className="relative">
+            <Controller
+              name="newPassword"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  onBlur={() => {
+                    field.onBlur()
+                    setNewPasswordTouched(true)
+                  }}
+                  id="newPassword"
+                  type={visible.newPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  aria-describedby="passwordRule"
+                  className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                    newPasswordTouched && !isStrongPassword(newPassword)
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-[#b5b5b5] focus:ring-primary-50'
+                  }`}
+                />
+              )}
+            />
+            {eyeToggleFor('newPassword')}
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1">
+            {t('settings.password.confirm')}
+          </label>
+          <div className="relative">
+            <Controller
+              name="confirmPassword"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  id="confirmPassword"
+                  type={visible.confirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  className={passwordInputCls}
+                />
+              )}
+            />
+            {eyeToggleFor('confirmPassword')}
+          </div>
+        </div>
+      </div>
+
+      {/* Spans the full row below both fields, so it reads as scoped to the
+          new-password pair as a whole. */}
+      <div id="passwordRule">
+        <PasswordRequirementsChecklist key={checklistKey} password={newPassword} touched={newPasswordTouched} />
+      </div>
+
+      {bannerMessage && (
+        <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span className="whitespace-pre-line">{bannerMessage}</span>
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg transition-colors hover:bg-primary-60 active:bg-primary-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+        {t('settings.password.submit')}
+      </button>
+    </form>
+  )
 }
 
 /**
@@ -101,17 +327,14 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
       ? t('settings.deleteAccount.unavailable')
       : t('settings.deleteAccount.description')
 
-  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
   // Bumped after a successful change: remounting the checklist forgets that
   // something was typed, so the emptied field reads neutral again.
   const [checklistKey, setChecklistKey] = useState(0)
   const [confirmPassword, setConfirmPassword] = useState('')
-  // One flag per input: each eye shows or hides only its own field. The Google
-  // first-password form reuses New + Confirm (Current is not rendered there).
-  const [visible, setVisible] = useState<Record<PasswordField, boolean>>({
-    currentPassword: false,
+  // One flag per input: each eye shows or hides only its own field.
+  const [visible, setVisible] = useState<Record<NewPasswordField, boolean>>({
     newPassword: false,
     confirmPassword: false,
   })
@@ -144,37 +367,6 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
         ? t('settings.roleEmployerBusiness')
         : t('settings.roleEmployerIndividual')
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    const problem = passwordPairProblem(newPassword, confirmPassword)
-    if (problem === WEAK_PASSWORD_KEY) return // the live checklist already shows the unmet rules
-    if (problem) {
-      setError(t(problem))
-      return
-    }
-    if (newPassword === currentPassword) {
-      setError(t('settings.password.sameAsCurrent'))
-      return
-    }
-
-    setSaving(true)
-    try {
-      await authAPI.changePassword(currentPassword, newPassword)
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-      setNewPasswordTouched(false)
-      setChecklistKey((k) => k + 1)
-      showToast(t('settings.password.success'), 'success')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('settings.password.failed'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
   // An open Google popup keeps the callback it was rendered with, even after an edit
   // unmounts the button. Read the fields through a ref so it never sends a stale password.
   const latest = useRef({ newPassword, confirmPassword, saving })
@@ -184,7 +376,8 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
 
   // The account now holds both methods: the card becomes Change password and Delete
   // account offers both proofs (AuthContext carries no such flags). The typed passwords
-  // are cleared so nothing sits half-filled in the form the card turns into.
+  // are cleared so they do not linger in state once the card has turned into the
+  // Change password form.
   const markPasswordSet = () => {
     setNewPassword('')
     setConfirmPassword('')
@@ -237,18 +430,8 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
     }
   }
 
-  // Singular labels (already shipped for /login and /forgot-password) — the
-  // `settings.password.show/hide` pair says "passwords", which no longer fits.
-  const eyeToggleFor = (field: PasswordField) => (
-    <button
-      type="button"
-      onClick={() => setVisible((v) => ({ ...v, [field]: !v[field] }))}
-      aria-label={visible[field] ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-      aria-pressed={visible[field]}
-      className={eyeToggleCls}
-    >
-      {visible[field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-    </button>
+  const eyeToggleFor = (field: NewPasswordField) => (
+    <EyeToggle shown={visible[field]} onToggle={() => setVisible((v) => ({ ...v, [field]: !v[field] }))} />
   )
 
   return (
@@ -356,95 +539,75 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                     {t(isFirstPassword ? 'settings.password.setDescription' : 'settings.password.description')}
                   </p>
 
-                  <form
-                    // A first password is saved by the Google button, never by submitting.
-                    onSubmit={isFirstPassword ? (e) => e.preventDefault() : handleChangePassword}
-                    className="space-y-4"
-                  >
-                    {!isFirstPassword && (
-                      <div>
-                        <label htmlFor="currentPassword" className="block text-sm text-gray-700 mb-1">
-                          {t('settings.password.current')}
-                        </label>
-                        <div className="relative">
-                          <input
-                            id="currentPassword"
-                            type={visible.currentPassword ? 'text' : 'password'}
-                            autoComplete="current-password"
-                            required
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            className={passwordInputCls}
-                          />
-                          {eyeToggleFor('currentPassword')}
+                  {isFirstPassword ? (
+                    <form
+                      // A first password is saved by the Google button, never by submitting.
+                      onSubmit={(e) => e.preventDefault()}
+                      className="space-y-4"
+                    >
+                      {/* New + Confirm sit side by side above `sm` — the same paired
+                          layout Account already uses for its fields — so the card
+                          fills its width intentionally instead of one narrow column
+                          trailing off into empty space. */}
+                      <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                          <label htmlFor="newPassword" className="block text-sm text-gray-700 mb-1">
+                            {t('settings.password.new')}
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="newPassword"
+                              type={visible.newPassword ? 'text' : 'password'}
+                              autoComplete="new-password"
+                              required
+                              value={newPassword}
+                              onChange={(e) => { setNewPassword(e.target.value); setError('') }}
+                              onBlur={() => setNewPasswordTouched(true)}
+                              aria-describedby="passwordRule"
+                              className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                                newPasswordTouched && !isStrongPassword(newPassword)
+                                  ? 'border-red-500 focus:ring-red-500'
+                                  : 'border-[#b5b5b5] focus:ring-primary-50'
+                              }`}
+                            />
+                            {eyeToggleFor('newPassword')}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1">
+                            {t('settings.password.confirm')}
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="confirmPassword"
+                              type={visible.confirmPassword ? 'text' : 'password'}
+                              autoComplete="new-password"
+                              required
+                              value={confirmPassword}
+                              onChange={(e) => { setConfirmPassword(e.target.value); setError('') }}
+                              className={passwordInputCls}
+                            />
+                            {eyeToggleFor('confirmPassword')}
+                          </div>
                         </div>
                       </div>
-                    )}
 
-                    {/* New + Confirm sit side by side above `sm` — the same paired
-                        layout Account already uses for its fields — so the card
-                        fills its width intentionally instead of one narrow column
-                        trailing off into empty space. */}
-                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-                      <div>
-                        <label htmlFor="newPassword" className="block text-sm text-gray-700 mb-1">
-                          {t('settings.password.new')}
-                        </label>
-                        <div className="relative">
-                          <input
-                            id="newPassword"
-                            type={visible.newPassword ? 'text' : 'password'}
-                            autoComplete="new-password"
-                            required
-                            value={newPassword}
-                            onChange={(e) => { setNewPassword(e.target.value); if (isFirstPassword) setError('') }}
-                            onBlur={() => setNewPasswordTouched(true)}
-                            aria-describedby="passwordRule"
-                            className={`w-full h-11 px-3 pr-10 border rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                              newPasswordTouched && !isStrongPassword(newPassword)
-                                ? 'border-red-500 focus:ring-red-500'
-                                : 'border-[#b5b5b5] focus:ring-primary-50'
-                            }`}
-                          />
-                          {eyeToggleFor('newPassword')}
-                        </div>
+                      {/* Spans the full row below both fields — previously nested
+                          under just New Password, which made it read as scoped to
+                          that one field instead of the new-password pair as a
+                          whole. */}
+                      <div id="passwordRule">
+                        <PasswordRequirementsChecklist key={checklistKey} password={newPassword} touched={newPasswordTouched} />
                       </div>
 
-                      <div>
-                        <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1">
-                          {t('settings.password.confirm')}
-                        </label>
-                        <div className="relative">
-                          <input
-                            id="confirmPassword"
-                            type={visible.confirmPassword ? 'text' : 'password'}
-                            autoComplete="new-password"
-                            required
-                            value={confirmPassword}
-                            onChange={(e) => { setConfirmPassword(e.target.value); if (isFirstPassword) setError('') }}
-                            className={passwordInputCls}
-                          />
-                          {eyeToggleFor('confirmPassword')}
-                        </div>
-                      </div>
-                    </div>
+                      {error && (
+                        <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <span className="whitespace-pre-line">{error}</span>
+                        </p>
+                      )}
 
-                    {/* Spans the full row below both fields — previously nested
-                        under just New Password, which made it read as scoped to
-                        that one field instead of the new-password pair as a
-                        whole. */}
-                    <div id="passwordRule">
-                      <PasswordRequirementsChecklist key={checklistKey} password={newPassword} touched={newPasswordTouched} />
-                    </div>
-
-                    {error && (
-                      <p role="alert" className="flex items-start gap-1.5 text-sm text-error-600">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <span className="whitespace-pre-line">{error}</span>
-                      </p>
-                    )}
-
-                    {isFirstPassword ? (
                       <div ref={googleAreaRef}>
                         {saving ? (
                           <div className="flex items-center gap-2 text-sm text-[#717182]">
@@ -469,17 +632,10 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
                           <p className="text-sm text-[#717182]">{t('settings.password.setConfirmHint')}</p>
                         )}
                       </div>
-                    ) : (
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="flex items-center justify-center gap-2 min-h-[48px] px-6 bg-primary-50 text-primary-100 rounded-lg transition-colors hover:bg-primary-60 active:bg-primary-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {t('settings.password.submit')}
-                      </button>
-                    )}
-                  </form>
+                    </form>
+                  ) : (
+                    <ChangePasswordSection initialError={error} />
+                  )}
                 </>
               )}
             </section>
