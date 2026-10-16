@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next'
+import { readOtpSendTiming } from '@/lib/otpSend'
 
 // The backend's OTP errors (otp.service.ts, email-otp.service.ts) are plain
 // English strings with no `code`, and this product ships in ten languages. Turn
@@ -8,11 +9,25 @@ import type { TFunction } from 'i18next'
 //
 // Matching on the message is a stopgap — if the backend adds a `code` to these,
 // switch to it.
-export function otpErrorMessage(err: unknown, t: TFunction, fallbackKey: string): string {
+//
+// `expiresIn` is the code's lifetime in minutes from the send response, for the
+// "expired" sentence. Pass it only where that response (or a value kept from it) is
+// in hand; without it, or with anything that is not a positive number, the sentence
+// says 10 minutes (readOtpSendTiming's default).
+export function otpErrorMessage(
+  err: unknown,
+  t: TFunction,
+  fallbackKey: string,
+  expiresIn?: number,
+): string {
   if (!(err instanceof Error)) return t(fallbackKey)
   const { message } = err
 
-  if (/OTP has expired/i.test(message)) return t('auth:otpErrors.expired')
+  if (/OTP has expired/i.test(message)) {
+    // `count` picks the singular or plural sentence; `expiresIn` fills the number.
+    const minutes = readOtpSendTiming({ expiresIn }).expiresIn
+    return t('auth:otpErrors.expired', { count: minutes, expiresIn: minutes })
+  }
   if (/Maximum OTP verification attempts/i.test(message)) return t('auth:otpErrors.tooManyAttempts')
   if (/No OTP request found/i.test(message)) return t('auth:otpErrors.notRequested')
 

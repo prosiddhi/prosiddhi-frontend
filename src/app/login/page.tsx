@@ -41,6 +41,7 @@ import { PasswordField } from '@/components/auth/PasswordField'
 import { PhoneNumberField } from '@/components/auth/PhoneNumberField'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
+import { readOtpSendTiming } from '@/lib/otpSend'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -228,6 +229,12 @@ function LoginContent() {
   // both are a "send, then verify" pair, so which form is on screen is a
   // single boolean either way).
   const [otpSent, setOtpSent] = useState(false)
+  // The cooldown (seconds until a resend) and code lifetime (minutes) from the last send
+  // response. Shared by the phone-OTP tab and the bind step (only one is ever on screen);
+  // the cooldown must be set before the Resend button mounts, because the button starts
+  // counting then. The phone-login send answers the same numbers whether or not an
+  // account exists, so this reveals nothing.
+  const [sendTiming, setSendTiming] = useState(() => readOtpSendTiming(undefined))
   const otpInputRef = useRef<OtpInputHandle>(null)
   const bindOtpInputRef = useRef<OtpInputHandle>(null)
   // True while a resend is in flight. Verify and "Change phone" are disabled
@@ -330,7 +337,7 @@ function LoginContent() {
       )
       return true
     }
-    setError(otpErrorMessage(err, t, 'auth:login.errorLogin'))
+    setError(otpErrorMessage(err, t, 'auth:login.errorLogin', sendTiming.expiresIn))
     return false
   }
 
@@ -385,7 +392,8 @@ function LoginContent() {
       setError('')
       const e164 = toE164(phone)
       if (!e164) return
-      await authAPI.loginPhoneSend(e164)
+      const res = await authAPI.loginPhoneSend(e164)
+      setSendTiming(readOtpSendTiming(res))
       setOtpSent(true)
       phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
@@ -410,7 +418,9 @@ function LoginContent() {
     if (!e164) return false
     setError('')
     try {
-      await send(e164)
+      const res = await send(e164)
+      // Applies from the next countdown: the button reads its prop when the click is handled.
+      setSendTiming(readOtpSendTiming(res))
       onSent()
       return true
     } catch (err) {
@@ -529,7 +539,8 @@ function LoginContent() {
       const e164 = toE164(phone)
       if (!e164) return
 
-      await otpAPI.send(e164)
+      const res = await otpAPI.send(e164)
+      setSendTiming(readOtpSendTiming(res))
       setOtpSent(true)
       bindVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
@@ -550,7 +561,7 @@ function LoginContent() {
       await authAPI.changePhone(e164, code)
       completeBind(e164)
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid'))
+      setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid', sendTiming.expiresIn))
       bindVerifyForm.setValue('otp', EMPTY_OTP)
       bindOtpInputRef.current?.focusFirst()
     } finally {
@@ -779,6 +790,7 @@ function LoginContent() {
                     <ResendOtpButton
                       onResend={onResendLoginOtp}
                       onBusyChange={setResending}
+                      cooldownSeconds={sendTiming.cooldownSeconds}
                       startOnMount
                       disabled={loading}
                       className={`mt-2 ${TEXT_LINK_CLS}`}
@@ -1015,6 +1027,7 @@ function LoginContent() {
                   <ResendOtpButton
                     onResend={onResendBindOtp}
                     onBusyChange={setResending}
+                    cooldownSeconds={sendTiming.cooldownSeconds}
                     startOnMount
                     disabled={loading}
                     className={TEXT_LINK_CLS}

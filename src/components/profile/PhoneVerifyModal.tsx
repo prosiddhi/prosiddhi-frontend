@@ -6,6 +6,7 @@ import { otpErrorMessage } from '@/lib/otpError'
 import { X, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { OtpInput } from '@/components/auth/OtpInput'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
@@ -19,8 +20,6 @@ interface PhoneVerifyModalProps {
   onSuccess: () => void | Promise<void>
 }
 
-const RESEND_COOLDOWN_SECONDS = 30
-
 const inputCls =
   'w-full h-11 px-3 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:bg-gray-100 disabled:text-gray-500'
 
@@ -33,6 +32,8 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
   const [cooldown, setCooldown] = useState(0)
+  // Minutes the last code stays valid, from its send response, for the "expired" message.
+  const [expiresIn, setExpiresIn] = useState(() => readOtpSendTiming(undefined).expiresIn)
   // Dev builds only: the server-echoed OTP (see OtpSendResult). Gated by
   // IS_DEV_BUILD at capture and render, so it is never held or shown in production.
   const [devOtp, setDevOtp] = useState<string | undefined>()
@@ -74,7 +75,9 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setStep('otp')
       setOtp(EMPTY_OTP)
-      setCooldown(RESEND_COOLDOWN_SECONDS)
+      const timing = readOtpSendTiming(res)
+      setCooldown(timing.cooldownSeconds)
+      setExpiresIn(timing.expiresIn)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.phoneModal.sendError'))
     } finally {
@@ -96,7 +99,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
       await onSuccess()
       setStep('success')
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'profile:seeker.phoneModal.verifyError'))
+      setError(otpErrorMessage(err, t, 'profile:seeker.phoneModal.verifyError', expiresIn))
     } finally {
       setVerifying(false)
     }

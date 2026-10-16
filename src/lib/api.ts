@@ -1,4 +1,5 @@
 import type { SupportedLanguage } from '@/i18n/languages'
+import type { OtpSendMeta } from '@/lib/otpSend'
 
 // API Configuration
 //
@@ -1073,9 +1074,8 @@ function loginEndpoint(role: LoginRole): string {
 
 // `otp` is echoed in non-production only; absent in production. Never make a
 // flow depend on it.
-export interface ForgotPasswordResult {
+export interface ForgotPasswordResult extends OtpSendMeta {
   identifier: string
-  expiresIn: string
   otp?: string
 }
 
@@ -1197,9 +1197,9 @@ export const authAPI = {
   // with { identifier: <phone>, otp }.
   //
   // This is the ONLY source of a LOGIN-purpose code — POST /otp/send issues a
-  // REGISTRATION-purpose one that login will not accept. The response shape is
-  // deliberately NOT shared with OtpSendResult: `expiresIn` is a number here
-  // (10) and a string there ("10 minutes").
+  // REGISTRATION-purpose one that login will not accept. Its response carries the
+  // same OtpSendMeta as every other send (`expiresIn` in minutes,
+  // `resendCooldownSeconds` in seconds); read it with readOtpSendTiming.
   loginPhoneSend: async (phoneNumber: string) => {
     return apiRequest<PhoneLoginSendResult>('/auth/login-phone-send', {
       method: 'POST',
@@ -1395,20 +1395,18 @@ export const meAPI = {
 
 // In NON-PRODUCTION the BE echoes the OTP in the send response so QA can complete
 // a flow without a real SMS gateway (MSG91 is not wired yet). It is absent in prod.
-export interface OtpSendResult {
+export interface OtpSendResult extends OtpSendMeta {
   phoneNumber: string
   otp?: string
-  expiresIn?: string
 }
 
 /**
- * POST /auth/login-phone-send. Same idea, DIFFERENT shape — `expiresIn` is the
- * number 10, not the string "10 minutes". Kept separate on purpose so nothing
- * grows a shared parser that silently mis-renders one of them.
+ * POST /auth/login-phone-send. Carries the same OtpSendMeta as every other send.
+ * An older backend sent `expiresIn` as a number here and as the string
+ * "10 minutes" everywhere else; `readOtpSendTiming` tolerates both.
  */
-export interface PhoneLoginSendResult {
+export interface PhoneLoginSendResult extends OtpSendMeta {
   otp?: string
-  expiresIn?: number
 }
 
 export const otpAPI = {
@@ -1438,9 +1436,8 @@ export type EmailOtpPurpose = 'REGISTRATION' | 'CHANGE_EMAIL' | 'FORGOT_PASSWORD
 
 // `otp` is echoed in non-production only; absent in production. Never make a
 // flow depend on it.
-export interface EmailOtpSendResult {
+export interface EmailOtpSendResult extends OtpSendMeta {
   otp?: string
-  expiresIn?: number | string
 }
 
 export const emailOtpAPI = {

@@ -22,6 +22,7 @@ import { IdentifierField } from '@/components/auth/IdentifierField'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { readOtpSendTiming } from '@/lib/otpSend'
 
 const OTP_LENGTH = 6
 
@@ -84,6 +85,11 @@ export default function ForgotPasswordPage() {
   // until the response lands.
   const [resendNotice, setResendNotice] = useState(false)
   const [resending, setResending] = useState(false)
+  // From the send response: the cooldown, so the Resend countdown matches the server's
+  // (it has to be known before the button mounts, because the button starts counting
+  // then), and the code lifetime for the "expired" message. The same numbers come back
+  // whether or not an account exists, so this reveals nothing.
+  const [sendTiming, setSendTiming] = useState(() => readOtpSendTiming(undefined))
 
   // When Continue reveals the password fields, move focus to the first one. RHF's
   // setFocus uses the ref the Controller already registers, so no extra ref.
@@ -107,6 +113,7 @@ export default function ForgotPasswordPage() {
       setError('')
       const res = await authAPI.forgotPassword(id)
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
+      setSendTiming(readOtpSendTiming(res))
       setIdentifier(id)
       setStage('otp')
     } catch (err) {
@@ -128,6 +135,7 @@ export default function ForgotPasswordPage() {
     try {
       const res = await authAPI.forgotPassword(identifier)
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
+      setSendTiming(readOtpSendTiming(res))
       setOtp(EMPTY_OTP)
       setCodeEntered(false)
       // The password fields are hidden for the new code: start them clean so no
@@ -178,7 +186,7 @@ export default function ForgotPasswordPage() {
       await authAPI.resetPassword(identifier, code, values.newPassword)
       setStage('done')
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed'))
+      setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed', sendTiming.expiresIn))
     } finally {
       setLoading(false)
       resetting.current = false
@@ -481,6 +489,7 @@ export default function ForgotPasswordPage() {
                 <ResendOtpButton
                   onResend={handleResend}
                   onBusyChange={setResending}
+                  cooldownSeconds={sendTiming.cooldownSeconds}
                   startOnMount
                   disabled={loading}
                   className="mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"

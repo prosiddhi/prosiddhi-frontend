@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
@@ -93,6 +94,7 @@ export default function RegisterPhonePage() {
         phoneNumber: e164,
         phoneVerified: false,
         devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined,
+        phoneOtpCooldownSeconds: readOtpSendTiming(res).cooldownSeconds,
       })
 
       router.push('/register/otp')

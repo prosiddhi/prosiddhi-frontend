@@ -60,6 +60,12 @@ export interface SeekerRegistrationState {
   // QA cannot complete registration at all: there is no SMS/email sender wired.
   devEmailOtp?: string
   devPhoneOtp?: string
+  // Seconds until a resend, from the response to the FIRST code sent for each contact
+  // (readOtpSendTiming), so the verification screen's opening countdown matches the
+  // server's. In-memory ONLY, like the dev OTPs above: a refresh forgets it and the
+  // screen falls back to the default.
+  phoneOtpCooldownSeconds?: number
+  emailOtpCooldownSeconds?: number
 }
 
 const defaultState: SeekerRegistrationState = {

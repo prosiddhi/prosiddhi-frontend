@@ -10,6 +10,7 @@ import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { checkEmail } from '@/lib/email'
 import { OtpInput } from '@/components/auth/OtpInput'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { useResendCountdown } from '../useResendCountdown'
@@ -50,7 +51,7 @@ export default function EmployerVerifyPage() {
   // The field's address is the one that is verified, or the one a code was sent to.
   const verifiedHere = address !== null && data.emailVerified && data.email === address
   const sent = address !== null && data.emailOtpSent?.to === address ? data.emailOtpSent : null
-  const secondsLeft = useResendCountdown(sent ? sent.at : null)
+  const secondsLeft = useResendCountdown(sent ? sent.at : null, sent?.cooldownSeconds)
 
   // Guard: the phone must be verified first. Waits for the sessionStorage restore
   // before judging.
@@ -96,7 +97,7 @@ export default function EmployerVerifyPage() {
       // Only the PENDING address is recorded (the sent marker). The verified address
       // and its flag stay as they were until this code is verified.
       update({
-        emailOtpSent: { to: address, at: Date.now() },
+        emailOtpSent: { to: address, at: Date.now(), ...readOtpSendTiming(res) },
         devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined,
       })
       setOtp(EMPTY_OTP)
@@ -127,7 +128,7 @@ export default function EmployerVerifyPage() {
       // Left disabled on success: the page is about to change.
       router.push('/employer/register/account')
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'employerRegister:verify.emailInvalid'))
+      setError(otpErrorMessage(err, t, 'employerRegister:verify.emailInvalid', sent.expiresIn))
       setOtp(EMPTY_OTP)
       busy.current = false
       setVerifying(false)

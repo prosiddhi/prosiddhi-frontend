@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_RESEND_COOLDOWN_SECONDS } from '@/lib/otpSend'
 
 /** Clicks are ignored for this long after a resend settles, even with no countdown running. */
 const RESEND_LOCK_MS = 1000
-
-/** Matches the backend's default RESEND_COOLDOWN_SECONDS. UX only; the backend still enforces its own. */
-const DEFAULT_COOLDOWN_SECONDS = 30
 
 interface ResendOtpButtonProps {
   /** Must handle its own errors and resolve true only if a new code was requested. */
@@ -44,7 +42,7 @@ export function ResendOtpButton({
   onResend,
   disabled,
   onBusyChange,
-  cooldownSeconds = DEFAULT_COOLDOWN_SECONDS,
+  cooldownSeconds = DEFAULT_RESEND_COOLDOWN_SECONDS,
   startOnMount = false,
   className,
 }: ResendOtpButtonProps) {

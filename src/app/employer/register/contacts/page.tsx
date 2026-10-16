@@ -10,6 +10,7 @@ import { otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { OtpInput } from '@/components/auth/OtpInput'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { useResendCountdown } from '../useResendCountdown'
@@ -47,7 +48,7 @@ export default function EmployerContactsPage() {
   // The field's number is the one that is verified, or the one a code was sent to.
   const verifiedHere = e164 !== null && data.phoneVerified && data.phoneNumber === e164
   const sent = e164 !== null && data.phoneOtpSent?.to === e164 ? data.phoneOtpSent : null
-  const secondsLeft = useResendCountdown(sent ? sent.at : null)
+  const secondsLeft = useResendCountdown(sent ? sent.at : null, sent?.cooldownSeconds)
 
   // Guard: the employer type is chosen on the previous screen. Waits for the
   // sessionStorage restore before judging.
@@ -115,7 +116,7 @@ export default function EmployerContactsPage() {
       // different number and coming back to the verified one loses nothing — the
       // backend would refuse another code for it.
       update({
-        phoneOtpSent: { to: e164, at: Date.now() },
+        phoneOtpSent: { to: e164, at: Date.now(), ...readOtpSendTiming(res) },
         devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined,
       })
       setOtp(EMPTY_OTP)
@@ -145,7 +146,7 @@ export default function EmployerContactsPage() {
       // Left disabled on success: the page is about to change.
       router.push('/employer/register/verify')
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'employerRegister:verify.phoneInvalid'))
+      setError(otpErrorMessage(err, t, 'employerRegister:verify.phoneInvalid', sent.expiresIn))
       setOtp(EMPTY_OTP)
       busy.current = false
       setVerifying(false)

@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isAtLeast18 } from '@/lib/dateInput'
@@ -169,6 +170,7 @@ export default function RegisterProfilePage() {
         email: trimmedEmail,
         emailVerified: false,
         devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined,
+        emailOtpCooldownSeconds: readOtpSendTiming(res).cooldownSeconds,
       })
       router.push('/register/verify-email')
     } catch (err) {

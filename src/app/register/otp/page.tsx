@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { DEFAULT_RESEND_COOLDOWN_SECONDS, readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 const OTP_LENGTH = 6
@@ -26,7 +27,10 @@ export default function RegisterOTPPage() {
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [canResend, setCanResend] = useState(false)
-  const [countdown, setCountdown] = useState(30)
+  // The first code was sent on the previous screen; its cooldown comes through the
+  // context (memory only), or is the default after a refresh. A resend's response sets
+  // the server's value from then on.
+  const [countdown, setCountdown] = useState(data.phoneOtpCooldownSeconds ?? DEFAULT_RESEND_COOLDOWN_SECONDS)
   // Set the moment this screen's own successful verify moves on, so the
   // "already verified" redirect below does not navigate a second time.
   const advancingRef = useRef(false)
@@ -103,10 +107,11 @@ export default function RegisterOTPPage() {
       const res = await jobSeekerAPI.registerPhone({ phoneNumber })
       // A resend issues a NEW code — refresh the dev banner or it would show the
       // stale one, which no longer verifies.
-      update({ devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined })
+      const { cooldownSeconds } = readOtpSendTiming(res)
+      update({ devPhoneOtp: IS_DEV_BUILD ? res?.otp : undefined, phoneOtpCooldownSeconds: cooldownSeconds })
 
       setCanResend(false)
-      setCountdown(30)
+      setCountdown(cooldownSeconds)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:otp.errorResend'))
     } finally {

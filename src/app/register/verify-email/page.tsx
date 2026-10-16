@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { DEFAULT_RESEND_COOLDOWN_SECONDS, readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 const OTP_LENGTH = 6
@@ -37,7 +38,10 @@ export default function RegisterVerifyEmailPage() {
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [canResend, setCanResend] = useState(false)
-  const [countdown, setCountdown] = useState(30)
+  // The first code was sent on the previous screen; its cooldown comes through the
+  // context (memory only), or is the default after a refresh. A resend's response sets
+  // the server's value from then on.
+  const [countdown, setCountdown] = useState(data.emailOtpCooldownSeconds ?? DEFAULT_RESEND_COOLDOWN_SECONDS)
 
   // Guard: reachable only with a verified phone and an email to verify. No
   // password check — the account does not exist yet at this point.
@@ -94,9 +98,10 @@ export default function RegisterVerifyEmailPage() {
       setResendLoading(true)
       setError('')
       const res = await emailOtpAPI.send(data.email, 'REGISTRATION')
-      update({ devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined })
+      const { cooldownSeconds } = readOtpSendTiming(res)
+      update({ devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined, emailOtpCooldownSeconds: cooldownSeconds })
       setCanResend(false)
-      setCountdown(30)
+      setCountdown(cooldownSeconds)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorResend'))
     } finally {

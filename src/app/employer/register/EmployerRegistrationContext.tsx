@@ -29,6 +29,10 @@ export interface OtpSentMarker {
   to: string
   /** Date.now() at the send. */
   at: number
+  /** Seconds until a resend, from that send's response (readOtpSendTiming). */
+  cooldownSeconds: number
+  /** Minutes the code stays valid, from the same response, for the "expired" message. */
+  expiresIn: number
 }
 
 export interface EmployerRegistrationState {
