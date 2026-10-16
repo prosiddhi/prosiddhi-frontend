@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Mail } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { chatAPI } from '@/lib/api'
+import { CHAT_ENABLED } from '@/lib/features'
 import { NotificationBell } from './NotificationBell'
 import { UserDropdown } from './UserDropdown'
 
@@ -34,6 +35,7 @@ export function HeaderActions() {
   // Same cadence and shape as the bell's badge poll. Skips ticks while the tab
   // is hidden, and refreshes once when it becomes visible again.
   useEffect(() => {
+    if (!CHAT_ENABLED) return
     let ignore = false
     const tick = async () => {
       if (document.hidden) return
@@ -87,21 +89,23 @@ export function HeaderActions() {
     <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
       <div aria-hidden="true" className="flex-1 min-w-0" />
 
-      <Link
-        href={messagesHref}
-        aria-label={unread > 0 ? t('nav.messagesAriaWithCount', { count: unread }) : t('nav.messages')}
-        title={t('nav.messages')}
-        // The icon stays 20-24px; the TARGET is 44 (TD-20). -m-2.5 keeps the
-        // extra padding from pushing the header layout around.
-        className="relative inline-flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 hover:text-primary-50 transition-colors"
-      >
-        <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-        {unread > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-error-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
-      </Link>
+      {CHAT_ENABLED && (
+        <Link
+          href={messagesHref}
+          aria-label={unread > 0 ? t('nav.messagesAriaWithCount', { count: unread }) : t('nav.messages')}
+          title={t('nav.messages')}
+          // The icon stays 20-24px; the TARGET is 44 (TD-20). -m-2.5 keeps the
+          // extra padding from pushing the header layout around.
+          className="relative inline-flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 hover:text-primary-50 transition-colors"
+        >
+          <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+          {unread > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-error-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </Link>
+      )}
 
       <NotificationBell />
 

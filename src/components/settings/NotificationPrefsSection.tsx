@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Bell, Loader2, RefreshCw } from 'lucide-react'
 import { meAPI, type NotificationCategory, type NotificationPrefs } from '@/lib/api'
 import { showToast } from '@/lib/toast'
+import { CHAT_ENABLED } from '@/lib/features'
 import { ToggleSwitch } from '@/components/settings/ToggleSwitch'
 import { cardCls, outlineBtnBaseCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/settings/formClasses'
 
@@ -31,7 +32,7 @@ function rowsFor(isEmployer: boolean): Row[] {
     rows.push({ key: 'JOB_POSTS', titleKey: 'jobPosts', descKey: 'jobPostsDesc' })
     rows.push({ key: 'BILLING', titleKey: 'billing', descKey: 'billingDesc' })
   }
-  rows.push({ key: 'MESSAGES', titleKey: 'messages', descKey: 'messagesDesc' })
+  if (CHAT_ENABLED) rows.push({ key: 'MESSAGES', titleKey: 'messages', descKey: 'messagesDesc' })
   return rows
 }
 

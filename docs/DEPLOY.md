@@ -139,7 +139,18 @@ pm2 start "npm run start -- -p 3000" --name prosiddhi-web --cwd /opt/prosiddhi/p
 pm2 save
 ```
 
-> Only `NEXT_PUBLIC_API_URL` is actually consumed today. The other keys in the repo's
+> **Chat flag.** `NEXT_PUBLIC_CHAT_ENABLED` defaults to `false`: the Messages icon, the `/messages`
+> pages and the Messages notification toggle are hidden. Chat is on only when it is set to the exact
+> string `true`. It is a Next.js **build-time** variable, so changing it needs a rebuild
+> (`NEXT_PUBLIC_CHAT_ENABLED=true npm run build`, or `--build-arg` for Docker). It is a public flag,
+> not a secret: never put secrets in it.
+>
+> **Employer-contact flag.** `NEXT_PUBLIC_EMPLOYER_CONTACT_VISIBLE` works the same way: default `false`, on only
+> with the exact string `true`, build-time (rebuild to change it, `--build-arg` for Docker), no secrets. While
+> off, the seeker's "Contact the Recruiter" button and modal are hidden. Set it together with the backend
+> `EMPLOYER_CONTACT_VISIBLE`, which hides the data itself.
+
+> Apart from the Chat flag above, only `NEXT_PUBLIC_API_URL` is actually consumed today. The other keys in the repo's
 > `.env.example` (NEXTAUTH, AWS S3, Razorpay, Redis, Sentry, Google Maps) are unused
 > placeholders — ignore them for this deploy.
 
