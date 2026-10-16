@@ -12,6 +12,9 @@ import { z } from 'zod'
  * backend's differ per route: 254 on email-OTP and change-email, 200 on team
  * invites, none on register or `companyEmail`.
  *
+ * Per-route rules and casing are tabulated in docs/qa/validation-differences.md.
+ * Note the backend runs zod on the untrimmed string; this check trims first.
+ *
  * Valid addresses come back trimmed and lowercased, which is what the backend
  * does to account emails. A caller that must keep the typed casing (the
  * company email) should send its own `.trim()` instead of `value`.

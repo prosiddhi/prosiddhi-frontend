@@ -7,8 +7,9 @@
 // rules; this only lets the form say so before the round-trip.
 //
 // The checkout modal has its own GSTIN pattern (backend utils/gst.ts) that is a
-// little stricter at position 13. That mismatch is a backend item and is
-// deliberately NOT mirrored here.
+// little stricter at position 13: [1-9A-Z] there, [0-9A-Z] here, so a GSTIN with
+// 0 at position 13 passes here and fails at checkout. That mismatch is a backend
+// item and is deliberately NOT mirrored here. See docs/qa/validation-differences.md.
 
 import type { BusinessIdentifierField } from '@/lib/api'
 

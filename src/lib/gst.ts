@@ -5,6 +5,11 @@
 // place-of-supply is compared by name against COMPANY_GST_STATE to decide
 // CGST+SGST (intra-state) vs IGST (inter-state).
 
+// ⚠️ NOT the same rule as GSTIN_PATTERN in businessIdentifiers.ts (registration
+// and profile). They differ at position 13: this one is [1-9A-Z], that one is
+// [0-9A-Z], so "29ABCDE1234F0Z5" passes there and fails here. This regex does
+// not normalise; CheckoutModal trims and upper-cases first. Both match the
+// backend as it is today. See docs/qa/validation-differences.md.
 export const GSTIN_REGEX =
   /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
 
