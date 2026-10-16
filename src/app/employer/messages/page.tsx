@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { MessagesView } from '@/components/chat/MessagesView'
+import { ChatGate } from '@/components/chat/ChatGate'
 
 function EmployerMessagesContent() {
   return (
@@ -15,8 +16,10 @@ function EmployerMessagesContent() {
 
 export default function EmployerMessagesPage() {
   return (
-    <ProtectedRoute requiredRole="employer">
-      <EmployerMessagesContent />
-    </ProtectedRoute>
+    <ChatGate>
+      <ProtectedRoute requiredRole="employer">
+        <EmployerMessagesContent />
+      </ProtectedRoute>
+    </ChatGate>
   )
 }

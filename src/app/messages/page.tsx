@@ -6,6 +6,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { MessagesView } from '@/components/chat/MessagesView'
+import { ChatGate } from '@/components/chat/ChatGate'
 
 // Employer traffic used to share this exact route before the /employer/messages
 // split, including `/messages?c=<id>` links bookmarked or left open from the old
@@ -36,8 +37,10 @@ function SeekerMessagesGate() {
 
 export default function MessagesPage() {
   return (
-    <ProtectedRoute>
-      <SeekerMessagesGate />
-    </ProtectedRoute>
+    <ChatGate>
+      <ProtectedRoute>
+        <SeekerMessagesGate />
+      </ProtectedRoute>
+    </ChatGate>
   )
 }

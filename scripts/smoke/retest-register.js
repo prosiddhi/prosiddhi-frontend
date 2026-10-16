@@ -13,6 +13,9 @@
 
 const { chromium, LAUNCH, FE, loginSeeker, loginEmployer, session } = require('./lib-smoke')
 
+// Chat is hidden unless the portal was built with NEXT_PUBLIC_CHAT_ENABLED=true.
+const CHAT_ENABLED = process.env.NEXT_PUBLIC_CHAT_ENABLED === 'true'
+
 const results = []
 const verdict = (id, sev, what, state, detail = '') => {
   results.push({ id, sev, what, state, detail })
@@ -155,7 +158,12 @@ async function asUser(browser, who, path) {
     ]) {
       const { ctx, page } = await asUser(browser, employer, '/employer')
       const n = await page.locator(sel).count()
-      verdict(id, sev, what, n > 0 ? 'PASS' : 'FAIL', `${n} found`)
+      // Chat off on purpose: the link must be ABSENT. Only trust that once the header
+      // has rendered (the bell is in the same cluster), or an unloaded page would pass.
+      const absent = id === 'DEF-022' && !CHAT_ENABLED
+      const headerUp = !absent || (await page.locator('header button[aria-label*="Notification" i]').count()) > 0
+      const ok = headerUp && (absent ? n === 0 : n > 0)
+      verdict(id, sev, absent ? 'Chat is off: no Messages link in the employer header' : what, ok ? 'PASS' : 'FAIL', `${n} found`)
       await ctx.close()
     }
 

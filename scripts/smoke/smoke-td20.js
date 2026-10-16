@@ -1,7 +1,9 @@
 // TD-20: interactive controls under the 44px minimum tap target.
 const { chromium, LAUNCH, FE, loginSeeker, session } = require('./lib-smoke')
 
-const PAGES = ['/my-applications', '/saved-jobs', '/messages', '/login', '/job-feed', '/profile']
+// /messages is a real page only when Chat is built in (NEXT_PUBLIC_CHAT_ENABLED=true).
+const CHAT_ENABLED = process.env.NEXT_PUBLIC_CHAT_ENABLED === 'true'
+const PAGES = ['/my-applications', '/saved-jobs', ...(CHAT_ENABLED ? ['/messages'] : []), '/login', '/job-feed', '/profile']
 
 ;(async () => {
   const seeker = await loginSeeker()

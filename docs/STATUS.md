@@ -175,6 +175,11 @@ approvals land — no app update.
 - Admin extras: the content-scan button *(delays D-4)*, approve-a-rejected-post,
   audit-list sync, queue due times.
 - Anything called "Agent Siddhi" — not in any R1 ticket.
+- **Chat / Messages is hidden in the portal** *(16 Oct; no Jira ticket yet)*. The
+  backend answers 404 `CHAT_DISABLED`. The portal hides the Mail icon, the
+  `/messages` pages and the Messages notification toggle behind
+  `NEXT_PUBLIC_CHAT_ENABLED` (off unless exactly `true`; baked in at build time —
+  rebuild to change it). The code is kept.
 
 **Still in R1, decide by 8 Oct:** push notifications (D-10). If the new Google
 account isn't ready, launch with in-app notifications only.

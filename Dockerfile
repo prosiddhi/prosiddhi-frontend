@@ -16,6 +16,9 @@ COPY . .
 # NEXT_PUBLIC_* vars are inlined at build time — pass the API URL as a build arg.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Chat is hidden unless built with --build-arg NEXT_PUBLIC_CHAT_ENABLED=true.
+ARG NEXT_PUBLIC_CHAT_ENABLED=false
+ENV NEXT_PUBLIC_CHAT_ENABLED=$NEXT_PUBLIC_CHAT_ENABLED
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

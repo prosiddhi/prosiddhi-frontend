@@ -59,6 +59,7 @@ Only the `NEXT_PUBLIC_*` variables are consumed by this frontend (they are inlin
 | `NEXT_PUBLIC_APP_URL` | Public URL of this web app |
 | `NEXT_PUBLIC_ENABLE_VOICE_SEARCH` | Feature flag |
 | `NEXT_PUBLIC_ENABLE_SKILL_VERIFICATION` | Feature flag |
+| `NEXT_PUBLIC_CHAT_ENABLED` | Chat / Messages. Defaults to `false`; on only when set to the exact string `true`. Build-time, so changing it needs a rebuild. Public flag, no secrets. |
 
 > The other keys in `.env.example` (`DATABASE_URL`, `RAZORPAY_*`, `AWS_*`, `REDIS_URL`, `NEXTAUTH_*`, etc.) are **backend concerns** carried over from the original template. The web app does not read them — they can be ignored or pruned. **Do not put real secrets in this repo.**
 

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { CHAT_ENABLED } from '@/lib/features'
 
 // The per-conversation thread now lives inline on /messages (seeker) or
 // /employer/messages (employer) split view, rather than on its own route. This
@@ -21,6 +22,10 @@ export default function LegacyConversationRedirect() {
   const conversationId = Array.isArray(params.conversationId) ? params.conversationId[0] : (params.conversationId as string)
 
   useEffect(() => {
+    if (!CHAT_ENABLED) {
+      router.replace('/')
+      return
+    }
     if (isLoading) return
     const base = isAuthenticated && user?.role !== 'JOB_SEEKER' ? '/employer/messages' : '/messages'
     router.replace(conversationId ? `${base}?c=${conversationId}` : base)
