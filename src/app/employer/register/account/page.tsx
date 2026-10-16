@@ -42,7 +42,8 @@ export default function AccountSetupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
-  const [needsReverify, setNeedsReverify] = useState(false)
+  // Which contact the backend said is not verified, so Re-verify clears only that one.
+  const [needsReverify, setNeedsReverify] = useState<'phone' | 'email' | null>(null)
   // Stops the guard below judging a flow that has already succeeded — see the
   // seeker password step (4d65c71) for the full story. Kept per-page, not on the
   // context: the provider outlives this page, and a flow-wide flag would also
@@ -118,7 +119,7 @@ export default function AccountSetupPage() {
       setLoading(true)
       setError('')
       setFieldErrors([])
-      setNeedsReverify(false)
+      setNeedsReverify(null)
 
       // Creates the account ACTIVE, with trial credits granted (1 post,
       // 3 downloads, 14 days). No verification step follows.
@@ -173,11 +174,11 @@ export default function AccountSetupPage() {
           // is the only response that is right for all three; retrying the
           // register call would fail identically every time.
           setError(t('employerRegister:account.errorPhoneReverify'))
-          setNeedsReverify(true)
+          setNeedsReverify('phone')
           break
         case 'emailUnverified':
           setError(t('employerRegister:account.errorEmailUnverified'))
-          setNeedsReverify(true)
+          setNeedsReverify('email')
           break
         case 'emailTaken':
           setError(t('employerRegister:account.errorEmailTaken'))
@@ -195,7 +196,21 @@ export default function AccountSetupPage() {
     }
   }
 
-  const handleBack = () => router.push('/employer/register/verify')
+  const handleBack = () => router.push('/employer/register/contacts')
+
+  // The backend said this contact is not verified (never verified, or its mark was
+  // already consumed), so a fresh send is allowed and the stale flag is wrong.
+  // Clear only that contact's flag and sent marker, then go back to contacts; it
+  // sends nothing for a contact that is still verified. Pushing to /verify instead
+  // would bounce straight back here while both flags are true.
+  const handleReverify = () => {
+    if (needsReverify === 'phone') {
+      update({ phoneVerified: false, phoneOtpSent: null, devPhoneOtp: undefined })
+    } else if (needsReverify === 'email') {
+      update({ emailVerified: false, emailOtpSent: null, devEmailOtp: undefined })
+    }
+    router.push('/employer/register/contacts')
+  }
   const handleClose = () => router.push('/')
 
   return (
@@ -214,10 +229,10 @@ export default function AccountSetupPage() {
           {error && (
             <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm whitespace-pre-line">{error}</p>
-              {needsReverify && (
+              {needsReverify !== null && (
                 <button
                   type="button"
-                  onClick={() => router.push('/employer/register/verify')}
+                  onClick={handleReverify}
                   className="mt-3 text-sm font-semibold text-primary-50 underline hover:text-primary-60"
                 >
                   {t('employerRegister:account.reverifyContacts')}

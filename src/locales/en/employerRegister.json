@@ -12,23 +12,22 @@
     "corporateDesc": "Owned by Shareholder"
   },
   "contacts": {
-    "subtitle": "We'll verify your phone and email before creating your account",
+    "subtitle": "Verify your phone number to continue",
     "phoneLabel": "Phone Number",
     "phonePlaceholder": "Enter the Phone Number",
     "phoneInvalid": "Enter a valid 10-digit phone number",
-    "emailLabel": "Email Address",
-    "emailPlaceholder": "Enter your email",
-    "emailInvalid": "Please enter a valid email",
-    "hint": "We'll send a 6-digit code to each. You'll enter both on the next screen.",
-    "sendCodes": "Send codes",
+    "hint": "We'll send a 6-digit code to this number.",
+    "verifyPhone": "Verify Phone",
+    "phoneVerified": "Phone number verified",
     "sending": "Sending...",
-    "phoneSendFailed": "We couldn't send the code to that phone number. Check it and try again.",
-    "emailSendFailed": "We couldn't send the code to that email. Check it and try again.",
-    "bothSendFailed": "We couldn't send the codes. Please check your details and try again."
+    "phoneSendFailed": "We couldn't send the code to that phone number. Check it and try again."
   },
   "verify": {
-    "title": "Verify your phone and email",
-    "subtitle": "Enter both 6-digit codes to continue",
+    "emailTitle": "Verify your email address",
+    "emailSubtitle": "One last step: confirm your email with a 6-digit code",
+    "emailFieldLabel": "Email Address",
+    "emailPlaceholder": "Enter your email",
+    "emailAddressInvalid": "Please enter a valid email",
     "phoneLabel": "Code sent to your phone",
     "emailLabel": "Code sent to your email",
     "sentTo": "Sent to {{target}}",
@@ -36,11 +35,12 @@
     "incomplete": "Enter the 6-digit code",
     "phoneInvalid": "That phone code is not right. Please try again.",
     "emailInvalid": "That email code is not right. Please try again.",
-    "alreadyVerified": "Verified",
-    "verifyContinue": "Verify & continue",
+    "verifyEmail": "Verify Email",
+    "emailVerified": "Email verified",
+    "emailSendFailed": "We couldn't send the code to that email. Check it and try again.",
     "verifying": "Verifying...",
-    "resend": "Resend the codes",
-    "resendIn": "Resend the codes in {{seconds}}s"
+    "resend": "Resend the code",
+    "resendIn": "Resend the code in {{seconds}}s"
   },
   "account": {
     "fullName": "Full Name",

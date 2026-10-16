@@ -18,6 +18,19 @@ const STORAGE_KEY = 'prosiddhi.register.employer'
 
 export type EmployerType = 'individual' | 'corporate' | ''
 
+/**
+ * Where, and when, a code was last SENT in this tab. Memory only: it is not in
+ * PERSISTED_KEYS, so a refresh forgets it. That is deliberate — it only exists to
+ * stop a remount or a back/forward from sending a second code and tripping the
+ * server's resend cooldown, and a refresh is a fair moment to offer a resend.
+ */
+export interface OtpSentMarker {
+  /** The phone (E.164) or email the code went to. */
+  to: string
+  /** Date.now() at the send. */
+  at: number
+}
+
 export interface EmployerRegistrationState {
   companyType: EmployerType
   // Contacts — BOTH are mandatory for an employer and BOTH must be verified
@@ -46,6 +59,10 @@ export interface EmployerRegistrationState {
   // make a flow depend on them.
   devPhoneOtp?: string
   devEmailOtp?: string
+  // Memory-only (see OtpSentMarker). The phone code is sent from the contacts
+  // step; the email code only after the phone is verified.
+  phoneOtpSent: OtpSentMarker | null
+  emailOtpSent: OtpSentMarker | null
 }
 
 const defaultState: EmployerRegistrationState = {
@@ -65,6 +82,8 @@ const defaultState: EmployerRegistrationState = {
   companySize: '',
   gstNumber: '',
   registrationNumber: '',
+  phoneOtpSent: null,
+  emailOtpSent: null,
 }
 
 /**
