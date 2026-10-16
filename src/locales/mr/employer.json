@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "उमेदवार",
     "title": "उमेदवार",
+    "activelyLooking": "सध्या नोकरी शोधत आहेत",
+    "activelyLookingHint": "हा उमेदवार नवीन संधी शोधत आहे.",
     "count_one": "{{count}} उमेदवार",
     "count_other": "{{count}} उमेदवार",
     "countForJob_one": "या नोकरीसाठी {{count}} उमेदवार",

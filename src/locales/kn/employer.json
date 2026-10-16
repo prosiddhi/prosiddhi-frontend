@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "ಅಭ್ಯರ್ಥಿಗಳು",
     "title": "ಅಭ್ಯರ್ಥಿಗಳು",
+    "activelyLooking": "ಈಗ ಕೆಲಸ ಹುಡುಕುತ್ತಿದ್ದಾರೆ",
+    "activelyLookingHint": "ಈ ಅಭ್ಯರ್ಥಿ ಹೊಸ ಅವಕಾಶಗಳನ್ನು ಹುಡುಕುತ್ತಿದ್ದಾರೆ.",
     "count_one": "{{count}} ಅಭ್ಯರ್ಥಿ",
     "count_other": "{{count}} ಅಭ್ಯರ್ಥಿಗಳು",
     "countForJob_one": "ಈ ಕೆಲಸಕ್ಕೆ {{count}} ಅಭ್ಯರ್ಥಿ",

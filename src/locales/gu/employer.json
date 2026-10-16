@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "ઉમેદવારો",
     "title": "ઉમેદવારો",
+    "activelyLooking": "સક્રિય રીતે નોકરીની શોધમાં",
+    "activelyLookingHint": "આ ઉમેદવાર નવી તકો શોધી રહ્યા છે.",
     "count_one": "{{count}} ઉમેદવાર",
     "count_other": "{{count}} ઉમેદવારો",
     "countForJob_one": "આ નોકરી માટે {{count}} ઉમેદવાર",

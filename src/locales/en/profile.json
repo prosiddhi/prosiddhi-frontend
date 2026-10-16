@@ -118,6 +118,10 @@
     "saving": "Saving…",
     "saved": "Saved",
     "saveError": "Failed to save your profile.",
+    "activelyLooking": {
+      "title": "Actively Looking for Work",
+      "description": "Turn this on to show employers that you are looking for a job right now."
+    },
     "documents": "Documents",
     "skills": "Skills",
     "skillsLocked": "Complete your profile to add skills.",

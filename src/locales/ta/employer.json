@@ -478,6 +478,8 @@
     "logoAlt": "ProSiddhi",
     "navLabel": "விண்ணப்பதாரர்கள்",
     "title": "விண்ணப்பதாரர்கள்",
+    "activelyLooking": "தீவிரமாக வேலை தேடுகிறார்",
+    "activelyLookingHint": "இந்த விண்ணப்பதாரர் புதிய வாய்ப்புகளைத் தேடுகிறார்.",
     "count_one": "{{count}} விண்ணப்பதாரர்",
     "count_other": "{{count}} விண்ணப்பதாரர்கள்",
     "countForJob_one": "இந்த வேலைக்கு {{count}} விண்ணப்பதாரர்",

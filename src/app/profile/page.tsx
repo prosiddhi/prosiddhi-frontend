@@ -32,6 +32,8 @@ import { UseMyLocation } from '@/components/location/UseMyLocation'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { ToggleSwitch } from '@/components/settings/ToggleSwitch'
+import { showToast } from '@/lib/toast'
 import {
   Camera,
   Pencil,
@@ -175,6 +177,12 @@ function SeekerProfileContent() {
   const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
+  // "Actively looking" saves on its own the moment it is flipped, outside the Save button.
+  // The ref is the synchronous guard (a double tap can land before the next render); the
+  // state only drives the busy look.
+  const [activelyLooking, setActivelyLooking] = useState(false)
+  const [lookingBusy, setLookingBusy] = useState(false)
+  const lookingBusyRef = useRef(false)
   const photoRef = useRef<HTMLInputElement>(null)
   // Original name — the DEF-030 rule fires only on an edit, never on a legacy
   // value the server sent us. See the note in handleSave.
@@ -211,6 +219,9 @@ function SeekerProfileContent() {
       jobTitle: js?.preferredJobTitle || undefined,
     })
     setLanguage(p.preferredLanguage ?? 'en')
+    // While the switch's own save is running it owns the value: a re-fetch that was read
+    // before that save committed would otherwise flip it back to the old one.
+    if (!lookingBusyRef.current) setActivelyLooking(js?.isActivelyLooking ?? false)
     setExperiences(
       (js?.workExperience ?? []).map((w) => ({
         key: newKey(),
@@ -280,6 +291,30 @@ function SeekerProfileContent() {
       { key: newKey(), position: '', companyName: '', startDate: '', endDate: '', currentlyWorking: false, description: '' },
     ])
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
+
+  // Only the one key goes out. On failure the switch goes back to what it was.
+  const toggleActivelyLooking = async (next: boolean) => {
+    if (lookingBusyRef.current || saving) return
+    const previous = activelyLooking
+    lookingBusyRef.current = true
+    setLookingBusy(true)
+    setActivelyLooking(next)
+    try {
+      await jobSeekerAPI.updateProfile({ isActivelyLooking: next })
+      // Keep Cancel's snapshot in step, or it would flip the switch back.
+      const snapshot = lastProfileRef.current
+      if (snapshot?.jobSeeker) {
+        lastProfileRef.current = { ...snapshot, jobSeeker: { ...snapshot.jobSeeker, isActivelyLooking: next } }
+      }
+      showToast(t('profile:seeker.saved'), 'success')
+    } catch {
+      setActivelyLooking(previous)
+      showToast(t('settings.notifications.updateFailed'), 'error')
+    } finally {
+      lookingBusyRef.current = false
+      setLookingBusy(false)
+    }
+  }
 
   const handleCancel = () => {
     if (lastProfileRef.current) hydrate(lastProfileRef.current)
@@ -552,6 +587,16 @@ function SeekerProfileContent() {
               </aside>
 
               <div className="space-y-6 sm:space-y-8 min-w-0">
+              <section className="bg-white border border-[#dddddd] rounded-[10px] px-5 sm:px-6">
+                <ToggleSwitch
+                  label={t('profile:seeker.activelyLooking.title')}
+                  description={t('profile:seeker.activelyLooking.description')}
+                  checked={activelyLooking}
+                  busy={lookingBusy || saving}
+                  onChange={toggleActivelyLooking}
+                />
+              </section>
+
               {/* Basic details */}
               <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
                 {/* Personal Information */}
@@ -831,7 +876,7 @@ function SeekerProfileContent() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || lookingBusy}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
                   >
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -840,7 +885,7 @@ function SeekerProfileContent() {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    disabled={saving}
+                    disabled={saving || lookingBusy}
                     className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
                   >
                     {t('profile:seeker.cancel')}
