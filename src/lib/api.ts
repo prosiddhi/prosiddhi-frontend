@@ -581,6 +581,12 @@ async function performRequest<T>(
     if (response.status === 403 && code === 'PASSWORD_CHANGE_REQUIRED' && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth:password-change-required'))
     }
+    // The person has not accepted the current Terms / Privacy Policy and the BE is
+    // enforcing it (LEGAL_CONSENT_ENFORCED). The session is fine — ConsentGate in
+    // AuthContext asks them to accept and then lets them carry on.
+    if (response.status === 403 && code === 'CONSENT_REQUIRED' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CONSENT_REQUIRED_EVENT))
+    }
     const details =
       body?.error && typeof body.error === 'object' && !Array.isArray(body.error)
         ? (body.error as Record<string, unknown>)
@@ -1338,6 +1344,23 @@ export interface NotificationPrefsUpdate {
 // Current-user (role-agnostic) endpoints — /api/me/*
 // Imported from i18n/languages (plain data, no side effects) rather than i18n/config,
 // which would boot react-i18next just by being imported here.
+/** Fired when the API answers 403 CONSENT_REQUIRED; ConsentGate listens. */
+export const CONSENT_REQUIRED_EVENT = 'auth:consent-required'
+
+/** Effective dates of the Terms of Use and the Privacy Policy, e.g. "2026-10-08". */
+export interface LegalVersions {
+  TERMS: string
+  PRIVACY: string
+}
+
+/** GET/POST /api/v1/me/consents. `accepted` values are null when never accepted. */
+export interface LegalConsentStatus {
+  current: LegalVersions
+  accepted: { TERMS: string | null; PRIVACY: string | null }
+  outdated: Array<keyof LegalVersions>
+  needsAcceptance: boolean
+}
+
 export const meAPI = {
   // PATCH /api/me/language — persist the preferred language for ANY role (BR-9).
   //
@@ -1366,6 +1389,22 @@ export const meAPI = {
     return apiRequest<NotificationPrefs>('/me/notification-prefs', {
       method: 'PUT',
       body: JSON.stringify(patch),
+    })
+  },
+
+  // GET /api/v1/me/consents — which Terms / Privacy versions are current, which this
+  // person accepted, and whether they must accept again. Any role.
+  getConsents: async () => {
+    return apiRequest<LegalConsentStatus>('/me/consents')
+  },
+
+  // POST /api/v1/me/consents — accept. `versions` must be the ones the screen showed
+  // (as getConsents returned them); 409 LEGAL_VERSION_MISMATCH if a newer one was
+  // published meanwhile — reload and show it again.
+  acceptConsents: async (versions: LegalVersions) => {
+    return apiRequest<LegalConsentStatus>('/me/consents', {
+      method: 'POST',
+      body: JSON.stringify({ versions }),
     })
   },
 
@@ -1578,6 +1617,12 @@ export interface SeekerRegisterData {
    * explicitly — checked = true, unchecked = false.
    */
   whatsappConsent: boolean
+  /**
+   * Ticked "I agree to the Terms of Use and the Privacy Policy". The form cannot be
+   * submitted without it; the BE records the acceptance with the account
+   * (prosiddhi-backend src/services/legal-consent.service.ts). `false` is refused (400).
+   */
+  acceptTerms: true
   workExperiences?: SeekerWorkExperience[]
   profilePic?: File
   document?: File
@@ -1667,6 +1712,7 @@ export const jobSeekerAPI = {
     // Always sent, never gated on truthiness like the optional fields above —
     // the BE's booleanField() treats a missing key as a gap, not a decline.
     fd.append('whatsappConsent', String(data.whatsappConsent))
+    fd.append('acceptTerms', String(data.acceptTerms))
     return apiRequest<SeekerRegisterResult>('/jobseekers/register', {
       method: 'POST',
       body: fd,
@@ -2127,6 +2173,8 @@ export interface EmployerIndividualData {
   designation?: string
   // R1-BE-03 — WhatsApp opt-in. Required, no default — see SeekerRegisterData.
   whatsappConsent: boolean
+  // Terms of Use + Privacy Policy — see SeekerRegisterData.
+  acceptTerms: true
 }
 
 export interface EmployerBusinessData {
@@ -2142,6 +2190,8 @@ export interface EmployerBusinessData {
   registrationNumber: string
   // R1-BE-03 — WhatsApp opt-in. Required, no default — see SeekerRegisterData.
   whatsappConsent: boolean
+  // Terms of Use + Privacy Policy — see SeekerRegisterData.
+  acceptTerms: true
 }
 
 /**

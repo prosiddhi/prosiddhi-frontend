@@ -21,6 +21,7 @@ import {
 } from '@/lib/api'
 import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { ConsentGate } from '@/components/legal/ConsentGate'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -303,6 +304,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       <PasswordChangeGate />
       {children}
+      {/* After the children so its overlay paints above every page. It waits for the
+          password gate (mustChangePassword) before asking for anything. */}
+      <ConsentGate />
     </AuthContext.Provider>
   )
 }

@@ -12,6 +12,7 @@ import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
+import { AcceptTermsCheckbox } from '@/components/legal/AcceptTermsCheckbox'
 
 /**
  * Account details.
@@ -34,6 +35,11 @@ export default function AccountSetupPage() {
   const [password, setPassword] = useState('')
   // R1-BE-03 — WhatsApp opt-in. Unchecked by default; never blocks submission.
   const [whatsappConsent, setWhatsappConsent] = useState(data.whatsappConsent)
+  // Terms of Use + Privacy Policy — only on this screen for an individual, whose
+  // account is created here. A business agrees on company-details, where its account
+  // is created. Never carried in the registration context: ticked where it is used.
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [termsMissing, setTermsMissing] = useState(false)
   const [passwordTouched, setPasswordTouched] = useState(false)
   const passwordInputRef = useRef<HTMLInputElement>(null)
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -105,6 +111,10 @@ export default function AccountSetupPage() {
       setError(t('employerRegister:account.passwordMismatch'))
       return
     }
+    if (isIndividual && !acceptTerms) {
+      setTermsMissing(true)
+      return
+    }
 
     // Held in memory only — never written to storage.
     update({ password, fullName: fullName.trim(), designation, whatsappConsent })
@@ -130,6 +140,7 @@ export default function AccountSetupPage() {
         phoneNumber: data.phoneNumber,
         designation: designation.trim() || undefined,
         whatsappConsent,
+        acceptTerms: true,
       })
 
       // Register issues the session itself. There used to be an unconditional
@@ -358,6 +369,15 @@ export default function AccountSetupPage() {
               />
               {t('employerRegister:account.whatsappConsentLabel')}
             </label>
+
+            {isIndividual && (
+              <AcceptTermsCheckbox
+                checked={acceptTerms}
+                onChange={setAcceptTerms}
+                showRequired={termsMissing}
+                className="text-sm text-gray-600"
+              />
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-4">

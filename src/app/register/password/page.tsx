@@ -13,6 +13,7 @@ import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
+import { AcceptTermsCheckbox } from '@/components/legal/AcceptTermsCheckbox'
 
 /**
  * The account-creation step.
@@ -36,6 +37,10 @@ export default function RegisterPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  // Terms of Use + Privacy Policy. Deliberately NOT in the registration context:
+  // it is never carried over or restored — the person ticks it on this screen.
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [termsMissing, setTermsMissing] = useState(false)
   const [error, setError] = useState('')
   // Field-level messages from the BE, keyed by field. A weak password fails two
   // rules at once, so this is a list per field and all of them are rendered.
@@ -104,6 +109,10 @@ export default function RegisterPasswordPage() {
       setError(t('auth:password.errorMismatch'))
       return
     }
+    if (!acceptTerms) {
+      setTermsMissing(true)
+      return
+    }
 
     try {
       setLoading(true)
@@ -132,6 +141,7 @@ export default function RegisterPasswordPage() {
         profilePic: data.profilePic,
         document: data.document,
         whatsappConsent: data.whatsappConsent,
+        acceptTerms: true,
       })
 
       // Log straight in. A phone-only seeker has no email to log in with, so the
@@ -359,6 +369,12 @@ export default function RegisterPasswordPage() {
                   />
                   {t('auth:password.whatsappConsentLabel')}
                 </label>
+
+                <AcceptTermsCheckbox
+                  checked={acceptTerms}
+                  onChange={setAcceptTerms}
+                  showRequired={termsMissing}
+                />
               </div>
 
               <div className="flex justify-end">

@@ -1,5 +1,24 @@
 {
   "lastUpdated": "Last updated {{date}}",
+  "consent": {
+    "agreeLabel": "I agree to the <terms>Terms & Conditions</terms> and the <privacy>Privacy Policy</privacy>",
+    "requiredHint": "Please tick the box to agree before you continue.",
+    "gate": {
+      "title": "Please review our Terms & Conditions and Privacy Policy",
+      "titleUpdated": "We have updated our Terms & Conditions and Privacy Policy",
+      "intro": "To keep using ProSiddhi, please read them and tick the box to agree. They explain what we do with your information and your rights.",
+      "readTerms": "Read the Terms & Conditions",
+      "readPrivacy": "Read the Privacy Policy",
+      "accept": "Agree and continue",
+      "accepting": "Saving…",
+      "logout": "Log out",
+      "deleteHint": "If you do not agree, you can log out, or delete your account in <settings>Settings</settings>.",
+      "loadFailed": "We could not load this. Check your internet connection and try again.",
+      "retry": "Try again",
+      "saveFailed": "We could not save your agreement. Please try again.",
+      "versionChanged": "These were updated a moment ago. Please read the latest version and agree again."
+    }
+  },
   "footer": {
     "candidates": "For Job Seekers",
     "employers": "For Employers",

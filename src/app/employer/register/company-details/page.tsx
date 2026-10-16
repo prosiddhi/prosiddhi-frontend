@@ -14,6 +14,7 @@ import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { checkEmail } from '@/lib/email'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { DatePicker } from '@/components/form/DatePicker'
+import { AcceptTermsCheckbox } from '@/components/legal/AcceptTermsCheckbox'
 
 const SIZE_VALUES: CompanySize[] = [
   'SIZE_1_10',
@@ -40,6 +41,10 @@ export default function CompanyDetailsPage() {
     registrationNumber: data.registrationNumber,
   })
   const [loading, setLoading] = useState(false)
+  // Terms of Use + Privacy Policy, ticked on this screen because this is where the
+  // business account is created. Never carried in the registration context.
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [termsMissing, setTermsMissing] = useState(false)
   const [error, setError] = useState('')
   // GST / registration number problems, shown under their own input.
   const identifiers = useIdentifierErrors()
@@ -146,6 +151,10 @@ export default function CompanyDetailsPage() {
       identifiers.show(problems)
       return
     }
+    if (!acceptTerms) {
+      setTermsMissing(true)
+      return
+    }
 
     update({ ...form, companySize: form.companySize })
 
@@ -166,6 +175,7 @@ export default function CompanyDetailsPage() {
         // Collected on the account step, carried through context — see its
         // own comment for why this screen has no checkbox of its own.
         whatsappConsent: data.whatsappConsent,
+        acceptTerms: true,
       })
 
       // Creates the account PENDING_DOCUMENTS — no trial credits until an admin
@@ -307,6 +317,15 @@ export default function CompanyDetailsPage() {
             <p className="text-sm text-secondary-70">
               {t('employerRegister:companyDetails.docsNotice')}
             </p>
+          </div>
+
+          <div className="mb-6">
+            <AcceptTermsCheckbox
+              checked={acceptTerms}
+              onChange={setAcceptTerms}
+              showRequired={termsMissing}
+              className="text-sm text-gray-600"
+            />
           </div>
 
           <div className="flex items-center justify-between gap-4">
