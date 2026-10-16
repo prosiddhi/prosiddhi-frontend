@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
-import { isMyJobsPath, rememberEmployerPage } from '@/lib/employerBackNav'
+import { inSameSection, rememberEmployerPage } from '@/lib/employerBackNav'
 
 /**
  * Every signed-in employer page gets the site footer, so About, Contact (with the
@@ -27,9 +27,10 @@ export default function EmployerLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const last = arrivedAt.current
     if (!last) rememberEmployerPage(null)
-    // Moving between My Jobs pages (list ↔ View / Edit / New) keeps what was saved, so
-    // Back from the list still reaches the page the employer first came from.
-    else if (last.path !== pathname && !(isMyJobsPath(last.path) && isMyJobsPath(pathname))) {
+    // Moving inside one section (My Jobs list ↔ View / Edit / New, Candidates list ↔ one
+    // candidate) keeps what was saved, so Back from the list still reaches the page the
+    // employer first came from.
+    else if (last.path !== pathname && !inSameSection(last.path, pathname)) {
       rememberEmployerPage(last.url)
     }
     // The query is only trusted if the address bar has caught up with the new path.

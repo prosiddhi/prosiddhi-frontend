@@ -15,6 +15,7 @@ import {
   parseCandidateTab,
   type CandidateTab,
 } from '@/lib/candidatesNav'
+import { candidatesBackUrl } from '@/lib/employerBackNav'
 import { relativeTime, initials } from '@/lib/jobFormat'
 import { employerStatusMeta } from '@/lib/applicationStatus'
 import {
@@ -49,7 +50,7 @@ const TABS: Tab[] = [
 // limit window is 15 minutes, so asking again at once would only be refused again.
 const RATE_LIMIT_COOLDOWN_MS = 2 * 60 * 1000
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 25
 
 // The committed search lives here, not in the URL: it can be a name, an email or a phone
 // number. Per signed-in user, so a second account in the same tab never sees it.
@@ -60,6 +61,14 @@ function CandidatesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
+
+  // Read when clicked, not in render: sessionStorage does not exist on the server. The
+  // link's own href is the dashboard, which is what "open in a new tab" gets.
+  const goBack = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    router.push(candidatesBackUrl())
+  }
 
   // Tab, page and job live in the URL, so refresh, Back and Forward land where the
   // employer was. Anything invalid falls back to a default (All, page 1, no job).
@@ -338,6 +347,12 @@ function CandidatesContent() {
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
+          {/* The page the employer came from, else the dashboard (see employerBackNav). */}
+          <Link href="/employer" onClick={goBack} className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+            <span>{t('buttons.back')}</span>
+          </Link>
+
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">{t('employer:candidates.title')}</h1>
           {/* Fixed-height slot: the count text must never unmount during a
               tab/search refetch, or its height collapses and the page jumps. */}
@@ -392,6 +407,7 @@ function CandidatesContent() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 value={searchDraft}
+                maxLength={200}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchDraft)}
                 placeholder={t('employer:candidates.searchPlaceholder')}
