@@ -6,7 +6,7 @@
 // (1 DOWNLOAD credit) can happen. Contact never appears in search results.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -20,6 +20,8 @@ import {
   type UnlockedCandidatesPage,
 } from '@/lib/api'
 import { initials, relativeTime } from '@/lib/jobFormat'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
+import { PreferredCities } from '@/components/employer/PreferredCities'
 import {
   Search,
   MapPin,
@@ -39,6 +41,24 @@ type Tab = 'search' | 'unlocked'
 
 const PAGE_SIZE = 12
 const MIN_QUERY = 2
+
+// The State/City filter's selects, styled like the search boxes above them.
+const PLACE_SELECT_CLS =
+  'w-full h-12 px-3 bg-[#f3f3f5] rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50 disabled:cursor-not-allowed'
+const PLACE_LABEL_CLS = 'block text-sm font-medium text-black mb-1'
+
+/**
+ * What a search was run with. Every field but `search` is optional and ABSENT when unused:
+ * `cityId` and `stateCode` are never both set (a city wins, as it does on the BE), and
+ * `nearCityId` is only ever the same city as `cityId`.
+ */
+interface WorkerFilters {
+  search: string
+  location: string
+  cityId?: string
+  stateCode?: number
+  nearCityId?: string
+}
 
 /** The most recently posted job of the lot (a job with no usable date counts as oldest). */
 function newestPosted(jobs: Job[]): Job | undefined {
@@ -76,11 +96,7 @@ function WorkerCard({ w }: { w: WorkerSnippet }) {
       </div>
 
       <div className="space-y-1 mb-3 text-sm text-[#717182]">
-        {w.location && (
-          <p className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {w.location}
-          </p>
-        )}
+        <PreferredCities cities={w.preferredCities} />
         {w.preferredSector && (
           <p className="flex items-center gap-1.5">
             <Briefcase className="w-3.5 h-3.5 flex-shrink-0" /> {w.preferredSector}
@@ -143,11 +159,7 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
             <span className="truncate">{c.email}</span>
           </p>
         )}
-        {c.location && (
-          <p className="flex items-center gap-1.5 text-[#717182]">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {c.location}
-          </p>
-        )}
+        <PreferredCities cities={c.preferredCities} className="text-[#717182]" />
       </div>
 
       {skills.length > 0 && (
@@ -288,8 +300,16 @@ function WorkersSearchContent() {
   const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'unlocked' ? 'unlocked' : 'search')
   const [queryDraft, setQueryDraft] = useState('')
   const [locationDraft, setLocationDraft] = useState('')
+  // The State/City filter, as DRAFTS: nothing here is sent until Search is pressed (`submit`).
+  // `cityDraft` is a chosen city; `stateDraft` is the state browsed in the picker, which
+  // counts as a filter on its own only while no city is chosen.
+  const [cityDraft, setCityDraft] = useState<SelectedCity | null>(null)
+  const [stateDraft, setStateDraft] = useState<number | null>(null)
+  const [nearestDraft, setNearestDraft] = useState(false)
+  // Bumped by "clear" so the picker, which keeps its own state select, starts over.
+  const [placeKey, setPlaceKey] = useState(0)
   // Committed search params (only set once a valid search is submitted).
-  const [applied, setApplied] = useState<{ search: string; location: string } | null>(null)
+  const [applied, setApplied] = useState<WorkerFilters | null>(null)
   const [page, setPage] = useState(1)
 
   const [data, setData] = useState<WorkerSearchPage | null>(null)
@@ -300,7 +320,7 @@ function WorkersSearchContent() {
   // stale results over newer ones.
   const reqIdRef = useRef(0)
 
-  const runSearch = async (params: { search: string; location: string }, pageArg: number) => {
+  const runSearch = async (params: WorkerFilters, pageArg: number) => {
     const myReq = ++reqIdRef.current
     setLoading(true)
     setError('')
@@ -308,6 +328,9 @@ function WorkersSearchContent() {
       const res = await candidateAPI.searchWorkers({
         search: params.search,
         location: params.location || undefined,
+        cityId: params.cityId,
+        stateCode: params.stateCode,
+        nearCityId: params.nearCityId,
         page: pageArg,
         limit: PAGE_SIZE,
       })
@@ -334,10 +357,30 @@ function WorkersSearchContent() {
       return
     }
     userSearchedRef.current = true
-    const params = { search, location: locationDraft.trim() }
+    // A city wins over a bare state, and "nearest first" needs a city: it is dropped otherwise,
+    // so a stale toggle can never ride along with a state or with nothing chosen.
+    const place = cityDraft
+      ? { cityId: cityDraft.id, ...(nearestDraft ? { nearCityId: cityDraft.id } : {}) }
+      : stateDraft !== null
+        ? { stateCode: stateDraft }
+        : {}
+    const params: WorkerFilters = { search, location: locationDraft.trim(), ...place }
     setApplied(params)
     setPage(1)
     void runSearch(params, 1)
+  }
+
+  // "Nearest first" belongs to a city, so it is switched off the moment the city goes.
+  const changeCity = useCallback((next: SelectedCity | null) => {
+    setCityDraft(next)
+    if (!next) setNearestDraft(false)
+  }, [])
+
+  const clearPlace = () => {
+    setCityDraft(null)
+    setStateDraft(null)
+    setNearestDraft(false)
+    setPlaceKey((k) => k + 1)
   }
 
   const goToPage = (p: number) => {
@@ -527,6 +570,52 @@ function WorkersSearchContent() {
                 {t('employer:workers.searchButton')}
               </button>
             </div>
+
+            {/* State / city filter. Chosen here, applied with the Search button above. */}
+            <fieldset className="mt-3 pt-3 border-t border-gray-100 min-w-0">
+              <legend className="sr-only">{t('employer:workers.cityFilterLegend')}</legend>
+              <StateCitySelect
+                key={placeKey}
+                className="max-w-2xl"
+                value={cityDraft}
+                onChange={changeCity}
+                onStateChange={setStateDraft}
+                initialStateCode={stateDraft}
+                selectClassName={PLACE_SELECT_CLS}
+                labelClassName={PLACE_LABEL_CLS}
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
+                <label className="inline-flex items-center gap-2 text-sm text-black min-h-[44px]">
+                  <input
+                    type="checkbox"
+                    className={`w-4 h-4 accent-primary-50 ${cityDraft === null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    checked={nearestDraft && cityDraft !== null}
+                    // aria-disabled, not disabled: a disabled control is skipped by keyboard and screen
+                    // readers, and then the hint that explains it is never reached.
+                    aria-disabled={cityDraft === null}
+                    onChange={(e) => {
+                      if (cityDraft !== null) setNearestDraft(e.target.checked)
+                    }}
+                    aria-describedby={cityDraft === null ? 'nearest-first-hint' : undefined}
+                  />
+                  {t('employer:workers.nearestFirst')}
+                </label>
+                {cityDraft === null && (
+                  <span id="nearest-first-hint" className="text-xs text-[#717182]">
+                    {t('employer:workers.nearestFirstNeedsCity')}
+                  </span>
+                )}
+                {(cityDraft !== null || stateDraft !== null) && (
+                  <button
+                    type="button"
+                    onClick={clearPlace}
+                    className="text-sm underline text-primary-50 hover:no-underline min-h-[44px]"
+                  >
+                    {t('employer:workers.clearLocationFilter')}
+                  </button>
+                )}
+              </div>
+            </fieldset>
           </div>
 
           {/* Results */}

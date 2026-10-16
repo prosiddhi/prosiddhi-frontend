@@ -753,6 +753,13 @@ export interface Job {
   numberOfPositions?: number | null
   latitude?: number | null
   longitude?: number | null
+  /**
+   * The cities the job is posted in, alphabetical (BE `cities: CITY_LIST`). Empty
+   * for a job posted before cities existed — its `location` text is all it has.
+   * Not on every job payload: only the lists and the detail read carry it.
+   * `location` above is the same cities as text, written by the BE.
+   */
+  cities?: { city: LocationCitySummary }[]
   radius?: number | null
   viewCount?: number
   applicationCount?: number
@@ -983,6 +990,13 @@ export interface SeekerProfile extends SignInMethodFlags {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    /**
+     * Home city, as GET /jobseekers/profile embeds it. null for a seeker who never picked one:
+     * their `location` text (if any) is all there is.
+     */
+    city?: LocationCitySummary | null
+    /** Preferred work cities (up to 3). Empty for a seeker who has not set any. */
+    preferredCities?: PreferredCity[]
     /** BR-1 — captured at registration; not editable from the profile form. */
     dateOfBirth?: string | null
     gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
@@ -1041,6 +1055,17 @@ export interface SeekerProfileUpdate {
   location?: string
   latitude?: number
   longitude?: number
+  /**
+   * Home city id from GET /locations/cities. When sent, the BE overwrites `location`, `latitude`
+   * and `longitude` from the city, so send it ALONE. `null` drops the link and keeps the text.
+   * Omit it to leave the city as it is.
+   */
+  cityId?: string | null
+  /**
+   * Preferred work cities (at most 3). REPLACES the whole list when present, so omit it unless the
+   * seeker changed it; `[]` deliberately empties the list.
+   */
+  preferredCityIds?: string[]
   // BR-3 — 3-level taxonomy. All optional; validateTriple checks the path when
   // any are provided.
   preferredCategory?: string
@@ -1961,8 +1986,8 @@ export type PaymentTypeValue = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FIXE
 export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 // Mirrors the BE createJobSchema (POST /api/jobs). Only `title/description/
-// category/location/jobType` are required server-side; the rest are optional.
-export interface PostJobData {
+// category/cityIds/jobType` are required server-side; the rest are optional.
+export interface JobFields {
   title: string
   description: string
   // BR-3 — 3-level taxonomy. `category` required (BE), `sector`/`jobTitle`
@@ -1972,18 +1997,6 @@ export interface PostJobData {
   jobTitle?: string
   requirements?: string
   skillsRequired?: string[]
-  location: string
-  /**
-   * `null` CLEARS a stored coordinate; omitting the field leaves it alone.
-   *
-   * The distinction only became expressible with TD-42 — these were
-   * `.optional()` and not `.nullable()` on the backend, so a pin could be set
-   * and never removed, and a job edited away from its city kept showing to the
-   * old city's seekers. Only the UPDATE schemas accept null; on create there is
-   * nothing to clear.
-   */
-  latitude?: number | null
-  longitude?: number | null
   // NO `radius` field, deliberately (TD-03). The backend accepts one, stores it,
   // and never reads it — `getNearbyForSeeker` filters on the SEEKER's radius —
   // so a wrong value here is invisible until someone wires it up, by which time
@@ -2004,6 +2017,25 @@ export interface PostJobData {
   // silently STRIPPED them rather than erroring, which is exactly why the portal
   // went on sending them unnoticed.
 }
+
+/**
+ * A new post (POST /api/jobs). `cityIds` is the cities the job is posted in: 1–5 ids
+ * from GET /locations/cities. The BE writes the job's `location` text and its
+ * coordinates from them and silently drops `location` / `latitude` / `longitude`
+ * if sent, so this type has none of those.
+ */
+export type PostJobData = JobFields & { cityIds: string[] }
+
+/**
+ * An edit (PUT /api/jobs/:id). `cityIds` is optional: leaving it out keeps the
+ * job's cities as they are (job.service.ts updateJob only touches them when the field
+ * is present), which is how a job posted before cities existed is edited without
+ * picking one. When present it replaces the job's cities and holds 1–5 ids.
+ *
+ * ⚠️ Never `[]`: the BE refuses an empty list with a 400 (job.validator.ts
+ * `cityIds.min(1)`); it does not clear anything.
+ */
+export type UpdateJobData = JobFields & { cityIds?: string[] }
 
 export interface JobApplication {
   id: string
@@ -2322,7 +2354,7 @@ export const employerAPI = {
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
-  updateJob: async (jobId: string, jobData: Partial<PostJobData>) => {
+  updateJob: async (jobId: string, jobData: Partial<UpdateJobData>) => {
     return apiRequest<Job>(`/jobs/${jobId}`, {
       method: 'PUT',
       body: JSON.stringify(jobData),
@@ -2742,6 +2774,85 @@ export const taxonomyAPI = {
 }
 
 // ==========================================
+// LOCATION APIs (states + cities)
+// ==========================================
+//
+// Public, no JWT. Shapes are the BE's, read from taxonomy.validator.ts at backend
+// 34a534a — do not add fields here that the BE does not send (a city carries no
+// state code; only the nearest-city lookup carries the state, and only its name).
+
+/** One state or union territory. `code` is the LGD state code. */
+export interface LocationState {
+  code: number
+  name: string
+}
+
+/**
+ * One selectable city of a state. Towns that belong to a larger city (Whitefield →
+ * Bengaluru) are not listed; the BE resolves them to the parent on save.
+ */
+export interface LocationCity {
+  id: string
+  name: string
+}
+
+/** A city as the BE embeds it elsewhere (nearest lookup, profiles, job `cities`). */
+export interface LocationCitySummary {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  state: { name: string }
+}
+
+export interface NearestCityResult {
+  /** null: the point is outside India, at sea, or `accuracy` was worse than 2000 m. */
+  city: LocationCitySummary | null
+}
+
+export const locationAPI = {
+  // GET /api/locations/states → LocationState[] (36 rows, sorted by name).
+  getStates: async (opts: { signal?: AbortSignal } = {}) => {
+    return apiRequest<LocationState[]>('/locations/states', { signal: opts.signal })
+  },
+
+  // GET /api/locations/cities?state=<code> → LocationCity[] (sorted by name). An
+  // unknown code is a 200 with []; Lakshadweep (31) also has none.
+  getCities: async (stateCode: number, opts: { signal?: AbortSignal } = {}) => {
+    return apiRequest<LocationCity[]>(`/locations/cities?state=${encodeURIComponent(String(stateCode))}`, {
+      signal: opts.signal,
+    })
+  },
+
+  // GET /api/locations/nearest?lat=&lng=[&accuracy=metres] → { city | null }.
+  // `accuracy` is the browser's `coords.accuracy`; the BE ignores a reading worse
+  // than 2000 m. Omit it when unknown rather than sending 0.
+  //
+  // The BE takes plain decimals only (taxonomy.validator.ts: lat/lng
+  // /^-?\d{1,3}(\.\d+)?$/, |lat| <= 90, |lng| <= 180; accuracy /^\d+(\.\d+)?$/).
+  // A NaN, an Infinity or an out-of-range value is refused here instead of costing
+  // a 400, and a number JS would print in exponent form ("1e-7") is written out in
+  // full. The value itself is sent as given, not rounded.
+  getNearestCity: async (
+    params: { lat: number; lng: number; accuracy?: number },
+    opts: { signal?: AbortSignal } = {}
+  ) => {
+    const { lat, lng, accuracy } = params
+    if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+      throw new RangeError('getNearestCity needs a latitude within ±90 and a longitude within ±180')
+    }
+    const plain = (n: number) => (/e/i.test(String(n)) ? n.toFixed(20) : String(n))
+    const qs = new URLSearchParams({ lat: plain(lat), lng: plain(lng) })
+    if (accuracy !== undefined && Number.isFinite(accuracy) && accuracy >= 0) {
+      // Anything past 2000 m is ignored by the BE alike, so the cap only keeps a
+      // huge reading out of exponent form.
+      qs.set('accuracy', String(Math.min(Math.round(accuracy), 1_000_000)))
+    }
+    return apiRequest<NearestCityResult>(`/locations/nearest?${qs.toString()}`, { signal: opts.signal })
+  },
+}
+
+// ==========================================
 // CANDIDATE DATABASE APIs (Phase 2 — search + unlock)
 // ==========================================
 //
@@ -2760,15 +2871,31 @@ export interface CandidateExperience {
   currentlyWorking: boolean
 }
 
+/**
+ * One of a seeker's preferred work cities, as an EMPLOYER sees it (BE CITY_NAME_LIST): names
+ * only, no coordinates, alphabetical, at most 3. The seeker sets them; an employer cannot.
+ * These replaced `location` (the seeker's home text, no longer sent to employers) on the
+ * search, candidate and unlocked views.
+ */
+export interface PreferredCity {
+  city: { id: string; name: string; state: { name: string } }
+}
+
 // A search-result snippet — NEVER includes contact (email/phone).
 export interface WorkerSnippet {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
   preferredSector: string | null
   preferredJobTitle: string | null
+  // Empty for a seeker who has not set any (every existing one, until they do).
+  preferredCities: PreferredCity[]
+  isActivelyLooking?: boolean
+  // Already unlocked by this employer.
+  unlocked?: boolean
+  // Only with `nearCityId`: km from that city to the seeker's nearest city; null if they have none.
+  distanceKm?: number | null
   createdAt: string
   relevanceScore: number
   skills: CandidateSkillLink[]
@@ -2786,8 +2913,8 @@ export interface CandidateProfile {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
+  preferredCities: PreferredCity[]
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
@@ -2815,8 +2942,8 @@ export interface UnlockedCandidate {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
+  preferredCities: PreferredCity[]
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
@@ -2838,7 +2965,14 @@ export interface UnlockedCandidatesPage {
 export interface WorkerSearchParams {
   search: string // required, 2–200 chars
   preferredSector?: string
+  // Free text, matched against the seeker's home location text. Independent of the city filters.
   location?: string
+  // Seekers whose home city or a preferred city is this city / in this state (BE
+  // jobseeker-search.validator.ts). `cityId` wins over `stateCode`, so only one is ever sent.
+  cityId?: string
+  stateCode?: number
+  // List the matches nearest this city first; each row then carries `distanceKm`.
+  nearCityId?: string
   page?: number
   limit?: number
 }
@@ -2850,6 +2984,11 @@ export const candidateAPI = {
     qs.set('search', params.search)
     if (params.preferredSector) qs.set('preferredSector', params.preferredSector)
     if (params.location) qs.set('location', params.location)
+    // Never both: the BE ignores `stateCode` when `cityId` is present, so sending both would
+    // only describe a filter that is not the one applied.
+    if (params.cityId) qs.set('cityId', params.cityId)
+    else if (params.stateCode !== undefined) qs.set('stateCode', String(params.stateCode))
+    if (params.nearCityId) qs.set('nearCityId', params.nearCityId)
     qs.set('page', String(params.page ?? 1))
     qs.set('limit', String(params.limit ?? 10))
     return apiRequest<WorkerSearchPage>(`/employers/search/workers?${qs.toString()}`)
@@ -3177,6 +3316,7 @@ const api = {
   employerAPI,
   subscriptionAPI,
   taxonomyAPI,
+  locationAPI,
   candidateAPI,
   teamAPI,
   chatAPI,

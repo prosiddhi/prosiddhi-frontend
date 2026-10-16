@@ -34,11 +34,14 @@ const LIMITS = {
   companyName: { max: 200 },
   category: { min: 2, max: 100 },
   description: { min: 50, max: 5000 },
-  location: { min: 3, max: 255 },
+  cities: { min: 1, max: 5 },
   requirements: { max: 3000 },
   skills: { max: 20 },
   positions: { min: 1, max: 1000 },
 } as const
+
+/** Most cities a job can be posted in (BE `cityIds` max). The picker and the schema both use it. */
+export const MAX_JOB_CITIES = LIMITS.cities.max
 
 /** Trimmed length between `min` and `max`; each side has its own message. */
 function text(min: number, max: number, minKey: string, maxKey: string) {
@@ -75,43 +78,77 @@ export function parseSkills(skills: string): string[] {
     .filter(Boolean)
 }
 
-export const jobFormSchema = z
-  .object({
-    title: text(LIMITS.title.min, LIMITS.title.max, V + 'titleMin', V + 'titleMax'),
-    companyName: maxText(LIMITS.companyName.max, V + 'companyMax'),
-    category: text(LIMITS.category.min, LIMITS.category.max, V + 'categoryRequired', V + 'categoryMax'),
-    // Chosen from the picker, which only offers valid names — nothing to check here.
-    sector: z.string(),
-    jobTitle: z.string(),
-    description: text(LIMITS.description.min, LIMITS.description.max, V + 'descriptionMin', V + 'descriptionMax'),
-    requirements: maxText(LIMITS.requirements.max, V + 'requirementsMax'),
-    skills: z.string().superRefine((value, ctx) => {
-      if (parseSkills(value).length > LIMITS.skills.max) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: V + 'skillsMax' })
+/**
+ * The cities picked in the form: `{ id, name, stateName }` as StateCitySelect holds them.
+ * Only the ids are sent; the names and states are there to show the chips.
+ *
+ * `requireCities` is false for exactly one case: editing a job that was posted
+ * before cities existed and has none. That job must stay editable without picking
+ * one, so zero is allowed there and JobForm then leaves `cityIds` out of the
+ * payload altogether. The upper limit holds in every mode; it is the BE's
+ * (job.validator.ts: `cityIds` is 1 to 5).
+ */
+function cities(requireCities: boolean) {
+  return z
+    .array(
+      z.object({
+        // A city without an id cannot be sent; reported like having picked none.
+        id: z.string().min(1, V + 'citiesRequired'),
+        name: z.string(),
+        stateName: z.string().optional(),
+      })
+    )
+    .superRefine((value, ctx) => {
+      if (value.length < LIMITS.cities.min && requireCities) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: V + 'citiesRequired' })
+      } else if (value.length > LIMITS.cities.max) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: V + 'citiesMax' })
       }
-    }),
-    location: text(LIMITS.location.min, LIMITS.location.max, V + 'locationRequired', V + 'locationMax'),
-    salaryMin: optionalNumber(V + 'salaryInvalid', (n) => Number.isFinite(n) && n >= 0),
-    salaryMax: optionalNumber(V + 'salaryInvalid', (n) => Number.isFinite(n) && n >= 0),
-    paymentType: z.enum(PAYMENT_TYPES),
-    jobType: z
-      .string()
-      .refine((v) => (JOB_TYPES as readonly string[]).includes(v), { message: V + 'jobTypeRequired' }),
-    urgencyLevel: z.enum(URGENCY_LEVELS),
-    // Blank is allowed: the payload sends 1 (its default). A typed value must be a
-    // whole number the server accepts.
-    numberOfPositions: optionalNumber(
-      V + 'positionsRange',
-      (n) => Number.isInteger(n) && n >= LIMITS.positions.min && n <= LIMITS.positions.max,
-    ),
-  })
-  .superRefine((values, ctx) => {
-    // Checked only when both are filled in; a bad number is already reported on its own field.
-    const min = toNum(values.salaryMin)
-    const max = toNum(values.salaryMax)
-    if (min !== undefined && max !== undefined && max < min) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['salaryMax'], message: V + 'salaryRange' })
-    }
-  })
+    })
+}
+
+export function buildJobFormSchema({ requireCities }: { requireCities: boolean }) {
+  return z
+    .object({
+      title: text(LIMITS.title.min, LIMITS.title.max, V + 'titleMin', V + 'titleMax'),
+      companyName: maxText(LIMITS.companyName.max, V + 'companyMax'),
+      category: text(LIMITS.category.min, LIMITS.category.max, V + 'categoryRequired', V + 'categoryMax'),
+      // Chosen from the picker, which only offers valid names — nothing to check here.
+      sector: z.string(),
+      jobTitle: z.string(),
+      description: text(LIMITS.description.min, LIMITS.description.max, V + 'descriptionMin', V + 'descriptionMax'),
+      requirements: maxText(LIMITS.requirements.max, V + 'requirementsMax'),
+      skills: z.string().superRefine((value, ctx) => {
+        if (parseSkills(value).length > LIMITS.skills.max) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: V + 'skillsMax' })
+        }
+      }),
+      cities: cities(requireCities),
+      salaryMin: optionalNumber(V + 'salaryInvalid', (n) => Number.isFinite(n) && n >= 0),
+      salaryMax: optionalNumber(V + 'salaryInvalid', (n) => Number.isFinite(n) && n >= 0),
+      paymentType: z.enum(PAYMENT_TYPES),
+      jobType: z
+        .string()
+        .refine((v) => (JOB_TYPES as readonly string[]).includes(v), { message: V + 'jobTypeRequired' }),
+      urgencyLevel: z.enum(URGENCY_LEVELS),
+      // Blank is allowed: the payload sends 1 (its default). A typed value must be a
+      // whole number the server accepts.
+      numberOfPositions: optionalNumber(
+        V + 'positionsRange',
+        (n) => Number.isInteger(n) && n >= LIMITS.positions.min && n <= LIMITS.positions.max,
+      ),
+    })
+    .superRefine((values, ctx) => {
+      // Checked only when both are filled in; a bad number is already reported on its own field.
+      const min = toNum(values.salaryMin)
+      const max = toNum(values.salaryMax)
+      if (min !== undefined && max !== undefined && max < min) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['salaryMax'], message: V + 'salaryRange' })
+      }
+    })
+}
+
+/** The strict form: a city is required. New posts and jobs that already have cities. */
+export const jobFormSchema = buildJobFormSchema({ requireCities: true })
 
 export type JobFormValues = z.infer<typeof jobFormSchema>

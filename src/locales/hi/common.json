@@ -208,7 +208,21 @@
     "useMyLocation": "मेरी अभी की जगह इस्तेमाल करें",
     "locating": "आपकी जगह ढूँढ रहे हैं…",
     "denied": "जगह की अनुमति नहीं मिली। अपने शहर का नाम लिखें — वह भी चलेगा।",
-    "failed": "आपकी जगह नहीं मिल पाई। अपने शहर का नाम लिखें।"
+    "failed": "आपकी जगह नहीं मिल पाई। अपने शहर का नाम लिखें।",
+    "stateLabel": "राज्य",
+    "cityLabel": "शहर",
+    "citiesLabel": "शहर",
+    "statePlaceholder": "राज्य चुनें",
+    "cityPlaceholder": "शहर चुनें",
+    "addCityPlaceholder": "शहर जोड़ें",
+    "cityPlaceholderNoState": "पहले राज्य चुनें",
+    "loading": "लोड हो रहा है…",
+    "noCities": "इस राज्य के लिए कोई शहर नहीं मिला",
+    "loadFailed": "सूची लोड नहीं हो सकी।",
+    "retry": "फिर कोशिश करें",
+    "removeCity": "{{city}} हटाएं",
+    "selectedCount": "{{max}} में से {{selected}} चुने गए",
+    "limitReached": "आप अधिकतम {{max}} शहर चुन सकते हैं।"
   },
   "applicationStatus": {
     "PENDING": "आवेदन किया गया",

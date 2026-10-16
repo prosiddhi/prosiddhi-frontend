@@ -19,9 +19,13 @@ import type { Coords } from '@/lib/cities'
  */
 export function UseMyLocation({
   onLocated,
+  disabled = false,
   className = '',
 }: {
-  onLocated: (coords: Coords) => void
+  /** Locks the button from outside, e.g. while the host form is saving. */
+  disabled?: boolean
+  /** `accuracy` is the browser's `coords.accuracy` in metres, for callers that look up a city. */
+  onLocated: (coords: Coords, accuracy?: number) => void
   className?: string
 }) {
   const { t } = useTranslation()
@@ -41,10 +45,13 @@ export function UseMyLocation({
         // Rounded to 3 decimals — about 110 m. Job distance is measured in
         // kilometres against a radius of 5 to 50, so nothing here needs to know
         // which building a worker sleeps in.
-        onLocated({
-          lat: Math.round(pos.coords.latitude * 1000) / 1000,
-          lon: Math.round(pos.coords.longitude * 1000) / 1000,
-        })
+        onLocated(
+          {
+            lat: Math.round(pos.coords.latitude * 1000) / 1000,
+            lon: Math.round(pos.coords.longitude * 1000) / 1000,
+          },
+          pos.coords.accuracy
+        )
       },
       (err) => {
         setBusy(false)
@@ -65,7 +72,7 @@ export function UseMyLocation({
       <button
         type="button"
         onClick={ask}
-        disabled={busy}
+        disabled={busy || disabled}
         className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
