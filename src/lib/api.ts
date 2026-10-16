@@ -2070,9 +2070,13 @@ export interface CandidateWorkExperience {
   startDate?: string
   endDate?: string | null
 }
+// What an employer gets for an applicant: verified qualifications only — the BE never
+// sends identity or address proof to employers (seeker-exposure.ts). The field is
+// `type`, like every Document row (it was read as `documentType`, which never came).
 export interface CandidateDocument {
   id?: string
-  documentType?: string | null
+  type?: 'EDUCATION_CERTIFICATE' | 'SKILL_CERTIFICATE'
+  fileName?: string
   fileUrl?: string
   verified?: boolean
 }
@@ -2778,8 +2782,9 @@ export interface WorkerSearchPage {
   pagination: JobsPagination
 }
 
-// Full candidate profile. Contact + PII fields (email … unlockedAt) are present
-// ONLY when `unlocked` is true (i.e. this employer has spent a DOWNLOAD credit).
+// Full candidate profile. Contact fields (email, phoneNumber, unlockedAt) are present
+// ONLY when `unlocked` is true (i.e. this employer has spent a DOWNLOAD credit). Date
+// of birth, gender and coordinates are never sent to an employer, unlocked or not.
 export interface CandidateProfile {
   id: string
   fullName: string
@@ -2795,10 +2800,6 @@ export interface CandidateProfile {
   // unlocked-only:
   email?: string
   phoneNumber?: string
-  dateOfBirth?: string | null
-  gender?: string | null
-  latitude?: number | null
-  longitude?: number | null
   unlockedAt?: string
 }
 export interface CandidateProfileResult {

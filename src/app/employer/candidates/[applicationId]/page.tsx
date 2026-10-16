@@ -288,7 +288,7 @@ function CandidateDetailContent() {
                         className="flex items-center gap-2 text-sm text-primary-50 hover:underline"
                       >
                         <FileText className="w-4 h-4" />
-                        {d.documentType || t('employer:candidateDetail.documentFallback')} {d.verified ? t('employer:candidateDetail.verified') : ''}
+                        {d.type ? t(`profile:documents.types.${d.type}`) : t('employer:candidateDetail.documentFallback')} {d.verified ? t('employer:candidateDetail.verified') : ''}
                       </a>
                     ))}
                   </div>
