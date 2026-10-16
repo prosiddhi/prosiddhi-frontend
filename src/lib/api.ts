@@ -2852,15 +2852,31 @@ export interface CandidateExperience {
   currentlyWorking: boolean
 }
 
+/**
+ * One of a seeker's preferred work cities, as an EMPLOYER sees it (BE CITY_NAME_LIST): names
+ * only, no coordinates, alphabetical, at most 3. The seeker sets them; an employer cannot.
+ * These replaced `location` (the seeker's home text, no longer sent to employers) on the
+ * search, candidate and unlocked views.
+ */
+export interface PreferredCity {
+  city: { id: string; name: string; state: { name: string } }
+}
+
 // A search-result snippet — NEVER includes contact (email/phone).
 export interface WorkerSnippet {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
   preferredSector: string | null
   preferredJobTitle: string | null
+  // Empty for a seeker who has not set any (every existing one, until they do).
+  preferredCities: PreferredCity[]
+  isActivelyLooking?: boolean
+  // Already unlocked by this employer.
+  unlocked?: boolean
+  // Only with `nearCityId`: km from that city to the seeker's nearest city; null if they have none.
+  distanceKm?: number | null
   createdAt: string
   relevanceScore: number
   skills: CandidateSkillLink[]
@@ -2877,8 +2893,8 @@ export interface CandidateProfile {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
+  preferredCities: PreferredCity[]
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
@@ -2910,8 +2926,8 @@ export interface UnlockedCandidate {
   id: string
   fullName: string
   profilePhoto: string | null
-  location: string
   bio: string
+  preferredCities: PreferredCity[]
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
@@ -2933,7 +2949,14 @@ export interface UnlockedCandidatesPage {
 export interface WorkerSearchParams {
   search: string // required, 2–200 chars
   preferredSector?: string
+  // Free text, matched against the seeker's home location text. Independent of the city filters.
   location?: string
+  // Seekers whose home city or a preferred city is this city / in this state (BE
+  // jobseeker-search.validator.ts). `cityId` wins over `stateCode`, so only one is ever sent.
+  cityId?: string
+  stateCode?: number
+  // List the matches nearest this city first; each row then carries `distanceKm`.
+  nearCityId?: string
   page?: number
   limit?: number
 }
@@ -2945,6 +2968,11 @@ export const candidateAPI = {
     qs.set('search', params.search)
     if (params.preferredSector) qs.set('preferredSector', params.preferredSector)
     if (params.location) qs.set('location', params.location)
+    // Never both: the BE ignores `stateCode` when `cityId` is present, so sending both would
+    // only describe a filter that is not the one applied.
+    if (params.cityId) qs.set('cityId', params.cityId)
+    else if (params.stateCode !== undefined) qs.set('stateCode', String(params.stateCode))
+    if (params.nearCityId) qs.set('nearCityId', params.nearCityId)
     qs.set('page', String(params.page ?? 1))
     qs.set('limit', String(params.limit ?? 10))
     return apiRequest<WorkerSearchPage>(`/employers/search/workers?${qs.toString()}`)
