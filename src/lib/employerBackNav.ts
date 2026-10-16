@@ -26,12 +26,31 @@ export function rememberEmployerPage(previous: string | null): void {
 }
 
 /**
- * Where My Jobs' Back goes: the employer page they came from, else the dashboard.
- * The stored value is re-checked here: it must be a same-site path inside the employer
- * area. My Jobs' own pages (View, Edit, New) are skipped — Back from the list should
- * not step into the job the employer just left.
+ * Sections of the employer area whose pages lead to each other: a list and the pages
+ * opened from it (My Jobs → View / Edit / New; Candidates → one candidate). Moving
+ * inside a section must not change the saved page, and Back from the list must never
+ * land back inside its own section.
  */
-export function myJobsBackUrl(): string {
+const MY_JOBS = `${DASHBOARD}/jobs`
+const CANDIDATES = `${DASHBOARD}/candidates`
+const SECTIONS = [MY_JOBS, CANDIDATES]
+
+function inSection(path: string, section: string): boolean {
+  return path === section || path.startsWith(`${section}/`)
+}
+
+/** True when both paths are in the same section (e.g. the Candidates list and one candidate). */
+export function inSameSection(a: string, b: string): boolean {
+  return SECTIONS.some((section) => inSection(a, section) && inSection(b, section))
+}
+
+/**
+ * Where a list page's Back goes: the employer page they came from, else the dashboard.
+ * The stored value is re-checked here: it must be a same-site path inside the employer
+ * area, and not in the list's own section — Back from the list should not step into the
+ * job or candidate the employer just left.
+ */
+function backUrlOutside(section: string): string {
   let stored: string | null = null
   try {
     stored = sessionStorage.getItem(KEY)
@@ -42,10 +61,8 @@ export function myJobsBackUrl(): string {
   if (!safe) return DASHBOARD
   const path = new URL(safe, 'http://placeholder.invalid').pathname
   const inEmployerArea = path === DASHBOARD || path.startsWith(`${DASHBOARD}/`)
-  return inEmployerArea && !isMyJobsPath(path) ? safe : DASHBOARD
+  return inEmployerArea && !inSection(path, section) ? safe : DASHBOARD
 }
 
-/** The My Jobs list or one of its sub-pages (View, Edit, New). */
-export function isMyJobsPath(path: string): boolean {
-  return path === `${DASHBOARD}/jobs` || path.startsWith(`${DASHBOARD}/jobs/`)
-}
+export const myJobsBackUrl = () => backUrlOutside(MY_JOBS)
+export const candidatesBackUrl = () => backUrlOutside(CANDIDATES)
