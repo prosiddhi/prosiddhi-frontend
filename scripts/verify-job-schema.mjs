@@ -29,7 +29,7 @@ mod.filename = file
 mod.paths = Module._nodeModulePaths(path.dirname(file))
 mod.require = createRequire(file)
 mod._compile(outputText, file)
-const { jobFormSchema, parseSkills } = mod.exports
+const { jobFormSchema, buildJobFormSchema, parseSkills } = mod.exports
 
 const V = 'employer:jobForm.validation.'
 const VALID = {
@@ -41,7 +41,7 @@ const VALID = {
   description: 'x'.repeat(50),
   requirements: '',
   skills: '',
-  location: 'Pune',
+  cities: [{ id: 'c1', name: 'Pune', stateName: 'Maharashtra' }],
   salaryMin: '',
   salaryMax: '',
   paymentType: 'MONTHLY',
@@ -54,8 +54,8 @@ const failures = []
 let checks = 0
 
 /** The first message the schema reports for `field` when `over` is applied to a valid form. */
-function messageFor(field, over) {
-  const r = jobFormSchema.safeParse({ ...VALID, ...over })
+function messageFor(field, over, schema = jobFormSchema) {
+  const r = schema.safeParse({ ...VALID, ...over })
   if (r.success) return null
   return r.error.issues.find((i) => i.path[0] === field)?.message ?? null
 }
@@ -92,11 +92,22 @@ expect('description 50', messageFor('description', { description: 'x'.repeat(50)
 expect('description 5000', messageFor('description', { description: 'x'.repeat(5000) }), null)
 expect('description 5001', messageFor('description', { description: 'x'.repeat(5001) }), V + 'descriptionMax')
 
-// location 3..255
-expect('location 2', messageFor('location', { location: 'ab' }), V + 'locationRequired')
-expect('location 3', messageFor('location', { location: 'abc' }), null)
-expect('location 255', messageFor('location', { location: 'x'.repeat(255) }), null)
-expect('location 256', messageFor('location', { location: 'x'.repeat(256) }), V + 'locationMax')
+// cities 1..5 (BE createJobSchema `cityIds`); zero is allowed only for a legacy edit
+const city = (n) => ({ id: `c${n}`, name: `City ${n}` })
+const cityList = (n) => Array.from({ length: n }, (_, i) => city(i + 1))
+const legacy = buildJobFormSchema({ requireCities: false })
+expect('cities 0', messageFor('cities', { cities: [] }), V + 'citiesRequired')
+expect('cities 1', messageFor('cities', { cities: cityList(1) }), null)
+expect('cities 5', messageFor('cities', { cities: cityList(5) }), null)
+expect('cities 6', messageFor('cities', { cities: cityList(6) }), V + 'citiesMax')
+expect('cities without stateName', messageFor('cities', { cities: [{ id: 'c1', name: 'Pune' }] }), null)
+expect('cities empty id', messageFor('cities', { cities: [{ id: '', name: 'Pune' }] }), V + 'citiesRequired')
+expect('legacy: 0 cities is fine', messageFor('cities', { cities: [] }, legacy), null)
+expect('legacy: 1 city', messageFor('cities', { cities: cityList(1) }, legacy), null)
+expect('legacy: 5 cities', messageFor('cities', { cities: cityList(5) }, legacy), null)
+expect('legacy: 6 cities still refused', messageFor('cities', { cities: cityList(6) }, legacy), V + 'citiesMax')
+expect('legacy: other fields still checked', messageFor('title', { title: 'ab', cities: [] }, legacy), V + 'titleMin')
+expect('a stray location is dropped, not carried', 'location' in jobFormSchema.parse({ ...VALID, location: 'x' }), false)
 
 // optional text
 expect('company 200', messageFor('companyName', { companyName: 'x'.repeat(200) }), null)

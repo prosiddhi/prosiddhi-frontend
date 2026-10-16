@@ -742,6 +742,13 @@ export interface Job {
   numberOfPositions?: number | null
   latitude?: number | null
   longitude?: number | null
+  /**
+   * The cities the job is posted in, alphabetical (BE `cities: CITY_LIST`). Empty
+   * for a job posted before cities existed — its `location` text is all it has.
+   * Not on every job payload: only the lists and the detail read carry it.
+   * `location` above is the same cities as text, written by the BE.
+   */
+  cities?: { city: LocationCitySummary }[]
   radius?: number | null
   viewCount?: number
   applicationCount?: number
@@ -1944,8 +1951,8 @@ export type PaymentTypeValue = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FIXE
 export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 // Mirrors the BE createJobSchema (POST /api/jobs). Only `title/description/
-// category/location/jobType` are required server-side; the rest are optional.
-export interface PostJobData {
+// category/cityIds/jobType` are required server-side; the rest are optional.
+export interface JobFields {
   title: string
   description: string
   // BR-3 — 3-level taxonomy. `category` required (BE), `sector`/`jobTitle`
@@ -1955,18 +1962,6 @@ export interface PostJobData {
   jobTitle?: string
   requirements?: string
   skillsRequired?: string[]
-  location: string
-  /**
-   * `null` CLEARS a stored coordinate; omitting the field leaves it alone.
-   *
-   * The distinction only became expressible with TD-42 — these were
-   * `.optional()` and not `.nullable()` on the backend, so a pin could be set
-   * and never removed, and a job edited away from its city kept showing to the
-   * old city's seekers. Only the UPDATE schemas accept null; on create there is
-   * nothing to clear.
-   */
-  latitude?: number | null
-  longitude?: number | null
   // NO `radius` field, deliberately (TD-03). The backend accepts one, stores it,
   // and never reads it — `getNearbyForSeeker` filters on the SEEKER's radius —
   // so a wrong value here is invisible until someone wires it up, by which time
@@ -1987,6 +1982,25 @@ export interface PostJobData {
   // silently STRIPPED them rather than erroring, which is exactly why the portal
   // went on sending them unnoticed.
 }
+
+/**
+ * A new post (POST /api/jobs). `cityIds` is the cities the job is posted in: 1–5 ids
+ * from GET /locations/cities. The BE writes the job's `location` text and its
+ * coordinates from them and silently drops `location` / `latitude` / `longitude`
+ * if sent, so this type has none of those.
+ */
+export type PostJobData = JobFields & { cityIds: string[] }
+
+/**
+ * An edit (PUT /api/jobs/:id). `cityIds` is optional: leaving it out keeps the
+ * job's cities as they are (job.service.ts updateJob only touches them when the field
+ * is present), which is how a job posted before cities existed is edited without
+ * picking one. When present it replaces the job's cities and holds 1–5 ids.
+ *
+ * ⚠️ Never `[]`: the BE refuses an empty list with a 400 (job.validator.ts
+ * `cityIds.min(1)`); it does not clear anything.
+ */
+export type UpdateJobData = JobFields & { cityIds?: string[] }
 
 export interface JobApplication {
   id: string
@@ -2301,7 +2315,7 @@ export const employerAPI = {
   },
 
   // Update / delete job. PUT|DELETE /api/jobs/:id
-  updateJob: async (jobId: string, jobData: Partial<PostJobData>) => {
+  updateJob: async (jobId: string, jobData: Partial<UpdateJobData>) => {
     return apiRequest<Job>(`/jobs/${jobId}`, {
       method: 'PUT',
       body: JSON.stringify(jobData),
@@ -2737,6 +2751,85 @@ export const taxonomyAPI = {
   // Public taxonomy tree. GET /api/categories → TaxonomyCategory[].
   getCategories: async () => {
     return apiRequest<TaxonomyCategory[]>('/categories')
+  },
+}
+
+// ==========================================
+// LOCATION APIs (states + cities)
+// ==========================================
+//
+// Public, no JWT. Shapes are the BE's, read from taxonomy.validator.ts at backend
+// 34a534a — do not add fields here that the BE does not send (a city carries no
+// state code; only the nearest-city lookup carries the state, and only its name).
+
+/** One state or union territory. `code` is the LGD state code. */
+export interface LocationState {
+  code: number
+  name: string
+}
+
+/**
+ * One selectable city of a state. Towns that belong to a larger city (Whitefield →
+ * Bengaluru) are not listed; the BE resolves them to the parent on save.
+ */
+export interface LocationCity {
+  id: string
+  name: string
+}
+
+/** A city as the BE embeds it elsewhere (nearest lookup, profiles, job `cities`). */
+export interface LocationCitySummary {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  state: { name: string }
+}
+
+export interface NearestCityResult {
+  /** null: the point is outside India, at sea, or `accuracy` was worse than 2000 m. */
+  city: LocationCitySummary | null
+}
+
+export const locationAPI = {
+  // GET /api/locations/states → LocationState[] (36 rows, sorted by name).
+  getStates: async (opts: { signal?: AbortSignal } = {}) => {
+    return apiRequest<LocationState[]>('/locations/states', { signal: opts.signal })
+  },
+
+  // GET /api/locations/cities?state=<code> → LocationCity[] (sorted by name). An
+  // unknown code is a 200 with []; Lakshadweep (31) also has none.
+  getCities: async (stateCode: number, opts: { signal?: AbortSignal } = {}) => {
+    return apiRequest<LocationCity[]>(`/locations/cities?state=${encodeURIComponent(String(stateCode))}`, {
+      signal: opts.signal,
+    })
+  },
+
+  // GET /api/locations/nearest?lat=&lng=[&accuracy=metres] → { city | null }.
+  // `accuracy` is the browser's `coords.accuracy`; the BE ignores a reading worse
+  // than 2000 m. Omit it when unknown rather than sending 0.
+  //
+  // The BE takes plain decimals only (taxonomy.validator.ts: lat/lng
+  // /^-?\d{1,3}(\.\d+)?$/, |lat| <= 90, |lng| <= 180; accuracy /^\d+(\.\d+)?$/).
+  // A NaN, an Infinity or an out-of-range value is refused here instead of costing
+  // a 400, and a number JS would print in exponent form ("1e-7") is written out in
+  // full. The value itself is sent as given, not rounded.
+  getNearestCity: async (
+    params: { lat: number; lng: number; accuracy?: number },
+    opts: { signal?: AbortSignal } = {}
+  ) => {
+    const { lat, lng, accuracy } = params
+    if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+      throw new RangeError('getNearestCity needs a latitude within ±90 and a longitude within ±180')
+    }
+    const plain = (n: number) => (/e/i.test(String(n)) ? n.toFixed(20) : String(n))
+    const qs = new URLSearchParams({ lat: plain(lat), lng: plain(lng) })
+    if (accuracy !== undefined && Number.isFinite(accuracy) && accuracy >= 0) {
+      // Anything past 2000 m is ignored by the BE alike, so the cap only keeps a
+      // huge reading out of exponent form.
+      qs.set('accuracy', String(Math.min(Math.round(accuracy), 1_000_000)))
+    }
+    return apiRequest<NearestCityResult>(`/locations/nearest?${qs.toString()}`, { signal: opts.signal })
   },
 }
 
@@ -3179,6 +3272,7 @@ const api = {
   employerAPI,
   subscriptionAPI,
   taxonomyAPI,
+  locationAPI,
   candidateAPI,
   teamAPI,
   chatAPI,

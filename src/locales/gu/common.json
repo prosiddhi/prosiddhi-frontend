@@ -200,7 +200,21 @@
     "useMyLocation": "મારું અત્યારનું સ્થળ વાપરો",
     "locating": "તમારું સ્થળ શોધી રહ્યા છીએ…",
     "denied": "સ્થળની પરવાનગી મળી નથી. તમારા શહેરનું નામ લખો — તે પણ ચાલશે.",
-    "failed": "તમારું સ્થળ મળ્યું નહીં. તમારા શહેરનું નામ લખો."
+    "failed": "તમારું સ્થળ મળ્યું નહીં. તમારા શહેરનું નામ લખો.",
+    "stateLabel": "રાજ્ય",
+    "cityLabel": "શહેર",
+    "citiesLabel": "શહેરો",
+    "statePlaceholder": "રાજ્ય પસંદ કરો",
+    "cityPlaceholder": "શહેર પસંદ કરો",
+    "addCityPlaceholder": "શહેર ઉમેરો",
+    "cityPlaceholderNoState": "પહેલા રાજ્ય પસંદ કરો",
+    "loading": "લોડ થઈ રહ્યું છે…",
+    "noCities": "આ રાજ્ય માટે કોઈ શહેર મળ્યું નહીં",
+    "loadFailed": "યાદી લોડ થઈ શકી નહીં.",
+    "retry": "ફરી પ્રયાસ કરો",
+    "removeCity": "{{city}} દૂર કરો",
+    "selectedCount": "{{max}} માંથી {{selected}} પસંદ કર્યા",
+    "limitReached": "તમે વધુમાં વધુ {{max}} શહેરો પસંદ કરી શકો છો."
   },
   "applicationStatus": {
     "PENDING": "અરજી કરી",

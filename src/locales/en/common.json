@@ -200,7 +200,21 @@
     "useMyLocation": "Use my current location",
     "locating": "Finding you…",
     "denied": "Location permission was refused. Type your city instead — that works too.",
-    "failed": "Could not get your location. Type your city instead."
+    "failed": "Could not get your location. Type your city instead.",
+    "stateLabel": "State",
+    "cityLabel": "City",
+    "citiesLabel": "Cities",
+    "statePlaceholder": "Select state",
+    "cityPlaceholder": "Select city",
+    "addCityPlaceholder": "Add a city",
+    "cityPlaceholderNoState": "Select a state first",
+    "loading": "Loading…",
+    "noCities": "No cities found for this state",
+    "loadFailed": "Could not load the list.",
+    "retry": "Try again",
+    "removeCity": "Remove {{city}}",
+    "selectedCount": "{{selected}} of {{max}} selected",
+    "limitReached": "You can pick up to {{max}} cities."
   },
   "applicationStatus": {
     "PENDING": "Applied",

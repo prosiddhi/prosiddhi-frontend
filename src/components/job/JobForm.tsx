@@ -1,39 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useController, useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+  type JobFields,
   type PostJobData,
+  type UpdateJobData,
   type JobTypeValue,
   type TaxonomyTriple,
 } from '@/lib/api'
-import {
-  CITY_KEYS,
-  cityContaining,
-  cityLabelKey,
-  coordsToWrite,
-  type CoordDecision,
-  type Coords,
-} from '@/lib/cities'
-import { UseMyLocation } from '@/components/location/UseMyLocation'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { Field } from '@/components/form/Field'
 import { INVALID_CLS } from '@/components/form/FieldError'
-import { humanizeJobType, formatSalary, initials, canonicalLocation } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, initials } from '@/lib/jobFormat'
 import {
   JOB_TYPES,
   PAYMENT_TYPES,
   URGENCY_LEVELS,
-  jobFormSchema,
+  buildJobFormSchema,
+  MAX_JOB_CITIES,
   parseSkills,
   type JobFormValues,
 } from '@/lib/validation/jobSchema'
 import { Clock, Briefcase, MapPin, IndianRupee, Loader2, AlertCircle } from 'lucide-react'
 
-interface JobFormProps {
-  initial?: Partial<PostJobData>
+interface JobFormBaseProps {
+  /** The job's saved fields. Cities come separately (`initialCities`), as ids alone cannot draw a chip. */
+  initial?: Partial<JobFields>
+  /**
+   * The job's current cities for the picker, each with its state's name (the BE
+   * sends `cities[].city.state.name`). Leave out for a new post.
+   */
+  initialCities?: SelectedCity[]
+  /**
+   * Edit only, and ONLY for a job that has no cities because it was posted before
+   * they existed: its saved `location` text. Its presence is what makes this a
+   * legacy edit — no city is required, the text is shown read-only, and
+   * `cityIds` is left out of what is sent unless cities are picked. Never pass it
+   * for a job that has cities.
+   */
+  legacyLocation?: string
   submitLabel: string
   submitting: boolean
   error?: string
@@ -44,10 +53,23 @@ interface JobFormProps {
    * parent's `error` text still covers it.
    */
   serverFieldErrors?: Record<string, string[]>
-  onSubmit: (data: PostJobData) => void
 }
 
-function buildInitialState(initial?: Partial<PostJobData>): JobFormValues {
+/**
+ * A new post sends `PostJobData` (a city is required); an edit sends
+ * `UpdateJobData`, where `cityIds` may be absent. The pairing is typed so the
+ * create page cannot be handed a payload without cities.
+ */
+type JobFormProps = JobFormBaseProps &
+  (
+    | { mode?: 'create'; onSubmit: (data: PostJobData) => void }
+    | { mode: 'edit'; onSubmit: (data: UpdateJobData) => void }
+  )
+
+function buildInitialState(
+  initial?: Partial<JobFields>,
+  initialCities?: SelectedCity[],
+): JobFormValues {
   return {
     title: initial?.title ?? '',
     companyName: initial?.companyName ?? '',
@@ -57,7 +79,7 @@ function buildInitialState(initial?: Partial<PostJobData>): JobFormValues {
     description: initial?.description ?? '',
     requirements: initial?.requirements ?? '',
     skills: (initial?.skillsRequired ?? []).join(', '),
-    location: initial?.location ?? '',
+    cities: initialCities ?? [],
     salaryMin: initial?.salaryMin != null ? String(initial.salaryMin) : '',
     salaryMax: initial?.salaryMax != null ? String(initial.salaryMax) : '',
     paymentType: initial?.paymentType ?? 'MONTHLY',
@@ -70,9 +92,12 @@ function buildInitialState(initial?: Partial<PostJobData>): JobFormValues {
 const labelCls = 'block text-sm font-medium text-black mb-1'
 const inputCls =
   'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent'
+// The shared fields' look, plus what a disabled <select> needs: the city list is disabled while it
+// loads or after a failed load, and without these it would look like a live control.
+const pickerSelectCls = `${inputCls} disabled:opacity-50 disabled:cursor-not-allowed`
 const sectionTitleCls = 'text-base font-semibold text-black'
 
-// Which fields get the `*` (DEF-024): title, category, description, location,
+// Which fields get the `*` (DEF-024): title, category, description, cities,
 // jobType - exactly what createJobSchema requires with no default
 // (prosiddhi-backend/src/validators/job.validator.ts). Everything else posts fine
 // empty. Salary, skills, requirements, company name, sector and job title say
@@ -87,7 +112,7 @@ const FIELD_ORDER: (keyof JobFormValues)[] = [
   'title',
   'category',
   'companyName',
-  'location',
+  'cities',
   'description',
   'salaryMin',
   'salaryMax',
@@ -97,106 +122,26 @@ const FIELD_ORDER: (keyof JobFormValues)[] = [
   'numberOfPositions',
 ]
 
-/** The form field a BE error path belongs to, if the form has one. Only skills is named differently. */
+/**
+ * The form field a BE error path belongs to, if the form has one. Skills and cities
+ * are named differently (`skillsRequired`, `cityIds`; the BE reports a bad entry as
+ * `cityIds.2`, so only the root is looked at).
+ */
+const SERVER_PATH_TO_FIELD: Record<string, string> = { skillsRequired: 'skills', cityIds: 'cities' }
 function formFieldForServerPath(path: string) {
   const root = path.split('.')[0]
-  return FIELD_ORDER.find((f) => f === (root === 'skillsRequired' ? 'skills' : root))
+  return FIELD_ORDER.find((f) => f === (SERVER_PATH_TO_FIELD[root] ?? root))
 }
 
-/**
- * A fix → the two payload fields, or nothing at all.
- *
- * Named rather than spread inline because the property names differ (`lat`/`lon`
- * vs `latitude`/`longitude`), so `...fix` would look right and send neither.
- */
-function coordinateFields(fix: Coords | undefined) {
-  return fix ? { latitude: fix.lat, longitude: fix.lon } : {}
-}
-
-type LocationHint = {
-  key: string
-  city?: string
-  tone: 'good' | 'warn'
-  /** Offer "remove the saved location" — only where a stored pin is the problem. */
-  clearable?: boolean
-} | null
-
-/**
- * What this form will do with the location, said out loud (TD-41).
- *
- * A coordinate has no visible representation, so before this the employer got
- * nothing: press "Use my current location" and the button just stops spinning;
- * type "Nagpur" and nothing hints that the job will be invisible in every
- * seeker's Nearby list.
- *
- * It DESCRIBES `coordsToWrite`'s decision rather than reaching its own. Deciding
- * twice is the drift `coordsToWrite` was extracted into `lib/cities` to prevent,
- * and the first draft of this function proved the point by disagreeing on the
- * one case the rule exists for — see the switch below.
- *
- * The seeker's copy cannot be borrowed. `profile:seeker.locationOn` reads "You
- * will see jobs near you", which is backwards on a screen where the reader is
- * the one being found.
- *
- * `pinned` is the sharp one. Edit a job's location from "Bangalore" to somewhere
- * we cannot place and the stored pin STAYS — the job goes on showing to
- * Bangalore seekers at 0 km and never reaches the new town.
- *
- * It used to be unfixable: the backend fields were `.optional()` and not
- * nullable, so no client could clear a coordinate and this warning was the only
- * honest thing available. `9dbb470` made the two update schemas nullish, so the
- * warning now carries a way out — `clearable` — and the employer can remove the
- * pin instead of only being told about it.
- */
-function locationHint(args: {
-  decision: CoordDecision
-  saved: Coords | null
-  text: string
-  translate: (key: string) => string
-}): LocationHint {
-  const { decision, saved, text, translate } = args
-
-  // Read off `coordsToWrite`'s own verdict — never re-derived from the same
-  // inputs. Working it out a second time is what made the first draft lie in
-  // precisely the case the rule exists for: a fix taken in Pune, then
-  // "Bangalore" typed, writes the Bangalore centroid while the screen said
-  // "Location captured".
-  switch (decision.reason) {
-    case 'fix':
-      return { key: 'employer:jobForm.locationCaptured', tone: 'good' }
-    // 'keep' means the stored pin already sits in the city just typed, so from
-    // the employer's side it is the same good news as writing one.
-    case 'city':
-    case 'keep':
-      return {
-        key: 'employer:jobForm.locationCity',
-        city: decision.cityKey ? translate(decision.cityKey) : '',
-        tone: 'good',
-      }
-  }
-
-  // reason === 'none': we could not place the text at all.
-  // Nothing typed yet — say nothing rather than warn about an empty box.
-  if (!text.trim()) return null
-  // Whether that is merely useless or actively misleading depends entirely on
-  // whether a pin is already stored.
-  if (saved) {
-    // A stored pin need not sit in any of the ten. Press the location button at
-    // a Devanahalli warehouse and the fix lands 35 km from the Bangalore
-    // centroid — outside its 30 km radius — so `cityContaining` returns ''. The
-    // named message would then render "stays pinned to  and will keep showing",
-    // a broken sentence in ten languages, in the one state this whole ticket
-    // exists to expose. Hence a second wording with no city in it.
-    const stuckIn = cityContaining(saved)
-    return stuckIn
-      ? { key: 'employer:jobForm.locationPinned', city: translate(stuckIn), tone: 'warn', clearable: true }
-      : { key: 'employer:jobForm.locationPinnedUnnamed', tone: 'warn', clearable: true }
-  }
-  return { key: 'employer:jobForm.locationUnknown', tone: 'warn' }
-}
-
-export function JobForm({ initial, submitLabel, submitting, error, serverFieldErrors, onSubmit }: JobFormProps) {
+export function JobForm(props: JobFormProps) {
+  const { initial, initialCities, legacyLocation, submitLabel, submitting, error, serverFieldErrors } = props
   const { t } = useTranslation()
+  // A legacy edit (see JobFormBaseProps.legacyLocation) is the one case where no city is
+  // required. Create and an edit of a job that already has cities both need 1 to 5.
+  // Also false if the job does have cities, whatever the caller passed: a city must never be
+  // optional for a job that already has them.
+  const legacy = props.mode === 'edit' && legacyLocation !== undefined && (initialCities?.length ?? 0) === 0
+  const schema = useMemo(() => buildJobFormSchema({ requireCities: !legacy }), [legacy])
   // 'onTouched': a field is checked the first time it loses focus, and again on
   // every change after that - so a problem shows when the employer leaves the box,
   // and goes away the moment the value is right, without another Submit.
@@ -214,11 +159,11 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
     handleSubmit: validateAndSubmit,
     formState: { errors, touchedFields, submitCount },
   } = useForm<JobFormValues>({
-    resolver: zodResolver(jobFormSchema),
+    resolver: zodResolver(schema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     shouldFocusError: false,
-    defaultValues: buildInitialState(initial),
+    defaultValues: buildInitialState(initial, initialCities),
   })
   const f = watch()
   // Category lives inside TaxonomyPicker, so it is wired through a controller
@@ -226,18 +171,9 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
   const {
     field: { onChange: setCategory, onBlur: blurCategory, ref: categoryRef },
   } = useController({ control, name: 'category' })
-  // TD-03.
-  const [gpsFix, setGpsFix] = useState<Coords | null>(null)
-  // TD-42 — the employer asked for the stored pin to be removed.
-  //
-  // ⚠️ Explicit, never inferred. Clearing whenever the typed text matches no
-  // city would look tidier and would be wrong: "Whitefield" matches nothing, so
-  // an employer NARROWING "Bangalore" to the area they are actually hiring in
-  // would silently lose a perfectly good coordinate. Only a press means "remove
-  // it".
-  const [clearPin, setClearPin] = useState(false)
-  // Which came last, the typed text or the fix. See coordsToWrite.
-  const [textIsNewer, setTextIsNewer] = useState(false)
+  // Cities live inside StateCitySelect, so they are wired through a controller like
+  // category. Its ref is what lets a failed Submit focus the city select.
+  const { field: citiesField } = useController({ control, name: 'cities' })
 
   // A schema message is an i18n key; a server message is the BE's own text.
   const errorText = (name: keyof JobFormValues) => {
@@ -248,60 +184,6 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
   const fieldCls = (name: keyof JobFormValues) => (errors[name] ? `${inputCls} ${INVALID_CLS}` : inputCls)
   const optionalLabel = `(${t('status.optional')})`
 
-  // The pin the server already holds. Read from `initial`, not the form values —
-  // nothing on this form edits it directly; only the location button replaces
-  // it. Rebuilt each render, which is two null checks feeding pure functions.
-  const savedPin =
-    initial?.latitude != null && initial?.longitude != null
-      ? { lat: initial.latitude, lon: initial.longitude }
-      : null
-  const translateCity = (key: string) => t(cityLabelKey(key))
-  // ONE decision, used twice: `onValid` sends `decision.coords` and the
-  // line under the input describes `decision.reason`. What the employer is told
-  // and what is actually written cannot drift apart, because they are the same
-  // call.
-  //
-  // NOT memoised on `f`: `watch()` returns a new object on every keystroke in
-  // every field, so a memo keyed on `f` never hits — it would read as an
-  // optimisation while rebuilding this on each character typed into the salary
-  // box (docs/location-plan.md flags exactly that trap). Keyed on `f.location` it
-  // would be a real memo and still not worth one: a lookup over ten cities.
-  const decision = coordsToWrite({
-    gpsFix,
-    saved: savedPin,
-    text: f.location,
-    textIsNewer,
-    translate: translateCity,
-  })
-  // Debounced, and only for the LINE — `decision` above is undebounced because
-  // it feeds the payload, which must reflect the box exactly at submit time.
-  //
-  // Without this the amber "will not appear in Nearby" fires on the "B" of
-  // "Bangalore" and again on every letter until the word resolves, and because
-  // the line is a `role="status"` live region a screen reader reads each one
-  // out. Warning someone mid-word about a word they have not finished typing is
-  // noise at best.
-  const [settledLocation, setSettledLocation] = useState(f.location)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSettledLocation(f.location), 600)
-    return () => window.clearTimeout(timer)
-  }, [f.location])
-
-  const hint = locationHint({
-    // Recomputed against the settled text so the words and the verdict agree;
-    // the fix/none branches do not depend on the text and are unaffected.
-    decision: coordsToWrite({
-      gpsFix,
-      saved: savedPin,
-      text: settledLocation,
-      textIsNewer,
-      translate: translateCity,
-    }),
-    saved: savedPin,
-    text: settledLocation,
-    translate: translateCity,
-  })
-
   // The cascading picker emits the full triple; mirror it into the flat form
   // fields (empty levels come back as undefined → stored as '').
   const setTaxonomy = (next: TaxonomyTriple) => {
@@ -311,6 +193,8 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
   }
 
   const skillsArray = parseSkills(f.skills)
+  // The preview's place: the picked cities, or for a legacy job still without any, its saved text.
+  const locationPreview = f.cities.length > 0 ? f.cities.map((c) => c.name).join(', ') : (legacyLocation ?? '')
 
   // Salary Max carries the "max is below min" error, so it has to be re-checked
   // when Min changes - but only if Max has been looked at already; otherwise
@@ -319,7 +203,7 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
     if (touchedFields.salaryMax || errors.salaryMax || submitCount > 0) void trigger('salaryMax')
   }
 
-  // The BE names a field by its payload key; the form's own key differs only for skills.
+  // The BE names a field by its payload key; the form's own key differs for skills and cities.
   // setError's message stays until that field is edited and re-validated.
   useEffect(() => {
     if (!serverFieldErrors) return
@@ -342,14 +226,10 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
   }
 
   const onValid = (values: JobFormValues) => {
-    const data: PostJobData = {
+    const base = {
       title: values.title.trim(),
       description: values.description.trim(),
       category: values.category.trim(),
-      // Canonicalised, not raw — see canonicalLocation. A job stored under a
-      // translated city name is a job that only matches seekers in that one
-      // language.
-      location: canonicalLocation(values.location),
       jobType: values.jobType as JobTypeValue,
       paymentType: values.paymentType,
       urgencyLevel: values.urgencyLevel,
@@ -361,20 +241,16 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
       ...(skillsArray.length ? { skillsRequired: skillsArray } : {}),
       ...(values.salaryMin ? { salaryMin: Number(values.salaryMin) } : {}),
       ...(values.salaryMax ? { salaryMax: Number(values.salaryMax) } : {}),
-      // TD-03 — the job's coordinates. Without these `getNearbyForSeeker` drops
-      // the job on a null check before any distance maths runs, and the 20-point
-      // location score cannot fire: it needs the JOB's pair as well as the
-      // seeker's.
-      //
-      // `decision` is computed once in the render body and shared with the hint
-      // line under the location input (TD-41), so what the employer was told and
-      // what is sent are the same verdict rather than two derivations of it.
-      // An explicit removal wins over everything the rule computed. It is only
-      // ever reachable from the `pinned` states, where the stored pin is the
-      // problem — see `clearPin`.
-      ...(clearPin ? { latitude: null, longitude: null } : coordinateFields(decision.coords)),
     }
-    onSubmit(data)
+    // Only the ids go to the BE; it writes `location` and the coordinates from them.
+    const cityIds = values.cities.map((c) => c.id)
+    if (props.mode === 'edit') {
+      // A legacy job left without cities sends NO `cityIds` key at all: the BE then keeps
+      // the job as it is. An empty list is not the same thing, it is a 400.
+      props.onSubmit({ ...base, ...(cityIds.length > 0 ? { cityIds } : {}) })
+    } else {
+      props.onSubmit({ ...base, cityIds })
+    }
   }
 
   // Server messages for a field this form does not have (no input to hang them on).
@@ -434,87 +310,26 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
             <input id="job-company" className={fieldCls('companyName')} placeholder={t('employer:jobForm.companyNamePlaceholder')} {...register('companyName')} />
           </Field>
 
-          <Field label={t('employer:jobForm.locationLabel')} className={labelCls} required error={errorText('location')}>
-            {/* Free text with a datalist, NOT a select. A seeker outside our ten
-                cities loses Near By; an employer outside them could not post the
-                job at all, and that is a product call rather than a form
-                decision. The list still nudges everyone towards a canonical
-                spelling, which is what the cold-start recommendation's substring
-                match needs (TD-34). Swapping to a <select> is one edit if the
-                product ever restricts it. */}
-            <input
-              id="job-location"
-              list="job-location-cities"
-              className={fieldCls('location')}
-              placeholder={t('employer:jobForm.locationPlaceholder')}
-              {...register('location', { onChange: () => setTextIsNewer(true) })}
+          <div>
+            <StateCitySelect
+              multiple
+              max={MAX_JOB_CITIES}
+              value={citiesField.value}
+              onChange={citiesField.onChange}
+              onBlur={citiesField.onBlur}
+              cityRef={citiesField.ref}
+              required={!legacy}
+              error={errorText('cities')}
+              selectClassName={pickerSelectCls}
+              labelClassName={labelCls}
             />
-            {/* `value` is the ENGLISH name, `label` the reader's own. Picking an
-                option inserts the value, so a Tamil-speaking employer sees
-                "பெங்களூரு" but the job stores "Bangalore".
-                That matters because `location` is not only display text: the
-                cold-start recommendation does a case-insensitive substring
-                match of a seeker's location against it. Store the translated
-                label and the text is canonical only WITHIN one language, so a
-                Tamil employer's job stops matching a Hindi seeker in the same
-                city — the opposite of what a fixed city list is for (TD-06 §4,
-                TD-34). English is always loaded, so `lng: 'en'` never misses. */}
-            <datalist id="job-location-cities">
-              {CITY_KEYS.map((key) => (
-                <option key={key} value={t(cityLabelKey(key), { lng: 'en' })} label={t(cityLabelKey(key))} />
-              ))}
-            </datalist>
-            <UseMyLocation
-              onLocated={(c) => {
-                setGpsFix(c)
-                setTextIsNewer(false)
-                // A fresh fix REPLACES the pin, so a pending removal is moot —
-                // and leaving it set would send null alongside the new
-                // coordinate.
-                setClearPin(false)
-              }}
-              className="mt-2"
-            />
-            {/* TD-41. The coordinate is invisible, so this line is the only
-                feedback there is — and it must never call an unsaved capture
-                saved.
-
-                ALWAYS RENDERED, empty when there is nothing to say. A live
-                region has to be in the DOM before the text arrives: mount the
-                element and its first message in the same commit and screen
-                readers generally announce nothing, which would silently lose the
-                one case this is here for — pressing the location button on a
-                blank form, where the button itself just stops spinning. */}
-            <p
-              role="status"
-              className={`text-xs mt-1.5 ${
-                !hint ? 'sr-only' : hint.tone === 'warn' ? 'text-amber-700' : 'text-green-700'
-              }`}
-            >
-              {hint ? t(hint.key, { city: hint.city }) : ''}
-            </p>
-            {/* TD-42. Offered ONLY where a stored pin is the problem, and only
-                as a press — inferring a removal from unmatched text would wipe
-                the coordinate of an employer narrowing "Bangalore" to
-                "Whitefield", which matches no city and is not a move.
-
-                Outside the live region above, so pressing it does not re-read
-                the warning; the confirmation is the warning disappearing. */}
-            {hint?.clearable && !clearPin && (
-              <button
-                type="button"
-                onClick={() => setClearPin(true)}
-                className="text-xs mt-1 underline text-amber-800 hover:no-underline min-h-[44px]"
-              >
-                {t('employer:jobForm.locationClear')}
-              </button>
-            )}
-            {clearPin && (
-              <p className="text-xs mt-1.5 text-[#717182]">
-                {t('employer:jobForm.locationCleared')}
+            {/* A job posted before cities existed: its saved text, read-only. */}
+            {legacy && legacyLocation && (
+              <p className="text-xs mt-2 text-[#717182]">
+                {t('employer:jobForm.locationLegacy', { location: legacyLocation })}
               </p>
             )}
-          </Field>
+          </div>
 
           <Field
             label={<>{t('employer:jobForm.descriptionLabel')} <span className="text-gray-400 font-normal">{t('employer:jobForm.descriptionHint')}</span></>}
@@ -668,10 +483,10 @@ export function JobForm({ initial, submitLabel, submitting, error, serverFieldEr
                     <span className="text-xs text-black">{f.category}</span>
                   </div>
                 )}
-                {f.location && (
+                {locationPreview && (
                   <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-[#3386a9]" />
-                    <span className="text-xs text-black">{f.location}</span>
+                    <span className="text-xs text-black">{locationPreview}</span>
                   </div>
                 )}
               </div>
