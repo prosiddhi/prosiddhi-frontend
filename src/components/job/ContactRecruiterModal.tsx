@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Mail, Phone, Copy, Check, Loader2, AlertCircle } from 'lucide-react'
 import { jobSeekerAPI } from '@/lib/api'
+import { EMPLOYER_CONTACT_VISIBLE } from '@/lib/features'
 
 interface ContactRecruiterModalProps {
   isOpen: boolean
@@ -21,7 +22,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
 
   // Fetch the contact only while open — the GET itself is the gated reveal.
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || !EMPLOYER_CONTACT_VISIBLE) return
     let ignore = false
     setLoading(true)
     setError('')
@@ -62,7 +63,7 @@ export function ContactRecruiterModal({ isOpen, onClose, jobId, companyName }: C
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !EMPLOYER_CONTACT_VISIBLE) return null
 
   const hasAny = !!(contact && (contact.email || contact.phoneNumber))
 

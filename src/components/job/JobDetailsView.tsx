@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
+import { EMPLOYER_CONTACT_VISIBLE } from '@/lib/features'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
 import { appliedCtaMeta } from '@/lib/applicationStatus'
@@ -431,22 +432,23 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                   >
                     {hasApplied ? (appliedMeta?.label ?? t('seeker:jobDetails.applied')) : t('buttons.apply')}
                   </button>
-                  {/* Contact recruiter (PJP-113). Always shown: the per-job
-                      showEmail/showPhone toggles this used to gate on were DROPPED by
-                      the backend in fe246f1 (2026-08-06), so both read `undefined` and
-                      the button rendered on NO job at all — the feature was invisible.
-                      Employer contact is now unconditional by product decision (the
-                      seeker side is free), and GET /jobs/:id/recruiter-contact no
-                      longer filters. That endpoint stays a separate authenticated call
-                      — GET /jobs/:id is public, so folding contact into the job payload
-                      would hand every employer's email and phone to anonymous callers. */}
-                  <button
-                    onClick={() => setIsContactModalOpen(true)}
-                    className="min-h-[48px] px-[clamp(24px,18.67px_+_0.83vw,32px)] py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-[clamp(14px,12.67px_+_0.21vw,16px)]"
-                  >
-                    <Phone className="w-5 h-5" />
-                    {t('seeker:jobDetails.contactRecruiter')}
-                  </button>
+                  {/* Contact recruiter (PJP-113). Shown only when
+                      NEXT_PUBLIC_EMPLOYER_CONTACT_VISIBLE=true (off by default; the
+                      backend's EMPLOYER_CONTACT_VISIBLE hides the data itself). The
+                      per-job showEmail/showPhone toggles were DROPPED by the backend
+                      in fe246f1 (2026-08-06), so there is no per-job gate. That
+                      endpoint stays a separate authenticated call — GET /jobs/:id is
+                      public, so folding contact into the job payload would hand every
+                      employer's email and phone to anonymous callers. */}
+                  {EMPLOYER_CONTACT_VISIBLE && (
+                    <button
+                      onClick={() => setIsContactModalOpen(true)}
+                      className="min-h-[48px] px-[clamp(24px,18.67px_+_0.83vw,32px)] py-3 border border-primary-50 text-primary-50 rounded-lg hover:bg-[#f0f9fc] transition-colors flex items-center justify-center gap-2 text-[clamp(14px,12.67px_+_0.21vw,16px)]"
+                    >
+                      <Phone className="w-5 h-5" />
+                      {t('seeker:jobDetails.contactRecruiter')}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -615,7 +617,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
         />
       )}
 
-      {job && (
+      {job && EMPLOYER_CONTACT_VISIBLE && (
         <ContactRecruiterModal
           isOpen={isContactModalOpen}
           onClose={() => setIsContactModalOpen(false)}
