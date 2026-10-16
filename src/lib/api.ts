@@ -979,6 +979,13 @@ export interface SeekerProfile extends SignInMethodFlags {
     location?: string | null
     latitude?: number | null
     longitude?: number | null
+    /**
+     * Home city, as GET /jobseekers/profile embeds it. null for a seeker who never picked one:
+     * their `location` text (if any) is all there is.
+     */
+    city?: LocationCitySummary | null
+    /** Preferred work cities (up to 3). Empty for a seeker who has not set any. */
+    preferredCities?: PreferredCity[]
     /** BR-1 — captured at registration; not editable from the profile form. */
     dateOfBirth?: string | null
     gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
@@ -1037,6 +1044,17 @@ export interface SeekerProfileUpdate {
   location?: string
   latitude?: number
   longitude?: number
+  /**
+   * Home city id from GET /locations/cities. When sent, the BE overwrites `location`, `latitude`
+   * and `longitude` from the city, so send it ALONE. `null` drops the link and keeps the text.
+   * Omit it to leave the city as it is.
+   */
+  cityId?: string | null
+  /**
+   * Preferred work cities (at most 3). REPLACES the whole list when present, so omit it unless the
+   * seeker changed it; `[]` deliberately empties the list.
+   */
+  preferredCityIds?: string[]
   // BR-3 — 3-level taxonomy. All optional; validateTriple checks the path when
   // any are provided.
   preferredCategory?: string
