@@ -402,7 +402,8 @@
     "submitLabel": "Save Changes",
     "loading": "Loading job...",
     "loadFailed": "Failed to load this job.",
-    "saveFailed": "Failed to save changes. Please try again."
+    "saveFailed": "Failed to save changes. Please try again.",
+    "notYourJob": "You can only edit your own jobs"
   },
   "jobForm": {
     "validation": {

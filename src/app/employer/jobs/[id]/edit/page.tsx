@@ -9,6 +9,7 @@ import { JobForm } from '@/components/job/JobForm'
 import {
   jobSeekerAPI,
   employerAPI,
+  teamAPI,
   fieldErrorsByPath,
   type PostJobData,
   type JobTypeValue,
@@ -43,8 +44,24 @@ function EditJobContent() {
       setLoading(true)
       setLoadError('')
       try {
+        // GET /jobs/:id reads the token optionally: an expired one is answered as signed-out,
+        // so a real owner gets isOwner:false (or a 404 on a post that is not live yet). Prove
+        // the session first; an expired token is refreshed here, a dead one ends the session.
+        await teamAPI.getEntitlements()
+        if (ignore) return
         const job = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
+        // Ownership is checked before any job data reaches the form. Only an explicit
+        // `true` passes; a missing field is unverified, so the form stays blocked.
+        if (job.isOwner === false) {
+          showToast(t('employer:jobEdit.notYourJob'), 'error')
+          router.replace(backUrl)
+          return
+        }
+        if (job.isOwner !== true) {
+          setLoadError(t('employer:jobEdit.loadFailed'))
+          return
+        }
         setInitial({
           title: job.title,
           description: job.description ?? '',
@@ -83,12 +100,14 @@ function EditJobContent() {
     return () => {
       ignore = true
     }
-    // `t` is only the load-error fallback text. Listing it would re-run this effect
-    // (and refetch) on every language change, so it is deliberately left out.
+    // `t` is only toast / error text, and `router` / `backUrl` are only used on the
+    // not-owner redirect. Listing them would re-run this effect (refetching the job and
+    // repeating the entitlements check) on every language or URL change, so they are left out.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId])
 
   const handleSubmit = async (data: PostJobData) => {
+    if (!initial) return // `initial` is only set once ownership is verified
     setSubmitting(true)
     setError('')
     setFieldErrors(undefined)

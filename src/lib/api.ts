@@ -758,6 +758,8 @@ export interface Job {
   // Whether the CURRENT seeker has already reported this job — Job Details
   // hides "Report this job" once true so a seeker can't file duplicate reports.
   hasReported?: boolean
+  // GET /jobs/:id only: true for the owning employer and their team members.
+  isOwner?: boolean
   [key: string]: unknown
 }
 
