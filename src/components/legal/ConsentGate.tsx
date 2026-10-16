@@ -36,6 +36,7 @@ const OPEN_WHILE_PENDING = new Set<string>([
   '/terms',
   '/privacy',
   '/refund-policy',
+  '/delivery-policy',
   '/about',
   '/contact',
   '/help',

@@ -139,6 +139,7 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
             <div className={colClass}>
               <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.company')}</h3>
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
+                <li><Link href="/about" className={linkClass}>{t('footer.about')}</Link></li>
                 <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
                 <li><Link href="/help" className={linkClass}>{t('footer.help')}</Link></li>
               </ul>
@@ -148,6 +149,8 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/refund-policy" className={linkClass}>{t('footer.refund')}</Link></li>
+                <li><Link href="/delivery-policy" className={linkClass}>{t('footer.delivery')}</Link></li>
                 <li><Link href="/delete-account" className={linkClass}>{t('breadcrumbs.deleteAccount', { ns: 'common' })}</Link></li>
               </ul>
             </div>

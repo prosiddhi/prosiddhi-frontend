@@ -19,6 +19,98 @@
       "versionChanged": "These were updated a moment ago. Please read the latest version and agree again."
     }
   },
+  "about": {
+    "title": "About ProSiddhi",
+    "intro": "ProSiddhi is a job portal that helps people in India find work, and helps employers find the right people to hire.",
+    "who": {
+      "title": "Who we are",
+      "body": "ProSiddhi is run by {{company}}, a private limited company registered in India and based in Bengaluru."
+    },
+    "what": {
+      "title": "What we do",
+      "items": [
+        "Job seekers make a profile, search for jobs and apply — for free.",
+        "Employers post jobs and search for candidates. They pay for this with plans bought on our website.",
+        "ProSiddhi works in 10 Indian languages, on our website and in our Android app."
+      ]
+    },
+    "promise": {
+      "title": "Our promise",
+      "items": [
+        "Job seekers never pay anything. Anyone who asks you for money for a job is not from ProSiddhi.",
+        "We do not handle wages. Pay is agreed and paid directly between the employer and the worker.",
+        "We check employers and job posts, and remove anything fake or unsafe."
+      ]
+    },
+    "company": {
+      "title": "Company details",
+      "office": "Registered office",
+      "cin": "CIN",
+      "gstin": "GSTIN"
+    },
+    "contactLine": "Questions? Visit our <contact>Contact Us</contact> page."
+  },
+  "refund": {
+    "title": "Refund & Cancellation Policy",
+    "intro": "This policy covers the plans and packs that employers buy on ProSiddhi. Job seekers never pay, so nothing here applies to them.",
+    "what": {
+      "title": "What you are buying",
+      "body": "Our plans and packs are digital services. They are added to your employer account as soon as your payment is confirmed, and you can use them straight away."
+    },
+    "cancel": {
+      "title": "Cancellation and refunds",
+      "items": [
+        "Once a plan or pack is added to your account, it cannot be cancelled and is not refundable.",
+        "A plan runs until its end date. Job posts and candidate unlocks you have not used expire with the plan. Those from the one-time pack do not expire.",
+        "You do not need to cancel anything. A plan simply ends on its end date. To continue, buy a new one."
+      ]
+    },
+    "always": {
+      "title": "When we always refund you",
+      "intro": "We refund the full amount if:",
+      "items": [
+        "money was taken from your account but the payment failed, or was not confirmed to us;",
+        "you were charged twice, or charged more than the price shown at checkout;",
+        "your plan was not added to your account within 24 hours of a successful payment."
+      ]
+    },
+    "jobPost": {
+      "title": "Deleting a job soon after posting",
+      "body": "If you delete a job within 24 hours of publishing it, and nobody has applied, we give you back that job post."
+    },
+    "how": {
+      "title": "How to ask for a refund",
+      "body": "Email us at {{email}} within 7 days of the payment. Please include the email or phone number on your account, the date and amount of the payment, and the payment ID or invoice number."
+    },
+    "when": {
+      "title": "How you get the money back",
+      "body": "If a refund is approved, we send it to the same card, UPI or bank account you paid from, within 5 to 7 working days. Your bank may take a few more days to show it."
+    },
+    "help": {
+      "title": "If something is wrong",
+      "body": "Please contact us first, and we will try to fix it quickly. You can also write to our Grievance Officer. See our <contact>Contact Us</contact> page."
+    }
+  },
+  "delivery": {
+    "title": "Delivery Policy",
+    "intro": "ProSiddhi sells digital services only. Nothing is shipped to you.",
+    "how": {
+      "title": "How you receive what you buy",
+      "items": [
+        "Plans and packs are added to your employer account as soon as your payment is confirmed, usually within a few minutes.",
+        "You can see them in your account and start posting jobs or unlocking candidates straight away.",
+        "Your GST invoice is ready to download from your account."
+      ]
+    },
+    "shipping": {
+      "title": "Shipping",
+      "body": "There is no physical product, and no shipping charge."
+    },
+    "problem": {
+      "title": "If your plan does not appear",
+      "body": "If your plan is not in your account within 24 hours of a successful payment, email us at {{email}} with your payment details. We will add it, or refund you in full. See our <refund>Refund & Cancellation Policy</refund>."
+    }
+  },
   "footer": {
     "candidates": "For Job Seekers",
     "employers": "For Employers",
@@ -33,6 +125,9 @@
     "contact": "Contact Us",
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions",
+    "about": "About Us",
+    "refund": "Refund & Cancellation",
+    "delivery": "Delivery Policy",
     "copyright": "© {{year}} {{company}}. All rights reserved.",
     "help": "Help"
   },
@@ -261,9 +356,23 @@
       "title": "Privacy requests",
       "body": "To see, correct, or delete the personal information we hold about you, email us at the address above with the subject \"Privacy request\". See our <privacy>Privacy Policy</privacy> for the detail."
     },
+    "phone": {
+      "title": "Call us",
+      "body": "You can also call us on {{phone}}."
+    },
+    "grievance": {
+      "title": "Grievance Officer",
+      "body": "If you have a complaint about ProSiddhi (about a job post or a user, your personal information, or a payment), you can write to our Grievance Officer:",
+      "nameLine": "{{name}}, {{designation}}",
+      "emailLine": "Email: {{email}}",
+      "timeline": "We reply to every complaint within 24 hours to confirm we have it, and we aim to resolve it within 7 days.",
+      "appeal": "If you are not happy with our decision, you can appeal to the Government of India's Grievance Appellate Committee at <gac>gac.gov.in</gac> within 30 days."
+    },
     "company": {
       "title": "Company",
-      "operatedBy": "ProSiddhi is operated by {{company}}."
+      "operatedBy": "ProSiddhi is operated by {{company}}.",
+      "cin": "CIN: {{cin}}",
+      "gstin": "GSTIN: {{gstin}}"
     }
   },
   "help": {

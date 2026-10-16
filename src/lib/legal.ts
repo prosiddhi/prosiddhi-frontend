@@ -1,12 +1,9 @@
 // Company + legal constants, in ONE place.
 //
-// ⚠️ BEFORE GO-LIVE these must be confirmed by the business (and the policy text
-// they appear in must be reviewed by a lawyer — see docs/STATUS.md):
-//   - SUPPORT_EMAIL   — is biz-ops@ really the public-facing support address?
-//   - REGISTERED_OFFICE — an Indian privacy policy should carry the registered
-//     office address. We do NOT have it, so it is intentionally EMPTY and the UI
-//     omits the block entirely rather than print an invented address.
-//   - GSTIN — Azkashine's real GSTIN (also needed on invoices, MONETIZATION.md §6.4).
+// Sources (verified 16 Oct 2026): Certificate of Incorporation, GST REG-06, and the
+// Dun & Bradstreet record (D-U-N-S 766393348). The address is written exactly as D&B
+// and the Google Play / Razorpay accounts hold it — do not "tidy" it, they must match.
+// The policy text these appear in still needs a lawyer's review (docs/compliance/).
 //
 // Nothing here may be a placeholder that renders. If a value is unknown, leave it
 // empty and let the component skip it.
@@ -26,11 +23,33 @@ export const PRODUCT_NAME = 'ProSiddhi'
 /** Public support / grievance contact. */
 export const SUPPORT_EMAIL = 'biz-ops@azkashine.com'
 
-/** Registered office. EMPTY until the business confirms it — do not invent one. */
-export const REGISTERED_OFFICE = ''
+/** Corporate Identification Number (Certificate of Incorporation). */
+export const CIN = 'U62013KA2024PTC195985'
 
-/** GSTIN shown on invoices. EMPTY until confirmed. */
-export const GSTIN = ''
+/** Registered office, as on the D&B record and the Play / Razorpay accounts. */
+export const REGISTERED_OFFICE = [
+  '73, Fountain Head, Varthur Road,',
+  'C.V. Raman Nagar, Bengaluru,',
+  'Karnataka 560093, India',
+].join('\n')
+
+/** GSTIN (GST REG-06). */
+export const GSTIN = '29ABBCA8287G1ZA'
+
+/** Public phone — the same number published as the developer phone on Google Play. */
+export const SUPPORT_PHONE = '+91 70265 54789'
+
+/**
+ * Grievance Officer — required by the IT (Intermediary) Rules 2021 Rule 3(2), the
+ * Consumer Protection (E-Commerce) Rules 2020 Rule 4, and (from 2027) the DPDP Act
+ * s.8(9). Name, designation and contact must be published. Email only, by decision.
+ * ⚠️ The mailbox must exist and be read: the 24-hour acknowledgement clock is legal.
+ */
+export const GRIEVANCE_OFFICER = {
+  name: 'Rambabu Gorantla',
+  designation: 'Grievance Officer',
+  email: 'grievance@prosiddhi.com',
+} as const
 
 /**
  * Last substantive revision of each policy. Bump the matching one whenever its
@@ -39,6 +58,8 @@ export const GSTIN = ''
  */
 export const TERMS_LAST_UPDATED = '2026-10-08'
 export const PRIVACY_LAST_UPDATED = '2026-10-07'
+export const REFUND_LAST_UPDATED = '2026-10-16'
+export const DELIVERY_LAST_UPDATED = '2026-10-16'
 
 /** Current year, for the footer copyright — never hardcode it again. */
 export function currentYear(): number {
