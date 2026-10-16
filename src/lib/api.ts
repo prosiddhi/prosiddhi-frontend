@@ -978,6 +978,8 @@ export interface SeekerProfile extends SignInMethodFlags {
     preferredCategory?: string | null
     preferredSector?: string | null
     preferredJobTitle?: string | null
+    /** Seeker-set "actively looking for work" badge. Absent on an older backend, so read it as `?? false`. */
+    isActivelyLooking?: boolean
     /** Admin-reviewed rollup across the seeker's uploaded documents (not per-document). */
     documentVerificationStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED' | null
     skills?: JobSeekerSkillLink[]
@@ -1040,6 +1042,8 @@ export interface SeekerProfileUpdate {
   dateOfBirth?: string
   gender?: 'MALE' | 'FEMALE' | 'OTHER'
   workExperiences?: ProfileWorkExperience[]
+  /** The "actively looking for work" badge. A real boolean only: `false` is a valid value. */
+  isActivelyLooking?: boolean
 }
 
 // PUT /employers/profile body. Changing gstNumber/registrationNumber resets the
