@@ -72,6 +72,7 @@
     "unlockedBadge": "Unlocked",
     "contact": "Contact",
     "lockedNote": "Contact details are hidden until you unlock this candidate.",
+    "unavailableNote": "This candidate is no longer available, so their contact details are not shared.",
     "unlockCta": "Unlock contact (uses 1 Candidate Unlock)",
     "about": "About",
     "skills": "Skills",

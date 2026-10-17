@@ -263,7 +263,7 @@ function CandidateDetailContent() {
                       <div key={w.id ?? i} className="flex gap-3">
                         <Briefcase className="w-4 h-4 text-[#3386a9] mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-black">{w.position || t('employer:candidateDetail.roleFallback')}{w.company ? ` · ${w.company}` : ''}</p>
+                          <p className="text-sm font-medium text-black">{w.position || t('employer:candidateDetail.roleFallback')}{w.companyName ? ` · ${w.companyName}` : ''}</p>
                           <p className="text-xs text-[#717182]">
                             {formatDate(w.startDate)}{w.startDate ? ' — ' : ''}{w.endDate ? formatDate(w.endDate) : w.startDate ? t('employer:candidateDetail.present') : ''}
                           </p>
