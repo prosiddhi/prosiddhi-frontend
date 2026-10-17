@@ -34,13 +34,19 @@ import {
   Phone,
   Mail,
   Unlock,
+  X,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { MAX_SEARCH_LENGTH, parseSearch } from '@/lib/myJobsNav'
 
 type Tab = 'search' | 'unlocked'
 
 const PAGE_SIZE = 12
 const MIN_QUERY = 2
+// How long typing must pause before the Unlocked search reaches the BE. Longer than the
+// 300 ms used elsewhere: that endpoint shares a 20-requests-a-minute limit with candidate profiles.
+const UNLOCKED_SEARCH_DEBOUNCE_MS = 500
 
 // The State/City filter's selects, styled like the search boxes above them.
 const PLACE_SELECT_CLS =
@@ -190,9 +196,10 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
   )
 }
 
-// The "Unlocked" tab — the employer's paid candidate history. Fetches lazily
-// (only when the tab is first opened) and paginates.
-function UnlockedList() {
+// The results under the Unlocked search box. `UnlockedList` keys it on the applied search
+// term, so a new term remounts it: page 1, loading, nothing stale. That is also why `term`
+// is only read when it loads.
+function UnlockedResults({ term, onClear }: { term: string; onClear: () => void }) {
   const { t } = useTranslation()
   const [data, setData] = useState<UnlockedCandidatesPage | null>(null)
   const [loading, setLoading] = useState(true)
@@ -205,7 +212,7 @@ function UnlockedList() {
     setLoading(true)
     setError('')
     try {
-      const res = await candidateAPI.getUnlockedCandidates({ page: pageArg, limit: PAGE_SIZE })
+      const res = await candidateAPI.getUnlockedCandidates({ page: pageArg, limit: PAGE_SIZE, search: term })
       if (myReq !== reqIdRef.current) return
       setData(res)
     } catch (err) {
@@ -217,7 +224,12 @@ function UnlockedList() {
     }
   }
 
+  // Once per mount. In development React mounts, cleans up and mounts again; the ref survives
+  // that, so a new search term sends one request there, as it does in production.
+  const startedRef = useRef(false)
   useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
     void load(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -256,9 +268,26 @@ function UnlockedList() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
-        <Unlock className="w-10 h-10 mb-4 text-gray-300" />
-        <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedEmptyTitle')}</p>
-        <p className="max-w-md">{t('employer:workers.unlockedEmptyBody')}</p>
+        {term ? (
+          <>
+            <Search className="w-10 h-10 mb-4 text-gray-300" aria-hidden="true" />
+            <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedNoMatchTitle')}</p>
+            <p className="max-w-md mb-4">{t('employer:workers.unlockedNoMatchBody')}</p>
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-sm underline text-primary-50 hover:no-underline min-h-[44px]"
+            >
+              {t('employer:workers.unlockedSearchClear')}
+            </button>
+          </>
+        ) : (
+          <>
+            <Unlock className="w-10 h-10 mb-4 text-gray-300" />
+            <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedEmptyTitle')}</p>
+            <p className="max-w-md">{t('employer:workers.unlockedEmptyBody')}</p>
+          </>
+        )}
       </div>
     )
   }
@@ -266,7 +295,10 @@ function UnlockedList() {
   return (
     <>
       <p className="text-sm text-[#717182] mb-4">
-        {t('employer:workers.unlockedCount', { count: pagination?.total ?? items.length })}
+        {/* With a search on, the number is the matches, not everything the employer unlocked. */}
+        {t(term ? 'employer:workers.unlockedMatchCount' : 'employer:workers.unlockedCount', {
+          count: pagination?.total ?? items.length,
+        })}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {items.map((c) => (
@@ -295,6 +327,77 @@ function UnlockedList() {
           </button>
         </div>
       )}
+    </>
+  )
+}
+
+// The "Unlocked" tab — the employer's paid candidate history. Fetches lazily (only when the
+// tab is first opened), searches by name / email / phone / job title, and paginates. Its state
+// is local, so leaving the tab starts it afresh.
+function UnlockedList() {
+  const { t } = useTranslation()
+  const searchBox = useRef<HTMLInputElement>(null)
+
+  // `draft` is what the box shows. `typed` is the same text minus a half-composed Indic /
+  // IME syllable, so the search never runs on text the user has not finished entering.
+  const [draft, setDraft] = useState('')
+  const [typed, setTyped] = useState('')
+  // The applied search, trimmed and capped as the BE expects. It follows typing after a
+  // pause, but an emptied box applies at once: there is nothing left to wait for.
+  const normalized = parseSearch(typed)
+  const term = useDebouncedValue(normalized, normalized === '' ? 0 : UNLOCKED_SEARCH_DEBOUNCE_MS)
+
+  // True while a composition has typed text that `typed` has not caught up with yet. Clear
+  // drops it, so a composition-end that arrives after Clear cannot write the old text back; if
+  // the same composition carries on, its next input event sets it again.
+  const composingRef = useRef(false)
+
+  // Clearing is one deliberate click. Focus goes back to the box, as the button that was
+  // clicked is about to disappear.
+  const clearSearch = () => {
+    composingRef.current = false
+    setDraft('')
+    setTyped('')
+    searchBox.current?.focus()
+  }
+
+  // The box sits above the results, not inside them, so it keeps its focus and text while
+  // they load.
+  return (
+    <>
+      <div className="relative mb-6 max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+        <input
+          ref={searchBox}
+          type="search"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            if ((e.nativeEvent as InputEvent).isComposing) composingRef.current = true
+            else setTyped(e.target.value)
+          }}
+          onCompositionEnd={(e) => {
+            if (!composingRef.current) return
+            composingRef.current = false
+            setTyped(e.currentTarget.value)
+          }}
+          maxLength={MAX_SEARCH_LENGTH}
+          placeholder={t('employer:workers.unlockedSearchPlaceholder')}
+          aria-label={t('employer:workers.unlockedSearchLabel')}
+          className="w-full h-11 pl-10 pr-11 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 [&::-webkit-search-cancel-button]:appearance-none"
+        />
+        {draft && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            aria-label={t('employer:workers.unlockedSearchClear')}
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-black"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <UnlockedResults key={term} term={term} onClear={clearSearch} />
     </>
   )
 }

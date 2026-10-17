@@ -111,11 +111,18 @@
     "tabSearch": "शोधा",
     "tabUnlocked": "अनलॉक केलेले",
     "unlockedCount": "{{count}} अनलॉक केलेले उमेदवार",
+    "unlockedMatchCount_one": "{{count}} जुळणारा उमेदवार",
+    "unlockedMatchCount_other": "{{count}} जुळणारे उमेदवार",
     "unlockedAgo": "{{time}} अनलॉक केले",
     "unlockedLoading": "तुम्ही अनलॉक केलेले उमेदवार लोड होत आहेत…",
     "unlockedLoadFailed": "तुम्ही अनलॉक केलेले उमेदवार लोड करता आले नाहीत. कृपया पुन्हा प्रयत्न करा.",
     "unlockedEmptyTitle": "अजून एकही उमेदवार अनलॉक केलेला नाही",
-    "unlockedEmptyBody": "तुम्ही एखाद्या उमेदवाराचा संपर्क अनलॉक केला की तो इथे दिसेल, म्हणजे तुम्हाला त्यांच्याशी कधीही पुन्हा संपर्क करता येईल — मोफत."
+    "unlockedEmptyBody": "तुम्ही एखाद्या उमेदवाराचा संपर्क अनलॉक केला की तो इथे दिसेल, म्हणजे तुम्हाला त्यांच्याशी कधीही पुन्हा संपर्क करता येईल — मोफत.",
+    "unlockedSearchPlaceholder": "नाव, पद, ईमेल किंवा फोनवरून शोधा",
+    "unlockedSearchLabel": "तुमचे अनलॉक केलेले उमेदवार शोधा",
+    "unlockedSearchClear": "शोध काढा",
+    "unlockedNoMatchTitle": "जुळणारे अनलॉक केलेले उमेदवार नाहीत",
+    "unlockedNoMatchBody": "वेगळे नाव, पद, ईमेल किंवा फोन नंबर वापरून पहा."
   },
   "checkout": {
     "title": "तुमची खरेदी पूर्ण करा",

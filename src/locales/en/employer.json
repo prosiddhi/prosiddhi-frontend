@@ -111,11 +111,18 @@
     "tabSearch": "Search",
     "tabUnlocked": "Unlocked",
     "unlockedCount": "{{count}} unlocked candidates",
+    "unlockedMatchCount_one": "{{count}} matching candidate",
+    "unlockedMatchCount_other": "{{count}} matching candidates",
     "unlockedAgo": "Unlocked {{time}}",
     "unlockedLoading": "Loading your unlocked candidates…",
     "unlockedLoadFailed": "Couldn't load your unlocked candidates. Please try again.",
     "unlockedEmptyTitle": "No unlocked candidates yet",
-    "unlockedEmptyBody": "When you unlock a candidate's contact, they'll appear here so you can reach them again anytime — free."
+    "unlockedEmptyBody": "When you unlock a candidate's contact, they'll appear here so you can reach them again anytime — free.",
+    "unlockedSearchPlaceholder": "Search by name, job title, email, or phone",
+    "unlockedSearchLabel": "Search your unlocked candidates",
+    "unlockedSearchClear": "Clear search",
+    "unlockedNoMatchTitle": "No unlocked candidates match",
+    "unlockedNoMatchBody": "Try a different name, job title, email, or phone number."
   },
   "checkout": {
     "title": "Complete your purchase",

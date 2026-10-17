@@ -111,11 +111,18 @@
     "tabSearch": "খুঁজুন",
     "tabUnlocked": "আনলক করা",
     "unlockedCount": "{{count}} জন আনলক করা প্রার্থী",
+    "unlockedMatchCount_one": "মেলে এমন {{count}} জন প্রার্থী",
+    "unlockedMatchCount_other": "মেলে এমন {{count}} জন প্রার্থী",
     "unlockedAgo": "{{time}} আনলক করা হয়েছে",
     "unlockedLoading": "আপনার আনলক করা প্রার্থীরা লোড হচ্ছে…",
     "unlockedLoadFailed": "আপনার আনলক করা প্রার্থীদের লোড করা যায়নি। আবার চেষ্টা করুন।",
     "unlockedEmptyTitle": "এখনও কোনও প্রার্থী আনলক করা হয়নি",
-    "unlockedEmptyBody": "আপনি কোনও প্রার্থীর যোগাযোগ আনলক করলে তিনি এখানে দেখা যাবেন, যাতে পরে যে কোনও সময় আবার তাঁর সঙ্গে যোগাযোগ করতে পারেন — ফ্রি।"
+    "unlockedEmptyBody": "আপনি কোনও প্রার্থীর যোগাযোগ আনলক করলে তিনি এখানে দেখা যাবেন, যাতে পরে যে কোনও সময় আবার তাঁর সঙ্গে যোগাযোগ করতে পারেন — ফ্রি।",
+    "unlockedSearchPlaceholder": "নাম, পদ, ইমেইল বা ফোন নম্বর দিয়ে খুঁজুন",
+    "unlockedSearchLabel": "আপনার আনলক করা প্রার্থীদের খুঁজুন",
+    "unlockedSearchClear": "খোঁজা মুছুন",
+    "unlockedNoMatchTitle": "মেলে এমন আনলক করা প্রার্থী নেই",
+    "unlockedNoMatchBody": "অন্য নাম, পদ, ইমেইল বা ফোন নম্বর দিয়ে চেষ্টা করুন।"
   },
   "checkout": {
     "title": "আপনার কেনাকাটা শেষ করুন",

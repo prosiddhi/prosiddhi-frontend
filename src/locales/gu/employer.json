@@ -111,11 +111,18 @@
     "tabSearch": "શોધો",
     "tabUnlocked": "અનલૉક કરેલા",
     "unlockedCount": "{{count}} અનલૉક કરેલા ઉમેદવારો",
+    "unlockedMatchCount_one": "{{count}} મેળ ખાતો ઉમેદવાર",
+    "unlockedMatchCount_other": "{{count}} મેળ ખાતા ઉમેદવારો",
     "unlockedAgo": "{{time}} અનલૉક કરેલ",
     "unlockedLoading": "તમારા અનલૉક કરેલા ઉમેદવારો લોડ થઈ રહ્યા છે…",
     "unlockedLoadFailed": "તમારા અનલૉક કરેલા ઉમેદવારો લોડ થઈ શક્યા નથી. કૃપા કરીને ફરી પ્રયાસ કરો.",
     "unlockedEmptyTitle": "હજી કોઈ ઉમેદવાર અનલૉક કરેલ નથી",
-    "unlockedEmptyBody": "તમે કોઈ ઉમેદવારનો સંપર્ક અનલૉક કરશો ત્યારે તે અહીં દેખાશે, જેથી તમે ગમે ત્યારે ફરી તેમનો સંપર્ક કરી શકો — મફતમાં."
+    "unlockedEmptyBody": "તમે કોઈ ઉમેદવારનો સંપર્ક અનલૉક કરશો ત્યારે તે અહીં દેખાશે, જેથી તમે ગમે ત્યારે ફરી તેમનો સંપર્ક કરી શકો — મફતમાં.",
+    "unlockedSearchPlaceholder": "નામ, પદ, ઈમેલ કે ફોન નંબરથી શોધો",
+    "unlockedSearchLabel": "તમારા અનલૉક કરેલા ઉમેદવારો શોધો",
+    "unlockedSearchClear": "શોધ હટાવો",
+    "unlockedNoMatchTitle": "મેળ ખાતા અનલૉક કરેલા ઉમેદવારો નથી",
+    "unlockedNoMatchBody": "બીજું નામ, પદ, ઈમેલ કે ફોન નંબર અજમાવો."
   },
   "checkout": {
     "title": "તમારી ખરીદી પૂરી કરો",

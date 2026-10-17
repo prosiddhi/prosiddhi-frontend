@@ -3026,10 +3026,14 @@ export const candidateAPI = {
 
   // The employer's already-unlocked candidates (paid history, contact shown),
   // newest first. GET /api/employers/me/unlocked-candidates.
-  getUnlockedCandidates: async (params?: { page?: number; limit?: number }) => {
+  // `search` is one term the BE matches against name, email, phone and job title
+  // (max 200 characters, else 400); left out when blank.
+  getUnlockedCandidates: async (params?: { page?: number; limit?: number; search?: string }) => {
     const qs = new URLSearchParams()
     qs.set('page', String(params?.page ?? 1))
     qs.set('limit', String(params?.limit ?? 12))
+    const search = params?.search?.trim()
+    if (search) qs.set('search', search)
     return apiRequest<UnlockedCandidatesPage>(`/employers/me/unlocked-candidates?${qs.toString()}`)
   },
 }

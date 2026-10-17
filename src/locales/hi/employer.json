@@ -111,11 +111,18 @@
     "tabSearch": "खोजें",
     "tabUnlocked": "अनलॉक किए गए",
     "unlockedCount": "{{count}} अनलॉक किए गए उम्मीदवार",
+    "unlockedMatchCount_one": "{{count}} मेल खाता उम्मीदवार",
+    "unlockedMatchCount_other": "{{count}} मेल खाते उम्मीदवार",
     "unlockedAgo": "{{time}} अनलॉक किया गया",
     "unlockedLoading": "आपके अनलॉक किए गए उम्मीदवार लोड हो रहे हैं…",
     "unlockedLoadFailed": "आपके अनलॉक किए गए उम्मीदवार लोड नहीं हो सके। कृपया दोबारा प्रयास करें।",
     "unlockedEmptyTitle": "अभी तक कोई अनलॉक किया गया उम्मीदवार नहीं",
-    "unlockedEmptyBody": "जब आप किसी उम्मीदवार का संपर्क अनलॉक करेंगे, तो वे यहाँ दिखाई देंगे ताकि आप उनसे कभी भी दोबारा — मुफ़्त में — संपर्क कर सकें।"
+    "unlockedEmptyBody": "जब आप किसी उम्मीदवार का संपर्क अनलॉक करेंगे, तो वे यहाँ दिखाई देंगे ताकि आप उनसे कभी भी दोबारा — मुफ़्त में — संपर्क कर सकें।",
+    "unlockedSearchPlaceholder": "नाम, पद, ईमेल या फ़ोन से खोजें",
+    "unlockedSearchLabel": "अपने अनलॉक किए गए उम्मीदवार खोजें",
+    "unlockedSearchClear": "खोज हटाएं",
+    "unlockedNoMatchTitle": "कोई अनलॉक किया गया उम्मीदवार नहीं मिला",
+    "unlockedNoMatchBody": "कोई दूसरा नाम, पद, ईमेल या फ़ोन नंबर आज़माएं।"
   },
   "checkout": {
     "title": "अपनी खरीद पूरी करें",
