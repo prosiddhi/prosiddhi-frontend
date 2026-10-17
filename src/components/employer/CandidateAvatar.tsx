@@ -13,6 +13,7 @@ function candidateInitials(name?: string | null): string {
 }
 
 const SIZES = {
+  sm: { box: 'w-11 h-11', text: 'text-sm', px: '44px' },
   md: { box: 'w-14 h-14', text: 'text-base', px: '56px' },
   lg: { box: 'w-20 h-20', text: 'text-2xl', px: '80px' },
 }
