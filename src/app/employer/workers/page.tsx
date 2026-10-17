@@ -338,26 +338,19 @@ function UnlockedList() {
   const { t } = useTranslation()
   const searchBox = useRef<HTMLInputElement>(null)
 
-  // `draft` is what the box shows. `typed` is the same text minus a half-composed Indic /
-  // IME syllable, so the search never runs on text the user has not finished entering.
-  const [draft, setDraft] = useState('')
-  const [typed, setTyped] = useState('')
+  // What the box shows. Every change counts, composition or not: Android keyboards keep the
+  // current word in a composition, so waiting for it to end could mean the search never runs.
+  // The debounce below is what holds back half-typed text.
+  const [query, setQuery] = useState('')
   // The applied search, trimmed and capped as the BE expects. It follows typing after a
   // pause, but an emptied box applies at once: there is nothing left to wait for.
-  const normalized = parseSearch(typed)
+  const normalized = parseSearch(query)
   const term = useDebouncedValue(normalized, normalized === '' ? 0 : UNLOCKED_SEARCH_DEBOUNCE_MS)
-
-  // True while a composition has typed text that `typed` has not caught up with yet. Clear
-  // drops it, so a composition-end that arrives after Clear cannot write the old text back; if
-  // the same composition carries on, its next input event sets it again.
-  const composingRef = useRef(false)
 
   // Clearing is one deliberate click. Focus goes back to the box, as the button that was
   // clicked is about to disappear.
   const clearSearch = () => {
-    composingRef.current = false
-    setDraft('')
-    setTyped('')
+    setQuery('')
     searchBox.current?.focus()
   }
 
@@ -370,23 +363,14 @@ function UnlockedList() {
         <input
           ref={searchBox}
           type="search"
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value)
-            if ((e.nativeEvent as InputEvent).isComposing) composingRef.current = true
-            else setTyped(e.target.value)
-          }}
-          onCompositionEnd={(e) => {
-            if (!composingRef.current) return
-            composingRef.current = false
-            setTyped(e.currentTarget.value)
-          }}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           maxLength={MAX_SEARCH_LENGTH}
           placeholder={t('employer:workers.unlockedSearchPlaceholder')}
           aria-label={t('employer:workers.unlockedSearchLabel')}
           className="w-full h-11 pl-10 pr-11 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 [&::-webkit-search-cancel-button]:appearance-none"
         />
-        {draft && (
+        {query && (
           <button
             type="button"
             onClick={clearSearch}
