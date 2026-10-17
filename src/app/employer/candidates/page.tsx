@@ -16,7 +16,7 @@ import {
   type CandidateTab,
 } from '@/lib/candidatesNav'
 import { candidatesBackUrl } from '@/lib/employerBackNav'
-import { relativeTime, initials } from '@/lib/jobFormat'
+import { relativeTime } from '@/lib/jobFormat'
 import { employerStatusMeta } from '@/lib/applicationStatus'
 import {
   Search,
@@ -30,6 +30,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { Tooltip } from '@/components/ui/Tooltip'
 
 // `filter` is spread into the list request: a pipeline `status`, or the bookmark
@@ -482,28 +483,37 @@ function CandidatesContent() {
                     <Link
                       key={app.id}
                       href={candidateDetailUrl(app.id, candidatesUrl({ tab: tabKey, jobId, page }))}
-                      className="block bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow"
+                      className="group block bg-white border border-[#e5e7eb] rounded-xl p-4 sm:p-5 transition-all hover:border-primary-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#236987]"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-[#236987]">{initials(seeker?.fullName)}</span>
-                        </div>
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <CandidateAvatar photo={seeker?.profilePhoto} name={seeker?.fullName} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
-                          <p className="text-sm text-[#717182] truncate">{app.job?.title}</p>
-                          {seeker?.isActivelyLooking === true && (
-                            // The whole card is a link, so the tooltip wrapper is not given its own tab stop.
-                            <Tooltip content={t('employer:candidates.activelyLookingHint')} focusable={false} align="start">
-                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#e3f5ff] text-[#236987]">
-                                {t('employer:candidates.activelyLooking')}
+                          <p className="text-base sm:text-lg font-semibold text-black truncate">{seeker?.fullName || t('employer:candidates.applicantFallback')}</p>
+                          {app.job?.title && (
+                            <p className="text-sm text-[#717182] flex items-center gap-1.5 mt-0.5 min-w-0">
+                              <Briefcase className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                              <span className="truncate">{app.job.title}</span>
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                            {seeker?.isActivelyLooking === true && (
+                              // The whole card is a link, so the tooltip wrapper is not given its own tab stop.
+                              <Tooltip content={t('employer:candidates.activelyLookingHint')} focusable={false} align="start">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                                  {t('employer:candidates.activelyLooking')}
+                                </span>
+                              </Tooltip>
+                            )}
+                            {seeker?.location && (
+                              <span className="text-xs text-[#717182] flex items-center gap-1 min-w-0">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                                <span className="truncate">{seeker.location}</span>
                               </span>
-                            </Tooltip>
-                          )}
-                          {seeker?.location && (
-                            <p className="text-xs text-[#717182] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {seeker.location}</p>
-                          )}
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                           <div className="flex items-center gap-1.5">
                             {app.isBookmarked && (
                               <Bookmark
@@ -515,7 +525,7 @@ function CandidatesContent() {
                           </div>
                           <span className="text-xs text-[#717182]">{relativeTime(app.appliedAt)}</span>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                        <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-50" aria-hidden="true" />
                       </div>
                     </Link>
                   )
