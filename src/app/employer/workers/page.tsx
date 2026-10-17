@@ -146,13 +146,18 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
 
       {/* Contact — the value the employer paid to see */}
       <div className="space-y-1 mb-3 text-sm text-black">
-        <p className="flex items-center gap-1.5">
-          <Phone className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" /> {c.phoneNumber}
-        </p>
+        {c.available === false && (
+          <p className="text-xs text-[#717182]">{t('employer:candidate.unavailableNote')}</p>
+        )}
+        {c.phoneNumber && (
+          <p className="flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" /> {c.phoneNumber}
+          </p>
+        )}
         {/* A phone-only seeker has no email. Rendering the row anyway left a
             bare mail icon with nothing beside it — on the surface the employer
-            PAID to unlock, which reads as a failed unlock. The phone above is
-            the guaranteed contact. */}
+            PAID to unlock, which reads as a failed unlock. Both contacts are null
+            once the seeker is unavailable, so each row is drawn only when it has a value. */}
         {c.email && (
           <p className="flex items-center gap-1.5 min-w-0">
             <Mail className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" />

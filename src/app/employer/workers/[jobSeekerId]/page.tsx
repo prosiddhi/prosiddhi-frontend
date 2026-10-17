@@ -151,6 +151,9 @@ function CandidateContent() {
                 <h2 className="text-lg font-semibold text-black mb-4">{t('employer:candidate.contact')}</h2>
                 {unlocked ? (
                   <div className="space-y-2 text-sm">
+                    {profile.available === false && (
+                      <p className="text-[#717182]">{t('employer:candidate.unavailableNote')}</p>
+                    )}
                     {profile.email && (
                       <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-[#236987]" /> <a href={`mailto:${profile.email}`} className="text-primary-50 hover:underline">{profile.email}</a></p>
                     )}

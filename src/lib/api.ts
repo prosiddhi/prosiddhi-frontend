@@ -2115,7 +2115,8 @@ export interface CandidateSkill {
 export interface CandidateWorkExperience {
   id?: string
   position?: string
-  company?: string | null
+  // The BE column is `companyName` (and nullable); this was read as `company`, which never came.
+  companyName?: string | null
   startDate?: string
   endDate?: string | null
 }
@@ -2145,7 +2146,8 @@ export interface EmployerApplicationItem {
     bio?: string | null
     /** Seeker-set badge. Absent on an older backend, so only a literal `true` counts. */
     isActivelyLooking?: boolean | null
-    user?: { email?: string; phoneNumber?: string }
+    // Contact for the employer the seeker applied to; either can be null (phone-only or email-only seekers).
+    user?: { email?: string | null; phoneNumber?: string | null }
     skills?: CandidateSkill[]
     workExperience?: CandidateWorkExperience[]
     documents?: CandidateDocument[]
@@ -2190,7 +2192,8 @@ export interface ConversationParty {
   companyName?: string | null
   employerType?: string
   profilePhoto?: string | null
-  user?: { id: string; email?: string }
+  // No email: the BE chat list stopped sending either party's email (data-minimisation, 16 Oct 2026).
+  user?: { id: string }
 }
 export interface Conversation {
   id: string
@@ -2870,7 +2873,7 @@ export interface CandidateSkillLink {
 }
 export interface CandidateExperience {
   position: string
-  companyName: string
+  companyName: string | null
   startDate: string
   endDate: string | null
   currentlyWorking: boolean
@@ -2926,9 +2929,13 @@ export interface CandidateProfile {
   createdAt: string
   skills: CandidateSkillLink[]
   workExperience: CandidateExperience[]
-  // unlocked-only:
-  email?: string
-  phoneNumber?: string
+  // False once the seeker is deleted or suspended; only an employer who already unlocked them
+  // still gets the row. Absent on an older backend, so only a literal `false` counts.
+  available?: boolean
+  // unlocked-only. Both are null when `available` is false, and either can be null for a
+  // phone-only or email-only seeker.
+  email?: string | null
+  phoneNumber?: string | null
   unlockedAt?: string
 }
 export interface CandidateProfileResult {
@@ -2941,8 +2948,8 @@ export interface UnlockResult {
   profile: CandidateProfile
 }
 
-// A candidate the employer has already unlocked (paid for). Contact is always
-// present here — the DOWNLOAD credit was spent, so re-viewing is free.
+// A candidate the employer has already unlocked (paid for). Re-viewing is free — the
+// DOWNLOAD credit was spent. Contact is present unless `available` is false.
 export interface UnlockedCandidate {
   id: string
   fullName: string
@@ -2958,8 +2965,11 @@ export interface UnlockedCandidate {
   // NULLABLE — `User.email` is `String?` in Prisma and candidate.service passes
   // it straight through, so a phone-only seeker unlocks with no email at all.
   // The phone is the guaranteed contact, which is what the employer paid for.
+  // Both are null when `available` is false (the seeker left; the row stays as the receipt).
   email: string | null
-  phoneNumber: string
+  phoneNumber: string | null
+  // Only a literal `false` means unavailable (absent on an older backend).
+  available?: boolean
   unlockedAt: string
 }
 export interface UnlockedCandidatesPage {
