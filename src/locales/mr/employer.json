@@ -497,7 +497,7 @@
     "count_other": "{{count}} उमेदवार",
     "countForJob_one": "या नोकरीसाठी {{count}} उमेदवार",
     "countForJob_other": "या नोकरीसाठी {{count}} उमेदवार",
-    "searchPlaceholder": "नाव, ईमेल किंवा फोनवरून शोधा",
+    "searchPlaceholder": "नाव, पद, ईमेल किंवा फोनवरून शोधा",
     "search": "शोधा",
     "tabs": {
       "all": "सर्व",

@@ -497,7 +497,7 @@
     "count_other": "{{count}} candidates",
     "countForJob_one": "{{count}} candidate for this job",
     "countForJob_other": "{{count}} candidates for this job",
-    "searchPlaceholder": "Search by name, email, or phone",
+    "searchPlaceholder": "Search by name, job title, email, or phone",
     "search": "Search",
     "tabs": {
       "all": "All",
