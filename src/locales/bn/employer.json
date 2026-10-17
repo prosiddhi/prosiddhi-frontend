@@ -497,7 +497,7 @@
     "count_other": "{{count}} জন প্রার্থী",
     "countForJob_one": "এই চাকরির জন্য {{count}} জন প্রার্থী",
     "countForJob_other": "এই চাকরির জন্য {{count}} জন প্রার্থী",
-    "searchPlaceholder": "নাম, ইমেইল বা ফোন নম্বর দিয়ে খুঁজুন",
+    "searchPlaceholder": "নাম, পদ, ইমেইল বা ফোন নম্বর দিয়ে খুঁজুন",
     "search": "খুঁজুন",
     "tabs": {
       "all": "সব",
