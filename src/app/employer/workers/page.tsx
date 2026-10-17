@@ -319,7 +319,11 @@ function WorkersSearchContent() {
 
   const [data, setData] = useState<WorkerSearchPage | null>(null)
   const [loading, setLoading] = useState(false)
+  // A request failure (network, 5xx): the only thing that gets a Retry button.
   const [error, setError] = useState('')
+  // "Type something first" for an empty or too-short query. Not a failure, so it has no
+  // Retry, and it lives apart from `error` so it can never replay the previous search.
+  const [queryError, setQueryError] = useState('')
   // Monotonic request id — only the latest search/paginate updates state, so
   // out-of-order responses (fast page clicks, search-then-page) can't render
   // stale results over newer ones.
@@ -357,11 +361,26 @@ function WorkersSearchContent() {
 
   const submit = () => {
     const search = queryDraft.trim()
+    userSearchedRef.current = true
     if (search.length < MIN_QUERY) {
-      setError(t('employer:workers.minQuery', { count: MIN_QUERY }))
+      setQueryError(t('employer:workers.minQuery', { count: MIN_QUERY }))
+      // One character is a typo, not a request to start over: the message is all that
+      // changes, so a search already on screen (or still loading) is left alone.
+      if (search.length > 0) return
+      // Nothing typed at all drops the previous search entirely. Bumping the request id makes
+      // any request still in flight (a search, or the first-load seed) discard its reply, and
+      // that also means its `finally` will not clear the spinner: done here. `seedJob` goes
+      // too, or its banner would come back when the same words are typed later.
+      reqIdRef.current++
+      setLoading(false)
+      setError('')
+      setApplied(null)
+      setData(null)
+      setPage(1)
+      setSeedJob('')
       return
     }
-    userSearchedRef.current = true
+    setQueryError('')
     // A city wins over a bare state, and "nearest first" needs a city: it is dropped otherwise,
     // so a stale toggle can never ride along with a state or with nothing chosen.
     const place = cityDraft
@@ -550,8 +569,13 @@ function WorkersSearchContent() {
                 <input
                   type="text"
                   value={queryDraft}
-                  onChange={(e) => setQueryDraft(e.target.value)}
+                  onChange={(e) => {
+                    setQueryDraft(e.target.value)
+                    if (queryError) setQueryError('')
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && submit()}
+                  aria-invalid={queryError ? true : undefined}
+                  aria-describedby={queryError ? 'worker-query-error' : undefined}
                   placeholder={t('employer:workers.searchPlaceholder')}
                   className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
@@ -575,6 +599,12 @@ function WorkersSearchContent() {
                 {t('employer:workers.searchButton')}
               </button>
             </div>
+
+            {queryError && (
+              <p id="worker-query-error" role="alert" className="mt-2 text-sm text-red-600">
+                {queryError}
+              </p>
+            )}
 
             {/* State / city filter. Chosen here, applied with the Search button above. */}
             <fieldset className="mt-3 pt-3 border-t border-gray-100 min-w-0">
