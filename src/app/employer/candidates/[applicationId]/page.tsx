@@ -8,6 +8,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
+import { formatInterviewTime } from '@/lib/timeFormat'
 import { employerStatusMeta } from '@/lib/applicationStatus'
 import { candidatesReturnUrl } from '@/lib/candidatesNav'
 import {
@@ -239,7 +240,7 @@ function CandidateDetailContent() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     <p><span className="text-gray-500">{t('employer:candidateDetail.dateLabel')}</span> <span className="font-medium">{formatDate(app.interview.date) || t('employer:candidateDetail.tbc')}</span></p>
-                    <p><span className="text-gray-500">{t('employer:candidateDetail.timeLabel')}</span> <span className="font-medium">{app.interview.time || t('employer:candidateDetail.tbc')}</span></p>
+                    <p><span className="text-gray-500">{t('employer:candidateDetail.timeLabel')}</span> <span className="font-medium">{formatInterviewTime(app.interview.time) || t('employer:candidateDetail.tbc')}</span></p>
                   </div>
                   {app.interview.notes && <p className="text-sm mt-2"><span className="text-gray-500">{t('employer:candidateDetail.notesLabel')}</span> {app.interview.notes}</p>}
                 </div>

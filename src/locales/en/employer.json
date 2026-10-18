@@ -571,7 +571,7 @@
     "scheduleToggle": "Schedule an interview",
     "dateLabel": "Date *",
     "timeLabel": "Time *",
-    "timePlaceholder": "e.g. 10:30 AM",
+    "timeHint": "Choose the interview start time.",
     "notesLabel": "Notes",
     "notesPlaceholder": "e.g. Bring ID and any certificates. Office address...",
     "acceptFailed": "Could not accept this candidate. Please try again.",
