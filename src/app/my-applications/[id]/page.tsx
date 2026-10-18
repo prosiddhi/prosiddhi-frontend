@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { humanizeJobType, formatSalaryLine, relativeTime, initials, formatDate, localizeLocation } from '@/lib/jobFormat'
+import { formatInterviewTime } from '@/lib/timeFormat'
 import { statusMeta, canWithdraw } from '@/lib/applicationStatus'
 import {
   Briefcase,
@@ -200,7 +201,7 @@ function ApplicationDetailsContent() {
                       <div>
                         <p className="text-xs text-gray-500 mb-0.5">{t('seeker:applicationDetail.time')}</p>
                         <p className="text-sm sm:text-base font-medium text-black">
-                          {application.interview.time || t('seeker:applicationDetail.toBeConfirmed')}
+                          {formatInterviewTime(application.interview.time) || t('seeker:applicationDetail.toBeConfirmed')}
                         </p>
                       </div>
                     </div>

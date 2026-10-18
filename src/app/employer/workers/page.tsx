@@ -34,13 +34,19 @@ import {
   Phone,
   Mail,
   Unlock,
+  X,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { MAX_SEARCH_LENGTH, parseSearch } from '@/lib/myJobsNav'
 
 type Tab = 'search' | 'unlocked'
 
 const PAGE_SIZE = 12
 const MIN_QUERY = 2
+// How long typing must pause before the Unlocked search reaches the BE. Longer than the
+// 300 ms used elsewhere: that endpoint shares a 20-requests-a-minute limit with candidate profiles.
+const UNLOCKED_SEARCH_DEBOUNCE_MS = 500
 
 // The State/City filter's selects, styled like the search boxes above them.
 const PLACE_SELECT_CLS =
@@ -146,13 +152,18 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
 
       {/* Contact — the value the employer paid to see */}
       <div className="space-y-1 mb-3 text-sm text-black">
-        <p className="flex items-center gap-1.5">
-          <Phone className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" /> {c.phoneNumber}
-        </p>
+        {c.available === false && (
+          <p className="text-xs text-[#717182]">{t('employer:candidate.unavailableNote')}</p>
+        )}
+        {c.phoneNumber && (
+          <p className="flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" /> {c.phoneNumber}
+          </p>
+        )}
         {/* A phone-only seeker has no email. Rendering the row anyway left a
             bare mail icon with nothing beside it — on the surface the employer
-            PAID to unlock, which reads as a failed unlock. The phone above is
-            the guaranteed contact. */}
+            PAID to unlock, which reads as a failed unlock. Both contacts are null
+            once the seeker is unavailable, so each row is drawn only when it has a value. */}
         {c.email && (
           <p className="flex items-center gap-1.5 min-w-0">
             <Mail className="w-3.5 h-3.5 flex-shrink-0 text-primary-50" />
@@ -185,9 +196,10 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
   )
 }
 
-// The "Unlocked" tab — the employer's paid candidate history. Fetches lazily
-// (only when the tab is first opened) and paginates.
-function UnlockedList() {
+// The results under the Unlocked search box. `UnlockedList` keys it on the applied search
+// term, so a new term remounts it: page 1, loading, nothing stale. That is also why `term`
+// is only read when it loads.
+function UnlockedResults({ term, onClear }: { term: string; onClear: () => void }) {
   const { t } = useTranslation()
   const [data, setData] = useState<UnlockedCandidatesPage | null>(null)
   const [loading, setLoading] = useState(true)
@@ -200,7 +212,7 @@ function UnlockedList() {
     setLoading(true)
     setError('')
     try {
-      const res = await candidateAPI.getUnlockedCandidates({ page: pageArg, limit: PAGE_SIZE })
+      const res = await candidateAPI.getUnlockedCandidates({ page: pageArg, limit: PAGE_SIZE, search: term })
       if (myReq !== reqIdRef.current) return
       setData(res)
     } catch (err) {
@@ -212,7 +224,12 @@ function UnlockedList() {
     }
   }
 
+  // Once per mount. In development React mounts, cleans up and mounts again; the ref survives
+  // that, so a new search term sends one request there, as it does in production.
+  const startedRef = useRef(false)
   useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
     void load(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -251,9 +268,26 @@ function UnlockedList() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
-        <Unlock className="w-10 h-10 mb-4 text-gray-300" />
-        <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedEmptyTitle')}</p>
-        <p className="max-w-md">{t('employer:workers.unlockedEmptyBody')}</p>
+        {term ? (
+          <>
+            <Search className="w-10 h-10 mb-4 text-gray-300" aria-hidden="true" />
+            <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedNoMatchTitle')}</p>
+            <p className="max-w-md mb-4">{t('employer:workers.unlockedNoMatchBody')}</p>
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-sm underline text-primary-50 hover:no-underline min-h-[44px]"
+            >
+              {t('employer:workers.unlockedSearchClear')}
+            </button>
+          </>
+        ) : (
+          <>
+            <Unlock className="w-10 h-10 mb-4 text-gray-300" />
+            <p className="text-lg font-medium text-black mb-1">{t('employer:workers.unlockedEmptyTitle')}</p>
+            <p className="max-w-md">{t('employer:workers.unlockedEmptyBody')}</p>
+          </>
+        )}
       </div>
     )
   }
@@ -261,7 +295,10 @@ function UnlockedList() {
   return (
     <>
       <p className="text-sm text-[#717182] mb-4">
-        {t('employer:workers.unlockedCount', { count: pagination?.total ?? items.length })}
+        {/* With a search on, the number is the matches, not everything the employer unlocked. */}
+        {t(term ? 'employer:workers.unlockedMatchCount' : 'employer:workers.unlockedCount', {
+          count: pagination?.total ?? items.length,
+        })}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {items.map((c) => (
@@ -294,6 +331,61 @@ function UnlockedList() {
   )
 }
 
+// The "Unlocked" tab — the employer's paid candidate history. Fetches lazily (only when the
+// tab is first opened), searches by name / email / phone / job title, and paginates. Its state
+// is local, so leaving the tab starts it afresh.
+function UnlockedList() {
+  const { t } = useTranslation()
+  const searchBox = useRef<HTMLInputElement>(null)
+
+  // What the box shows. Every change counts, composition or not: Android keyboards keep the
+  // current word in a composition, so waiting for it to end could mean the search never runs.
+  // The debounce below is what holds back half-typed text.
+  const [query, setQuery] = useState('')
+  // The applied search, trimmed and capped as the BE expects. It follows typing after a
+  // pause, but an emptied box applies at once: there is nothing left to wait for.
+  const normalized = parseSearch(query)
+  const term = useDebouncedValue(normalized, normalized === '' ? 0 : UNLOCKED_SEARCH_DEBOUNCE_MS)
+
+  // Clearing is one deliberate click. Focus goes back to the box, as the button that was
+  // clicked is about to disappear.
+  const clearSearch = () => {
+    setQuery('')
+    searchBox.current?.focus()
+  }
+
+  // The box sits above the results, not inside them, so it keeps its focus and text while
+  // they load.
+  return (
+    <>
+      <div className="relative mb-6 max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+        <input
+          ref={searchBox}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          maxLength={MAX_SEARCH_LENGTH}
+          placeholder={t('employer:workers.unlockedSearchPlaceholder')}
+          aria-label={t('employer:workers.unlockedSearchLabel')}
+          className="w-full h-11 pl-10 pr-11 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 [&::-webkit-search-cancel-button]:appearance-none"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            aria-label={t('employer:workers.unlockedSearchClear')}
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-black"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <UnlockedResults key={term} term={term} onClear={clearSearch} />
+    </>
+  )
+}
+
 function WorkersSearchContent() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
@@ -314,7 +406,11 @@ function WorkersSearchContent() {
 
   const [data, setData] = useState<WorkerSearchPage | null>(null)
   const [loading, setLoading] = useState(false)
+  // A request failure (network, 5xx): the only thing that gets a Retry button.
   const [error, setError] = useState('')
+  // "Type something first" for an empty or too-short query. Not a failure, so it has no
+  // Retry, and it lives apart from `error` so it can never replay the previous search.
+  const [queryError, setQueryError] = useState('')
   // Monotonic request id — only the latest search/paginate updates state, so
   // out-of-order responses (fast page clicks, search-then-page) can't render
   // stale results over newer ones.
@@ -352,11 +448,26 @@ function WorkersSearchContent() {
 
   const submit = () => {
     const search = queryDraft.trim()
+    userSearchedRef.current = true
     if (search.length < MIN_QUERY) {
-      setError(t('employer:workers.minQuery', { count: MIN_QUERY }))
+      setQueryError(t('employer:workers.minQuery', { count: MIN_QUERY }))
+      // One character is a typo, not a request to start over: the message is all that
+      // changes, so a search already on screen (or still loading) is left alone.
+      if (search.length > 0) return
+      // Nothing typed at all drops the previous search entirely. Bumping the request id makes
+      // any request still in flight (a search, or the first-load seed) discard its reply, and
+      // that also means its `finally` will not clear the spinner: done here. `seedJob` goes
+      // too, or its banner would come back when the same words are typed later.
+      reqIdRef.current++
+      setLoading(false)
+      setError('')
+      setApplied(null)
+      setData(null)
+      setPage(1)
+      setSeedJob('')
       return
     }
-    userSearchedRef.current = true
+    setQueryError('')
     // A city wins over a bare state, and "nearest first" needs a city: it is dropped otherwise,
     // so a stale toggle can never ride along with a state or with nothing chosen.
     const place = cityDraft
@@ -545,8 +656,13 @@ function WorkersSearchContent() {
                 <input
                   type="text"
                   value={queryDraft}
-                  onChange={(e) => setQueryDraft(e.target.value)}
+                  onChange={(e) => {
+                    setQueryDraft(e.target.value)
+                    if (queryError) setQueryError('')
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && submit()}
+                  aria-invalid={queryError ? true : undefined}
+                  aria-describedby={queryError ? 'worker-query-error' : undefined}
                   placeholder={t('employer:workers.searchPlaceholder')}
                   className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
@@ -570,6 +686,12 @@ function WorkersSearchContent() {
                 {t('employer:workers.searchButton')}
               </button>
             </div>
+
+            {queryError && (
+              <p id="worker-query-error" role="alert" className="mt-2 text-sm text-red-600">
+                {queryError}
+              </p>
+            )}
 
             {/* State / city filter. Chosen here, applied with the Search button above. */}
             <fieldset className="mt-3 pt-3 border-t border-gray-100 min-w-0">

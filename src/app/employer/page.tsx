@@ -7,7 +7,8 @@ import Link from 'next/link'
 import { CreditWallet } from '@/components/employer/CreditWallet'
 import { InlineError } from '@/components/feedback/InlineError'
 import { employerAPI, candidateAPI, ApiError } from '@/lib/api'
-import { relativeTime, initials } from '@/lib/jobFormat'
+import { relativeTime } from '@/lib/jobFormat'
+import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { employerStatusMeta, jobStatusMeta, isJobAwaitingReview, isJobRejected } from '@/lib/applicationStatus'
 import { candidatesUrl } from '@/lib/candidatesNav'
 import { myJobsUrl, withReturnTo } from '@/lib/myJobsNav'
@@ -381,9 +382,7 @@ function EmployerDashboardContent() {
                     const meta = employerStatusMeta(app.status)
                     return (
                       <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
-                        <div className="w-11 h-11 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-[#236987]">{initials(app.applicant?.name)}</span>
-                        </div>
+                        <CandidateAvatar photo={app.applicant?.profilePhoto} name={app.applicant?.name} size="sm" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant?.name || t('employer:dashboard.applicantFallback')}</p>
                           <p className="text-xs sm:text-sm text-[#717182] truncate">{app.job?.title}</p>

@@ -8,6 +8,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
+import { formatInterviewTime } from '@/lib/timeFormat'
 import { employerStatusMeta } from '@/lib/applicationStatus'
 import { candidatesReturnUrl } from '@/lib/candidatesNav'
 import {
@@ -26,6 +27,8 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 function CandidateDetailContent() {
   const { t } = useTranslation()
@@ -137,6 +140,7 @@ function CandidateDetailContent() {
 
   const seeker = app?.jobSeeker
   const meta = employerStatusMeta(app?.status)
+  const bio = seeker?.bio?.trim()
   const skills = seeker?.skills ?? []
   const experience = seeker?.workExperience ?? []
   const documents = seeker?.documents ?? []
@@ -171,7 +175,7 @@ function CandidateDetailContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           {/* Back always goes to a candidates list: the one this was opened from (tab, page,
               job), or else the list for this candidate's job. It is usable while the
               candidate loads or fails, when only `from` can say where to go. */}
@@ -199,20 +203,30 @@ function CandidateDetailContent() {
             <div className="space-y-6">
               {/* Profile header */}
               <div className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex items-start gap-4 sm:gap-5">
+                  <CandidateAvatar photo={seeker?.profilePhoto} name={seeker?.fullName} size="lg" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h1 className="text-2xl sm:text-3xl font-bold text-black">{seeker?.fullName || t('employer:candidateDetail.applicantFallback')}</h1>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${meta.pill}`}>{meta.label}</span>
+                      {seeker?.isActivelyLooking === true && (
+                        <Tooltip content={t('employer:candidates.activelyLookingHint')} align="start">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                            {t('employer:candidates.activelyLooking')}
+                          </span>
+                        </Tooltip>
+                      )}
                     </div>
                     <p className="text-sm text-[#717182] mb-3">
                       {t('employer:candidateDetail.appliedTo')} <span className="font-medium text-black">{app.job?.title}</span> · {relativeTime(app.appliedAt)}
                     </p>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-black">
                       {seeker?.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-[#3386a9]" /> {seeker.location}</span>}
-                      {seeker?.user?.email && <a href={`mailto:${seeker.user.email}`} className="flex items-center gap-1 hover:text-primary-50"><Mail className="w-4 h-4 text-[#3386a9]" /> {seeker.user.email}</a>}
+                      {seeker?.user?.email && <a href={`mailto:${seeker.user.email}`} className="flex items-center gap-1 min-w-0 break-all hover:text-primary-50"><Mail className="w-4 h-4 flex-shrink-0 text-[#3386a9]" /> {seeker.user.email}</a>}
                       {seeker?.user?.phoneNumber && <a href={`tel:${seeker.user.phoneNumber}`} className="flex items-center gap-1 hover:text-primary-50"><Phone className="w-4 h-4 text-[#3386a9]" /> {seeker.user.phoneNumber}</a>}
                     </div>
+                    {bio && <p className="mt-4 text-sm sm:text-base text-black whitespace-pre-line break-words">{bio}</p>}
                   </div>
                 </div>
               </div>
@@ -226,7 +240,7 @@ function CandidateDetailContent() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     <p><span className="text-gray-500">{t('employer:candidateDetail.dateLabel')}</span> <span className="font-medium">{formatDate(app.interview.date) || t('employer:candidateDetail.tbc')}</span></p>
-                    <p><span className="text-gray-500">{t('employer:candidateDetail.timeLabel')}</span> <span className="font-medium">{app.interview.time || t('employer:candidateDetail.tbc')}</span></p>
+                    <p><span className="text-gray-500">{t('employer:candidateDetail.timeLabel')}</span> <span className="font-medium">{formatInterviewTime(app.interview.time) || t('employer:candidateDetail.tbc')}</span></p>
                   </div>
                   {app.interview.notes && <p className="text-sm mt-2"><span className="text-gray-500">{t('employer:candidateDetail.notesLabel')}</span> {app.interview.notes}</p>}
                 </div>
@@ -263,7 +277,7 @@ function CandidateDetailContent() {
                       <div key={w.id ?? i} className="flex gap-3">
                         <Briefcase className="w-4 h-4 text-[#3386a9] mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-black">{w.position || t('employer:candidateDetail.roleFallback')}{w.company ? ` · ${w.company}` : ''}</p>
+                          <p className="text-sm font-medium text-black">{w.position || t('employer:candidateDetail.roleFallback')}{w.companyName ? ` · ${w.companyName}` : ''}</p>
                           <p className="text-xs text-[#717182]">
                             {formatDate(w.startDate)}{w.startDate ? ' — ' : ''}{w.endDate ? formatDate(w.endDate) : w.startDate ? t('employer:candidateDetail.present') : ''}
                           </p>
