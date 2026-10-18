@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CITY_KEYS, cityLabelKey } from '@/lib/cities'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
+import { jobFeedHref } from '@/lib/jobLocationParams'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyCategory } from '@/lib/api'
 import { Footer } from '@/components/home/Footer'
@@ -13,8 +14,6 @@ import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
 import {
   Search,
-  MapPin,
-  ChevronDown,
   UserPlus,
   LogIn,
   User,
@@ -65,7 +64,15 @@ export default function EmployeeLandingPage() {
   const { t } = useTranslation()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('')
+  // The location, as a draft until Search. A state with no city is a filter on its
+  // own, so the picker reports the state through `onStateChange`. The state is a
+  // ref: only Search reads it, so picking one need not re-render the whole page.
+  const [city, setCity] = useState<SelectedCity | null>(null)
+  const stateCode = useRef<number | null>(null)
+  // Stable, so typing in the keyword box does not re-render the memoised picker.
+  const rememberState = useCallback((code: number | null) => {
+    stateCode.current = code
+  }, [])
 
   /**
    * Hand the search to the job feed, which is where filtering actually happens.
@@ -76,16 +83,12 @@ export default function EmployeeLandingPage() {
    * get an unfiltered feed with no indication anything had been ignored.
    * (DEF-004 + DEF-014.)
    *
-   * The feed reads both parameters on mount. City keys come from the shared
-   * list so the two screens cannot offer different cities.
+   * The feed reads the keyword and the location on mount. The location is the
+   * backend's own state / city (see lib/jobLocationParams.ts for the URL shape),
+   * so every screen offers the same places.
    */
   const runSearch = () => {
-    const params = new URLSearchParams()
-    const q = searchQuery.trim()
-    if (q) params.set('search', q)
-    if (location) params.set('city', location)
-    const qs = params.toString()
-    router.push(qs ? `/job-feed?${qs}` : '/job-feed')
+    router.push(jobFeedHref(searchQuery.trim(), { stateCode: stateCode.current, cityId: city?.id ?? null }))
   }
 
   // The tiles are the live taxonomy now, not a frozen eight. `useCategories` keeps
@@ -231,14 +234,15 @@ export default function EmployeeLandingPage() {
           </p>
 
           {/* Search Bar */}
-          {/* Stacks below `md`. The three controls have a combined minimum of
-              ~620px (input + a 215px city select + the Search button), so on a
-              phone they were squeezing the keyword field down to a few
-              characters. */}
+          {/* Stacks below `md`. State + City side by side need ~400px, so from `md`
+              the keyword field takes a row of its own and the rest follow on the
+              next one; only from `lg` is there room for everything on one line.
+              (On a phone the controls squeezed the keyword field down to a few
+              characters.) */}
           <div className="max-w-[928px] mx-auto bg-white border-2 border-[#f4f4f4] rounded-lg p-3">
-            <div className="flex flex-col md:flex-row md:items-center gap-2">
+            <div className="flex flex-col md:flex-row md:flex-wrap lg:flex-nowrap md:items-center gap-2">
               {/* Job Search Input */}
-              <div className="flex-1 relative">
+              <div className="flex-1 relative md:basis-full lg:basis-0">
                 <input
                   type="text"
                   placeholder={t('seeker:landing.searchPlaceholder')}
@@ -250,24 +254,16 @@ export default function EmployeeLandingPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               </div>
 
-              {/* Location Selector — the same city list the job feed offers, so
-                  a choice made here survives the hand-off. */}
-              <div className="w-full md:w-[215px] relative">
-                <select
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  aria-label={t('seeker:landing.selectLocation')}
-                  className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-gray-500 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-50"
-                >
-                  <option value="">{t('seeker:landing.selectLocation')}</option>
-                  {CITY_KEYS.map(key => (
-                    <option key={key} value={key}>
-                      {t(cityLabelKey(key))}
-                    </option>
-                  ))}
-                </select>
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              {/* Location Selector — the same State / City lists the job feed
+                  offers, so a choice made here survives the hand-off. */}
+              <div className="w-full md:w-auto md:flex-1 lg:flex-none lg:w-[400px]">
+                <StateCitySelect
+                  value={city}
+                  onChange={setCity}
+                  onStateChange={rememberState}
+                  selectClassName="w-full h-12 px-3 bg-[#f3f3f5] rounded-lg text-base text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  labelClassName="sr-only"
+                />
               </div>
 
               {/* Search Button */}

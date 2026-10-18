@@ -1,17 +1,19 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { CITY_COORDS, CITY_KEYS, toCityKey, cityLabelKey } from '@/lib/cities'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
+import { useCities, useStates } from '@/hooks/useLocations'
+import { jobLocationFilters, parseJobLocation } from '@/lib/jobLocationParams'
 import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type Job, type JobFeedFilters } from '@/lib/api'
 import { useCategories } from '@/hooks/useCategories'
 import { useSavedJobs } from '@/hooks/useSavedJobs'
 import type { TaxonomyCategory } from '@/lib/api'
 import { JobFeedSection } from '@/components/job/JobFeedSection'
-import { Search, MapPin, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertCircle, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 const PAGE_SIZE = 10
@@ -157,9 +159,18 @@ function flatJobTitleNames(categories: TaxonomyCategory[]): string[] {
   return out
 }
 
+// The State / City selects: the look the single location select had in each place,
+// so the swap is not a restyle.
+const BAR_SELECT_CLS =
+  'w-full h-12 px-3 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50 disabled:cursor-not-allowed'
+const SIDEBAR_SELECT_CLS =
+  'w-full h-11 px-3 bg-[#f3f3f5] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50 disabled:cursor-not-allowed'
+
 interface AppliedFilters {
   search: string
-  city: string
+  /** The state being filtered on; with `city` null it is a state-wide search. */
+  stateCode: number | null
+  city: SelectedCity | null
   jobTypes: string[]
   salaryPreset: string
   category: string
@@ -169,7 +180,8 @@ interface AppliedFilters {
 
 const EMPTY_FILTERS: AppliedFilters = {
   search: '',
-  city: '',
+  stateCode: null,
+  city: null,
   jobTypes: [],
   salaryPreset: 'all',
   category: '',
@@ -218,14 +230,114 @@ function JobFeedPageContent() {
   // query) before the reset effect corrected it a render later. The sidebar
   // applies every control immediately on click, so that double-fetch fired
   // on nearly every filter change a seeker made past page 1.
-  const applyFilters = (updater: (prev: AppliedFilters) => AppliedFilters) => {
+  //
+  // Stable (useCallback) because the memoised location pickers' handlers call it.
+  const applyFilters = useCallback((updater: (prev: AppliedFilters) => AppliedFilters) => {
     setFilters(updater)
     setPage(1)
     setJobs([])
-  }
+  }, [])
+
+  // The two location pickers (top bar, sidebar) each keep their own State select,
+  // so one cannot see a state the other just chose. Bumping the OTHER one's key
+  // remounts it on the current state; the one being used is never remounted, so it
+  // keeps focus. (The city is a controlled value and needs no help.)
+  const [pickerKeys, setPickerKeys] = useState({ bar: 0, side: 0 })
+
+  // The state and city a link asked for, until the seeker chooses a state or city
+  // themselves. They are only claims until the backend's lists confirm them
+  // (`stateCheck`, `cityCheck`).
+  const [linkStateCode, setLinkStateCode] = useState<number | null>(null)
+  const [linkCityId, setLinkCityId] = useState<string | null>(null)
+
+  // Handlers for each picker. Memoised so the memoised pickers do not re-render on
+  // every keystroke in the keyword box. A change goes through `applyFilters`, so it
+  // resets to page 1 like every other filter.
+  const pickerProps = useMemo(() => {
+    const forPicker = (other: 'bar' | 'side') => ({
+      onStateChange: (stateCode: number | null) => {
+        applyFilters((prev) => ({ ...prev, stateCode, city: null }))
+        setPickerKeys((keys) => ({ ...keys, [other]: keys[other] + 1 }))
+        setLinkStateCode(null)
+        setLinkCityId(null)
+      },
+      onChange: (city: SelectedCity | null) => {
+        applyFilters((prev) => ({ ...prev, city }))
+        // Only a real city is an answer. A null can be the picker itself dropping a
+        // city its list does not contain, which is the case being checked.
+        if (city) setLinkCityId(null)
+      },
+    })
+    return { bar: forPicker('side'), side: forPicker('bar') }
+  }, [applyFilters])
+
+  // The backend's state list is shared with the pickers (one module cache, so no
+  // extra request) and is what a link's state is checked against. A state the list
+  // does not contain would otherwise be searched anyway — the BE answers an unknown
+  // code with an empty 200 — leaving a blank State select over an empty feed.
+  //   'ok'       no link state, or it is in the list: search as filtered
+  //   'pending'  the list is still loading
+  //   'unknown'  the list does not contain it: say so, search nothing
+  // A list that failed to load cannot judge, so it counts as 'ok'; once the seeker
+  // retries it and the list lacks the state, this turns 'unknown'.
+  const { states, loading: statesLoading, error: statesError } = useStates()
+  const stateCheck =
+    linkStateCode === null || statesError
+      ? 'ok'
+      : statesLoading
+        ? 'pending'
+        : states.some((s) => s.code === linkStateCode)
+          ? 'ok'
+          : 'unknown'
+
+  // The state's city list is shared with the pickers too, and is what a seeded city
+  // is checked against. Not asked for while the state itself is unconfirmed.
+  const {
+    cities: stateCities,
+    loading: stateCitiesLoading,
+    error: stateCitiesError,
+  } = useCities(stateCheck === 'ok' ? filters.stateCode : null)
+  // Searching a city the list does not contain fails (the BE answers 400), and once
+  // the picker drops that city it would quietly become a whole-state search the
+  // seeker never asked for. So until the link's city is confirmed nothing is searched:
+  //   'ok'       no link city, or it is in the list: search as filtered
+  //   'pending'  the list is still loading
+  //   'unknown'  the list does not contain it: say so, search nothing
+  // A list that failed to load cannot judge, so it counts as 'ok': the id is sent
+  // and the BE refuses an unknown one with an error the feed shows, never a wider search.
+  // Derived from the link's own id, not from `filters.city`, because the picker nulls
+  // that city when it drops it — and a seeker who clears a VALID city must not land here.
+  const cityCheck =
+    linkCityId === null || stateCitiesError
+      ? 'ok'
+      : stateCitiesLoading
+        ? 'pending'
+        : stateCities.some((c) => c.id === linkCityId)
+          ? 'ok'
+          : 'unknown'
+
+  // What the page does about the link's location: the state is judged first, because
+  // a city means nothing under a state that does not exist.
+  const locationCheck = stateCheck !== 'ok' ? stateCheck : cityCheck
+
+  // What the pickers are given. While the link's location is unconfirmed (or wrong)
+  // they show nothing chosen, so they never claim a state or city the page is not
+  // searching; once it is confirmed they remount on it (see their `key`).
+  const pickersReady = stateCheck === 'ok'
+  const pickerStateCode = pickersReady ? filters.stateCode : null
+  // A link's city is known only by id. Until its list arrives the select is disabled,
+  // so label it as loading rather than leaving a blank entry. (A failed list keeps the
+  // blank label: the picker's own "Could not load the list" line explains why.)
+  const pickerCity = useMemo(() => {
+    if (!pickersReady || !filters.city) return null
+    return filters.city.name === '' && !stateCitiesError
+      ? { ...filters.city, name: t('location.loading') }
+      : filters.city
+  }, [pickersReady, filters.city, stateCitiesError, t])
 
   // Seed from the URL, so the seeker Home page's search bar actually lands
-  // somewhere: /job-feed?search=welder&city=pune arrives already filtered.
+  // somewhere: /job-feed?search=welder&stateCode=28&cityId=… arrives already
+  // filtered. A malformed location is dropped, not guessed at (jobLocationParams.ts).
   //
   // Read in an EFFECT, not a lazy useState initialiser — useSearchParams is
   // empty during the server render, so an initialiser captures nulls and the
@@ -235,10 +347,16 @@ function JobFeedPageContent() {
   const [seeded, setSeeded] = useState(false)
   useEffect(() => {
     const search = searchParams.get('search')?.trim() ?? ''
-    const city = toCityKey(searchParams.get('city'))
-    if (search || city) {
+    const { stateCode, cityId } = parseJobLocation(searchParams)
+    if (search || stateCode !== null) {
       setSearchDraft(search)
-      setFilters((prev) => ({ ...prev, search, city }))
+      // Only the id is known here; the picker shows the name once the state's list
+      // loads. Until the lists confirm the state and id nothing is searched.
+      setFilters((prev) => ({ ...prev, search, stateCode, city: cityId ? { id: cityId, name: '' } : null }))
+      setLinkStateCode(stateCode)
+      setLinkCityId(cityId)
+      // The pickers mounted before this ran: remount them on the seeded state.
+      if (stateCode !== null) setPickerKeys({ bar: 1, side: 1 })
     }
     setSeeded(true)
     // Deliberately mount-only: this seeds the INITIAL filters.
@@ -246,13 +364,14 @@ function JobFeedPageContent() {
   }, [])
 
   useEffect(() => {
-    if (!seeded) return
+    // 'pending' / 'unknown': the link's state or city is not confirmed, so there is
+    // nothing trustworthy to search for. The render below says why.
+    if (!seeded || locationCheck !== 'ok') return
     let ignore = false
     const run = async () => {
       setLoading(true)
       setError('')
       try {
-        const coords = filters.city ? CITY_COORDS[filters.city] : undefined
         const preset = SALARY_PRESETS.find((p) => p.key === filters.salaryPreset) ?? SALARY_PRESETS[0]
         const query: JobFeedFilters = {
           search: filters.search || undefined,
@@ -262,11 +381,9 @@ function JobFeedPageContent() {
           minSalary: preset.min,
           maxSalary: preset.max,
           urgencyLevel: filters.urgent ? 'URGENT' : undefined,
-          latitude: coords?.lat,
-          longitude: coords?.lon,
-          // The CITY'S radius, not a flat number (TD-06) — see lib/cities.ts
-          // for why each city needs its own.
-          maxDistance: coords?.radius,
+          // `cityId` for a city, `stateCode` for a bare state, nothing for
+          // "anywhere" — and never coordinates or a radius for these.
+          ...jobLocationFilters({ stateCode: filters.stateCode, cityId: filters.city?.id ?? null }),
           sortBy: 'postedAt',
           sortOrder: 'desc',
           page,
@@ -287,11 +404,9 @@ function JobFeedPageContent() {
     return () => {
       ignore = true
     }
-  }, [seeded, page, filters, reloadKey, t])
+  }, [seeded, locationCheck, page, filters, reloadKey, t])
 
   const commitSearch = () => applyFilters((prev) => ({ ...prev, search: searchDraft.trim() }))
-
-  const setCity = (city: string) => applyFilters((prev) => ({ ...prev, city }))
 
   const toggleJobType = (value: string) =>
     applyFilters((prev) => ({
@@ -319,16 +434,24 @@ function JobFeedPageContent() {
   const clearAll = () => {
     setSearchDraft('')
     applyFilters(() => EMPTY_FILTERS)
+    // Each picker holds its own State select, so both start over.
+    setPickerKeys((keys) => ({ bar: keys.bar + 1, side: keys.side + 1 }))
+    setLinkStateCode(null)
+    setLinkCityId(null)
   }
 
   const hasActiveFilters =
     !!filters.search ||
-    !!filters.city ||
+    filters.stateCode !== null ||
     filters.jobTypes.length > 0 ||
     filters.salaryPreset !== 'all' ||
     !!filters.category ||
     !!filters.jobTitle ||
     filters.urgent
+
+  // While the link's city is being checked nothing has been requested, so `loading`
+  // is still false; show the spinner rather than a flash of "No jobs found".
+  const feedLoading = loading || locationCheck === 'pending'
 
   const radioRowCls = 'flex items-center gap-2 min-h-[44px] text-sm text-black cursor-pointer'
 
@@ -367,22 +490,16 @@ function JobFeedPageContent() {
               className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
             />
           </div>
-          <div className="flex-1 min-w-[180px] max-w-[300px] relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              aria-label={t('seeker:landing.selectLocation')}
-              value={filters.city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
-            >
-              <option value="">{t('seeker:jobFeed.anyLocation')}</option>
-              {CITY_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {t(cityLabelKey(key))}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          {/* Compact State + City, kept in step with the sidebar's pair below. */}
+          <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[320px] sm:max-w-[440px]">
+            <StateCitySelect
+              key={`bar-${pickerKeys.bar}-${pickersReady}`}
+              value={pickerCity}
+              initialStateCode={pickerStateCode}
+              selectClassName={BAR_SELECT_CLS}
+              labelClassName="sr-only"
+              {...pickerProps.bar}
+            />
           </div>
           <button
             onClick={commitSearch}
@@ -433,27 +550,18 @@ function JobFeedPageContent() {
 
             <div className="mb-5">
               <h3 className="text-sm font-semibold text-black mb-2">{t('seeker:jobFeed.filters.location')}</h3>
-              <div className="relative">
-                {/* `appearance-none` + this chevron replace the browser's own
-                    dropdown arrow, which rendered heavy and hugged the
-                    right edge on Windows Chrome/Edge — `pr-8` reserves the
-                    room this icon actually needs instead of the native
-                    arrow's tighter, non-adjustable inset. */}
-                <select
-                  aria-label={t('seeker:jobFeed.filters.location')}
-                  value={filters.city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full h-11 pl-3 pr-8 bg-[#f3f3f5] rounded-lg text-sm appearance-none cursor-pointer"
-                >
-                  <option value="">{t('seeker:jobFeed.anyLocation')}</option>
-                  {CITY_KEYS.map((key) => (
-                    <option key={key} value={key}>
-                      {t(cityLabelKey(key))}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none" />
-              </div>
+              {/* The full picker, labelled. Its two selects sit side by side from
+                  `sm`, but this column is only 280px wide from `lg`, so there they
+                  stack. */}
+              <StateCitySelect
+                key={`side-${pickerKeys.side}-${pickersReady}`}
+                className="lg:[&>div:first-child]:grid-cols-1"
+                value={pickerCity}
+                initialStateCode={pickerStateCode}
+                selectClassName={SIDEBAR_SELECT_CLS}
+                labelClassName="block text-xs text-[#717182] mb-1"
+                {...pickerProps.side}
+              />
             </div>
 
             {/* Job Type — 2-column grid, matching the Figma reference. */}
@@ -545,27 +653,39 @@ function JobFeedPageContent() {
           </aside>
 
           <div id="job-results" tabIndex={-1} className="order-1 lg:order-none flex-1 min-w-0 focus:outline-none">
-            <JobFeedSection
-              bare
-              heading={
-                !loading && !error ? (
-                  <p className="text-sm font-medium text-black mb-4">{t('seeker:jobFeed.showingCount', { count: total })}</p>
-                ) : null
-              }
-              count={total}
-              loading={loading}
-              error={error}
-              jobs={jobs}
-              kind="all"
-              noLocation={false}
-              hasMore={hasMore}
-              onShowMore={() => setPage((p) => p + 1)}
-              onRetry={() => setReloadKey((k) => k + 1)}
-              savedIds={savedIds}
-              savingIds={savingIds}
-              onToggleSave={toggleSave}
-              from="job-feed"
-            />
+            {locationCheck === 'unknown' ? (
+              // The link names a state or city that does not exist. Nothing is
+              // searched, and no Retry: asking again cannot make it exist. The
+              // pickers above are the way forward.
+              <div role="alert" className="flex flex-col items-center justify-center py-10 text-center">
+                <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
+                <p className="text-red-600 max-w-md">
+                  {t(stateCheck === 'unknown' ? 'seeker:jobFeed.stateNotFound' : 'seeker:jobFeed.cityNotFound')}
+                </p>
+              </div>
+            ) : (
+              <JobFeedSection
+                bare
+                heading={
+                  !feedLoading && !error ? (
+                    <p className="text-sm font-medium text-black mb-4">{t('seeker:jobFeed.showingCount', { count: total })}</p>
+                  ) : null
+                }
+                count={total}
+                loading={feedLoading}
+                error={error}
+                jobs={jobs}
+                kind="all"
+                noLocation={false}
+                hasMore={hasMore}
+                onShowMore={() => setPage((p) => p + 1)}
+                onRetry={() => setReloadKey((k) => k + 1)}
+                savedIds={savedIds}
+                savingIds={savingIds}
+                onToggleSave={toggleSave}
+                from="job-feed"
+              />
+            )}
           </div>
         </div>
       </div>

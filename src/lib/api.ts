@@ -858,6 +858,11 @@ export interface JobFeedFilters {
   latitude?: number
   longitude?: number
   maxDistance?: number
+  // Jobs posted in this city / in any city of this state (ids from GET /locations/*;
+  // job.validator.ts: cityId is a uuid, stateCode a 1–3 digit number). A city wins
+  // over a state, so send one of the two — see lib/jobLocationParams.ts.
+  cityId?: string
+  stateCode?: number
   skills?: string // comma-separated
   urgencyLevel?: string
   sortBy?: 'postedAt' | 'salaryMin' | 'salaryMax' | 'urgencyLevel' | 'title'

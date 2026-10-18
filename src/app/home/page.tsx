@@ -1,19 +1,24 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { CITY_KEYS, cityLabelKey } from '@/lib/cities'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
+import { jobFeedHref } from '@/lib/jobLocationParams'
 import { Footer } from '@/components/home/Footer'
 import { useSavedJobs } from '@/hooks/useSavedJobs'
 import { useJobFeedPreview } from '@/hooks/useJobFeedPreview'
 import { JobFeedSection } from '@/components/job/JobFeedSection'
-import { Search, MapPin, ChevronDown, Info } from 'lucide-react'
+import { Search, Info } from 'lucide-react'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 // How many jobs each tab (All/Recommended/Nearby) loads before "Show More".
 const PREVIEW_SIZE = 4
+
+// The hero's State / City selects: the look the single location select had.
+const HERO_SELECT_CLS =
+  'w-full h-12 px-3 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50 disabled:cursor-not-allowed'
 
 /**
  * The authenticated seeker's Home / dashboard.
@@ -27,17 +32,20 @@ function SeekerHomeContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('')
+  // The location, as a draft until Search. A state with no city is a filter on its
+  // own, so the picker reports the state through `onStateChange`. The state is a
+  // ref: only Search reads it, so picking one need not re-render the whole page.
+  const [city, setCity] = useState<SelectedCity | null>(null)
+  const stateCode = useRef<number | null>(null)
+  // Stable, so typing in the keyword box does not re-render the memoised picker.
+  const rememberState = useCallback((code: number | null) => {
+    stateCode.current = code
+  }, [])
 
   // Hands off to the job feed, which is where filtering actually happens —
   // same pattern as the public landing page's search bar.
   const runSearch = () => {
-    const params = new URLSearchParams()
-    const q = searchQuery.trim()
-    if (q) params.set('search', q)
-    if (location) params.set('city', location)
-    const qs = params.toString()
-    router.push(qs ? `/job-feed?${qs}` : '/job-feed')
+    router.push(jobFeedHref(searchQuery.trim(), { stateCode: stateCode.current, cityId: city?.id ?? null }))
   }
 
   const { savedIds, savingIds, toggleSave } = useSavedJobs()
@@ -77,22 +85,16 @@ function SeekerHomeContent() {
                 />
               </div>
 
-              <div className="flex-1 min-w-[150px] lg:max-w-[416px] relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  aria-label={t('seeker:landing.selectLocation')}
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full h-12 pl-10 pr-10 bg-[#f3f3f5] rounded-lg text-base text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50 appearance-none cursor-pointer"
-                >
-                  <option value="">{t('seeker:jobFeed.anyLocation')}</option>
-                  {CITY_KEYS.map((key) => (
-                    <option key={key} value={key}>
-                      {t(cityLabelKey(key))}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              {/* State + City: stacked below `sm`, side by side from `sm`, and on a
+                  row of their own until `lg` has room for a single line. */}
+              <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[320px] lg:max-w-[416px]">
+                <StateCitySelect
+                  value={city}
+                  onChange={setCity}
+                  onStateChange={rememberState}
+                  selectClassName={HERO_SELECT_CLS}
+                  labelClassName="sr-only"
+                />
               </div>
 
               <button

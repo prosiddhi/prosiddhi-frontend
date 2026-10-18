@@ -62,6 +62,8 @@
     "resultCount_other": "{{count}} Results",
     "loading": "Loading jobs...",
     "loadError": "Failed to load jobs. Please try again.",
+    "cityNotFound": "We couldn't find the city in this link. Choose a state and city above, or clear the location.",
+    "stateNotFound": "We couldn't find the state in this link. Choose a state above, or clear the location.",
     "emptyTitle": "No jobs found",
     "emptyNearby": "No jobs near your saved location yet. Try Job Feed instead.",
     "emptyRecommended": "No recommendations yet — complete your profile to improve matches.",
