@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { humanizeJobType, formatSalaryLine, relativeTime, initials, localizeLocation } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalaryLine, relativeTime, initials, jobPlaceTags } from '@/lib/jobFormat'
 import type { Job } from '@/lib/api'
 import { Bookmark, BookmarkCheck, Briefcase, Clock, IndianRupee, Loader2, MapPin } from 'lucide-react'
 
@@ -130,12 +130,12 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
                 {job.category}
               </span>
             )}
-            {job.location && (
-              <span className="inline-flex items-center gap-1 bg-[#efefef] px-3 py-1 rounded-full text-xs text-black">
+            {jobPlaceTags(job).map((p) => (
+              <span key={p.key} className="inline-flex items-center gap-1 bg-[#efefef] px-3 py-1 rounded-full text-xs text-black">
                 <MapPin className="w-3 h-3 text-[#3386a9]" />
-                {localizeLocation(job.location)}
+                {p.label}
               </span>
-            )}
+            ))}
           </div>
 
           {/* Secondary classification (admin Job Title + sector) — plain

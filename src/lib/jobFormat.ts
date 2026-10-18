@@ -69,6 +69,22 @@ export function localizeLocation(text: string | null | undefined): string {
   return key ? i18n.t(cityLabelKey(key)) : text
 }
 
+/**
+ * The places a job shows as tags: one per city when the job carries its `cities`,
+ * else its whole legacy `location` text as ONE tag (never split on commas — old
+ * free text such as "Whitefield, Bangalore" is one place), else none.
+ * Keys are the city ids, so two cities with the same name stay distinct.
+ */
+export function jobPlaceTags(job: {
+  cities?: { city: { id: string; name: string } }[]
+  location?: string | null
+}): { key: string; label: string }[] {
+  if (job.cities?.length) {
+    return job.cities.map(({ city }) => ({ key: city.id, label: localizeLocation(city.name) }))
+  }
+  return job.location ? [{ key: 'legacy', label: localizeLocation(job.location) }] : []
+}
+
 /** Map the app language to a BCP-47 locale for Intl. Both are Indian locales, so
  *  digits and the lakh/crore grouping stay right; only the language differs. */
 function intlLocale(): string {

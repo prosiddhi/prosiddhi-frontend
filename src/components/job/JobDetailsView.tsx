@@ -22,6 +22,7 @@ import {
   relativeTime,
   initials,
   localizeLocation,
+  jobPlaceTags,
 } from '@/lib/jobFormat'
 import {
   Briefcase,
@@ -359,12 +360,12 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                             <span className="text-[clamp(12px,10.67px_+_0.21vw,14px)] text-black">{humanizeJobType(job.jobType)}</span>
                           </div>
                         )}
-                        {job.location && (
-                          <div className="bg-[#efefef] px-[clamp(12px,9.33px_+_0.42vw,16px)] py-[clamp(6px,4.67px_+_0.21vw,8px)] rounded-full flex items-center gap-1.5">
+                        {jobPlaceTags(job).map((p) => (
+                          <div key={p.key} className="bg-[#efefef] px-[clamp(12px,9.33px_+_0.42vw,16px)] py-[clamp(6px,4.67px_+_0.21vw,8px)] rounded-full flex items-center gap-1.5">
                             <MapPin className="w-[clamp(12px,9.33px_+_0.42vw,16px)] h-[clamp(12px,9.33px_+_0.42vw,16px)] text-[#3386a9]" />
-                            <span className="text-[clamp(12px,10.67px_+_0.21vw,14px)] text-black">{localizeLocation(job.location)}</span>
+                            <span className="text-[clamp(12px,10.67px_+_0.21vw,14px)] text-black">{p.label}</span>
                           </div>
-                        )}
+                        ))}
                         {job.category && (
                           <div className="bg-[#efefef] px-[clamp(12px,9.33px_+_0.42vw,16px)] py-[clamp(6px,4.67px_+_0.21vw,8px)] rounded-full flex items-center gap-1.5">
                             <Briefcase className="w-[clamp(12px,9.33px_+_0.42vw,16px)] h-[clamp(12px,9.33px_+_0.42vw,16px)] text-[#3386a9]" />
@@ -583,12 +584,12 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                               <span className="text-xs text-black">{rel.category}</span>
                             </div>
                           )}
-                          {rel.location && (
-                            <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
+                          {jobPlaceTags(rel).map((p) => (
+                            <div key={p.key} className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{localizeLocation(rel.location)}</span>
+                              <span className="text-xs text-black">{p.label}</span>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </Link>
                     ))}
