@@ -538,7 +538,7 @@ function JobFeedPageContent() {
               (sidebar left, results right), so the desktop layout is
               byte-for-byte unchanged. Filters stay fully intact and reachable
               by scrolling past the results, not hidden behind any toggle. */}
-          <aside className="order-2 lg:order-none w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
+          <aside className="order-2 lg:order-none lg:self-start lg:sticky lg:top-[91px] w-full lg:w-[280px] shrink-0 bg-white border border-[#dddddd] rounded-[10px] p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-black">{t('seeker:jobFeed.filters.allFilters')}</h2>
               {hasActiveFilters && (
