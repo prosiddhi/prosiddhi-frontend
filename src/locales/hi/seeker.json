@@ -71,6 +71,8 @@
     "pageOf": "पृष्ठ {{page}} / {{total}}",
     "emptyNearbyCta": "अपनी जगह जोड़ें",
     "showMore": "और देखें",
+    "showLess": "कम देखें",
+    "endOfResults": "आपने सभी नौकरियाँ देख ली हैं",
     "jobType": {
       "FULL_TIME": "पूर्णकालिक",
       "PART_TIME": "अंशकालिक",

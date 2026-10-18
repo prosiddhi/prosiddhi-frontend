@@ -71,6 +71,8 @@
     "pageOf": "पान {{page}} / {{total}}",
     "emptyNearbyCta": "तुमचे ठिकाण जोडा",
     "showMore": "आणखी पहा",
+    "showLess": "कमी पहा",
+    "endOfResults": "तुम्ही सर्व नोकऱ्या पाहिल्या आहेत",
     "jobType": {
       "FULL_TIME": "पूर्णवेळ",
       "PART_TIME": "अर्धवेळ",

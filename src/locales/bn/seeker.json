@@ -71,6 +71,8 @@
     "pageOf": "পেজ {{page}} / {{total}}",
     "emptyNearbyCta": "আপনার জায়গা যোগ করুন",
     "showMore": "আরও দেখুন",
+    "showLess": "কম দেখুন",
+    "endOfResults": "আপনি সব চাকরি দেখেছেন",
     "jobType": {
       "FULL_TIME": "ফুল টাইম",
       "PART_TIME": "পার্ট টাইম",

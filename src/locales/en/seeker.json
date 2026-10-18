@@ -71,6 +71,8 @@
     "pageOf": "Page {{page}} of {{total}}",
     "emptyNearbyCta": "Add your location",
     "showMore": "Show More",
+    "showLess": "Show Less",
+    "endOfResults": "You've seen all jobs",
     "jobType": {
       "FULL_TIME": "Full Time",
       "PART_TIME": "Part Time",

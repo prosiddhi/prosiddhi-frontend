@@ -71,6 +71,8 @@
     "pageOf": "પેજ {{page}} / {{total}}",
     "emptyNearbyCta": "તમારું સ્થળ ઉમેરો",
     "showMore": "વધુ જુઓ",
+    "showLess": "ઓછું જુઓ",
+    "endOfResults": "તમે બધી નોકરીઓ જોઈ લીધી છે",
     "jobType": {
       "FULL_TIME": "ફુલ-ટાઇમ",
       "PART_TIME": "પાર્ટ-ટાઇમ",

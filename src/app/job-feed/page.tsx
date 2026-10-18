@@ -18,6 +18,9 @@ import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 
 const PAGE_SIZE = 10
 
+// Stored in `error` when the request fails without a message of its own.
+const LOAD_ERROR_KEY = 'seeker:jobFeed.loadError'
+
 // How many Job Department / Job Role Category options show before "View more".
 const DEPARTMENT_PREVIEW = 5
 const ROLE_PREVIEW = 5
@@ -220,6 +223,10 @@ function JobFeedPageContent() {
   const [hasMore, setHasMore] = useState(false)
   const [total, setTotal] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
+  // "Show Less" only hides loaded jobs past the first PAGE_SIZE — `jobs` and
+  // `page` stay as they are, so collapsing never refetches and re-expanding
+  // needs no request. Reset by applyFilters below.
+  const [collapsed, setCollapsed] = useState(false)
 
   // Every filter change goes through this: it updates the filter AND resets
   // to page 1 in the SAME state update, so the fetch effect below only ever
@@ -236,7 +243,28 @@ function JobFeedPageContent() {
     setFilters(updater)
     setPage(1)
     setJobs([])
+    setHasMore(false)
+    setError('')
+    setCollapsed(false)
   }, [])
+
+  const hasExtraJobs = jobs.length > PAGE_SIZE
+  const visibleJobs = useMemo(() => (collapsed ? jobs.slice(0, PAGE_SIZE) : jobs), [collapsed, jobs])
+
+  const handleShowMore = () => {
+    // Collapsed: the hidden jobs are already loaded — show them, no request.
+    if (collapsed) setCollapsed(false)
+    else setPage((p) => p + 1)
+  }
+
+  const handleShowLess = () => {
+    setCollapsed(true)
+    const results = document.getElementById('job-results')
+    results?.scrollIntoView({ block: 'start' })
+    // The Show Less button unmounts, so move focus to the results (tabIndex -1)
+    // instead of letting it fall to <body>. The scroll above already ran.
+    results?.focus({ preventScroll: true })
+  }
 
   // The two location pickers (top bar, sidebar) each keep their own State select,
   // so one cannot see a state the other just chose. Bumping the OTHER one's key
@@ -391,11 +419,18 @@ function JobFeedPageContent() {
         }
         const res = await jobSeekerAPI.getJobFeed(query)
         if (ignore) return
-        setJobs((prev) => (page === 1 ? res.jobs : [...prev, ...res.jobs]))
+        setJobs((prev) => {
+          if (page === 1) return res.jobs
+          // Offset paging can repeat a job across pages; keep the loaded copy and order.
+          const loaded = new Set(prev.map((j) => j.id))
+          return [...prev, ...res.jobs.filter((j) => !loaded.has(j.id))]
+        })
         setHasMore(!!res.pagination?.hasNextPage)
         setTotal(res.pagination?.total ?? 0)
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : t('seeker:jobFeed.loadError'))
+        // A key, not translated text, so the effect does not depend on `t`
+        // (a language switch would re-fetch the current page). Translated at render.
+        if (!ignore) setError(err instanceof Error ? err.message : LOAD_ERROR_KEY)
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -404,7 +439,7 @@ function JobFeedPageContent() {
     return () => {
       ignore = true
     }
-  }, [seeded, locationCheck, page, filters, reloadKey, t])
+  }, [seeded, locationCheck, page, filters, reloadKey])
 
   const commitSearch = () => applyFilters((prev) => ({ ...prev, search: searchDraft.trim() }))
 
@@ -452,6 +487,11 @@ function JobFeedPageContent() {
   // While the link's city is being checked nothing has been requested, so `loading`
   // is still false; show the spinner rather than a flash of "No jobs found".
   const feedLoading = loading || locationCheck === 'pending'
+
+  // The one error the heading and the section both read. Collapsed: hidden, so
+  // Show More can re-expand the loaded jobs without a request; it comes back once
+  // expanded.
+  const shownError = collapsed ? '' : error === LOAD_ERROR_KEY ? t(LOAD_ERROR_KEY) : error
 
   const radioRowCls = 'flex items-center gap-2 min-h-[44px] text-sm text-black cursor-pointer'
 
@@ -652,7 +692,7 @@ function JobFeedPageContent() {
             </div>
           </aside>
 
-          <div id="job-results" tabIndex={-1} className="order-1 lg:order-none flex-1 min-w-0 focus:outline-none">
+          <div id="job-results" tabIndex={-1} className="order-1 lg:order-none flex-1 min-w-0 scroll-mt-24 focus:outline-none">
             {locationCheck === 'unknown' ? (
               // The link names a state or city that does not exist. Nothing is
               // searched, and no Retry: asking again cannot make it exist. The
@@ -667,19 +707,25 @@ function JobFeedPageContent() {
               <JobFeedSection
                 bare
                 heading={
-                  !feedLoading && !error ? (
+                  !feedLoading && !shownError ? (
                     <p className="text-sm font-medium text-black mb-4">{t('seeker:jobFeed.showingCount', { count: total })}</p>
                   ) : null
                 }
                 count={total}
                 loading={feedLoading}
-                error={error}
-                jobs={jobs}
+                error={shownError}
+                jobs={visibleJobs}
                 kind="all"
                 noLocation={false}
-                hasMore={hasMore}
-                onShowMore={() => setPage((p) => p + 1)}
-                onRetry={() => setReloadKey((k) => k + 1)}
+                hasMore={collapsed || hasMore}
+                onShowMore={handleShowMore}
+                onShowLess={hasExtraJobs && !collapsed ? handleShowLess : undefined}
+                endMessage={hasExtraJobs && !collapsed && !hasMore ? t('seeker:jobFeed.endOfResults') : undefined}
+                onRetry={() => {
+                  // Re-requests the current `page` — the failed one — and appends it.
+                  setCollapsed(false)
+                  setReloadKey((k) => k + 1)
+                }}
                 savedIds={savedIds}
                 savingIds={savingIds}
                 onToggleSave={toggleSave}

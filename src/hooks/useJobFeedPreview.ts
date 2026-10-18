@@ -6,7 +6,13 @@
 // copy-paste that differed only in which API method they called.
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { jobSeekerAPI, type Job } from '@/lib/api'
+
+// Stored in `error` when a request fails without a message of its own. A key,
+// not translated text: the fetch effect must not depend on the language, or a
+// language switch re-fetches the current page. Translated when returned.
+const LOAD_ERROR_KEY = 'seeker:jobFeed.loadError'
 
 export interface UseJobFeedPreviewResult {
   jobs: Job[]
@@ -26,9 +32,9 @@ export interface UseJobFeedPreviewResult {
 
 export function useJobFeedPreview(
   kind: 'all' | 'recommended' | 'nearby',
-  pageSize: number,
-  loadErrorMessage: string
+  pageSize: number
 ): UseJobFeedPreviewResult {
+  const { t } = useTranslation()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,12 +57,17 @@ export function useJobFeedPreview(
               ? await jobSeekerAPI.getRecommendedJobs(page, pageSize)
               : await jobSeekerAPI.getNearbyJobs({ page, limit: pageSize })
         if (ignore) return
-        setJobs((prev) => (page === 1 ? res.jobs : [...prev, ...res.jobs]))
+        setJobs((prev) => {
+          if (page === 1) return res.jobs
+          // Offset paging can repeat a job across pages; keep the loaded copy and order.
+          const loaded = new Set(prev.map((j) => j.id))
+          return [...prev, ...res.jobs.filter((j) => !loaded.has(j.id))]
+        })
         setHasMore(!!res.pagination?.hasNextPage)
         setTotal(res.pagination?.total ?? 0)
         setNoLocation(res.noLocation === true)
       } catch (err) {
-        if (!ignore) setError(err instanceof Error ? err.message : loadErrorMessage)
+        if (!ignore) setError(err instanceof Error ? err.message : LOAD_ERROR_KEY)
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -65,12 +76,12 @@ export function useJobFeedPreview(
     return () => {
       ignore = true
     }
-  }, [kind, page, pageSize, reloadKey, loadErrorMessage])
+  }, [kind, page, pageSize, reloadKey])
 
   return {
     jobs,
     loading,
-    error,
+    error: error === LOAD_ERROR_KEY ? t(LOAD_ERROR_KEY) : error,
     hasMore,
     total,
     noLocation,

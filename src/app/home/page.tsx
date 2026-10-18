@@ -49,9 +49,9 @@ function SeekerHomeContent() {
   }
 
   const { savedIds, savingIds, toggleSave } = useSavedJobs()
-  const all = useJobFeedPreview('all', PREVIEW_SIZE, t('seeker:jobFeed.loadError'))
-  const recommended = useJobFeedPreview('recommended', PREVIEW_SIZE, t('seeker:jobFeed.loadError'))
-  const nearby = useJobFeedPreview('nearby', PREVIEW_SIZE, t('seeker:jobFeed.loadError'))
+  const all = useJobFeedPreview('all', PREVIEW_SIZE)
+  const recommended = useJobFeedPreview('recommended', PREVIEW_SIZE)
+  const nearby = useJobFeedPreview('nearby', PREVIEW_SIZE)
 
   // Switches which section is on screen — All/Recommended/Nearby used to
   // render stacked, one full section each; tabs keep the page shorter and

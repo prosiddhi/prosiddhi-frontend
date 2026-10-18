@@ -71,6 +71,8 @@
     "pageOf": "పేజీ {{page}} / {{total}}",
     "emptyNearbyCta": "మీ ప్రాంతం చేర్చండి",
     "showMore": "మరిన్ని చూడండి",
+    "showLess": "తక్కువ చూడండి",
+    "endOfResults": "మీరు అన్ని ఉద్యోగాలను చూశారు",
     "jobType": {
       "FULL_TIME": "ఫుల్ టైమ్",
       "PART_TIME": "పార్ట్ టైమ్",

@@ -71,6 +71,8 @@
     "pageOf": "പേജ് {{page}} / {{total}}",
     "emptyNearbyCta": "നിങ്ങളുടെ സ്ഥലം ചേർക്കുക",
     "showMore": "കൂടുതൽ കാണുക",
+    "showLess": "കുറച്ച് കാണുക",
+    "endOfResults": "നിങ്ങൾ എല്ലാ ജോലികളും കണ്ടുകഴിഞ്ഞു",
     "jobType": {
       "FULL_TIME": "ഫുൾ ടൈം",
       "PART_TIME": "പാർട്ട് ടൈം",

@@ -71,6 +71,8 @@
     "pageOf": "ପୃଷ୍ଠା {{page}} / {{total}}",
     "emptyNearbyCta": "ଆପଣଙ୍କ ସ୍ଥାନ ଯୋଡ଼ନ୍ତୁ",
     "showMore": "ଆଉ ଦେଖନ୍ତୁ",
+    "showLess": "କମ୍ ଦେଖନ୍ତୁ",
+    "endOfResults": "ଆପଣ ସମସ୍ତ ଚାକିରି ଦେଖିସାରିଛନ୍ତି",
     "jobType": {
       "FULL_TIME": "ପୂର୍ଣ୍ଣ ସମୟ",
       "PART_TIME": "ଆଂଶିକ ସମୟ",

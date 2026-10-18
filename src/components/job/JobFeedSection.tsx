@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { Briefcase, Eye, Loader2, AlertCircle, MapPinOff, MapPinPlus, type LucideIcon } from 'lucide-react'
+import { Briefcase, Eye, EyeOff, Loader2, AlertCircle, MapPinOff, MapPinPlus, type LucideIcon } from 'lucide-react'
 import type { Job } from '@/lib/api'
 import { JobFeedCard } from './JobFeedCard'
 
@@ -58,6 +58,10 @@ export interface JobFeedSectionProps {
   noLocation: boolean
   hasMore: boolean
   onShowMore: () => void
+  /** Job Feed only: when set, a "Show Less" button collapses the loaded list. */
+  onShowLess?: () => void
+  /** Job Feed only: shown above Show Less once the last page is loaded. */
+  endMessage?: string
   onRetry: () => void
   savedIds: Set<string>
   savingIds: Set<string>
@@ -81,6 +85,8 @@ export function JobFeedSection({
   noLocation,
   hasMore,
   onShowMore,
+  onShowLess,
+  endMessage,
   onRetry,
   savedIds,
   savingIds,
@@ -90,6 +96,7 @@ export function JobFeedSection({
   const { t } = useTranslation()
   const empty = emptyStateFor(kind, noLocation, t)
   const EmptyIcon = empty.Icon
+  const loadMoreFailed = !loading && !!error && jobs.length > 0
 
   const content = (
     <>
@@ -159,16 +166,42 @@ export function JobFeedSection({
         </div>
       )}
 
-      {hasMore && (
-        <div className="text-center mt-5 sm:mt-6">
-          <button
-            onClick={onShowMore}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-[#dddddd] rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-            {t('seeker:jobFeed.showMore')}
-          </button>
+      {(hasMore || endMessage || onShowLess || loadMoreFailed) && (
+        <div className="flex flex-col items-center gap-3 text-center mt-5 sm:mt-6">
+          {/* A later page failed: the loaded jobs stay, and Show More gives way to
+              Retry so the failed page is asked for again, never skipped. */}
+          {loadMoreFailed && <p role="alert" className="text-sm text-red-600">{error}</p>}
+          {endMessage && <p className="text-sm text-[#717182]">{endMessage}</p>}
+          {/* Buttons share one row; it wraps only when the screen is too narrow. */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {loadMoreFailed && (
+              <button
+                onClick={onRetry}
+                className="px-6 py-2 bg-primary-50 text-primary-100 rounded-lg text-sm hover:bg-primary-60 transition-colors"
+              >
+                {t('buttons.retry')}
+              </button>
+            )}
+            {hasMore && !loadMoreFailed && (
+              <button
+                onClick={onShowMore}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#dddddd] rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                {t('seeker:jobFeed.showMore')}
+              </button>
+            )}
+            {onShowLess && (
+              <button
+                onClick={onShowLess}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#dddddd] rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              >
+                <EyeOff className="w-4 h-4" />
+                {t('seeker:jobFeed.showLess')}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </>
