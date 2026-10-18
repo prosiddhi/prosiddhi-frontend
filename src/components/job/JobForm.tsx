@@ -15,7 +15,7 @@ import { StateCitySelect, type SelectedCity } from '@/components/location/StateC
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { Field } from '@/components/form/Field'
 import { INVALID_CLS } from '@/components/form/FieldError'
-import { humanizeJobType, formatSalary, initials } from '@/lib/jobFormat'
+import { humanizeJobType, formatSalary, initials, jobPlaceTags } from '@/lib/jobFormat'
 import {
   JOB_TYPES,
   PAYMENT_TYPES,
@@ -194,7 +194,7 @@ export function JobForm(props: JobFormProps) {
 
   const skillsArray = parseSkills(f.skills)
   // The preview's place: the picked cities, or for a legacy job still without any, its saved text.
-  const locationPreview = f.cities.length > 0 ? f.cities.map((c) => c.name).join(', ') : (legacyLocation ?? '')
+  const previewPlaces = jobPlaceTags({ cities: f.cities.map((c) => ({ city: c })), location: legacyLocation })
 
   // Salary Max carries the "max is below min" error, so it has to be re-checked
   // when Min changes - but only if Max has been looked at already; otherwise
@@ -483,12 +483,12 @@ export function JobForm(props: JobFormProps) {
                     <span className="text-xs text-black">{f.category}</span>
                   </div>
                 )}
-                {locationPreview && (
-                  <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
+                {previewPlaces.map((p) => (
+                  <div key={p.key} className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-[#3386a9]" />
-                    <span className="text-xs text-black">{locationPreview}</span>
+                    <span className="text-xs text-black">{p.label}</span>
                   </div>
-                )}
+                ))}
               </div>
               {f.description && (
                 <p className="text-sm text-[#444] whitespace-pre-line line-clamp-6">{f.description}</p>
