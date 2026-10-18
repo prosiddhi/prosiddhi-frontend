@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type Application } from '@/lib/api'
 import { formatSalary, formatDate, initials, localizeLocation } from '@/lib/jobFormat'
+import { formatInterviewTime } from '@/lib/timeFormat'
 import {
   MapPin,
   IndianRupee,
@@ -148,7 +149,7 @@ function MyInterviewsPageContent() {
                         </div>
                         <div className="flex items-center gap-1 text-sm text-black">
                           <Clock className="w-4 h-4 text-[#3386a9]" />
-                          <span>{iv.time || t('seeker:myInterviews.timeToBeConfirmed')}</span>
+                          <span>{formatInterviewTime(iv.time) || t('seeker:myInterviews.timeToBeConfirmed')}</span>
                         </div>
                         {iv.notes && (
                           <p className="text-xs text-gray-500 mt-2 line-clamp-2">{iv.notes}</p>

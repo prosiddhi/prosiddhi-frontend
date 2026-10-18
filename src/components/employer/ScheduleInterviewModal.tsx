@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { X, CalendarClock, Loader2, AlertCircle } from 'lucide-react'
 import { employerAPI, fieldErrorsByPath } from '@/lib/api'
 import { DatePicker } from '@/components/form/DatePicker'
+import { TimePicker } from '@/components/form/TimePicker'
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean
@@ -43,6 +44,7 @@ export function ScheduleInterviewModal({
   const { t } = useTranslation()
   const dateId = useId()
   const timeId = useId()
+  const timeHintId = useId()
   const notesId = useId()
   const [withInterview, setWithInterview] = useState(true)
   const [date, setDate] = useState('')
@@ -140,7 +142,10 @@ export function ScheduleInterviewModal({
                 </div>
                 <div>
                   <label htmlFor={timeId} className="block text-sm font-medium text-black mb-1">{t('employer:scheduleInterview.timeLabel')}</label>
-                  <input id={timeId} type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder={t('employer:scheduleInterview.timePlaceholder')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  {/* The picker only ever yields '' or a 24-hour "HH:mm" (3:30 PM is "15:30"),
+                      which is sent as-is: the BE accepts it and the invite parser reads it. */}
+                  <TimePicker id={timeId} value={time} onChange={setTime} describedBy={timeHintId} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-50" />
+                  <p id={timeHintId} className="mt-1 text-xs text-gray-500">{t('employer:scheduleInterview.timeHint')}</p>
                 </div>
               </div>
               <div>
