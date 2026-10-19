@@ -12,8 +12,8 @@
 // Three things are checked, and the third is the one that would be easy to get
 // wrong quietly:
 //
-//   1. Cards are on screen with NO typing, and the seed is visible in the box
-//      so it reads as an editable search rather than a mystery list.
+//   1. Cards are on screen with NO typing, the search box stays empty, and a
+//      banner names the job the list came from so it is not a mystery list.
 //   2. The employer's own search still wins — the seed must never fight a real
 //      one, or re-seed over it.
 //   3. An employer with NO jobs still gets the original empty state, not an
@@ -62,7 +62,8 @@ const searchBox = (page) => page.getByPlaceholder(/skill|keyword|search/i).first
       check('workers are on screen without typing anything', n > 0, `${n} card(s)`)
 
       const box = await searchBox(page).inputValue()
-      check('the seed is visible in the search box', box === expected, `box=${JSON.stringify(box)} want ${JSON.stringify(expected)}`)
+      // The box starts EMPTY on every visit; the banner below names the job instead.
+      check('the search box starts empty', box === '', `box=${JSON.stringify(box)}`)
 
       // Without this line an unbidden list reads as "this is everyone we have".
       const body = await page.evaluate(() => document.body.innerText)
@@ -89,6 +90,28 @@ const searchBox = (page) => page.getByPlaceholder(/skill|keyword|search/i).first
         'the search box really is above the explanation',
         !!boxBox && !!noteBox && boxBox.y < noteBox.y,
         `box y=${Math.round(boxBox?.y ?? -1)} note y=${Math.round(noteBox?.y ?? -1)}`,
+      )
+
+      // Leave and come back the way an employer does — the header's own links, which are
+      // client-side navigation, not a reload — after typing something. The page remounts,
+      // so the box must start empty again while the seeded list and its banner return.
+      await searchBox(page).fill('typed before leaving')
+      await page.locator('header a[href="/employer"]').first().click()
+      await page.waitForURL((u) => u.pathname === '/employer', { timeout: 30000 })
+      await page.locator('header a[href="/employer/workers"]').first().click()
+      await page.waitForURL((u) => u.pathname === '/employer/workers', { timeout: 30000 })
+      await searchBox(page).waitFor({ timeout: 30000 })
+      // The seed is a second request after the page settles (as in `open`).
+      await page.waitForTimeout(2500)
+      check(
+        'after leaving and returning, the search box is empty again',
+        (await searchBox(page).inputValue()) === '',
+        `box=${JSON.stringify(await searchBox(page).inputValue())}`,
+      )
+      const backBody = await page.evaluate(() => document.body.innerText)
+      check(
+        '…and the seeded list and banner are back',
+        (await cards(page).count()) > 0 && /most recent job/i.test(backBody),
       )
       await ctx.close()
     }

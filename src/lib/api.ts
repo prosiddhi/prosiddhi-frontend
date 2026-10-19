@@ -2931,6 +2931,8 @@ export interface CandidateProfile {
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
+  // Already false for a seeker who is deleted or suspended (the BE folds `available` in).
+  isActivelyLooking?: boolean
   createdAt: string
   skills: CandidateSkillLink[]
   workExperience: CandidateExperience[]
@@ -2964,6 +2966,8 @@ export interface UnlockedCandidate {
   preferredCategory: string | null
   preferredSector: string | null
   preferredJobTitle: string | null
+  // Already false for a seeker who is deleted or suspended (the BE folds `available` in).
+  isActivelyLooking?: boolean
   createdAt: string
   skills: CandidateSkillLink[]
   workExperience: CandidateExperience[]

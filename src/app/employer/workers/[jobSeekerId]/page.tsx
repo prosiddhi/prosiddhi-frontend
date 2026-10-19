@@ -15,7 +15,9 @@ import { TopUpModal } from '@/components/employer/TopUpModal'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import { useCredits } from '@/hooks/useCredits'
 import { candidateAPI, type CandidateProfile } from '@/lib/api'
-import { initials, formatMonthYear } from '@/lib/jobFormat'
+import { formatMonthYear } from '@/lib/jobFormat'
+import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
+import { ActivelyLookingBadge } from '@/components/employer/ActivelyLookingBadge'
 import {
   ChevronLeft,
   Briefcase,
@@ -98,7 +100,8 @@ function CandidateContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10">
-        <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Same box as EmployerHeader, so the body lines up with the logo and the account menu. */}
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
           <Link href="/employer/workers" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:candidate.back')}</span>
@@ -123,9 +126,7 @@ function CandidateContent() {
               {/* Header card */}
               <div className="bg-white border border-[#dddddd] rounded-[12px] p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xl font-semibold text-[#236987]">{initials(profile.fullName)}</span>
-                  </div>
+                  <CandidateAvatar photo={profile.profilePhoto} name={profile.fullName} size="lg" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h1 className="text-2xl font-bold text-black">{profile.fullName}</h1>
@@ -134,6 +135,7 @@ function CandidateContent() {
                           <Unlock className="w-3 h-3" /> {t('employer:candidate.unlockedBadge')}
                         </span>
                       )}
+                      <ActivelyLookingBadge active={profile.isActivelyLooking} />
                     </div>
                     {profile.preferredJobTitle && <p className="text-[#717182]">{profile.preferredJobTitle}</p>}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-[#717182]">

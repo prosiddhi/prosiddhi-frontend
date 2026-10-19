@@ -21,11 +21,11 @@ import {
 } from '@/lib/api'
 import { relativeTime } from '@/lib/jobFormat'
 import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
+import { ActivelyLookingBadge } from '@/components/employer/ActivelyLookingBadge'
 import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import {
   Search,
-  MapPin,
   Users,
   Briefcase,
   Loader2,
@@ -61,7 +61,6 @@ const PLACE_LABEL_CLS = 'block text-sm font-medium text-black mb-1'
  */
 interface WorkerFilters {
   search: string
-  location: string
   cityId?: string
   stateCode?: number
   nearCityId?: string
@@ -97,6 +96,8 @@ function WorkerCard({ w }: { w: WorkerSnippet }) {
           {w.preferredJobTitle && (
             <p className="text-sm text-[#717182] truncate">{w.preferredJobTitle}</p>
           )}
+          {/* The whole card is a link, so the badge is not given its own tab stop. */}
+          <ActivelyLookingBadge active={w.isActivelyLooking} focusable={false} className="mt-1" />
         </div>
       </div>
 
@@ -144,6 +145,7 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
           {c.preferredJobTitle && (
             <p className="text-sm text-[#717182] truncate">{c.preferredJobTitle}</p>
           )}
+          <ActivelyLookingBadge active={c.isActivelyLooking} focusable={false} className="mt-1" />
         </div>
       </div>
 
@@ -388,7 +390,6 @@ function WorkersSearchContent() {
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'unlocked' ? 'unlocked' : 'search')
   const [queryDraft, setQueryDraft] = useState('')
-  const [locationDraft, setLocationDraft] = useState('')
   // The State/City filter, as DRAFTS: nothing here is sent until Search is pressed (`submit`).
   // `cityDraft` is a chosen city; `stateDraft` is the state browsed in the picker, which
   // counts as a filter on its own only while no city is chosen.
@@ -420,7 +421,6 @@ function WorkersSearchContent() {
     try {
       const res = await candidateAPI.searchWorkers({
         search: params.search,
-        location: params.location || undefined,
         cityId: params.cityId,
         stateCode: params.stateCode,
         nearCityId: params.nearCityId,
@@ -465,6 +465,9 @@ function WorkersSearchContent() {
       return
     }
     setQueryError('')
+    // The results are theirs now. Without this, typing the same words as the seed would keep
+    // the "matches your most recent job" banner over a search the employer ran themselves.
+    setSeedJob('')
     // A city wins over a bare state, and "nearest first" needs a city: it is dropped otherwise,
     // so a stale toggle can never ride along with a state or with nothing chosen.
     const place = cityDraft
@@ -472,7 +475,7 @@ function WorkersSearchContent() {
       : stateDraft !== null
         ? { stateCode: stateDraft }
         : {}
-    const params: WorkerFilters = { search, location: locationDraft.trim(), ...place }
+    const params: WorkerFilters = { search, ...place }
     setApplied(params)
     setPage(1)
     void runSearch(params, 1)
@@ -510,8 +513,9 @@ function WorkersSearchContent() {
   // is a better guess than "recent candidates" anyway: someone who just posted
   // for a Delivery Boy wants delivery people, not whoever signed up last.
   //
-  // The seed goes into the visible box, so it reads as a search that has been
-  // run and can be edited, not as a mystery list. An employer with no jobs falls
+  // The seed is NOT written into the search box: the box starts empty on every visit.
+  // The banner above the results ("seededFrom") says which job they match, so it
+  // does not read as a mystery list. An employer with no jobs falls
   // through to the original empty state, which is the honest answer for them.
   const seededRef = useRef(false)
   const [seedJob, setSeedJob] = useState('')
@@ -582,8 +586,9 @@ function WorkersSearchContent() {
         if (!res.jobSeekers?.length) return
 
         setSeedJob(seed)
-        setQueryDraft(seed)
-        setApplied({ search: seed, location: '' })
+        // The box is left EMPTY on purpose: it belongs to the employer, so it starts blank
+        // every time they come back. The banner below the search names the job instead.
+        setApplied({ search: seed })
         setData(res)
       } catch {
         // Non-fatal by design: a failed seed leaves the original empty state,
@@ -661,17 +666,6 @@ function WorkersSearchContent() {
                   aria-invalid={queryError ? true : undefined}
                   aria-describedby={queryError ? 'worker-query-error' : undefined}
                   placeholder={t('employer:workers.searchPlaceholder')}
-                  className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
-                />
-              </div>
-              <div className="flex-1 lg:max-w-[340px] relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={locationDraft}
-                  onChange={(e) => setLocationDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && submit()}
-                  placeholder={t('employer:workers.locationPlaceholder')}
                   className="w-full h-12 pl-10 pr-4 bg-[#f3f3f5] rounded-lg text-base placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-primary-50"
                 />
               </div>
