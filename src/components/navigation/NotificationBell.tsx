@@ -30,6 +30,7 @@ const BADGE_BY_TYPE: Record<NotificationType, { icon: typeof Bell; className: st
   DOCUMENT_VERIFIED: { icon: Check, className: 'bg-success-500' },
   PROFILE_APPROVED: { icon: Check, className: 'bg-success-500' },
   APPLICATION_REJECTED: { icon: X, className: 'bg-error-500' },
+  APPLICATION_SHORTLISTED: { icon: Check, className: 'bg-success-500' },
   DOCUMENT_REJECTED: { icon: X, className: 'bg-error-500' },
   PROFILE_REJECTED: { icon: X, className: 'bg-error-500' },
   ADMIN_WARNING: { icon: X, className: 'bg-error-500' },
@@ -149,6 +150,7 @@ export function NotificationBell() {
 
       case 'APPLICATION_ACCEPTED':
       case 'APPLICATION_REJECTED':
+      case 'APPLICATION_SHORTLISTED':
         // Seeker-only: the outcome of THEIR application.
         return isEmployer ? null : `/my-applications/${n.entityId}`
 
@@ -284,7 +286,9 @@ export function NotificationBell() {
               {!loading &&
                 !error &&
                 items.map((n) => {
-                  const badge = BADGE_BY_TYPE[n.type]
+                  // `type` is JSON from the server, not a compile-time value: a type
+                  // the backend adds before this map learns it must not crash the panel.
+                  const badge = BADGE_BY_TYPE[n.type] ?? BADGE_BY_TYPE.SYSTEM
                   const BadgeIcon = badge.icon
                   return (
                     <button
