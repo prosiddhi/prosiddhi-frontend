@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, ChevronLeft, X } from 'lucide-react'
@@ -88,10 +88,13 @@ export default function RegisterOTPPage() {
       router.push('/register/profile')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid'))
-      setOtp(Array(OTP_LENGTH).fill(''))
-      // Only the visible layout's boxes can take focus; the hidden one is a no-op.
-      desktopOtpRef.current?.focusFirst()
-      mobileOtpRef.current?.focusFirst()
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      if (isOtpRejection(err)) {
+        setOtp(Array(OTP_LENGTH).fill(''))
+        // Only the visible layout's boxes take focus; the hidden one skips itself.
+        desktopOtpRef.current?.focusFirst()
+        mobileOtpRef.current?.focusFirst()
+      }
     } finally {
       setLoading(false)
     }

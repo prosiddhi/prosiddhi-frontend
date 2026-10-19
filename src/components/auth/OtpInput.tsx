@@ -25,6 +25,11 @@ interface OtpInputProps {
 
 const OTP_LENGTH = 6
 
+// How many animation frames focusFirst waits for a disabled first box to be enabled
+// again (about half a second). The caller usually asks from a catch block, before the
+// re-render that ends its "verifying" state has reached the DOM.
+const FOCUS_MAX_FRAMES = 30
+
 /**
  * The six-box one-time-code field shared by /login's phone-OTP and Google
  * phone-bind flows — previously two hand-copied blocks in the same file.
@@ -38,10 +43,37 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(function OtpIn
   ref,
 ) {
   const boxRefs = useRef<Array<HTMLInputElement | null>>([])
+  const focusFrame = useRef<number | null>(null)
 
+  const cancelFocusRetry = () => {
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current)
+    focusFrame.current = null
+  }
+
+  // A page with a desktop and a mobile layout mounts two groups and asks both; the one
+  // CSS hides has no layout boxes and is skipped. A disabled first box (the page is
+  // still "verifying") cannot take focus, so try again next frame, up to
+  // FOCUS_MAX_FRAMES. A newer request replaces the pending one, and unmounting cancels
+  // it, so a screen that has moved on is never given focus.
   useImperativeHandle(ref, () => ({
-    focusFirst: () => boxRefs.current[0]?.focus(),
+    focusFirst: () => {
+      cancelFocusRetry()
+      let frames = 0
+      const attempt = () => {
+        focusFrame.current = null
+        const box = boxRefs.current[0]
+        if (!box || box.getClientRects().length === 0) return
+        if (!box.disabled) {
+          box.focus()
+          return
+        }
+        if (++frames <= FOCUS_MAX_FRAMES) focusFrame.current = requestAnimationFrame(attempt)
+      }
+      attempt()
+    },
   }))
+
+  useEffect(() => cancelFocusRetry, [])
 
   useEffect(() => {
     if (autoFocus) boxRefs.current[0]?.focus()

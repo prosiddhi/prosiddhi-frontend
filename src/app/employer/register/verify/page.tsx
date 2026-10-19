@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { checkEmail } from '@/lib/email'
-import { OtpInput } from '@/components/auth/OtpInput'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
@@ -45,6 +45,7 @@ export default function EmployerVerifyPage() {
   const [error, setError] = useState('')
   // Taken synchronously, before React re-renders, so a double click cannot start a second request.
   const busy = useRef(false)
+  const otpInputRef = useRef<OtpInputHandle>(null)
 
   const check = checkEmail(email)
   const address = check.ok ? check.value : null
@@ -132,7 +133,11 @@ export default function EmployerVerifyPage() {
       router.push('/employer/register/account')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'employerRegister:verify.emailInvalid', sent.expiresIn))
-      setOtp(EMPTY_OTP)
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      if (isOtpRejection(err)) {
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
       busy.current = false
       setVerifying(false)
     }
@@ -212,6 +217,7 @@ export default function EmployerVerifyPage() {
                 </p>
                 <div className="max-w-[368px]">
                   <OtpInput
+                    ref={otpInputRef}
                     value={otp}
                     onChange={handleOtpChange}
                     idPrefix="email-otp"

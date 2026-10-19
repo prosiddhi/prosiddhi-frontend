@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
@@ -187,6 +187,13 @@ export default function ForgotPasswordPage() {
       setStage('done')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed', sendTiming.expiresIn))
+      // The code is only checked here. A rejected one is emptied for a fresh code; the
+      // password fields, the stage and the cooldown stay as they are. Any other failure
+      // (network, 429, "no account") keeps the digits.
+      if (isOtpRejection(err)) {
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
     } finally {
       setLoading(false)
       resetting.current = false

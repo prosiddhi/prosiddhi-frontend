@@ -55,6 +55,37 @@ export function otpCooldownSeconds(err: unknown): number | null {
   return Number.isSafeInteger(seconds) && seconds > 0 ? seconds : null
 }
 
+// The codes the backend answers a CHECKED code with when the code itself is the
+// problem (utils/error-codes.ts): wrong, expired, out of tries, none pending, or
+// already used. OTP_COOLDOWN is a send refusal and is deliberately not here.
+const OTP_REJECTION_CODES = new Set([
+  'OTP_INVALID',
+  'OTP_EXPIRED',
+  'OTP_TOO_MANY_ATTEMPTS',
+  'OTP_NOT_FOUND',
+  'OTP_ALREADY_VERIFIED',
+])
+
+// The same five from a backend that predates the codes (the wording of its OtpError).
+const OTP_REJECTION_MESSAGE =
+  /OTP has expired|Maximum OTP verification attempts|No OTP request found|Invalid OTP\. You have|This (?:OTP has already been|phone number is already) verified/i
+
+/**
+ * True when a failed code CHECK means the code the user typed is dead or wrong, so
+ * the boxes should be emptied for a fresh one. False for everything else (network
+ * failure, 429, server error, duplicate contact, a password or account error): those
+ * say nothing about the digits, which are worth keeping.
+ *
+ * A known code decides; an error with no code falls back to the legacy wording; an
+ * error with any other code is not a rejection.
+ */
+export function isOtpRejection(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const { code } = factsOf(err)
+  if (code !== undefined) return OTP_REJECTION_CODES.has(code)
+  return OTP_REJECTION_MESSAGE.test(err.message)
+}
+
 // `count` picks the singular or plural sentence; `expiresIn` fills the number.
 function expiredMessage(t: TFunction, expiresIn?: number): string {
   const minutes = readOtpSendTiming({ expiresIn }).expiresIn

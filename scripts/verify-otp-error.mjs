@@ -44,7 +44,7 @@ function loadLib(name) {
   return mod.exports
 }
 
-const { otpErrorMessage, otpCooldownSeconds } = loadLib('otpError')
+const { otpErrorMessage, otpCooldownSeconds, isOtpRejection } = loadLib('otpError')
 
 const LANGUAGES = ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn']
 
@@ -171,6 +171,30 @@ expect('cooldown: unrelated error', otpCooldownSeconds(new Error('Invalid creden
 expect('cooldown: not an Error', otpCooldownSeconds('Please wait 5s before requesting another OTP'), null)
 expect('cooldown: undefined', otpCooldownSeconds(undefined), null)
 expect('cooldown: seconds too large for an integer', otpCooldownSeconds(new Error('Please wait 99999999999999999999s before requesting another OTP')), null)
+
+// --- isOtpRejection: when a failed code check should empty the boxes ---
+for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED']) {
+  expect(`rejection: ${code}`, isOtpRejection(coded(code, BE_EN)), true)
+}
+// Not rejections of the code: a send refusal, limits, duplicates, server and account errors.
+for (const code of ['OTP_COOLDOWN', 'RATE_LIMITED', 'PHONE_ALREADY_REGISTERED', 'EMAIL_ALREADY_REGISTERED', 'INTERNAL_ERROR', 'ADMIN_ACCOUNT', 'SOMETHING_NEW']) {
+  expect(`not a rejection: ${code}`, isOtpRejection(coded(code, 'Invalid OTP. You have 3 attempt(s) left')), false)
+}
+// A code decides even when the message looks like a rejection; no code falls back to the old wording.
+expect('rejection: legacy invalid', isOtpRejection(new Error('Invalid OTP. You have 3 attempt(s) left')), true)
+expect('rejection: legacy expired', isOtpRejection(new Error('OTP has expired. Please request a new one')), true)
+expect('rejection: legacy too many', isOtpRejection(new Error('Maximum OTP verification attempts exceeded. Please request a new OTP')), true)
+expect('rejection: legacy none pending (phone)', isOtpRejection(new Error('No OTP request found for this phone number')), true)
+expect('rejection: legacy none pending (email)', isOtpRejection(new Error('No OTP request found for this email and purpose')), true)
+expect('rejection: legacy already verified (email)', isOtpRejection(new Error('This OTP has already been verified')), true)
+expect('rejection: legacy already verified (phone)', isOtpRejection(new Error('This phone number is already verified')), true)
+expect('not a rejection: legacy cooldown', isOtpRejection(new Error('Please wait 12s before requesting another OTP')), false)
+expect('not a rejection: duplicate contact', isOtpRejection(new Error('Phone number already in use by another account')), false)
+expect('not a rejection: wrong password', isOtpRejection(new Error('Current password is incorrect')), false)
+expect('not a rejection: network', isOtpRejection(new Error("Can't reach the server. Check your connection and try again.")), false)
+expect('not a rejection: 429 text without a code', isOtpRejection(new Error('Too many OTP requests, please try again after 15 minutes.')), false)
+expect('not a rejection: not an Error', isOtpRejection({ code: 'OTP_INVALID' }), false)
+expect('not a rejection: undefined', isOtpRejection(undefined), false)
 
 // --- The four new keys, in every language ---
 const NEW_KEYS = ['alreadyVerified', 'phoneTaken', 'emailTaken', 'rateLimited']

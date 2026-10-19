@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { checkEmail } from '@/lib/email'
-import { OtpInput } from '@/components/auth/OtpInput'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 
 export type EmailVerifyMode = 'add' | 'change' | 'verify'
@@ -32,6 +32,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
   const [email, setEmail] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
+  const otpInputRef = useRef<OtpInputHandle>(null)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
@@ -117,6 +118,12 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       setStep('success')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.verifyError', expiresIn))
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      // The step, address and cooldown are left alone.
+      if (isOtpRejection(err)) {
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
     } finally {
       setVerifying(false)
     }
@@ -200,6 +207,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
                     {t('profile:seeker.emailModal.otpLabel')}
                   </label>
                   <OtpInput
+                    ref={otpInputRef}
                     value={otp}
                     onChange={setOtp}
                     idPrefix="email-otp"

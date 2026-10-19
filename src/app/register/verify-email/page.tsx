@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, MailCheck } from 'lucide-react'
@@ -85,8 +85,11 @@ export default function RegisterVerifyEmailPage() {
       router.push('/register/categories')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorInvalid'))
-      setOtp(Array(OTP_LENGTH).fill(''))
-      otpInputRef.current?.focusFirst()
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      if (isOtpRejection(err)) {
+        setOtp(Array(OTP_LENGTH).fill(''))
+        otpInputRef.current?.focusFirst()
+      }
     } finally {
       setLoading(false)
     }

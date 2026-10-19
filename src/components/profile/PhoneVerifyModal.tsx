@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { readOtpSendTiming } from '@/lib/otpSend'
-import { OtpInput } from '@/components/auth/OtpInput'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 
@@ -28,6 +28,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   const [step, setStep] = useState<'phone' | 'otp' | 'success'>('phone')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP)
+  const otpInputRef = useRef<OtpInputHandle>(null)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState('')
@@ -103,6 +104,12 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
       setStep('success')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.phoneModal.verifyError', expiresIn))
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      // The step, address and cooldown are left alone.
+      if (isOtpRejection(err)) {
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
     } finally {
       setVerifying(false)
     }
@@ -195,6 +202,7 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                     {t('profile:seeker.phoneModal.otpLabel')}
                   </label>
                   <OtpInput
+                    ref={otpInputRef}
                     value={otp}
                     onChange={setOtp}
                     idPrefix="phone-otp"

@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef, type ClipboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { otpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
-import { OtpInput } from '@/components/auth/OtpInput'
+import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
@@ -43,6 +43,7 @@ export default function EmployerContactsPage() {
   const [error, setError] = useState('')
   // Taken synchronously, before React re-renders, so a double click cannot start a second request.
   const busy = useRef(false)
+  const otpInputRef = useRef<OtpInputHandle>(null)
 
   const e164 = toE164(phoneNumber)
   // The field's number is the one that is verified, or the one a code was sent to.
@@ -150,7 +151,11 @@ export default function EmployerContactsPage() {
       router.push('/employer/register/verify')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'employerRegister:verify.phoneInvalid', sent.expiresIn))
-      setOtp(EMPTY_OTP)
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      if (isOtpRejection(err)) {
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
       busy.current = false
       setVerifying(false)
     }
@@ -238,6 +243,7 @@ export default function EmployerContactsPage() {
                 </p>
                 <div className="max-w-[368px]">
                   <OtpInput
+                    ref={otpInputRef}
                     value={otp}
                     onChange={handleOtpChange}
                     idPrefix="phone-otp"
