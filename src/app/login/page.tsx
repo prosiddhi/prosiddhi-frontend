@@ -759,6 +759,12 @@ function LoginContent() {
                 </form>
               ) : (
                 <form onSubmit={phoneOtpVerifyForm.handleSubmit(onVerifyOtp)} className="space-y-5">
+                  {/* The send answers the same whether or not an account exists, so the
+                      notice is as neutral as the server's: it never says the number is
+                      registered. Same status-notice look as /forgot-password's resend notice. */}
+                  <div role="status" className="p-4 bg-gray-50 border border-[#dedede] rounded-lg">
+                    <p className="text-[#555] text-sm">{t('auth:login.otpSentNotice')}</p>
+                  </div>
                   <div>
                     <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
                       {t('auth:login.otpLabel')}
