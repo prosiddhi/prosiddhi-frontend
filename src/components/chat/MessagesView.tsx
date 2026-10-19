@@ -454,7 +454,7 @@ export function MessagesView({ showFooter = true }: { showFooter?: boolean }) {
         </div>
       </main>
 
-      {showFooter && <Footer />}
+      {showFooter && <Footer width="wide" />}
     </>
   )
 }

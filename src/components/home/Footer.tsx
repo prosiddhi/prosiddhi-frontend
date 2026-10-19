@@ -5,6 +5,18 @@ import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
 import { useAuth } from '@/contexts/AuthContext'
+import { PAGE_BOX } from '@/lib/layout'
+
+export type FooterWidth = 'public' | 'wide' | 'welcome'
+
+// Whole literals, never assembled from parts: Tailwind only generates classes it can read
+// in the source text.
+const FOOTER_BOX: Record<FooterWidth, string> = {
+  public: 'container mx-auto px-4 sm:px-6 lg:px-8',
+  wide: PAGE_BOX,
+  // /employer/welcome's own header and sections: 48px side padding from `lg`, 120px from `xl`.
+  welcome: 'max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]',
+}
 
 /**
  * Footer — every link here goes somewhere real.
@@ -31,7 +43,13 @@ import { useAuth } from '@/contexts/AuthContext'
  * A signed-in job seeker never sees the employer column, whatever `audience` the
  * page passed — the footer is shared by public pages a seeker also visits.
  */
-export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'employer' }) {
+export function Footer({
+  audience = 'all',
+  width = 'public',
+}: {
+  audience?: 'all' | 'seeker' | 'employer'
+  width?: FooterWidth
+}) {
   const { t } = useTranslation('legal')
   const { user, isLoading } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
@@ -67,11 +85,13 @@ export function Footer({ audience = 'all' }: { audience?: 'all' | 'seeker' | 'em
   // every one of them, not just the seeker landing page.
   return (
     <footer className="bg-[#232323] text-white py-10">
-      {/* `container`, not `max-w-[1920px]`: the header and the hero are both on
-          Tailwind's container (1400px at its widest), so on a 1920 screen the
-          footer logo used to sit ~200px to the LEFT of the header logo directly
-          above it. Same wrapper, same edge. */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Three boxes, picked by `width` to match the header above the page:
+          `public` is Tailwind's `container` (1400px at its widest), because the public
+          landing header and hero are on it — on a 1920 screen a `max-w-[1920px]` footer
+          logo sat ~200px to the LEFT of the header logo directly above it.
+          `wide` is PAGE_BOX, the box the signed-in headers and the legal pages use.
+          `welcome` follows the employer landing page's own header (see FOOTER_BOX). */}
+      <div className={FOOTER_BOX[width]}>
         <div className="flex flex-col lg:flex-row justify-between items-start gap-10 lg:gap-8 mb-8 lg:mb-10">
           {/* Logo */}
           <div className="w-full lg:w-auto">

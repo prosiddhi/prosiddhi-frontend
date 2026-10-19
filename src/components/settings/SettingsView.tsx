@@ -768,7 +768,7 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
         />
       )}
 
-      {showFooter && <Footer />}
+      {showFooter && <Footer width="wide" />}
     </>
   )
 }

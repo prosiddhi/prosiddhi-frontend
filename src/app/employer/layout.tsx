@@ -41,7 +41,7 @@ export default function EmployerLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      {showFooter && <Footer audience="employer" />}
+      {showFooter && <Footer audience="employer" width="wide" />}
     </>
   )
 }

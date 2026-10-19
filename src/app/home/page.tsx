@@ -188,7 +188,7 @@ function SeekerHomeContent() {
         />
       )}
 
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

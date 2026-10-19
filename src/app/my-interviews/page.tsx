@@ -185,7 +185,7 @@ function MyInterviewsPageContent() {
         </div>
       </main>
 
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

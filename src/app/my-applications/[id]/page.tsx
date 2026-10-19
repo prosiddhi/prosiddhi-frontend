@@ -294,7 +294,7 @@ function ApplicationDetailsContent() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

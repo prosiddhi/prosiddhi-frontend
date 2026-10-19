@@ -194,7 +194,7 @@ function SavedJobsPageContent() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

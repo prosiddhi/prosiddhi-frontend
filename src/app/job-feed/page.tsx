@@ -736,7 +736,7 @@ function JobFeedPageContent() {
         </div>
       </div>
 
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

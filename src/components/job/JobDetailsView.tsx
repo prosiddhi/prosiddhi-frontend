@@ -602,7 +602,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
         </div>
       </main>
 
-      {showFooter && <Footer />}
+      {showFooter && <Footer width="wide" />}
 
       {job && (
         <ApplyModal

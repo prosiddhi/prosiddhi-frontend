@@ -80,7 +80,7 @@ export function LegalPage({
         </article>
       </main>
 
-      <Footer />
+      <Footer width="wide" />
     </div>
   )
 }

@@ -1003,7 +1003,7 @@ function SeekerProfileContent() {
         </div>
       </main>
 
-      <Footer />
+      <Footer width="wide" />
 
       <EmailVerifyModal
         isOpen={emailModalMode !== null}
