@@ -532,6 +532,7 @@
   "candidateDetail": {
     "logoAlt": "ProSiddhi",
     "backToCandidates": "उमेदवारांकडे परत जा",
+    "backToDashboard": "डॅशबोर्डवर परत जा",
     "loading": "उमेदवार लोड होत आहे...",
     "loadFailed": "हा उमेदवार लोड करता आला नाही.",
     "bookmarkFailed": "बुकमार्क बदलता आला नाही.",

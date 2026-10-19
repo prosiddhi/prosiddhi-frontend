@@ -62,6 +62,21 @@ export function candidatesUrl({
   return query ? `${CANDIDATES_PATH}?${query}` : CANDIDATES_PATH
 }
 
+const DASHBOARD_PATH = '/employer'
+
+/** The `from` value for a candidate link opened from the Employer Dashboard. */
+export const DASHBOARD_FROM = DASHBOARD_PATH
+
+/**
+ * True when `from` names the Employer Dashboard itself. Like `candidatesReturnUrl`, it
+ * trusts nothing from the address bar: only the exact dashboard path counts, and any query
+ * or hash on it is ignored.
+ */
+export function isDashboardReturn(from: string | null): boolean {
+  const safe = safeInternalPath(from)
+  return !!safe && new URL(safe, 'http://placeholder.invalid').pathname === DASHBOARD_PATH
+}
+
 /** A candidate's detail link that remembers the list URL it was opened from. */
 export function candidateDetailUrl(applicationId: string, from: string): string {
   return `${CANDIDATES_PATH}/${applicationId}?from=${encodeURIComponent(from)}`
@@ -73,10 +88,13 @@ export function candidateDetailUrl(applicationId: string, from: string): string 
  * its tab, page and job are read — the URL that comes out is rebuilt from those validated
  * values, never echoed, so no other parameter can ride along.
  *
+ * Opened from the Employer Dashboard, it goes back there (see `isDashboardReturn`).
+ *
  * Anything else (missing, another site, another page) falls back to the list for the
  * candidate's own job, or the plain list when that job is not known (yet).
  */
 export function candidatesReturnUrl(from: string | null, fallbackJobId?: string | null): string {
+  if (isDashboardReturn(from)) return DASHBOARD_PATH
   const safe = safeInternalPath(from)
   if (safe) {
     const url = new URL(safe, 'http://placeholder.invalid')

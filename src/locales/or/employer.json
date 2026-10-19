@@ -532,6 +532,7 @@
   "candidateDetail": {
     "logoAlt": "ProSiddhi",
     "backToCandidates": "ପ୍ରାର୍ଥୀଙ୍କ ତାଲିକାକୁ ଫେରନ୍ତୁ",
+    "backToDashboard": "ଡ୍ୟାସବୋର୍ଡକୁ ଫେରନ୍ତୁ",
     "loading": "ପ୍ରାର୍ଥୀ ଲୋଡ୍ ହେଉଛନ୍ତି...",
     "loadFailed": "ଏହି ପ୍ରାର୍ଥୀ ଲୋଡ୍ ହୋଇପାରିଲେ ନାହିଁ।",
     "bookmarkFailed": "ବୁକମାର୍କ ଅପଡେଟ୍ ହୋଇପାରିଲା ନାହିଁ।",

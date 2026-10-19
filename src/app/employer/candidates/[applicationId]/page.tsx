@@ -10,7 +10,7 @@ import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/li
 import { formatDate, relativeTime } from '@/lib/jobFormat'
 import { formatInterviewTime } from '@/lib/timeFormat'
 import { employerStatusMeta } from '@/lib/applicationStatus'
-import { candidatesReturnUrl } from '@/lib/candidatesNav'
+import { candidatesReturnUrl, isDashboardReturn } from '@/lib/candidatesNav'
 import {
   ChevronLeft,
   Mail,
@@ -181,7 +181,7 @@ function CandidateDetailContent() {
               candidate loads or fails, when only `from` can say where to go. */}
           <Link href={candidatesReturnUrl(searchParams.get('from'), app?.job?.id)} className="flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
-            <span>{t('employer:candidateDetail.backToCandidates')}</span>
+            <span>{t(isDashboardReturn(searchParams.get('from')) ? 'employer:candidateDetail.backToDashboard' : 'employer:candidateDetail.backToCandidates')}</span>
           </Link>
 
           {loading && (

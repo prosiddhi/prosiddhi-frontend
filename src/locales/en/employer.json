@@ -532,6 +532,7 @@
   "candidateDetail": {
     "logoAlt": "ProSiddhi",
     "backToCandidates": "Back to Candidates",
+    "backToDashboard": "Back to dashboard",
     "loading": "Loading candidate...",
     "loadFailed": "Failed to load this candidate.",
     "bookmarkFailed": "Could not update bookmark.",

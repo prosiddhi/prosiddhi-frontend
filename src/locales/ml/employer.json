@@ -532,6 +532,7 @@
   "candidateDetail": {
     "logoAlt": "ProSiddhi",
     "backToCandidates": "ഉദ്യോഗാർത്ഥികളിലേക്ക് തിരികെ",
+    "backToDashboard": "ഡാഷ്ബോർഡിലേക്ക് തിരികെ",
     "loading": "ഉദ്യോഗാർത്ഥിയെ ലോഡ് ചെയ്യുന്നു...",
     "loadFailed": "ഈ ഉദ്യോഗാർത്ഥിയെ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
     "bookmarkFailed": "ബുക്ക്മാർക്ക് അപ്ഡേറ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",

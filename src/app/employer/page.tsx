@@ -10,7 +10,7 @@ import { employerAPI, candidateAPI, ApiError } from '@/lib/api'
 import { relativeTime } from '@/lib/jobFormat'
 import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { employerStatusMeta, jobStatusMeta, isJobAwaitingReview, isJobRejected } from '@/lib/applicationStatus'
-import { candidatesUrl } from '@/lib/candidatesNav'
+import { candidateDetailUrl, candidatesUrl, DASHBOARD_FROM } from '@/lib/candidatesNav'
 import { myJobsUrl, withReturnTo } from '@/lib/myJobsNav'
 import {
   Plus,
@@ -381,7 +381,7 @@ function EmployerDashboardContent() {
                   {recent.map((app) => {
                     const meta = employerStatusMeta(app.status)
                     return (
-                      <Link key={app.id} href={`/employer/candidates/${app.id}`} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
+                      <Link key={app.id} href={candidateDetailUrl(app.id, DASHBOARD_FROM)} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4 cursor-pointer hover:bg-gray-50 hover:border-[#c8c8c8] transition-colors duration-150">
                         <CandidateAvatar photo={app.applicant?.profilePhoto} name={app.applicant?.name} size="sm" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm sm:text-base font-medium text-black truncate">{app.applicant?.name || t('employer:dashboard.applicantFallback')}</p>
