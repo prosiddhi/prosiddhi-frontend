@@ -19,7 +19,8 @@ import {
   type UnlockedCandidate,
   type UnlockedCandidatesPage,
 } from '@/lib/api'
-import { initials, relativeTime } from '@/lib/jobFormat'
+import { relativeTime } from '@/lib/jobFormat'
+import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import {
@@ -90,9 +91,7 @@ function WorkerCard({ w }: { w: WorkerSnippet }) {
       className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow flex flex-col"
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-base font-semibold text-[#236987]">{initials(w.fullName)}</span>
-        </div>
+        <CandidateAvatar photo={w.profilePhoto} name={w.fullName} size="card" />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-black truncate">{w.fullName}</h3>
           {w.preferredJobTitle && (
@@ -139,9 +138,7 @@ function UnlockedCard({ c }: { c: UnlockedCandidate }) {
       className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 hover:shadow-lg transition-shadow flex flex-col"
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 bg-[#a9e5ff] rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-base font-semibold text-[#236987]">{initials(c.fullName)}</span>
-        </div>
+        <CandidateAvatar photo={c.profilePhoto} name={c.fullName} size="card" />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-black truncate">{c.fullName}</h3>
           {c.preferredJobTitle && (
