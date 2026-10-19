@@ -31,6 +31,7 @@ import {
   X,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { PAGE_BOX } from '@/lib/layout'
 
 const NO_CREDITS_RE = /insufficient\s+download\s+credit/i
 
@@ -101,7 +102,7 @@ function CandidateContent() {
 
       <main className="flex-1 py-8 sm:py-10">
         {/* Same box as EmployerHeader, so the body lines up with the logo and the account menu. */}
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
+        <div className={PAGE_BOX}>
           <Link href="/employer/workers" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:candidate.back')}</span>

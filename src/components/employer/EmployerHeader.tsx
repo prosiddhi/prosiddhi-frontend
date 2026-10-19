@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Plus, Search, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { HeaderActions } from '@/components/navigation/HeaderActions'
+import { PAGE_BOX } from '@/lib/layout'
 
 /**
  * The employer area's header — one component, previously twelve copies (TD-28).
@@ -55,7 +56,7 @@ export function EmployerHeader({
   const { t } = useTranslation()
   return (
     <header className="bg-white border-b-2 border-primary-90 sticky top-0 z-50">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
+      <div className={`${PAGE_BOX} h-[65px] sm:h-[75px] flex items-center justify-between`}>
         <Link href={logoHref} className="flex items-center min-h-[44px]">
           <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
             <Image

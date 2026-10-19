@@ -14,6 +14,7 @@ import { ChevronLeft, Plus } from 'lucide-react'
 import { PricingPlans } from '@/components/employer/PricingPlans'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { PAGE_BOX } from '@/lib/layout'
 import { useCredits } from '@/hooks/useCredits'
 
 function PlansContent() {
@@ -29,7 +30,7 @@ function PlansContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
+        <div className={PAGE_BOX}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <Link href="/employer" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors">
               <ChevronLeft className="w-5 h-5" />

@@ -40,6 +40,7 @@ import {
   PauseCircle,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { PAGE_BOX } from '@/lib/layout'
 
 const TEAM_INVITE_EMAIL_MAX_LENGTH = 200
 
@@ -169,7 +170,7 @@ function TeamContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
+        <div className={PAGE_BOX}>
           <Link href="/employer" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:team.back')}</span>

@@ -38,6 +38,7 @@ import {
   X,
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+import { PAGE_BOX } from '@/lib/layout'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { MAX_SEARCH_LENGTH, parseSearch } from '@/lib/myJobsNav'
 
@@ -624,7 +625,7 @@ function WorkersSearchContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
+        <div className={PAGE_BOX}>
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
             {t('employer:workers.title')}
           </h1>
