@@ -44,7 +44,7 @@ function loadLib(name) {
   return mod.exports
 }
 
-const { otpErrorMessage } = loadLib('otpError')
+const { otpErrorMessage, otpCooldownSeconds } = loadLib('otpError')
 
 const LANGUAGES = ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn']
 
@@ -126,6 +126,75 @@ for (const lng of LANGUAGES) {
   check(`${lng}: 5 shows 5`, m5.includes('5') && !m5.includes('{{'), m5)
   check(`${lng}: 5 differs from the default`, m5 !== m10)
   check(`${lng}: not the fallback key`, m10 !== FALLBACK && m1 !== FALLBACK)
+}
+
+// --- Code-first mapping (an ApiError-shaped error: message plus code / attemptsLeft) ---
+const coded = (code, message, extra = {}) => Object.assign(new Error(message), { code, ...extra })
+const BE_EN = 'English text the backend might reword'
+expect('code: OTP_INVALID uses attemptsLeft, not the message', otpErrorMessage(coded('OTP_INVALID', 'Invalid OTP. You have 9 attempt(s) left', { attemptsLeft: 2 }), en, FALLBACK), 'That code is wrong. Tries left: 2.')
+expect('code: OTP_INVALID with attemptsLeft 0', otpErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: 0 }), en, FALLBACK), 'That code is wrong. Tries left: 0.')
+expect('code: OTP_INVALID works with reworded text', otpErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: 4 }), en, FALLBACK), 'That code is wrong. Tries left: 4.')
+expect('code: OTP_INVALID without attemptsLeft falls back to the message count', otpErrorMessage(coded('OTP_INVALID', 'Invalid OTP. You have 3 attempt(s) left'), en, FALLBACK), 'That code is wrong. Tries left: 3.')
+expect('code: OTP_INVALID with a negative attemptsLeft is not trusted', otpErrorMessage(coded('OTP_INVALID', 'Invalid OTP. You have 3 attempt(s) left', { attemptsLeft: -1 }), en, FALLBACK), 'That code is wrong. Tries left: 3.')
+expect('code: OTP_INVALID with NaN attemptsLeft is not trusted', otpErrorMessage(coded('OTP_INVALID', 'Invalid OTP. You have 3 attempt(s) left', { attemptsLeft: NaN }), en, FALLBACK), 'That code is wrong. Tries left: 3.')
+expect('code: OTP_INVALID with a string attemptsLeft is not trusted', otpErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: '2' }), en, FALLBACK), BE_EN)
+expect('code: OTP_EXPIRED, reworded text', otpErrorMessage(coded('OTP_EXPIRED', BE_EN), en, FALLBACK, 5), enExpired('5 minutes'))
+expect('code: OTP_EXPIRED default expiry', otpErrorMessage(coded('OTP_EXPIRED', BE_EN), en, FALLBACK), enExpired('10 minutes'))
+expect('code: OTP_TOO_MANY_ATTEMPTS', otpErrorMessage(coded('OTP_TOO_MANY_ATTEMPTS', BE_EN), en, FALLBACK), 'Too many wrong tries. Please ask for a new code.')
+expect('code: OTP_NOT_FOUND', otpErrorMessage(coded('OTP_NOT_FOUND', BE_EN), en, FALLBACK), 'No code was sent yet. Please ask for a new code.')
+expect('code: OTP_COOLDOWN with seconds', otpErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), en, FALLBACK), 'Please wait 12 seconds before asking for another code.')
+expect('code: OTP_COOLDOWN without readable seconds keeps the message', otpErrorMessage(coded('OTP_COOLDOWN', BE_EN), en, FALLBACK), BE_EN)
+expect('code: OTP_ALREADY_VERIFIED', otpErrorMessage(coded('OTP_ALREADY_VERIFIED', 'This OTP has already been verified'), en, FALLBACK), 'This code has already been used. If you need to try again, ask for a new code.')
+expect('code: PHONE_ALREADY_REGISTERED', otpErrorMessage(coded('PHONE_ALREADY_REGISTERED', 'This phone number is already registered'), en, FALLBACK), 'Another account already uses this phone number.')
+expect('code: EMAIL_ALREADY_REGISTERED', otpErrorMessage(coded('EMAIL_ALREADY_REGISTERED', 'This email is already registered'), en, FALLBACK), 'Another account already uses this email address.')
+expect('code: RATE_LIMITED', otpErrorMessage(coded('RATE_LIMITED', 'Too many OTP requests, please try again after 15 minutes.'), en, FALLBACK), 'Too many tries. Please wait a while and try again.')
+
+// --- Unknown codes, other errors and the message fallback ---
+expect('unknown code keeps the backend message', otpErrorMessage(coded('SOMETHING_NEW', 'A message from the future'), en, FALLBACK), 'A message from the future')
+expect('unknown code with a known legacy message still maps', otpErrorMessage(coded('SOMETHING_NEW', 'No OTP request found for this phone number'), en, FALLBACK), 'No code was sent yet. Please ask for a new code.')
+expect('unknown code, empty message, uses the fallback key', otpErrorMessage(coded('SOMETHING_NEW', ''), en, FALLBACK), FALLBACK)
+expect('login: a password failure with no code is not turned into an OTP message', otpErrorMessage(coded(undefined, 'Invalid credentials'), en, FALLBACK), 'Invalid credentials')
+expect('login: a suspended account keeps its message', otpErrorMessage(coded(undefined, 'Your account has been suspended'), en, FALLBACK), 'Your account has been suspended')
+expect('login: ADMIN_ACCOUNT is not an OTP code', otpErrorMessage(coded('ADMIN_ACCOUNT', 'Admin accounts sign in through the admin console.'), en, FALLBACK), 'Admin accounts sign in through the admin console.')
+expect('non-string code is ignored', otpErrorMessage(coded(42, 'Invalid OTP. You have 1 attempt(s) left'), en, FALLBACK), 'That code is wrong. Tries left: 1.')
+expect('plain object (not an Error) uses the fallback key', otpErrorMessage({ code: 'OTP_EXPIRED', message: 'x' }, en, FALLBACK), FALLBACK)
+
+// --- Cooldown seconds: one helper for every resend countdown ---
+expect('cooldown: structured', otpCooldownSeconds(coded('OTP_COOLDOWN', 'Please wait 27s before requesting another OTP')), 27)
+expect('cooldown: legacy message, no code', otpCooldownSeconds(new Error('Please wait 5s before requesting another OTP')), 5)
+expect('cooldown: one second', otpCooldownSeconds(coded('OTP_COOLDOWN', 'Please wait 1s before requesting another OTP')), 1)
+expect('cooldown: zero seconds is not a countdown', otpCooldownSeconds(coded('OTP_COOLDOWN', 'Please wait 0s before requesting another OTP')), null)
+expect('cooldown: code without readable seconds', otpCooldownSeconds(coded('OTP_COOLDOWN', BE_EN)), null)
+expect('cooldown: another code, same words, is not a cooldown', otpCooldownSeconds(coded('RATE_LIMITED', 'Please wait 9s before requesting another OTP')), null)
+expect('cooldown: OTP_EXPIRED is not a cooldown', otpCooldownSeconds(coded('OTP_EXPIRED', 'OTP has expired. Please request a new one')), null)
+expect('cooldown: unrelated error', otpCooldownSeconds(new Error('Invalid credentials')), null)
+expect('cooldown: not an Error', otpCooldownSeconds('Please wait 5s before requesting another OTP'), null)
+expect('cooldown: undefined', otpCooldownSeconds(undefined), null)
+expect('cooldown: seconds too large for an integer', otpCooldownSeconds(new Error('Please wait 99999999999999999999s before requesting another OTP')), null)
+
+// --- The four new keys, in every language ---
+const NEW_KEYS = ['alreadyVerified', 'phoneTaken', 'emailTaken', 'rateLimited']
+const enAuth = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'locales', 'en', 'auth.json'), 'utf8'))
+for (const lng of LANGUAGES) {
+  const auth = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'locales', lng, 'auth.json'), 'utf8'))
+  for (const key of NEW_KEYS) {
+    const value = auth.otpErrors[key]
+    check(`${lng}: otpErrors.${key} exists`, typeof value === 'string' && value.trim().length > 0)
+    check(`${lng}: otpErrors.${key} has no placeholder`, typeof value === 'string' && !value.includes('{{'), JSON.stringify(value))
+    if (lng !== 'en') check(`${lng}: otpErrors.${key} is translated`, value !== enAuth.otpErrors[key], JSON.stringify(value))
+  }
+  const t = await translatorFor(lng)
+  const samples = [
+    otpErrorMessage(coded('OTP_ALREADY_VERIFIED', BE_EN), t, FALLBACK),
+    otpErrorMessage(coded('PHONE_ALREADY_REGISTERED', BE_EN), t, FALLBACK),
+    otpErrorMessage(coded('EMAIL_ALREADY_REGISTERED', BE_EN), t, FALLBACK),
+    otpErrorMessage(coded('RATE_LIMITED', BE_EN), t, FALLBACK),
+  ]
+  check(`${lng}: the four code messages come from the locale, all different`, samples.every((s) => s !== BE_EN && s !== FALLBACK) && new Set(samples).size === 4, JSON.stringify(samples))
+  const wrong = otpErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: 3 }), t, FALLBACK)
+  check(`${lng}: OTP_INVALID shows the structured attemptsLeft`, wrong.includes('3') && !wrong.includes('{{'), wrong)
+  const wait = otpErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), t, FALLBACK)
+  check(`${lng}: OTP_COOLDOWN shows the seconds`, wait.includes('12') && !wait.includes('{{'), wait)
 }
 
 if (failures.length) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
@@ -90,6 +90,9 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       setExpiresIn(timing.expiresIn)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.sendError'))
+      // The server refused because a code went out moments ago: count down what is left.
+      const wait = otpCooldownSeconds(err)
+      if (wait !== null) setCooldown(wait)
     } finally {
       setSending(false)
     }

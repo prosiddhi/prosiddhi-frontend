@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ClipboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { otpAPI } from '@/lib/api'
@@ -122,6 +122,9 @@ export default function EmployerContactsPage() {
       setOtp(EMPTY_OTP)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'employerRegister:contacts.phoneSendFailed'))
+      // Cooldown refusal: count down what is left. Never creates a marker (a refusal alone proves no code is waiting here).
+      const wait = otpCooldownSeconds(err)
+      if (wait !== null && sent) update({ phoneOtpSent: { ...sent, at: Date.now(), cooldownSeconds: wait } })
     } finally {
       busy.current = false
       setSending(false)

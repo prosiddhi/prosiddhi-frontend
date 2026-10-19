@@ -1,5 +1,5 @@
 import type { SupportedLanguage } from '@/i18n/languages'
-import type { OtpSendMeta } from '@/lib/otpSend'
+import { parseRetryAfter, readAttemptsLeft, type OtpSendMeta } from '@/lib/otpSend'
 
 // API Configuration
 //
@@ -151,6 +151,17 @@ export class ApiError extends Error {
    * metadata goes with `code` (e.g. `actualRole` for `ROLE_MISMATCH`).
    */
   readonly details?: Record<string, unknown>
+  /**
+   * OTP_INVALID only: how many tries are left on the code, from the BE's top-level
+   * `attemptsLeft`. Kept only when it is a whole number of zero or more.
+   */
+  readonly attemptsLeft?: number
+  /**
+   * Seconds from the `Retry-After` header, when the response had a usable one.
+   * Usually absent in a browser: the header is readable cross-origin only if the
+   * API exposes it (see parseRetryAfter). Never required.
+   */
+  readonly retryAfterSeconds?: number
 
   constructor(
     message: string,
@@ -158,7 +169,9 @@ export class ApiError extends Error {
     reason?: string,
     errors?: ApiFieldError[],
     code?: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
+    attemptsLeft?: number,
+    retryAfterSeconds?: number
   ) {
     super(message)
     this.name = 'ApiError'
@@ -167,6 +180,8 @@ export class ApiError extends Error {
     this.errors = errors
     this.code = code
     this.details = details
+    this.attemptsLeft = attemptsLeft
+    this.retryAfterSeconds = retryAfterSeconds
   }
 }
 
@@ -604,7 +619,9 @@ async function performRequest<T>(
       reason,
       errors?.length ? errors : undefined,
       code,
-      details
+      details,
+      readAttemptsLeft(body?.attemptsLeft),
+      parseRetryAfter(response.headers.get('Retry-After'))
     )
   }
 

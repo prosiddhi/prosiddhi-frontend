@@ -64,3 +64,48 @@ export function readOtpSendTiming(response: unknown): OtpSendTiming {
     expiresIn: positiveNumber(meta.expiresIn, DEFAULT_OTP_EXPIRES_IN_MINUTES),
   }
 }
+
+const MAX_RETRY_AFTER_SECONDS = 24 * 60 * 60
+
+const HTTP_DATE = /^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/
+
+/**
+ * The seconds a `Retry-After` header asks for, or `undefined` when it is absent
+ * or unusable.
+ *
+ * Two forms are legal: whole delay-seconds ("120") and an HTTP-date
+ * ("Wed, 21 Oct 2026 07:28:00 GMT"). Anything else, a negative or non-integer
+ * number, a date that is not in the future, and a delay over a day all give
+ * `undefined`, so a garbled header can never lock a screen.
+ *
+ * `now` is a parameter so the date form can be checked without a clock.
+ *
+ * ⚠️ A browser only hands this header to script when the API's CORS reply lists it
+ * in `Access-Control-Expose-Headers` (it is not CORS-safelisted). The backend's
+ * current CORS config sets no such list, so on a cross-origin deploy the value is
+ * usually `null` here. Nothing depends on it being present.
+ */
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | undefined {
+  if (typeof value !== 'string') return undefined
+  const text = value.trim()
+  let seconds: number
+  if (/^\d+$/.test(text)) {
+    seconds = Number(text)
+  } else if (HTTP_DATE.test(text)) {
+    const at = Date.parse(text)
+    if (!Number.isFinite(at)) return undefined
+    seconds = Math.ceil((at - now) / 1000)
+  } else {
+    return undefined
+  }
+  return Number.isSafeInteger(seconds) && seconds > 0 && seconds <= MAX_RETRY_AFTER_SECONDS ? seconds : undefined
+}
+
+/**
+ * `attemptsLeft` from an OTP_INVALID reply: a whole number of zero or more, or
+ * `undefined`. One rule for ApiError (when it reads the body) and for
+ * otpErrorMessage (which reads it back off any Error), so they cannot drift.
+ */
+export function readAttemptsLeft(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined
+}

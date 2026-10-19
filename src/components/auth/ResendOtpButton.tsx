@@ -8,8 +8,13 @@ import { DEFAULT_RESEND_COOLDOWN_SECONDS } from '@/lib/otpSend'
 const RESEND_LOCK_MS = 1000
 
 interface ResendOtpButtonProps {
-  /** Must handle its own errors and resolve true only if a new code was requested. */
-  onResend: () => Promise<boolean>
+  /**
+   * Must handle its own errors. Resolves `true` only if a new code was requested
+   * (full countdown), a number of seconds above zero if the server refused because
+   * one was sent moments ago (countdown for what is left; see otpCooldownSeconds),
+   * and `false` for any other failure (no countdown).
+   */
+  onResend: () => Promise<boolean | number>
   /** Blocks the click while a parent request (e.g. verify) is already running. */
   disabled?: boolean
   /** Lets the page disable Verify / Back while a resend runs, so a late response
@@ -34,8 +39,9 @@ interface ResendOtpButtonProps {
  * It also owns the countdown, so the page does not re-render every second. The
  * countdown is tracked as an end time, not a decrementing counter, so it stays
  * right when a background tab throttles the timer. It starts on mount when
- * `startOnMount` is set, and restarts only after `onResend` resolves true. A
- * refused or failed resend shows the backend's error through the caller's
+ * `startOnMount` is set, and restarts only after `onResend` resolves true, or
+ * for the seconds left when it resolves a number (the server's cooldown refusal).
+ * Any other failed resend shows the backend's error through the caller's
  * `otpErrorMessage` and starts nothing. The backend's own cooldown still applies.
  */
 export function ResendOtpButton({
@@ -71,9 +77,11 @@ export function ResendOtpButton({
     return () => clearInterval(id)
   }, [endsAt])
 
-  const startCountdown = () => {
-    setEndsAt(Date.now() + cooldownSeconds * 1000)
-    setSecondsLeft(cooldownSeconds)
+  // Replaces any countdown already running: there is one end time, and the effect
+  // above clears its interval before starting the next.
+  const startCountdown = (seconds: number) => {
+    setEndsAt(Date.now() + seconds * 1000)
+    setSecondsLeft(seconds)
   }
 
   const handleClick = async () => {
@@ -82,16 +90,17 @@ export function ResendOtpButton({
     inFlight.current = true
     setBusy(true)
     onBusyChange?.(true)
-    let sent = false
+    let outcome: boolean | number = false
     try {
-      sent = await onResend()
+      outcome = await onResend()
     } finally {
       lockedUntil.current = Date.now() + RESEND_LOCK_MS
       inFlight.current = false
       setBusy(false)
       onBusyChange?.(false)
     }
-    if (sent) startCountdown()
+    if (outcome === true) startCountdown(cooldownSeconds)
+    else if (typeof outcome === 'number' && outcome > 0) startCountdown(outcome)
   }
 
   return (

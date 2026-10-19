@@ -27,9 +27,9 @@ export type EmployerType = 'individual' | 'corporate' | ''
 export interface OtpSentMarker {
   /** The phone (E.164) or email the code went to. */
   to: string
-  /** Date.now() at the send. */
+  /** Date.now() at the send, or at the last cooldown refusal. Only the resend countdown reads it. */
   at: number
-  /** Seconds until a resend, from that send's response (readOtpSendTiming). */
+  /** Seconds until a resend, from that send's response (readOtpSendTiming) or the refusal's remaining time. */
   cooldownSeconds: number
   /** Minutes the code stays valid, from the same response, for the "expired" message. */
   expiresIn: number

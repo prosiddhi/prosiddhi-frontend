@@ -29,7 +29,7 @@ mod.filename = file
 mod.paths = Module._nodeModulePaths(path.dirname(file))
 mod.require = createRequire(file)
 mod._compile(outputText, file)
-const { readOtpSendTiming, DEFAULT_RESEND_COOLDOWN_SECONDS, DEFAULT_OTP_EXPIRES_IN_MINUTES } = mod.exports
+const { readOtpSendTiming, parseRetryAfter, DEFAULT_RESEND_COOLDOWN_SECONDS, DEFAULT_OTP_EXPIRES_IN_MINUTES } = mod.exports
 
 const failures = []
 let checks = 0
@@ -96,6 +96,28 @@ expect('empty string', readOtpSendTiming({ expiresIn: '', resendCooldownSeconds:
 // --- the two fields are not mixed up ---
 expect('units are not swapped', readOtpSendTiming({ expiresIn: 10, resendCooldownSeconds: 30 }).cooldownSeconds, 30)
 expect('expiry is the minutes field', readOtpSendTiming({ expiresIn: 3, resendCooldownSeconds: 90 }).expiresIn, 3)
+
+// --- Retry-After: whole seconds, or an HTTP-date, and nothing else ---
+const NOW = Date.parse('Wed, 21 Oct 2026 07:28:00 GMT')
+expect('retry-after: seconds', parseRetryAfter('120', NOW), 120)
+expect('retry-after: padded seconds', parseRetryAfter(' 30 ', NOW), 30)
+expect('retry-after: date 90 s ahead', parseRetryAfter('Wed, 21 Oct 2026 07:29:30 GMT', NOW), 90)
+expect('retry-after: date rounds up', parseRetryAfter('Wed, 21 Oct 2026 07:28:01 GMT', NOW + 500), 1)
+expect('retry-after: date in the past', parseRetryAfter('Wed, 21 Oct 2026 07:27:00 GMT', NOW), undefined)
+expect('retry-after: date equal to now', parseRetryAfter('Wed, 21 Oct 2026 07:28:00 GMT', NOW), undefined)
+expect('retry-after: zero', parseRetryAfter('0', NOW), undefined)
+expect('retry-after: negative', parseRetryAfter('-5', NOW), undefined)
+expect('retry-after: fraction', parseRetryAfter('1.5', NOW), undefined)
+expect('retry-after: exponent', parseRetryAfter('1e3', NOW), undefined)
+expect('retry-after: words', parseRetryAfter('soon', NOW), undefined)
+expect('retry-after: empty', parseRetryAfter('', NOW), undefined)
+expect('retry-after: null', parseRetryAfter(null, NOW), undefined)
+expect('retry-after: undefined', parseRetryAfter(undefined, NOW), undefined)
+expect('retry-after: over a day', parseRetryAfter('86401', NOW), undefined)
+expect('retry-after: exactly a day', parseRetryAfter('86400', NOW), 86400)
+expect('retry-after: huge digits', parseRetryAfter('99999999999999999999', NOW), undefined)
+expect('retry-after: non-GMT date', parseRetryAfter('Wed, 21 Oct 2026 07:29:30 PST', NOW), undefined)
+expect('retry-after: impossible date', parseRetryAfter('Wed, 99 Oct 2026 07:29:30 GMT', NOW), undefined)
 
 if (failures.length) {
   console.error(`\n✗ ${failures.length} of ${checks} OTP send timing checks failed:\n`)

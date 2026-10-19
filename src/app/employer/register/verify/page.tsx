@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { emailOtpAPI } from '@/lib/api'
@@ -104,6 +104,9 @@ export default function EmployerVerifyPage() {
     } catch (err) {
       // A refused resend ("Please wait Ns") shows the server's words and does not restart the countdown.
       setError(otpErrorMessage(err, t, 'employerRegister:verify.emailSendFailed'))
+      // Cooldown refusal: count down what is left. Never creates a marker (see the phone step).
+      const wait = otpCooldownSeconds(err)
+      if (wait !== null && sent) update({ emailOtpSent: { ...sent, at: Date.now(), cooldownSeconds: wait } })
     } finally {
       busy.current = false
       setSending(false)

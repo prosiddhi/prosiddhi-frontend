@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
@@ -127,8 +127,8 @@ export default function ForgotPasswordPage() {
   // using the stored normalized identifier. Boxes clear and refocus only on a
   // successful response; a refused resend keeps what the user typed. The notice
   // is deliberately neutral — a 200 does not prove a fresh code was generated.
-  // Returns true only on a 200, which is when ResendOtpButton restarts its countdown.
-  const handleResend = async (): Promise<boolean> => {
+  // Returns true on a 200 (ResendOtpButton restarts its countdown) or the seconds left on a cooldown refusal.
+  const handleResend = async (): Promise<boolean | number> => {
     if (!identifier) return false
     setError('')
     setResendNotice(false)
@@ -149,7 +149,7 @@ export default function ForgotPasswordPage() {
       return true
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:forgot.errorSendFailed'))
-      return false
+      return otpCooldownSeconds(err) ?? false
     }
   }
 

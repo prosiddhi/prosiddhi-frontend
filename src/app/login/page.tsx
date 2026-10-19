@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, X } from 'lucide-react'
@@ -407,13 +407,14 @@ function LoginContent() {
   // error path as the first send. The boxes are cleared and refocused only once
   // the request succeeds, so a refused resend keeps what the user typed. No
   // success message: a backend "Please wait" arrives as the error. Returns true
-  // only when a new code was requested; ResendOtpButton restarts its countdown on
-  // that. Double-click protection and the countdown live in ResendOtpButton.
+  // when a new code was requested, the seconds left when the server refused on its
+  // cooldown, false otherwise; ResendOtpButton restarts its countdown on the first
+  // two. Double-click protection and the countdown live in ResendOtpButton.
   const resendOtp = async (
     send: (e164: string) => Promise<unknown>,
     rawPhone: string,
     onSent: () => void,
-  ): Promise<boolean> => {
+  ): Promise<boolean | number> => {
     const e164 = toE164(rawPhone)
     if (!e164) return false
     setError('')
@@ -425,7 +426,7 @@ function LoginContent() {
       return true
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
-      return false
+      return otpCooldownSeconds(err) ?? false
     }
   }
 

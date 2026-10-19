@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpErrorMessage } from '@/lib/otpError'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
 import { ChevronRight, X, MailCheck } from 'lucide-react'
@@ -104,6 +104,13 @@ export default function RegisterVerifyEmailPage() {
       setCountdown(cooldownSeconds)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:verifyEmail.errorResend'))
+      // The server refused because a code went out moments ago: count down what is
+      // left rather than leaving Resend enabled. Any other failure starts nothing.
+      const wait = otpCooldownSeconds(err)
+      if (wait !== null) {
+        setCanResend(false)
+        setCountdown(wait)
+      }
     } finally {
       setResendLoading(false)
     }
