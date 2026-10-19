@@ -1,14 +1,14 @@
 'use client'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { JobForm } from '@/components/job/JobForm'
 import { OutOfCreditsUpsell } from '@/components/employer/OutOfCreditsUpsell'
 import { useCredits } from '@/hooks/useCredits'
-import { employerAPI, fieldErrorsByPath, type PostJobData } from '@/lib/api'
+import { employerAPI, fieldErrorsByPath, teamAPI, type PostJobData } from '@/lib/api'
 import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
 import { myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
@@ -32,6 +32,29 @@ function NewJobContent() {
   const [blockedNoCredits, setBlockedNoCredits] = useState(false)
 
   const { wallet, loading: walletLoading, reload: reloadWallet } = useCredits()
+
+  // The employer's saved company name, offered to the optional Company Name box.
+  // One attempt (the ref also stops Strict Mode's second effect run from refetching),
+  // and a failure just leaves the box empty. No `fullName` fallback: an individual's
+  // personal name is not a company. Setting state after unmount is a no-op.
+  //
+  // The profile is the LOGGED-IN user's own employer record, but the job is posted
+  // under the organisation. An invited teammate keeps their own record (accepting an
+  // invite leaves it untouched), and it can hold a different company name. So the name
+  // is offered only when that record IS the organisation's (same id as the seat's
+  // employerId). Fail closed: if either call fails, or the ids differ, nothing is offered.
+  const [companyNameSuggestion, setCompanyNameSuggestion] = useState<string>()
+  const suggestionTriedRef = useRef(false)
+  useEffect(() => {
+    if (suggestionTriedRef.current) return
+    suggestionTriedRef.current = true
+    Promise.all([employerAPI.getProfile(), teamAPI.getEntitlements()])
+      .then(([profile, entitlements]) => {
+        if (profile.employer?.id !== entitlements.employerId) return
+        setCompanyNameSuggestion(profile.employer?.companyName?.trim() || undefined)
+      })
+      .catch(() => {})
+  }, [])
 
   // Proactive gate: block the form when the wallet loaded and POST balance is 0.
   // Fail-open if the wallet couldn't load (wallet === null) — the BE 402 is the
@@ -108,7 +131,7 @@ function NewJobContent() {
                   {t('employer:jobNew.trialNote')}
                 </p>
               )}
-              <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} onSubmit={handleSubmit} />
+              <JobForm submitLabel={t('employer:jobNew.submitLabel')} submitting={submitting} error={error} serverFieldErrors={fieldErrors} companyNameSuggestion={companyNameSuggestion} onSubmit={handleSubmit} />
             </>
           )}
         </div>

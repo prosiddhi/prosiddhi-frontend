@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useController, useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -53,6 +53,12 @@ interface JobFormBaseProps {
    * parent's `error` text still covers it.
    */
   serverFieldErrors?: Record<string, string[]>
+  /**
+   * New post only: a company name to put in the empty Company Name box (the employer's
+   * saved one, which can arrive after the form is shown). Used once, and never if the
+   * employer has already typed in the box. Ignored on an edit.
+   */
+  companyNameSuggestion?: string
 }
 
 /**
@@ -134,7 +140,7 @@ function formFieldForServerPath(path: string) {
 }
 
 export function JobForm(props: JobFormProps) {
-  const { initial, initialCities, legacyLocation, submitLabel, submitting, error, serverFieldErrors } = props
+  const { initial, initialCities, legacyLocation, submitLabel, submitting, error, serverFieldErrors, companyNameSuggestion } = props
   const { t } = useTranslation()
   // A legacy edit (see JobFormBaseProps.legacyLocation) is the one case where no city is
   // required. Create and an edit of a job that already has cities both need 1 to 5.
@@ -152,6 +158,7 @@ export function JobForm(props: JobFormProps) {
     register,
     control,
     watch,
+    getValues,
     setValue,
     setError,
     trigger,
@@ -166,6 +173,21 @@ export function JobForm(props: JobFormProps) {
     defaultValues: buildInitialState(initial, initialCities),
   })
   const f = watch()
+
+  // Offer the suggested company name. It arrives once, and a re-run finds the box
+  // filled, so no "done" flag is needed. `onChange` marks the box as the employer's
+  // the moment they type, so a suggestion that lands later never replaces (or refills)
+  // their text, even if they cleared it. `setValue` with no options leaves the box
+  // neither dirty nor touched.
+  const companyEditedRef = useRef(false)
+  const isEdit = props.mode === 'edit'
+  useEffect(() => {
+    if (isEdit || !companyNameSuggestion) return
+    if (!companyEditedRef.current && getValues('companyName') === '') {
+      setValue('companyName', companyNameSuggestion)
+    }
+  }, [isEdit, companyNameSuggestion, getValues, setValue])
+
   // Category lives inside TaxonomyPicker, so it is wired through a controller
   // rather than `register`. Its ref is what lets a failed Submit focus it.
   const {
@@ -307,7 +329,7 @@ export function JobForm(props: JobFormProps) {
           />
 
           <Field label={t('employer:jobForm.companyNameLabel')} className={labelCls} optionalLabel={optionalLabel} error={errorText('companyName')}>
-            <input id="job-company" className={fieldCls('companyName')} placeholder={t('employer:jobForm.companyNamePlaceholder')} {...register('companyName')} />
+            <input id="job-company" className={fieldCls('companyName')} placeholder={t('employer:jobForm.companyNamePlaceholder')} {...register('companyName', { onChange: () => { companyEditedRef.current = true } })} />
           </Field>
 
           <div>
