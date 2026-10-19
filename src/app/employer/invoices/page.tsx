@@ -73,30 +73,13 @@ function InvoicesContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10">
-        <div className="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
           <Link href="/employer" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors mb-6">
             <ChevronLeft className="w-5 h-5" />
             <span>{t('employer:invoices.back')}</span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-black mb-1">{t('employer:invoices.title')}</h1>
           <p className="text-[#717182] mb-6">{t('employer:invoices.subtitle')}</p>
-
-          {loading && (
-            <div className="flex items-center gap-2 py-10 text-[#717182]">
-              <Loader2 className="w-5 h-5 animate-spin text-primary-50" />
-              <span className="text-sm">{t('employer:invoices.loading')}</span>
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="flex items-center gap-3 py-4 text-sm">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <span className="text-red-600">{error}</span>
-              <button type="button" onClick={() => void load(page)} className="text-primary-50 underline hover:no-underline">
-                {t('buttons.retry')}
-              </button>
-            </div>
-          )}
 
           {!loading && !error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center text-[#717182]">
@@ -105,65 +88,84 @@ function InvoicesContent() {
             </div>
           )}
 
-          {!loading && !error && items.length > 0 && (
-            <>
-              {downloadError && (
-                <div className="flex items-start gap-2 text-red-600 text-sm mb-4">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /><span>{downloadError}</span>
+          <div className="max-w-[900px]">
+            {loading && (
+              <div className="flex items-center gap-2 py-10 text-[#717182]">
+                <Loader2 className="w-5 h-5 animate-spin text-primary-50" />
+                <span className="text-sm">{t('employer:invoices.loading')}</span>
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="flex items-center gap-3 py-4 text-sm">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <span className="text-red-600">{error}</span>
+                <button type="button" onClick={() => void load(page)} className="text-primary-50 underline hover:no-underline">
+                  {t('buttons.retry')}
+                </button>
+              </div>
+            )}
+
+            {!loading && !error && items.length > 0 && (
+              <>
+                {downloadError && (
+                  <div className="flex items-start gap-2 text-red-600 text-sm mb-4">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /><span>{downloadError}</span>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {items.map((inv) => (
+                    <div key={inv.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#e3f5ff] flex items-center justify-center text-[#236987] flex-shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-black truncate">{inv.number}</p>
+                        <p className="text-xs text-[#717182] truncate">
+                          {formatShortDate(inv.createdAt)}{inv.description ? ` · ${inv.description}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-black">{formatInr(inv.totalInr)}</p>
+                        <p className="text-xs text-[#717182]">{t('employer:invoices.inclGst')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(inv.id, inv.number)}
+                        disabled={downloadingId === inv.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 border border-primary-50 text-primary-50 rounded-lg text-sm hover:bg-primary-50/5 transition-colors disabled:opacity-50 flex-shrink-0"
+                      >
+                        {downloadingId === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        <span className="hidden sm:inline">{t('employer:invoices.download')}</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div className="space-y-3">
-                {items.map((inv) => (
-                  <div key={inv.id} className="bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-[#e3f5ff] flex items-center justify-center text-[#236987] flex-shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-black truncate">{inv.number}</p>
-                      <p className="text-xs text-[#717182] truncate">
-                        {formatShortDate(inv.createdAt)}{inv.description ? ` · ${inv.description}` : ''}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-black">{formatInr(inv.totalInr)}</p>
-                      <p className="text-xs text-[#717182]">{t('employer:invoices.inclGst')}</p>
-                    </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-8">
                     <button
-                      type="button"
-                      onClick={() => handleDownload(inv.id, inv.number)}
-                      disabled={downloadingId === inv.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 border border-primary-50 text-primary-50 rounded-lg text-sm hover:bg-primary-50/5 transition-colors disabled:opacity-50 flex-shrink-0"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="w-9 h-9 flex items-center justify-center border border-[#dddddd] rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      {downloadingId === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      <span className="hidden sm:inline">{t('employer:invoices.download')}</span>
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="px-3 text-sm text-[#717182]">
+                      {t('employer:invoices.pageOf', { page, total: totalPages })}
+                    </span>
+                    <button
+                      disabled={page >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      className="w-9 h-9 flex items-center justify-center border border-[#dddddd] rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
-                ))}
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-8">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="w-9 h-9 flex items-center justify-center border border-[#dddddd] rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="px-3 text-sm text-[#717182]">
-                    {t('employer:invoices.pageOf', { page, total: totalPages })}
-                  </span>
-                  <button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="w-9 h-9 flex items-center justify-center border border-[#dddddd] rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
       </main>
     </div>

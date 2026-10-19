@@ -299,7 +299,7 @@ function UnlockedResults({ term, onClear }: { term: string; onClear: () => void 
           count: pagination?.total ?? items.length,
         })}
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
         {items.map((c) => (
           <UnlockedCard key={c.id} c={c} />
         ))}
@@ -624,7 +624,7 @@ function WorkersSearchContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10 lg:py-12">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-2">
             {t('employer:workers.title')}
           </h1>
@@ -787,7 +787,7 @@ function WorkersSearchContent() {
               <p className="text-sm text-[#717182] mb-4">
                 {t('employer:workers.resultCount', { count: pagination?.total ?? jobs.length })}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                 {jobs.map((w) => (
                   <WorkerCard key={w.id} w={w} />
                 ))}

@@ -29,7 +29,7 @@ function PlansContent() {
       <EmployerHeader />
 
       <main className="flex-1 py-8 sm:py-10">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px]">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <Link href="/employer" className="inline-flex items-center gap-2 text-black hover:text-primary-50 transition-colors">
               <ChevronLeft className="w-5 h-5" />
