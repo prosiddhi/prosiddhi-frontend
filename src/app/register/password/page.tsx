@@ -81,6 +81,9 @@ export default function RegisterPasswordPage() {
   // EMAIL_NOT_VERIFIED: the server has no verified mark for this email. Offers a fresh
   // code; the register call is never retried on its own.
   const [needsEmailReverify, setNeedsEmailReverify] = useState(false)
+  // EMAIL_ALREADY_REGISTERED: another account owns this address. Offers a way back to the
+  // email field; nothing here can fix it.
+  const [emailTaken, setEmailTaken] = useState(false)
   // Latched the moment register + login succeed, BEFORE `reset()` runs.
   //
   // `reset()` wipes the shared registration state back to its empty default, and
@@ -179,6 +182,7 @@ export default function RegisterPasswordPage() {
       setFieldErrors([])
       setNeedsPhoneReverify(false)
       setNeedsEmailReverify(false)
+      setEmailTaken(false)
 
       // Create the seeker. Both contacts are already verified at this point and
       // the password ships WITH the account — there is no set-password step and
@@ -282,6 +286,7 @@ export default function RegisterPasswordPage() {
         break
       case 'emailTaken':
         setError(t('auth:password.errorEmailTaken'))
+        setEmailTaken(true)
         break
       case 'phoneTaken':
         setError(t('auth:password.errorPhoneTaken'))
@@ -326,6 +331,14 @@ export default function RegisterPasswordPage() {
       reverifyingEmail.current = false
       setLoading(false)
     }
+  }
+
+  // Back to the email field with the old address still in it to edit. Its verified flag goes:
+  // otherwise the profile step would skip sending a code for an address it thinks is verified.
+  // Every other answer stays in the registration context.
+  const handleChangeEmail = () => {
+    update({ emailVerified: false, devEmailOtp: undefined })
+    router.push('/register/profile')
   }
 
   const handleBack = () => router.push('/register/experience')
@@ -412,6 +425,15 @@ export default function RegisterPasswordPage() {
                       className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80 disabled:opacity-50"
                     >
                       {t('auth:password.reverifyEmail')}
+                    </button>
+                  )}
+                  {emailTaken && (
+                    <button
+                      type="button"
+                      onClick={handleChangeEmail}
+                      className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
+                    >
+                      {t('profile:seeker.emailModal.changeEmailLink')}
                     </button>
                   )}
                 </div>

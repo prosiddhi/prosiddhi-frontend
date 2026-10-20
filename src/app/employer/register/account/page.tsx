@@ -77,6 +77,11 @@ export default function AccountSetupPage() {
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
   // Which contact the backend said is not verified, so Re-verify clears only that one.
   const [needsReverify, setNeedsReverify] = useState<'phone' | 'email' | null>(null)
+  // EMAIL_ALREADY_REGISTERED: another account owns this address; offers a way back to change it.
+  const [emailTaken, setEmailTaken] = useState(false)
+  // Set when we send the user away on purpose, so the guard below does not redirect to
+  // /contacts over that navigation once the email flag is cleared.
+  const leaving = useRef(false)
   // Stops the guard below judging a flow that has already succeeded — see the
   // seeker password step (4d65c71) for the full story. Kept per-page, not on the
   // context: the provider outlives this page, and a flow-wide flag would also
@@ -89,7 +94,7 @@ export default function AccountSetupPage() {
 
   // Guard: both contacts must already be verified — register consumes both marks.
   useEffect(() => {
-    if (!hydrated || accountCreated) return
+    if (!hydrated || accountCreated || leaving.current) return
     if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
     }
@@ -247,6 +252,7 @@ export default function AccountSetupPage() {
           break
         case 'emailTaken':
           setError(t('employerRegister:account.errorEmailTaken'))
+          setEmailTaken(true)
           break
         case 'phoneTaken':
           setError(t('employerRegister:account.errorPhoneTaken'))
@@ -284,6 +290,14 @@ export default function AccountSetupPage() {
     }
     router.push('/employer/register/contacts')
   }
+  // To the email step with the old address still in the box. Its verified flag and any sent
+  // marker go, so the step does not offer "Continue" for the taken address. The phone and
+  // everything else stay.
+  const handleChangeEmail = () => {
+    leaving.current = true
+    update({ emailVerified: false, emailOtpSent: null, devEmailOtp: undefined })
+    router.push('/employer/register/verify')
+  }
   const handleClose = () => router.push('/')
 
   return (
@@ -309,6 +323,15 @@ export default function AccountSetupPage() {
                   className="mt-3 text-sm font-semibold text-primary-50 underline hover:text-primary-60"
                 >
                   {t('employerRegister:account.reverifyContacts')}
+                </button>
+              )}
+              {emailTaken && (
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="mt-3 text-sm font-semibold text-primary-50 underline hover:text-primary-60"
+                >
+                  {t('profile:seeker.emailModal.changeEmailLink')}
                 </button>
               )}
             </div>

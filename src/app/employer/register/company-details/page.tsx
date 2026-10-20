@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useId } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
@@ -46,6 +46,11 @@ export default function CompanyDetailsPage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [termsMissing, setTermsMissing] = useState(false)
   const [error, setError] = useState('')
+  // EMAIL_ALREADY_REGISTERED: another account owns the login email; offers a way back to change it.
+  const [emailTaken, setEmailTaken] = useState(false)
+  // Set when we send the user away on purpose, so the guard below does not redirect to
+  // /contacts over that navigation once the email flag is cleared.
+  const leaving = useRef(false)
   // GST / registration number problems, shown under their own input.
   const identifiers = useIdentifierErrors()
 
@@ -68,7 +73,7 @@ export default function CompanyDetailsPage() {
   // previous step. The password is in memory only, so a hard refresh legitimately
   // sends them back to re-enter it.
   useEffect(() => {
-    if (!hydrated || accountCreated) return
+    if (!hydrated || accountCreated || leaving.current) return
     if (data.companyType !== 'corporate') router.replace('/employer/register')
     else if (!data.phoneVerified || !data.emailVerified) {
       router.replace('/employer/register/contacts')
@@ -114,6 +119,7 @@ export default function CompanyDetailsPage() {
     // Each attempt starts clean: the inline messages and any banner from the last try.
     identifiers.reset()
     setError('')
+    setEmailTaken(false)
 
     if (!form.companyName.trim() || form.companyName.trim().length < 2) {
       setError(t('employerRegister:companyDetails.nameTooShort'))
@@ -229,6 +235,7 @@ export default function CompanyDetailsPage() {
           break
         case 'emailTaken':
           setError(t('employerRegister:account.errorEmailTaken'))
+          setEmailTaken(true)
           break
         case 'phoneTaken':
           setError(t('employerRegister:account.errorPhoneTaken'))
@@ -241,6 +248,15 @@ export default function CompanyDetailsPage() {
       // created the account, for the whole of the async route transition.
       setLoading(false)
     }
+  }
+
+  // To the email step with the old address still in the box. Its verified flag and any sent
+  // marker go, so the step does not offer "Continue" for the taken address. The phone,
+  // password and company details stay.
+  const handleChangeEmail = () => {
+    leaving.current = true
+    update({ emailVerified: false, emailOtpSent: null, devEmailOtp: undefined })
+    router.push('/employer/register/verify')
   }
 
   const handleBack = () => router.push('/employer/register/account')
@@ -265,6 +281,15 @@ export default function CompanyDetailsPage() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
+              {emailTaken && (
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="mt-3 text-sm font-semibold text-primary-50 underline hover:text-primary-60"
+                >
+                  {t('profile:seeker.emailModal.changeEmailLink')}
+                </button>
+              )}
             </div>
           )}
 
