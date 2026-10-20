@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { hasUnmappedCode, isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, X } from 'lucide-react'
@@ -273,6 +273,11 @@ function LoginContent() {
     setError('')
   }
 
+  // The message for a failed sign-in or code send. A backend code with no locale string
+  // gets this screen's own fallback instead of the backend's English text.
+  const loginOtpMessage = (err: unknown, fallbackKey: string, expiresIn?: number) =>
+    hasUnmappedCode(err) ? t(fallbackKey) : otpErrorMessage(err, t, fallbackKey, expiresIn)
+
   /**
    * Login failures, with the wrong-role case pulled out (TD-08 / DEF-017).
    *
@@ -337,7 +342,7 @@ function LoginContent() {
       )
       return true
     }
-    setError(otpErrorMessage(err, t, 'auth:login.errorLogin', sendTiming.expiresIn))
+    setError(loginOtpMessage(err, 'auth:login.errorLogin', sendTiming.expiresIn))
     return false
   }
 
@@ -397,7 +402,7 @@ function LoginContent() {
       setOtpSent(true)
       phoneOtpVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
+      setError(loginOtpMessage(err, 'auth:login.errorSendOtp'))
     } finally {
       setLoading(false)
     }
@@ -425,7 +430,7 @@ function LoginContent() {
       onSent()
       return true
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
+      setError(loginOtpMessage(err, 'auth:login.errorSendOtp'))
       return otpCooldownSeconds(err) ?? false
     }
   }
@@ -554,7 +559,7 @@ function LoginContent() {
       setOtpSent(true)
       bindVerifyForm.reset({ otp: EMPTY_OTP })
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'auth:login.errorSendOtp'))
+      setError(loginOtpMessage(err, 'auth:login.errorSendOtp'))
     } finally {
       setLoading(false)
     }

@@ -44,7 +44,7 @@ function loadLib(name) {
   return mod.exports
 }
 
-const { otpErrorMessage, otpCooldownSeconds, isOtpRejection } = loadLib('otpError')
+const { otpErrorMessage, otpCooldownSeconds, isOtpRejection, hasUnmappedCode } = loadLib('otpError')
 
 const LANGUAGES = ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn']
 
@@ -220,6 +220,19 @@ for (const lng of LANGUAGES) {
   const wait = otpErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), t, FALLBACK)
   check(`${lng}: OTP_COOLDOWN shows the seconds`, wait.includes('12') && !wait.includes('{{'), wait)
 }
+
+// --- hasUnmappedCode: a backend code with no locale string (login screens show their fallback) ---
+for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED', 'OTP_COOLDOWN', 'PHONE_ALREADY_REGISTERED', 'EMAIL_ALREADY_REGISTERED', 'RATE_LIMITED']) {
+  expect(`mapped code: ${code}`, hasUnmappedCode(coded(code, BE_EN)), false)
+}
+for (const code of ['INTERNAL_ERROR', 'ACCOUNT_SUSPENDED', 'INVALID_PHONE', 'SOMETHING_NEW']) {
+  expect(`unmapped code: ${code}`, hasUnmappedCode(coded(code, BE_EN)), true)
+}
+expect('unmapped: no code is not a match', hasUnmappedCode(coded(undefined, 'Invalid credentials')), false)
+expect('unmapped: network failure (no code) is not a match', hasUnmappedCode(new TypeError('Failed to fetch')), false)
+expect('unmapped: non-string code is ignored', hasUnmappedCode(coded(42, BE_EN)), false)
+expect('unmapped: not an Error', hasUnmappedCode({ code: 'INTERNAL_ERROR' }), false)
+expect('unmapped: ADMIN_ACCOUNT (handled by the login page before this)', hasUnmappedCode(coded('ADMIN_ACCOUNT', BE_EN)), true)
 
 if (failures.length) {
   console.error(`\n✗ ${failures.length} of ${checks} OTP error-message checks failed:\n`)

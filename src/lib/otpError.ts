@@ -86,6 +86,28 @@ export function isOtpRejection(err: unknown): boolean {
   return OTP_REJECTION_MESSAGE.test(err.message)
 }
 
+// The codes otpErrorMessage turns into a locale string. OTP_COOLDOWN is here too: its
+// seconds are formatted from the message.
+const MAPPED_CODES = new Set([
+  ...OTP_REJECTION_CODES,
+  'OTP_COOLDOWN',
+  'PHONE_ALREADY_REGISTERED',
+  'EMAIL_ALREADY_REGISTERED',
+  'RATE_LIMITED',
+])
+
+/**
+ * True when `err` carries a backend `code` that otpErrorMessage has no locale string for.
+ * That backend text is English only, so a screen in ten languages should show its own
+ * fallback instead. An error with no code (a plain `Error`, a network failure) is not
+ * this case: its message passes through exactly as before.
+ */
+export function hasUnmappedCode(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const { code } = factsOf(err)
+  return code !== undefined && !MAPPED_CODES.has(code)
+}
+
 // `count` picks the singular or plural sentence; `expiresIn` fills the number.
 function expiredMessage(t: TFunction, expiresIn?: number): string {
   const minutes = readOtpSendTiming({ expiresIn }).expiresIn
