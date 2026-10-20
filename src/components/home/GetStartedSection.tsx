@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Briefcase, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -36,6 +36,26 @@ export function GetStartedSection() {
   const { t } = useTranslation()
   const { language, setLanguage } = useLanguagePreference()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close on a click outside or Escape — the same behaviour as the header's
+  // LanguageSwitcher. Without it the open list stayed open until a language was
+  // picked or the button was pressed again.
+  useEffect(() => {
+    if (!isDropdownOpen) return
+    const onClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsDropdownOpen(false)
+    }
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onEscape)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onEscape)
+    }
+  }, [isDropdownOpen])
 
   const selectedLang = LANGUAGE_OPTIONS.find((lang) => lang.value === language)
 
@@ -65,7 +85,9 @@ export function GetStartedSection() {
     // pt-5/7 rather than py-6/10: this section and the hero are one thought, so
     // the seam between them is 48px at `lg` instead of 72. The bottom keeps its
     // room, because what follows it is the footer, and that IS a page break.
-    <section className="pt-5 sm:pt-6 lg:pt-7 pb-8 sm:pb-10 lg:pb-12 bg-gradient-to-b from-white to-gray-50">
+    // No background of its own: the home page paints one blue wash behind the
+    // hero and this section together.
+    <section className="pt-5 sm:pt-6 lg:pt-7 pb-8 sm:pb-10 lg:pb-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-[636px] mx-auto flex flex-col items-center">
           {/* One step up from text-2xl at `lg`. Under a 60px headline a 24px
@@ -121,7 +143,7 @@ export function GetStartedSection() {
               above it, which re-raised the "is this part of the form?" question
               the old wizard layout left behind. */}
           <div className="w-full max-w-[340px] pt-5 sm:pt-6 border-t border-gray-100">
-            <div className="relative">
+            <div ref={dropdownRef} className="relative">
               <label
                 className="block text-xs sm:text-sm text-gray-500 text-center mb-2"
                 htmlFor="home-language"

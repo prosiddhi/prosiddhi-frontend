@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { Briefcase, Eye, EyeOff, Loader2, AlertCircle, MapPinOff, MapPinPlus, type LucideIcon } from 'lucide-react'
 import type { Job } from '@/lib/api'
-import { JobFeedCard } from './JobFeedCard'
+import { JobFeedCard, type JobListOrigin } from './JobFeedCard'
 
 export type SectionKind = 'all' | 'recommended' | 'nearby'
 
@@ -68,7 +68,7 @@ export interface JobFeedSectionProps {
   onToggleSave: (jobId: string) => void
   /** Where this section is rendered — passed through to each JobFeedCard so
       its Job Details link carries `?from=` for the Back link. */
-  from?: 'home' | 'job-feed'
+  from?: Exclude<JobListOrigin, 'saved-jobs'>
 }
 
 export function JobFeedSection({

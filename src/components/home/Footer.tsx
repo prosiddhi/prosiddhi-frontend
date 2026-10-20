@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { COMPANY_LEGAL_NAME, currentYear } from '@/lib/legal'
 import { useAuth } from '@/contexts/AuthContext'
 import { PAGE_BOX } from '@/lib/layout'
+import { publicJobsHref } from '@/lib/publicJobs'
 
 export type FooterWidth = 'public' | 'wide' | 'welcome'
 
@@ -31,8 +32,10 @@ const FOOTER_BOX: Record<FooterWidth, string> = {
  * and an icon that goes nowhere is worse than no icon. Add them back with real
  * URLs when the business has them.
  *
- * Auth-gated destinations (job feed, post a job, …) are intentional: a logged-out
- * visitor is sent to /login, which is a real screen — not a 404.
+ * Auth-gated destinations (post a job, saved jobs, …) are intentional: a logged-out
+ * visitor is sent to /login, which is a real screen — not a 404. Browse Jobs is the
+ * exception, because jobs CAN be browsed without an account (the public list on
+ * /employee).
  */
 /**
  * `audience` picks which product-specific column(s) show: the seeker landing page
@@ -53,6 +56,9 @@ export function Footer({
   const { t } = useTranslation('legal')
   const { user, isLoading } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
+  // Product rule (Nazir, 20 Oct 2026): no pricing on public pages — plans are
+  // shown only to a signed-in employer.
+  const isEmployer = !!user?.role?.startsWith('EMPLOYER')
   const showEmployers = audience !== 'seeker' && !isSeeker
   // The role is unknown until the stored session has been read, so a seeker could
   // otherwise see the employer column for a moment. While waiting, the column
@@ -140,7 +146,8 @@ export function Footer({
               <div className={colClass}>
                 <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
                 <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
-                  <li><Link href="/job-feed" className={linkClass}>{t('footer.browseJobs')}</Link></li>
+                  {/* The Job Feed is behind sign-in; everyone else browses the public list. */}
+                  <li><Link href={isSeeker ? '/job-feed' : publicJobsHref()} className={linkClass}>{t('footer.browseJobs')}</Link></li>
                   <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
                   <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
                 </ul>
@@ -152,7 +159,7 @@ export function Footer({
                 <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                   <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
                   <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
-                  <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>
+                  {isEmployer && <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>}
                 </ul>
               </div>
             )}

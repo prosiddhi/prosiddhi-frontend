@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
-import { PublicPricingPlans } from '@/components/employer/PricingPlans'
+import { BackToLandingLink } from '@/components/navigation/BackToLandingLink'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Phone,
@@ -128,10 +128,6 @@ function EmployerLandingPageContent() {
             <a href="#hero" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
               {t('employer:landing.nav.findWorkers')}
             </a>
-
-            <a href="#pricing" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
-              {t('employer:landing.nav.pricing')}
-            </a>
           </nav>
 
           {/* Right Side */}
@@ -157,10 +153,10 @@ function EmployerLandingPageContent() {
       </header>
 
       {/* Hero Section. `id="hero"` + `scroll-mt-20`, matching the
-          `#offer`/`#pricing` sections below, so "Find Workers" in the header
+          `#offer` section below, so "Find Workers" in the header
           nav can anchor here — `scroll-margin-top` only affects where an
           anchor jump lands, it doesn't add visible padding or move anything. */}
-      <section id="hero" className="relative z-10 pt-20 sm:pt-24 lg:pt-32 xl:pt-[147px] pb-12 sm:pb-16 lg:pb-20 xl:pb-[72px] scroll-mt-20">
+      <section id="hero" className="relative z-10 pt-[77px] sm:pt-[87px] lg:pt-[91px] xl:pt-[107px] pb-12 sm:pb-16 lg:pb-20 xl:pb-[72px] scroll-mt-20">
         {/* `xl:` (1280), matching the Header's own container exactly — the
             Header is the fixed alignment reference and must not move, so
             this boundary has to switch at the identical width or the Hero's
@@ -171,6 +167,12 @@ function EmployerLandingPageContent() {
             wrap while still keeping the boundary itself pinned to the
             Header's. */}
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
+          {/* Back to the landing page. The top padding above was trimmed by about
+              this row's height (old 80 / 96 / 128 / 147) — the header is fixed at
+              65 / 75px, so the row starts just under it. */}
+          <div className="mb-2 sm:mb-4">
+            <BackToLandingLink />
+          </div>
           <div className="flex flex-col items-center justify-center">
             {/* Left Content */}
             <div className="w-full min-w-0">
@@ -341,12 +343,9 @@ function EmployerLandingPageContent() {
         </div>
       </section>
 
-      {/* Pricing Section — live 8-tier catalog from GET /api/plans (PJP-176). */}
-      <section id="pricing" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-20">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
-          <PublicPricingPlans />
-        </div>
-      </section>
+      {/* No pricing on this page, by decision (Nazir, 20 Oct 2026): plans are
+          shown only once an employer has an account — in sign-up and in their
+          dashboard (/employer/plans). */}
 
       {/* CTA Section */}
       <section className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white">

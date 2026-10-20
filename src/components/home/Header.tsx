@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
+import { publicJobsHref } from '@/lib/publicJobs'
 
 /**
  * The logged-out landing header. Only `src/app/page.tsx` renders it.
@@ -190,8 +191,9 @@ export function Header() {
 
         <span aria-hidden="true" className={spacerCls} />
 
+        {/* Straight to the job list on the seeker landing page, not its top. */}
         <Link
-          href="/employee"
+          href={publicJobsHref()}
           aria-label={t('nav.findJobs')}
           title={t('nav.findJobs')}
           className={navLinkCls}

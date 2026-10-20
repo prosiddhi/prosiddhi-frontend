@@ -9,7 +9,7 @@ import { useCities, useStates } from '@/hooks/useLocations'
 import { jobLocationFilters, parseJobLocation } from '@/lib/jobLocationParams'
 import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type Job, type JobFeedFilters } from '@/lib/api'
-import { useCategories } from '@/hooks/useCategories'
+import { useCategories, hasJobTitles } from '@/hooks/useCategories'
 import { useSavedJobs } from '@/hooks/useSavedJobs'
 import type { TaxonomyCategory } from '@/lib/api'
 import { JobFeedSection } from '@/components/job/JobFeedSection'
@@ -134,12 +134,6 @@ interface FilterRadioProps {
 
 function FilterRadio({ name, checked, onChange, onClick }: FilterRadioProps) {
   return <FilterControlVisual inputType="radio" name={name} checked={checked} onChange={onChange} onClick={onClick} />
-}
-
-// A category earns a filter row only when a job can actually be tagged under
-// it — same rule the landing page's category tiles use.
-function hasJobTitles(category: TaxonomyCategory): boolean {
-  return category.sectors.some((sector) => sector.jobTitles.length > 0)
 }
 
 // Every job title in the tree, name-deduped (a handful — "Helper", "Cleaning

@@ -7,6 +7,9 @@ import { humanizeJobType, formatSalaryLine, relativeTime, initials, jobPlaceTags
 import type { Job } from '@/lib/api'
 import { Bookmark, BookmarkCheck, Briefcase, Clock, IndianRupee, Loader2, MapPin } from 'lucide-react'
 
+/** The list a job card sits in — carried into the Job Details URL as `?from=`. */
+export type JobListOrigin = 'home' | 'job-feed' | 'saved-jobs' | 'employee'
+
 interface JobFeedCardProps {
   job: Job
   isSaved: boolean
@@ -14,7 +17,7 @@ interface JobFeedCardProps {
   onToggleSave: (jobId: string) => void
   /** Where this card is rendered — carried into the Job Details URL as `?from=`
       so its Back link can return here instead of a generic browser-back. */
-  from?: 'home' | 'job-feed' | 'saved-jobs'
+  from?: JobListOrigin
 }
 
 // Skills render as chips (no label) so a long list never needs a 10-language

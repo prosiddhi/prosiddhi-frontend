@@ -31,6 +31,17 @@ function fetchTree(force: boolean): Promise<TaxonomyCategory[]> {
   return inflight
 }
 
+/**
+ * A category is worth offering only when a job can actually be tagged under it —
+ * at least one sector holding at least one job title. One with no sectors, or
+ * whose every sector is empty, is a dead end: its tile or filter row would look
+ * identical to a live one while leading nowhere. Shared by the landing page's
+ * category tiles and the Job Feed's department filter, so they cannot disagree.
+ */
+export function hasJobTitles(category: TaxonomyCategory): boolean {
+  return category.sectors.some((sector) => sector.jobTitles.length > 0)
+}
+
 export interface UseCategoriesResult {
   categories: TaxonomyCategory[]
   loading: boolean

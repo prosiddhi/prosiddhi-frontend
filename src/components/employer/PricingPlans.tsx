@@ -14,13 +14,10 @@
 //   • the permanent free tier + 14-day trial stays as a callout
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
 import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
-import { useCredits } from '@/hooks/useCredits'
 
 type Tab = 'basic' | 'enterprise'
 
@@ -93,41 +90,21 @@ function PlanCard({
 }
 
 /**
- * @param canBuy whether to show the Buy buttons. Defaults to true so the PUBLIC
- * landing page (/employer/welcome) is unchanged — an anonymous visitor's Buy
- * still sends them to sign up. The signed-in /employer/plans screen passes
- * `false` for anyone who is not the account OWNER (buying is owner-only on the
- * backend), including while the role is still unknown.
+ * @param canBuy whether to show the Buy buttons. The signed-in /employer/plans
+ * screen passes `false` for anyone who is not the account OWNER (buying is
+ * owner-only on the backend), including while the role is still unknown.
+ *
+ * Signed-in only: there is no public pricing (Nazir, 20 Oct 2026) — the
+ * /employer/welcome catalog that used to render this for anonymous visitors is gone.
  */
-export function PricingPlans({ canBuy = true }: { canBuy?: boolean }) {
+export function PricingPlans({ canBuy }: { canBuy: boolean }) {
   const { t } = useTranslation()
-  const router = useRouter()
-  const { isAuthenticated, user } = useAuth()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selected, setSelected] = useState<Plan | null>(null)
   const [tab, setTab] = useState<Tab>('basic')
 
-  // This catalog renders on the PUBLIC employer landing as well as on the
-  // signed-in /employer/plans screen. An anonymous visitor could open the checkout
-  // modal, fill in their GSTIN and place of supply, hit Pay — and only then get a
-  // 401, which logs them out and throws away everything they typed. You cannot buy
-  // credits without an account, so send them to sign up instead of into a checkout
-  // they cannot finish.
-  const canCheckout =
-    isAuthenticated && !!user?.role?.startsWith('EMPLOYER')
-
-  const handleBuy = useCallback(
-    (plan: Plan) => {
-      if (!canCheckout) {
-        router.push('/employer/register')
-        return
-      }
-      setSelected(plan)
-    },
-    [canCheckout, router]
-  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -216,7 +193,7 @@ export function PricingPlans({ canBuy = true }: { canBuy?: boolean }) {
         // while 100/110/125% drop to the `sm:grid-cols-2` tier already below it.
         <div className="grid grid-cols-1 sm:grid-cols-2 min-[1350px]:grid-cols-4 gap-5 lg:gap-6 max-w-[1400px] mx-auto">
           {shown.map((plan) => (
-            <PlanCard key={plan.code} plan={plan} onBuy={handleBuy} canBuy={canBuy} />
+            <PlanCard key={plan.code} plan={plan} onBuy={setSelected} canBuy={canBuy} />
           ))}
         </div>
       )}
@@ -224,30 +201,6 @@ export function PricingPlans({ canBuy = true }: { canBuy?: boolean }) {
       {selected && <CheckoutModal plan={selected} onClose={() => setSelected(null)} />}
     </div>
   )
-}
-
-// A signed-in employer's Buy buttons depend on the wallet role. Kept in its own
-// component so the wallet is read ONLY for signed-in employers: a signed-out
-// visitor has no token, and a wallet call would 401.
-function OwnerOnlyPricingPlans() {
-  const { wallet } = useCredits()
-  return <PricingPlans canBuy={wallet?.role === 'OWNER'} />
-}
-
-/**
- * The catalog for the public landing page (/employer/welcome).
- *   • signed-out visitor, or a signed-in non-employer → Buy shown, as before
- *     (it sends them to sign up);
- *   • signed-in employer → Buy only for the account OWNER; a member, or an
- *     unknown role (wallet loading or failed), sees none.
- * Nothing is drawn until the stored session has been read (a moment, no
- * network), so a member never gets a flash of Buy buttons.
- */
-export function PublicPricingPlans() {
-  const { isAuthenticated, isLoading, user } = useAuth()
-  if (isLoading) return null
-  if (isAuthenticated && user?.role?.startsWith('EMPLOYER')) return <OwnerOnlyPricingPlans />
-  return <PricingPlans />
 }
 
 export default PricingPlans

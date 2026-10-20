@@ -12,6 +12,7 @@ import { EMPLOYER_CONTACT_VISIBLE } from '@/lib/features'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
 import { appliedCtaMeta } from '@/lib/applicationStatus'
+import { loginForJobHref } from '@/lib/publicJobs'
 import {
   humanizeJobType,
   humanizePaymentType,
@@ -94,6 +95,9 @@ interface JobDetailsViewProps {
  * session rather than passed in — on the employer route that's guaranteed
  * false by `ProtectedRoute requiredRole="employer"`, so those sections simply
  * never render there, with no separate employer-specific markup to maintain.
+ *
+ * A logged-out visitor (the seeker route is public for reading) gets one
+ * action: Apply, which goes to /login and back to this job.
  */
 export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter = true }: JobDetailsViewProps) {
   const { t } = useTranslation()
@@ -450,6 +454,20 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                       {t('seeker:jobDetails.contactRecruiter')}
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Logged out (a job opened from the public list or a shared link):
+                  the same Apply button, but it is the way to sign in. /login
+                  brings them back to this job to apply for real. */}
+              {!user && (
+                <div className="mb-4 sm:mb-6">
+                  <Link
+                    href={loginForJobHref(job.id)}
+                    className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] bg-primary-50 text-primary-100 hover:bg-primary-60"
+                  >
+                    {t('buttons.apply')}
+                  </Link>
                 </div>
               )}
 

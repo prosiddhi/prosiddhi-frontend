@@ -2,9 +2,10 @@
  * The job-search location filter: which URL parameters carry it, and which
  * `GET /api/jobs` parameters it becomes.
  *
- * Three screens share it — the public landing page (`/employee`), the seeker Home
- * and the Job Feed — and the first two hand their choice to the third through the
- * URL. One module means they cannot read or write it differently.
+ * Four places share it — the seeker Home and the Job Feed (signed in), and the
+ * public job list on `/employee` (lib/publicJobs.ts). Home hands its choice to the
+ * Job Feed through the URL. One module means they cannot read or write it
+ * differently.
  *
  * URL:  `?stateCode=28`                  everything in that state
  *       `?stateCode=28&cityId=<uuid>`    one city
@@ -57,14 +58,18 @@ export function parseJobLocation(params: Pick<URLSearchParams, 'get'>): JobLocat
   return UUID.test(city) ? { stateCode: Number(state), cityId: city } : NO_LOCATION
 }
 
-/** The Job Feed URL for a keyword and a location — the hand-off from Home and the landing page. */
+/** Write a location into URL parameters, in the shape parseJobLocation reads. */
+export function setJobLocationParams(params: URLSearchParams, location: JobLocation): void {
+  if (location.stateCode === null) return
+  params.set('stateCode', String(location.stateCode))
+  if (location.cityId) params.set('cityId', location.cityId)
+}
+
+/** The Job Feed URL for a keyword and a location — the hand-off from the seeker Home. */
 export function jobFeedHref(search: string, location: JobLocation): string {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
-  if (location.stateCode !== null) {
-    params.set('stateCode', String(location.stateCode))
-    if (location.cityId) params.set('cityId', location.cityId)
-  }
+  setJobLocationParams(params, location)
   const qs = params.toString()
   return qs ? `/job-feed?${qs}` : '/job-feed'
 }

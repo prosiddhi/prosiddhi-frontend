@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import type { UserRole } from '@/lib/api'
-import { homeRouteForRole } from '@/lib/routes'
+import { homeRouteForRole, loginHref } from '@/lib/routes'
 
 type RequiredRole = 'seeker' | 'employer'
 
@@ -88,9 +88,7 @@ export default function ProtectedRoute({
           ? window.location.pathname + window.location.search
           : ''
       router.replace(
-        returnUrl && returnUrl !== '/'
-          ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
-          : '/login'
+        returnUrl && returnUrl !== '/' ? loginHref(returnUrl) : '/login'
       )
       return
     }

@@ -9,18 +9,29 @@
 
 import { useState, useEffect } from 'react'
 import { jobSeekerAPI } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 export interface UseSavedJobsResult {
   savedIds: Set<string>
   savingIds: Set<string>
   toggleSave: (jobId: string) => void
+  /**
+   * Whether this viewer can save at all — a signed-in seeker. Saved jobs are only
+   * fetched for them: asked for without a seeker session, the endpoint answers
+   * 401, which AuthContext treats as "session ended" and answers with /login. A
+   * public page (the /employee job list) reads this to send everyone else to sign in.
+   */
+  canSave: boolean
 }
 
 export function useSavedJobs(): UseSavedJobsResult {
+  const { user } = useAuth()
+  const canSave = user?.role === 'JOB_SEEKER'
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    if (!canSave) return
     let ignore = false
     jobSeekerAPI
       // High limit so the page knows about effectively all saved jobs in one call.
@@ -34,7 +45,7 @@ export function useSavedJobs(): UseSavedJobsResult {
     return () => {
       ignore = true
     }
-  }, [])
+  }, [canSave])
 
   const toggleSave = async (jobId: string) => {
     if (savingIds.has(jobId)) return
@@ -67,5 +78,5 @@ export function useSavedJobs(): UseSavedJobsResult {
     }
   }
 
-  return { savedIds, savingIds, toggleSave }
+  return { savedIds, savingIds, toggleSave, canSave }
 }

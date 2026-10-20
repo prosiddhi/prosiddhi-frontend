@@ -20,6 +20,15 @@ export const CHANGE_PASSWORD_ROUTE = '/change-password'
 /** Not a place to send someone who has just signed in. `/` is the landing page. */
 const AUTH_SCREENS = new Set(['/', '/login', CHANGE_PASSWORD_ROUTE])
 
+/**
+ * The login page, set to send the person back to `returnPath` afterwards. /login
+ * validates `returnUrl` before it navigates (destinationAfterAuth below), so this
+ * only has to build it.
+ */
+export function loginHref(returnPath: string): string {
+  return `/login?returnUrl=${encodeURIComponent(returnPath)}`
+}
+
 /** Home route for a backend role: seeker → /home, either employer type → /employer. */
 export function homeRouteForRole(role: UserRole | undefined): string {
   return role === 'JOB_SEEKER' ? SEEKER_HOME_ROUTE : '/employer'
