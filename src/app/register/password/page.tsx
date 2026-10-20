@@ -9,7 +9,10 @@ import { ChevronRight, X, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { authAPI, classifyRegisterError, jobSeekerAPI } from '@/lib/api'
+import { authAPI, classifyRegisterError, emailOtpAPI, jobSeekerAPI } from '@/lib/api'
+import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { readOtpSendTiming } from '@/lib/otpSend'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
@@ -75,6 +78,9 @@ export default function RegisterPasswordPage() {
   // Drives the "re-verify your phone" action. Retrying the register call would
   // fail identically every time — the verification mark is already spent.
   const [needsPhoneReverify, setNeedsPhoneReverify] = useState(false)
+  // EMAIL_NOT_VERIFIED: the server has no verified mark for this email. Offers a fresh
+  // code; the register call is never retried on its own.
+  const [needsEmailReverify, setNeedsEmailReverify] = useState(false)
   // Latched the moment register + login succeed, BEFORE `reset()` runs.
   //
   // `reset()` wipes the shared registration state back to its empty default, and
@@ -89,6 +95,9 @@ export default function RegisterPasswordPage() {
   // `loading` is set only after RHF's async validation, so it cannot stop a second
   // submit that arrives in between. The ref is taken synchronously, first.
   const submitting = useRef(false)
+  // Same idea for the "verify my email again" action: taken synchronously, so a
+  // double click cannot send two codes.
+  const reverifyingEmail = useRef(false)
 
   // Guard: must have reached here through the full flow. Email is NOT a
   // prerequisite (it is optional) — the taxonomy choice is.
@@ -169,6 +178,7 @@ export default function RegisterPasswordPage() {
       setLoading(true)
       setFieldErrors([])
       setNeedsPhoneReverify(false)
+      setNeedsEmailReverify(false)
 
       // Create the seeker. Both contacts are already verified at this point and
       // the password ships WITH the account — there is no set-password step and
@@ -264,7 +274,11 @@ export default function RegisterPasswordPage() {
         setNeedsPhoneReverify(true)
         break
       case 'emailUnverified':
+        // The browser still says verified, which is what kept the user stuck: the
+        // profile step skips sending a code for an address it believes is verified.
+        update({ emailVerified: false })
         setError(t('auth:password.errorEmailUnverified'))
+        setNeedsEmailReverify(true)
         break
       case 'emailTaken':
         setError(t('auth:password.errorEmailTaken'))
@@ -283,6 +297,35 @@ export default function RegisterPasswordPage() {
   const handleReverifyPhone = () => {
     update({ phoneVerified: false })
     router.push('/register/phone')
+  }
+
+  // Send a fresh registration code, then go to the verify screen. That screen does
+  // not send one itself. Like onValid, `loading` is released only on failure: on
+  // success the page is leaving.
+  const handleReverifyEmail = async () => {
+    if (reverifyingEmail.current || loading) return
+    reverifyingEmail.current = true
+    setLoading(true)
+    try {
+      const res = await emailOtpAPI.send(data.email, 'REGISTRATION')
+      update({
+        devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined,
+        emailOtpCooldownSeconds: readOtpSendTiming(res).cooldownSeconds,
+      })
+      router.push('/register/verify-email')
+    } catch (err) {
+      // A code went out moments ago and may already be in the inbox: carry the
+      // remaining wait to the verify screen instead of failing.
+      const wait = otpCooldownSeconds(err)
+      if (wait !== null) {
+        update({ devEmailOtp: undefined, emailOtpCooldownSeconds: wait })
+        router.push('/register/verify-email')
+        return
+      }
+      setError(otpErrorMessage(err, t, 'auth:profile.errorEmailSend'))
+      reverifyingEmail.current = false
+      setLoading(false)
+    }
   }
 
   const handleBack = () => router.push('/register/experience')
@@ -359,6 +402,16 @@ export default function RegisterPasswordPage() {
                       className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
                     >
                       {t('auth:password.reverifyPhone')}
+                    </button>
+                  )}
+                  {needsEmailReverify && (
+                    <button
+                      type="button"
+                      onClick={handleReverifyEmail}
+                      disabled={loading}
+                      className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80 disabled:opacity-50"
+                    >
+                      {t('auth:password.reverifyEmail')}
                     </button>
                   )}
                 </div>

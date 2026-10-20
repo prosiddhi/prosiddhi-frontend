@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, X } from 'lucide-react'
@@ -461,12 +461,21 @@ function LoginContent() {
       // the "send OTP" step — otherwise the six boxes clear, `otpSent` stays
       // true, and there is no Send button on screen to get a fresh code with.
       const wrongRole = handleLoginError(err, () => setOtpSent(false))
-      phoneOtpVerifyForm.setValue('otp', EMPTY_OTP)
-      // Don't chase focus into boxes that are about to unmount: on the
-      // wrong-role path `otpSent` just went false, so focus would land on a
-      // destroyed input and fall back to <body> — on a phone that opens the
-      // keyboard and immediately closes it.
-      if (!wrongRole) otpInputRef.current?.focusFirst()
+      // Empty the boxes only when the code is dead: rejected, or consumed before a
+      // role refusal (the same server-side order as above). A network, rate-limit or
+      // other server failure says nothing about the digits, so they stay.
+      const codeSpent =
+        wrongRole ||
+        isOtpRejection(err) ||
+        (err instanceof ApiError && (err.code === 'ROLE_MISMATCH' || err.code === 'ADMIN_ACCOUNT'))
+      if (codeSpent) {
+        phoneOtpVerifyForm.setValue('otp', EMPTY_OTP)
+        // Don't chase focus into boxes that are about to unmount: on the
+        // wrong-role path `otpSent` just went false, so focus would land on a
+        // destroyed input and fall back to <body> — on a phone that opens the
+        // keyboard and immediately closes it.
+        if (!wrongRole) otpInputRef.current?.focusFirst()
+      }
     } finally {
       setLoading(false)
     }
@@ -563,8 +572,11 @@ function LoginContent() {
       completeBind(e164)
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:otp.errorInvalid', sendTiming.expiresIn))
-      bindVerifyForm.setValue('otp', EMPTY_OTP)
-      bindOtpInputRef.current?.focusFirst()
+      // Only a rejected code is emptied; a network or server failure keeps the digits.
+      if (isOtpRejection(err)) {
+        bindVerifyForm.setValue('otp', EMPTY_OTP)
+        bindOtpInputRef.current?.focusFirst()
+      }
     } finally {
       setLoading(false)
     }
