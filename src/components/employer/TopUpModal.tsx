@@ -3,12 +3,13 @@
 // Employer credit top-up pop-up (Figma node 746:2937 — visual style only).
 //
 // Shown when an employer needs to add credits (out of post credits at the
-// post-gate, or the wallet "Top up" action). Promotes the ₹499 Single-Post
-// pack — the canonical top-up in our model: one-time payment, credits never
-// expire (which is exactly what the mock's "one time payment / lifetime access"
-// framing describes). The mock's seeker copy is ignored; bullets are our real
-// pack facts. The CTA hands off to the existing Razorpay CheckoutModal (the
-// mock's custom payment screen 749:3139 is intentionally NOT used).
+// post-gate, or the wallet "Top up" action). Promotes the Single-Post pack —
+// the canonical top-up in our model: one-time payment, the job post never
+// expires (which is exactly what the mock's "one time payment / lifetime access"
+// framing describes). The price and any offer come from GET /plans. The mock's
+// seeker copy is ignored; bullets are our real pack facts. The CTA hands off to
+// the existing Razorpay CheckoutModal (the mock's custom payment screen 749:3139
+// is intentionally NOT used).
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,7 +17,9 @@ import Link from 'next/link'
 import { CheckCircle2, X, Loader2 } from 'lucide-react'
 import { subscriptionAPI, type Plan } from '@/lib/api'
 import { CheckoutModal } from '@/components/employer/CheckoutModal'
+import { OfferPrice } from '@/components/employer/OfferPrice'
 import { useCredits } from '@/hooks/useCredits'
+import { inrDigits, planName } from '@/lib/pricing'
 
 // The plan we surface as the quick top-up (seed code).
 const TOPUP_PLAN_CODE = 'PACK_SINGLE_POST'
@@ -66,14 +69,15 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const unavailable = !busy && !isMember && (error || !pack || !wallet)
   const canPay = !busy && !isMember && !unavailable
 
-  const bullets = pack
-    ? [
-        `${pack.postCredits} ${t('employer:plans.postsLabel')}`,
-        `${pack.downloadCredits} ${t('employer:plans.unlocksLabel')}`,
-        t('employer:topUp.neverExpire'),
-        t('employer:topUp.oneTime'),
-      ]
-    : []
+  // The unlocks line shows only when the pack adds unlocks (today it adds none).
+  const bullets: string[] = []
+  if (pack) {
+    bullets.push(t('employer:plans.posts', { count: pack.postCredits }))
+    if (pack.downloadCredits > 0) {
+      bullets.push(`${pack.downloadCredits} ${t('employer:plans.unlocksLabel')}`)
+    }
+    bullets.push(t('employer:topUp.neverExpire'), t('employer:topUp.oneTime'))
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/50 backdrop-blur-[10px] p-4">
@@ -114,17 +118,20 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
 
         {canPay && pack && (
           <>
-            <h3 className="text-2xl sm:text-[28px] font-semibold text-black mb-4">{pack.name}</h3>
+            <h3 className="text-2xl sm:text-[28px] font-semibold text-black mb-4">{planName(t, pack)}</h3>
 
-            {/* Price banner */}
-            <div className="rounded-[12px] bg-gradient-to-r from-primary-50 to-primary-40 px-5 py-4 flex items-center gap-3 mb-6">
-              <span className="text-white font-bold leading-none">
-                <span className="text-3xl align-top">₹</span>
-                <span className="text-5xl">{pack.baseInr.toLocaleString('en-IN')}</span>
-              </span>
-              <div className="text-[#236987] text-[15px] leading-tight">
-                <p>{t('employer:topUp.oneTimeShort')}</p>
-                <p>{t('employer:topUp.lifetime')}</p>
+            {/* Price banner — the struck normal price + badge while an offer runs */}
+            <div className="rounded-[12px] bg-gradient-to-r from-primary-50 to-primary-40 px-5 py-4 mb-6">
+              <OfferPrice plan={pack} onDark />
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-white font-bold leading-none">
+                  <span className="text-3xl align-top">₹</span>
+                  <span className="text-5xl">{inrDigits(pack.baseInr)}</span>
+                </span>
+                <div className="text-[#236987] text-[15px] leading-tight">
+                  <p>{t('employer:topUp.oneTimeShort')}</p>
+                  <p>{t('employer:topUp.lifetime')}</p>
+                </div>
               </div>
             </div>
 

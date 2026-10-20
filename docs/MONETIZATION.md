@@ -1,6 +1,6 @@
 # ProSiddhi — Monetization
 
-**The employer billing system: the rules, what's built, and what's still broken.** Updated **2026-07-12** (seat bugs §6.1–6.3 fixed on the backend; admin monetization endpoints shipped).
+**The employer billing system: the rules, what's built, and what's still broken.** Updated **2026-10-21** (new job-posting catalogue, price offers + launch offer — §2 and §2.1; earlier: seat bugs §6.1–6.3 fixed 2026-07-12).
 Consolidated from the former pricing docs (since removed). Verified against the code in both repos.
 
 **Model in one line:** ProSiddhi monetizes the **employer** side only — **job seekers are free forever.** Employers buy **credits** and spend them to **post jobs** and **unlock candidates**, inside time-boxed plans.
@@ -28,20 +28,35 @@ The word **"credits" is internal only.** In the UI the two types are named for w
 
 *(Recorded here 2026-08-18, moved out of `feature-status-breakdown.md` before that file was deleted.)*
 
-## 2. The 8 plans
+## 2. The plans *(job posts only — Nazir, 2026-10-20)*
 
-Prices are **base — GST (18%) is added on top at checkout**.
+Employers buy **job posts only** for now. The pricing page (only after login, `/employer/plans`) has three tabs: **Job posting** (the plans below), **Bundle (Jobs + Database)** and **Database** — both **"Launching soon"**, nothing to buy. Below the plans, a **"Need more? Get a custom plan"** card → **Contact sales** (`/contact`). There is **no pricing on any public page**.
 
-| Group | Plan | Code | ₹ base | Posts | Unlocks | Seats | Duration |
-|---|---|---|---|---|---|---|---|
-| **Pack** | Single post | `PACK_SINGLE_POST` | 499 | 1 | 3 | — | one-shot, **never expires** |
-| **Starter** | 1 Month | `STARTER_1M` | 1,299 | 3 | 5 | 1 | 30 days |
-| **Starter** | 3 Months | `STARTER_3M` | 2,400 | 6 | 7 | 1 | 90 days |
-| **Starter** | 6 Months | `STARTER_6M` | 4,499 | 13 | 10 | 1 | 180 days |
-| **Pro** | 6 Months · 1 seat | `PRO_6M_1S` | 8,999 | 20 | 200 | 1 | 180 days |
-| **Pro** | 6 Months · 2 seats | `PRO_6M_2S` | 11,999 | 20 | 200 | 2 | 180 days |
-| **Pro** | 12 Months · 1 seat | `PRO_12M_1S` | 16,499 | 40 | 400 | 1 | 360 days |
-| **Pro** | 12 Months · 3 seats | `PRO_12M_3S` | 21,999 | 45 | 450 | 3 | 360 days |
+Prices are **base — GST (18%) is added on top at checkout**. Every job stays live **30 days** (server setting `JOB_LIVE_DAYS`, sent to the page as `jobLiveDays`).
+
+| Plan | Code | ₹ base | Job posts | Unlocks | Use within |
+|---|---|---|---|---|---|
+| Single Post | `PACK_SINGLE_POST` | 549 | 1 | 0 | never expires |
+| 1 Month | `STARTER_1M` | 1,499 | 3 | 0 | 30 days |
+| 3 Months | `STARTER_3M` | 2,999 | 7 | 0 | 90 days |
+| 6 Months | `STARTER_6M` | 5,999 | 15 | 0 | 180 days |
+
+- The codes were kept (the "Top up" button and reports match on code). The four **PRO** plans are **retired**, not deleted — anyone who bought one keeps it to its expiry. Applied by migration `2026-10-20_3_job_posting_catalog`; `prisma/seed.ts` holds the same catalogue for a fresh database.
+- **No plan sells candidate unlocks.** The free trial still includes 3 (§3). An employer out of unlocks sees "Launching soon", not a top-up.
+- Seats: every plan is 1 seat. Team features stay as they are; more seats come later.
+- Before 2026-10-20 the catalogue was 8 plans (Pack ₹499, Starter ₹1,299 / 2,400 / 4,499 with unlocks, Pro ₹8,999–21,999 with seats). Recorded in git (`prisma/seed.ts`).
+
+### 2.1 Price offers (launch / festive discounts) *(2026-10-20)*
+
+- An **offer** = a label ("Launch Offer"), a **% off (1–90)**, which plans (empty = all), a start, and an **optional** end. Managed by **SUPER_ADMIN** in the admin console → **Offers** (create, edit, **End now**). Every change is in the audit log (`OFFER_CREATED / UPDATED / ENDED`). Offers are never deleted, only ended.
+- **Applied automatically** — no code to type. At most **one offer per order**: the live one with the highest %, ties to the older offer. They never stack.
+- **Price rule:** offer price = list × (100 − %) / 100, **rounded DOWN to whole rupees**, never below ₹1. One function (`price-offer.service.ts`) prices the plan list, checkout and the admin views.
+- **GST is charged on the offer price** (a discount shown on the invoice reduces the taxable value). Example, 1 Month at 10%: ₹1,499 − ₹150 = **₹1,349 taxable**, IGST ₹242.82 → **₹1,591.82**.
+- **The invoice** shows the plan at list price, **"Less: Launch Offer (10% off)"**, **Taxable value**, GST, Total. The order records the discount, label and % at checkout, so the invoice never changes if the offer is edited or ended later.
+- **Decided at checkout, honoured at capture** — if the offer ends while the buyer is paying, they still get it. If it ended *before* they pressed Pay, checkout notices the new price and shows it ("The price has changed") **before** opening Razorpay — nobody is charged a price they did not see.
+- **Offer labels are English letters only** — they are printed on the GST invoice, whose PDF font has no Indian-script glyphs.
+- **Launch Offer:** 10% off all plans, **no end date**, created by the catalogue migration. Offer prices: **₹494 / ₹1,349 / ₹2,699 / ₹5,399**. The pricing page shows a sale banner while any offer is live.
+- **Not built yet:** coupon codes (typed in), stacking, referral codes, an offer report beyond the redemption count.
 
 ## 3. Free tier + trial
 
@@ -52,7 +67,7 @@ Prices are **base — GST (18%) is added on top at checkout**.
 ## 4. The rules
 
 **Credits & expiry**
-- Credits bundled with a **subscription plan forfeit when that plan expires.** Credits from the **₹499 pack never expire.**
+- Credits bundled with a **subscription plan forfeit when that plan expires.** Credits from the **Single Post pack never expire.**
 - Credits are spent **soonest-expiring first** (so pack credits are used last).
 - **Buy anything, anytime** — any of the 8 plans/packs. There are no separate top-up SKUs.
 - **Multiple plans merge into one wallet**, with a **single expiry = the latest active plan's expiry**. No proration. **If seat counts differ, the higher one applies.** *(This last rule is currently broken — see §6.)*
@@ -189,4 +204,4 @@ Now: `EmployerInvite` with a **signed token returned once and stored only as a S
 
 ## 7. Deferred to v1.1
 
-Bulk post-packs · download-only top-up SKU · promo/coupon codes · enterprise/custom deals · **chargeback credit-revocation** *(today a customer could dispute a charge and keep the credits)* · **admin manual credit grant/revoke** *(support has no way to fix a failed webhook)* · proration · auto-renewal (RBI e-mandate) · paid "refresh/boost-to-top" · TDS reconciliation.
+Bulk post-packs · download-only top-up SKU · **coupon codes** (automatic % offers are built — §2.1) · enterprise/custom deals (today: "Contact sales") · **chargeback credit-revocation** *(today a customer could dispute a charge and keep the credits)* · **admin manual credit grant/revoke** *(support has no way to fix a failed webhook)* · proration · auto-renewal (RBI e-mandate) · paid "refresh/boost-to-top" · TDS reconciliation.

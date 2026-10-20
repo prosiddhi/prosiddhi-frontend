@@ -3,7 +3,7 @@
 // Out-of-post-credits upsell (PJP-179). Shown in place of the job form when the
 // employer has 0 POST credits (proactive), or after the BE returns 402 on
 // publish (reactive backstop — the server owns enforcement). Routes the buyer to
-// the pricing page to purchase a plan or the ₹499 single-post pack.
+// the pricing page to purchase a plan or the single-post pack.
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'

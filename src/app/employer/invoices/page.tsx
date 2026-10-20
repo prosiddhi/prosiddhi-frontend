@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { formatShortDate } from '@/lib/jobFormat'
 import { subscriptionAPI, type InvoicesPage } from '@/lib/api'
 import { saveBlob } from '@/lib/saveBlob'
+import { formatInr } from '@/lib/pricing'
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,10 +24,6 @@ import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
 
 const PAGE_SIZE = 20
-
-function formatInr(n: number): string {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 function InvoicesContent() {
   const { t } = useTranslation()
@@ -127,8 +124,19 @@ function InvoicesContent() {
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-black">{formatInr(inv.totalInr)}</p>
+                        <p className="text-sm font-semibold text-black">{formatInr(inv.totalInr, true)}</p>
                         <p className="text-xs text-[#717182]">{t('employer:invoices.inclGst')}</p>
+                        {/* `discountInr` is missing from an older backend → no line. */}
+                        {inv.discountInr !== undefined && inv.discountInr > 0 && (
+                          <p className="text-xs text-green-700">
+                            {inv.discountLabel
+                              ? t('employer:invoices.savedWithLabel', {
+                                  amount: formatInr(inv.discountInr, true),
+                                  label: inv.discountLabel,
+                                })
+                              : t('employer:invoices.saved', { amount: formatInr(inv.discountInr, true) })}
+                          </p>
+                        )}
                       </div>
                       <button
                         type="button"

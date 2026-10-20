@@ -2,19 +2,22 @@
 
 // Candidate profile + explicit unlock (Phase 2, EPIC B). Shows the snippet when
 // locked; an explicit "use 1 credit to unlock" confirm spends a DOWNLOAD credit
-// (POST /candidates/:id/unlock) and reveals contact. 402 (no download credits) →
-// the top-up pop-up (the ₹499 pack grants 3 unlocks). Idempotent server-side, so
+// (POST /candidates/:id/unlock) and reveals contact. Idempotent server-side, so
 // re-viewing an already-unlocked candidate is free.
+//
+// Out of unlocks (402 INSUFFICIENT_DOWNLOAD_CREDITS) → "database access is
+// launching soon". Since 20 Oct 2026 the plans sell job posts only, so no plan
+// can refill unlocks — this used to open the top-up pop-up, which would have
+// sold a pack that adds none. The only unlocks today are the free trial's.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { TopUpModal } from '@/components/employer/TopUpModal'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import { useCredits } from '@/hooks/useCredits'
-import { candidateAPI, type CandidateProfile } from '@/lib/api'
+import { ApiError, candidateAPI, type CandidateProfile } from '@/lib/api'
 import { formatMonthYear } from '@/lib/jobFormat'
 import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { ActivelyLookingBadge } from '@/components/employer/ActivelyLookingBadge'
@@ -33,8 +36,6 @@ import {
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
 
-const NO_CREDITS_RE = /insufficient\s+download\s+credit/i
-
 function CandidateContent() {
   const { t } = useTranslation()
   const params = useParams<{ jobSeekerId: string }>()
@@ -48,7 +49,7 @@ function CandidateContent() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [unlocking, setUnlocking] = useState(false)
   const [unlockError, setUnlockError] = useState('')
-  const [showTopUp, setShowTopUp] = useState(false)
+  const [noUnlocks, setNoUnlocks] = useState(false)
 
   const { wallet, reload: reloadWallet } = useCredits()
 
@@ -85,9 +86,13 @@ function CandidateContent() {
       reloadWallet() // balance changed
     } catch (err) {
       const message = err instanceof Error ? err.message : t('employer:candidate.unlockFailed')
-      if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {
+      // The stable `code`, not the message — MONETIZATION.md §5.1. Matching the
+      // English message broke the moment the backend reworded it.
+      if (err instanceof ApiError && err.code === 'INSUFFICIENT_DOWNLOAD_CREDITS') {
         setConfirmOpen(false)
-        setShowTopUp(true) // out of download credits → offer top-up
+        setNoUnlocks(true)
+        reloadWallet() // the shown balance was stale — the server says 0
+
       } else {
         setUnlockError(message)
       }
@@ -258,13 +263,24 @@ function CandidateContent() {
         </div>
       )}
 
-      {showTopUp && (
-        <TopUpModal
-          onClose={() => {
-            setShowTopUp(false)
-            reloadWallet()
-          }}
-        />
+      {/* Out of unlocks. Nothing to buy yet: candidate database plans are
+          "launching soon" on the plans page too, with the same words. */}
+      {noUnlocks && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setNoUnlocks(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="no-unlocks-title" className="bg-white rounded-[16px] w-full max-w-sm p-6 relative" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setNoUnlocks(false)} aria-label={t('buttons.close')} className="absolute right-4 top-4 text-gray-400 hover:text-black">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-12 h-12 rounded-full bg-[#e3f5ff] flex items-center justify-center mb-4 text-[#236987]">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h3 id="no-unlocks-title" className="text-lg font-semibold mb-2">{t('employer:plans.soon.title')}</h3>
+            <p className="text-sm text-[#717182]">{t('employer:plans.soon.databaseBody')}</p>
+            <button type="button" onClick={() => setNoUnlocks(false)} className="w-full mt-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
+              {t('buttons.close')}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

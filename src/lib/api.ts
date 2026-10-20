@@ -2528,23 +2528,41 @@ export const employerAPI = {
 
 export type PlanGroup = 'PACK' | 'STARTER' | 'PRO'
 
+// A running price offer on a plan (e.g. the "Launch Offer", 10% off).
+// `endsAt: null` = no end date.
+export interface PlanOffer {
+  id: string
+  label: string
+  percentOff: number
+  endsAt: string | null
+}
+
 // One row from GET /api/plans. Prices are BASE (GST-exclusive); `gstPct` is 18
-// and `totalInr` is the BE-computed base+GST. `durationDays: null` means a
-// one-shot pack whose credits never expire. `features` is a BE-authored English
-// string[] (data, not UI chrome) — the pricing page renders the structured
-// numeric fields instead so the card is fully translatable.
+// and `totalInr` is the BE-computed base+GST. `listInr` is the normal price and
+// `baseInr` what is actually charged before GST — the offer price when `offer`
+// is set, else equal to `listInr`; `discountInr` = listInr - baseInr (0 = no
+// offer). `durationDays: null` means a pack whose job posts never expire;
+// `jobLiveDays` is how long each posted job stays live. `features` is a
+// BE-authored English string[] (data, not UI chrome) — the pricing page renders
+// the structured numeric fields instead so the card is fully translatable.
+// The offer fields are optional because the portal may deploy ahead of the
+// backend that sends them: treat `undefined` as "no offer" / "not known".
 export interface Plan {
   code: string
   name: string
   group: PlanGroup
+  listInr?: number
   baseInr: number
+  discountInr?: number
   gstPct: number
   totalInr: number
   postCredits: number
   downloadCredits: number
   seats: number
   durationDays: number | null
+  jobLiveDays?: number
   features?: string[]
+  offer?: PlanOffer | null
 }
 
 // Employer credit wallet (GET /api/employers/me/credits). `expiresAt` is the
@@ -2610,13 +2628,20 @@ export interface HeldProduct {
 
 // POST /api/billing/checkout response — a created Razorpay order plus the GST
 // breakdown to show the buyer. The FE opens Razorpay checkout with
-// razorpayOrderId + keyId, then confirms via verify-payment.
+// razorpayOrderId + keyId, then confirms via verify-payment. The offer is fixed
+// when the order is created; `invoicePreview.baseInr` is the taxable value
+// (listInr - discountInr). The four offer fields are optional for the same
+// reason as on `Plan` — an older backend does not send them.
 export interface CheckoutOrder {
   razorpayOrderId: string
   keyId: string
-  amountInr: number // total incl. GST
+  amountInr: number // total incl. GST — what Razorpay charges
   currency: 'INR'
   invoicePreview: {
+    listInr?: number
+    discountInr?: number
+    offerLabel?: string | null
+    offerPercent?: number | null
     baseInr: number
     cgstInr: number
     sgstInr: number
@@ -2743,12 +2768,18 @@ export interface CreditHistoryPage {
 
 // GST invoice (list row). Amounts are floats; cgst+sgst (intra-state) OR igst
 // (inter-state) is populated, not both. `number` is "INV/YY-YY/NNNNNN".
+// `baseInr` is the taxable value. `listInr` is null when the invoice had no
+// discount; `discountLabel` reads like "Launch Offer (10% off)". All three are
+// optional: an older backend does not send them.
 export interface Invoice {
   id: string
   number: string
   description: string
   gstin: string | null
   placeOfSupply: string
+  listInr?: number | null
+  discountInr?: number
+  discountLabel?: string | null
   baseInr: number
   cgstInr: number
   sgstInr: number

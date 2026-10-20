@@ -6,18 +6,126 @@
 // captured payment via subscriptionAPI.verifyPayment (which grants credits,
 // idempotent with the webhook). On success it shows a confirmation and lets the
 // buyer jump to the dashboard (where the wallet re-fetches fresh balances).
+//
+// Price honesty: the breakdown shown before paying comes from the plan (list
+// price, offer discount, GST, total). Razorpay charges the ORDER's amount, so if
+// the order's amount differs from the total we showed (an offer ended a minute
+// ago, say), Razorpay is NOT opened — the buyer first sees the server's own
+// invoice preview and a fresh "Pay ₹X" button. Every amount is the server's;
+// this file only formats them.
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { ApiError, employerAPI, fieldErrorsByPath, subscriptionAPI, type Plan } from '@/lib/api'
+import {
+  ApiError,
+  employerAPI,
+  fieldErrorsByPath,
+  subscriptionAPI,
+  type CheckoutOrder,
+  type Plan,
+} from '@/lib/api'
 import { GSTIN_REGEX, INDIAN_STATES } from '@/lib/gst'
 import { loadRazorpay } from '@/lib/razorpay'
+import { formatInr, listPrice, planName } from '@/lib/pricing'
 
-function formatInr(n: number): string {
-  return `₹${n.toLocaleString('en-IN')}`
+// What the price breakdown shows, in one shape for both moments:
+//   • before checkout, from the plan — one GST line (the state split is not
+//     known until the order exists)
+//   • after checkout, from the order's invoice preview — CGST + SGST or IGST
+// Every figure is the server's.
+interface Breakdown {
+  listInr: number
+  discountInr: number
+  offerLabel: string | null
+  offerPercent: number | null
+  baseInr: number
+  gst:
+    | { split: false; gstInr: number }
+    | { split: true; isIntraState: boolean; cgstInr: number; sgstInr: number; igstInr: number }
+  totalInr: number
+}
+
+function breakdownFromPlan(plan: Plan): Breakdown {
+  return {
+    listInr: listPrice(plan),
+    discountInr: plan.discountInr ?? 0,
+    offerLabel: plan.offer?.label ?? null,
+    offerPercent: plan.offer?.percentOff ?? null,
+    baseInr: plan.baseInr,
+    // The plan sends no GST figure, so the line is its total less its taxable
+    // price (both the server's), rounded to paise.
+    gst: { split: false, gstInr: Math.round((plan.totalInr - plan.baseInr) * 100) / 100 },
+    totalInr: plan.totalInr,
+  }
+}
+
+function breakdownFromOrder(preview: CheckoutOrder['invoicePreview']): Breakdown {
+  return {
+    listInr: preview.listInr ?? preview.baseInr,
+    discountInr: preview.discountInr ?? 0,
+    offerLabel: preview.offerLabel ?? null,
+    offerPercent: preview.offerPercent ?? null,
+    baseInr: preview.baseInr,
+    gst: {
+      split: true,
+      isIntraState: preview.isIntraState,
+      cgstInr: preview.cgstInr,
+      sgstInr: preview.sgstInr,
+      igstInr: preview.igstInr,
+    },
+    totalInr: preview.totalInr,
+  }
+}
+
+// One line of a price breakdown. `total` is the bold last line.
+function PriceRow({ label, value, total = false, saving = false }: {
+  label: string
+  value: string
+  total?: boolean
+  saving?: boolean
+}) {
+  return (
+    <div className={`flex justify-between gap-3 ${total ? 'font-semibold border-t border-[#e5e5e5] pt-1.5 mt-1.5' : ''}`}>
+      <span className={total ? '' : 'text-[#717182]'}>{label}</span>
+      <span className={saving ? 'text-green-700' : ''}>{value}</span>
+    </div>
+  )
+}
+
+// The price breakdown, line by line: normal price, offer discount and taxable
+// value (only when there is a discount), GST — one line, or CGST + SGST (same
+// state) or IGST — and the total. Always two decimals, as on the tax invoice.
+function PriceBreakdown({ b }: { b: Breakdown }) {
+  const { t } = useTranslation()
+  const discountLabel =
+    b.offerLabel && b.offerPercent
+      ? t('employer:checkout.discount', { label: b.offerLabel, percent: b.offerPercent })
+      : t('employer:checkout.discountPlain')
+  return (
+    <div className="bg-neutral-50 rounded-lg p-4 mb-5 space-y-1.5 text-sm">
+      <PriceRow label={t('employer:checkout.price')} value={formatInr(b.listInr, true)} />
+      {b.discountInr > 0 && (
+        <>
+          <PriceRow label={discountLabel} value={`−${formatInr(b.discountInr, true)}`} saving />
+          <PriceRow label={t('employer:checkout.taxable')} value={formatInr(b.baseInr, true)} />
+        </>
+      )}
+      {!b.gst.split ? (
+        <PriceRow label={t('employer:checkout.gst')} value={formatInr(b.gst.gstInr, true)} />
+      ) : b.gst.isIntraState ? (
+        <>
+          <PriceRow label={t('employer:checkout.cgst')} value={formatInr(b.gst.cgstInr, true)} />
+          <PriceRow label={t('employer:checkout.sgst')} value={formatInr(b.gst.sgstInr, true)} />
+        </>
+      ) : (
+        <PriceRow label={t('employer:checkout.igst')} value={formatInr(b.gst.igstInr, true)} />
+      )}
+      <PriceRow label={t('employer:checkout.total')} value={formatInr(b.totalInr, true)} total />
+    </div>
+  )
 }
 
 // The BE's rule for the invoice address, checked on the trimmed value.
@@ -46,7 +154,8 @@ export function CheckoutModal({
   onSuccess,
 }: {
   plan: Plan
-  onClose: () => void
+  /** `repriced` = checkout found a price different from the plan's (refresh it). */
+  onClose: (repriced: boolean) => void
   onSuccess?: (granted: { post: number; download: number }) => void
 }) {
   const { t } = useTranslation()
@@ -68,6 +177,9 @@ export function CheckoutModal({
   // webhook is the backstop, so credits still land — but we must NOT re-offer a
   // Pay button here or the buyer could be charged twice.
   const [capturedPending, setCapturedPending] = useState(false)
+  // An order priced differently from the plan we showed. Held so the buyer can
+  // see the new breakdown and pay that same order.
+  const [repriced, setRepriced] = useState<CheckoutOrder | null>(null)
 
   // The Razorpay handler is async and fires from a sync SDK callback, so it can
   // resolve after this modal unmounts. Guard state writes; `settled` also blocks
@@ -104,8 +216,83 @@ export function CheckoutModal({
       .catch(() => {})
   }, [hasGstin, isAuthenticated])
 
-  const gstBase = plan.baseInr
-  const gstAmount = Math.round((plan.totalInr - plan.baseInr) * 100) / 100
+  // Closing reports whether checkout found a new price, so the caller can refresh.
+  const close = () => onClose(repriced !== null)
+
+  // Opens the Razorpay sheet for a created order. Throws if the SDK won't load.
+  const openRazorpay = async (order: CheckoutOrder) => {
+    const Razorpay = await loadRazorpay()
+    const rzp = new Razorpay({
+      key: order.keyId,
+      order_id: order.razorpayOrderId,
+      amount: Math.round(order.amountInr * 100),
+      currency: order.currency,
+      name: 'ProSiddhi',
+      description: plan.name,
+      prefill: user?.email ? { email: user.email } : undefined,
+      theme: { color: '#1e5166' },
+      handler: async (response) => {
+        // Payment is captured at this point. Guard against a double-invoke and
+        // never route back to a re-payable state from here.
+        if (settledRef.current) return
+        settledRef.current = true
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+          // Race the verify against a timeout so a lost response can't hang the
+          // modal on "Processing…" forever.
+          const result = await Promise.race([
+            subscriptionAPI.verifyPayment({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => reject(new Error('verify-timeout')), VERIFY_TIMEOUT_MS)
+            }),
+          ])
+          const g = result.granted ?? { post: plan.postCredits, download: plan.downloadCredits }
+          if (mountedRef.current) setGranted(g)
+          onSuccess?.(g)
+        } catch {
+          // Money was taken but confirmation failed OR timed out — the webhook
+          // is the backstop, so credits still land. Show a terminal "received"
+          // state, NOT the form, so the buyer can't be charged a second time.
+          if (mountedRef.current) setCapturedPending(true)
+        } finally {
+          if (timer) clearTimeout(timer)
+          if (mountedRef.current) setSubmitting(false)
+        }
+      },
+      modal: {
+        // Buyer closed the Razorpay sheet without completing payment. Only
+        // resets when nothing was captured (settledRef still false).
+        ondismiss: () => {
+          if (mountedRef.current && !settledRef.current) setSubmitting(false)
+        },
+      },
+    })
+    rzp.on('payment.failed', () => {
+      // No capture occurred — safe to let the buyer retry.
+      if (mountedRef.current && !settledRef.current) {
+        setError(t('employer:checkout.paymentFailed'))
+        setSubmitting(false)
+      }
+    })
+    rzp.open()
+  }
+
+  // Pay the order that came back with a new price (the buyer has now seen it).
+  const handlePayRepriced = async () => {
+    if (!repriced) return
+    setError('')
+    setSubmitting(true)
+    try {
+      await openRazorpay(repriced)
+    } catch (e) {
+      setSubmitting(false)
+      setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
+    }
+  }
 
   const handlePay = async () => {
     setError('')
@@ -143,64 +330,18 @@ export function CheckoutModal({
         billingAddress: hasGstin ? billing : undefined,
       })
 
-      const Razorpay = await loadRazorpay()
-      const rzp = new Razorpay({
-        key: order.keyId,
-        order_id: order.razorpayOrderId,
-        amount: Math.round(order.amountInr * 100),
-        currency: order.currency,
-        name: 'ProSiddhi',
-        description: plan.name,
-        prefill: user?.email ? { email: user.email } : undefined,
-        theme: { color: '#1e5166' },
-        handler: async (response) => {
-          // Payment is captured at this point. Guard against a double-invoke and
-          // never route back to a re-payable state from here.
-          if (settledRef.current) return
-          settledRef.current = true
-          let timer: ReturnType<typeof setTimeout> | undefined
-          try {
-            // Race the verify against a timeout so a lost response can't hang the
-            // modal on "Processing…" forever.
-            const result = await Promise.race([
-              subscriptionAPI.verifyPayment({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-              new Promise<never>((_, reject) => {
-                timer = setTimeout(() => reject(new Error('verify-timeout')), VERIFY_TIMEOUT_MS)
-              }),
-            ])
-            const g = result.granted ?? { post: plan.postCredits, download: plan.downloadCredits }
-            if (mountedRef.current) setGranted(g)
-            onSuccess?.(g)
-          } catch {
-            // Money was taken but confirmation failed OR timed out — the webhook
-            // is the backstop, so credits still land. Show a terminal "received"
-            // state, NOT the form, so the buyer can't be charged a second time.
-            if (mountedRef.current) setCapturedPending(true)
-          } finally {
-            if (timer) clearTimeout(timer)
-            if (mountedRef.current) setSubmitting(false)
-          }
-        },
-        modal: {
-          // Buyer closed the Razorpay sheet without completing payment. Only
-          // resets when nothing was captured (settledRef still false).
-          ondismiss: () => {
-            if (mountedRef.current && !settledRef.current) setSubmitting(false)
-          },
-        },
-      })
-      rzp.on('payment.failed', () => {
-        // No capture occurred — safe to let the buyer retry (a fresh order).
-        if (mountedRef.current && !settledRef.current) {
-          setError(t('employer:checkout.paymentFailed'))
+      // If the order's pre-GST price is not the one we showed (an offer ended a
+      // minute ago, say), stop and show the new breakdown first — one more click
+      // to pay it. Compared before GST on purpose: the plan list and the order
+      // round GST differently, so their totals can differ by a paisa.
+      if (order.invoicePreview.baseInr !== plan.baseInr) {
+        if (mountedRef.current) {
+          setRepriced(order)
           setSubmitting(false)
         }
-      })
-      rzp.open()
+        return
+      }
+      await openRazorpay(order)
     } catch (e) {
       setSubmitting(false)
       // The BE refuses a bad address before any order exists, so nothing was
@@ -222,7 +363,7 @@ export function CheckoutModal({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
-      onClick={submitting ? undefined : onClose}
+      onClick={submitting ? undefined : close}
     >
       <div
         className="bg-white rounded-[16px] w-full max-w-md p-6 relative"
@@ -230,7 +371,7 @@ export function CheckoutModal({
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           disabled={submitting}
           aria-label={t('employer:checkout.close')}
           className="absolute right-4 top-4 text-gray-400 hover:text-black disabled:opacity-40"
@@ -244,7 +385,9 @@ export function CheckoutModal({
             <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">{t('employer:checkout.successTitle')}</h3>
             <p className="text-sm text-[#717182] mb-6">
-              {t('employer:checkout.successBody', { post: granted.post, download: granted.download })}
+              {granted.download > 0
+                ? t('employer:checkout.successBody', { post: granted.post, download: granted.download })
+                : t('employer:checkout.successBodyPosts', { count: granted.post })}
             </p>
             <button
               type="button"
@@ -268,26 +411,41 @@ export function CheckoutModal({
               {t('employer:checkout.goToDashboard')}
             </button>
           </div>
+        ) : repriced ? (
+          /* The order came back at a different price — show the server's own
+             breakdown and let the buyer pay that order. */
+          <>
+            <h3 className="text-xl font-semibold mb-1">{t('employer:checkout.priceChangedTitle')}</h3>
+            <p className="text-sm text-[#717182] mb-4">{t('employer:checkout.priceChangedBody')}</p>
+
+            <PriceBreakdown b={breakdownFromOrder(repriced.invoicePreview)} />
+
+            {error && (
+              <div className="flex items-start gap-2 text-red-600 text-sm mb-4">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handlePayRepriced}
+              disabled={submitting}
+              className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {submitting
+                ? t('employer:checkout.processing')
+                : t('employer:checkout.pay', { amount: formatInr(repriced.amountInr, true) })}
+            </button>
+          </>
         ) : (
           <>
             <h3 className="text-xl font-semibold mb-1">{t('employer:checkout.title')}</h3>
-            <p className="text-sm text-[#717182] mb-4">{plan.name}</p>
+            <p className="text-sm text-[#717182] mb-4">{planName(t, plan)}</p>
 
-            {/* Price breakdown */}
-            <div className="bg-neutral-50 rounded-lg p-4 mb-5 space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[#717182]">{t('employer:checkout.base')}</span>
-                <span>{formatInr(gstBase)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#717182]">{t('employer:checkout.gst')}</span>
-                <span>{formatInr(gstAmount)}</span>
-              </div>
-              <div className="flex justify-between font-semibold border-t border-[#e5e5e5] pt-1.5 mt-1.5">
-                <span>{t('employer:checkout.total')}</span>
-                <span>{formatInr(plan.totalInr)}</span>
-              </div>
-            </div>
+            {/* Price breakdown — the plan's own figures */}
+            <PriceBreakdown b={breakdownFromPlan(plan)} />
 
             {/* GSTIN (optional) */}
             <div className="mb-4">
@@ -380,7 +538,7 @@ export function CheckoutModal({
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {submitting
                 ? t('employer:checkout.processing')
-                : t('employer:checkout.pay', { amount: formatInr(plan.totalInr) })}
+                : t('employer:checkout.pay', { amount: formatInr(plan.totalInr, true) })}
             </button>
           </>
         )}
