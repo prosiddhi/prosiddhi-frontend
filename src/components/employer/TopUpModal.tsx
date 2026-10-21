@@ -11,7 +11,7 @@
 // the existing Razorpay CheckoutModal (the mock's custom payment screen 749:3139
 // is intentionally NOT used).
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { CheckCircle2, X, Loader2 } from 'lucide-react'
@@ -24,8 +24,17 @@ import { inrDigits, planName } from '@/lib/pricing'
 // The plan we surface as the quick top-up (seed code).
 const TOPUP_PLAN_CODE = 'PACK_SINGLE_POST'
 
-export function TopUpModal({ onClose }: { onClose: () => void }) {
+export function TopUpModal({
+  onClose,
+  onPurchased,
+}: {
+  onClose: () => void
+  /** Called once, when the modal closes after a verified payment (not before: a
+   *  caller that reloads its wallet would unmount this modal's success screen). */
+  onPurchased?: () => void
+}) {
   const { t } = useTranslation()
+  const purchasedRef = useRef(false)
   const [pack, setPack] = useState<Plan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -63,8 +72,12 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     return (
       <CheckoutModal
         plan={pack}
+        onSuccess={() => {
+          purchasedRef.current = true
+        }}
         onClose={(repriced) => {
           if (repriced) void subscriptionAPI.getPlans({ fresh: true }).catch(() => {})
+          if (purchasedRef.current) onPurchased?.()
           onClose()
         }}
       />

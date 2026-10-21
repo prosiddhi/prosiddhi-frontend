@@ -19,7 +19,14 @@ import type { Wallet as CreditWalletData } from '@/lib/api'
  * request and flashed the heading from the generic copy to the trial copy as
  * the response landed. `undefined` simply keeps the neutral wording.
  */
-export function OutOfCreditsUpsell({ wallet }: { wallet?: CreditWalletData | null }) {
+export function OutOfCreditsUpsell({
+  wallet,
+  onPurchased,
+}: {
+  wallet?: CreditWalletData | null
+  /** The employer paid in the top-up and closed it; the caller should re-read the wallet. */
+  onPurchased?: () => void
+}) {
   const { t } = useTranslation()
   const [topUp, setTopUp] = useState(false)
   // Missing or unknown role is treated as "not the owner": no purchase controls.
@@ -78,7 +85,7 @@ export function OutOfCreditsUpsell({ wallet }: { wallet?: CreditWalletData | nul
         </div>
       )}
 
-      {canBuy && topUp && <TopUpModal onClose={() => setTopUp(false)} />}
+      {canBuy && topUp && <TopUpModal onClose={() => setTopUp(false)} onPurchased={onPurchased} />}
     </div>
   )
 }

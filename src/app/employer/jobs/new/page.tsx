@@ -33,6 +33,14 @@ function NewJobContent() {
 
   const { wallet, loading: walletLoading, reload: reloadWallet } = useCredits()
 
+  // After a top-up, drop the reactive block and re-read the wallet. The spinner
+  // shows while it loads, and the fresh balance decides what appears: the form
+  // with a POST credit, the upsell again if it is still 0 (webhook not landed).
+  const handlePurchased = () => {
+    setBlockedNoCredits(false)
+    reloadWallet()
+  }
+
   // The employer's saved company name, offered to the optional Company Name box.
   // One attempt (the ref also stops Strict Mode's second effect run from refetching),
   // and a failure just leaves the box empty. No `fullName` fallback: an individual's
@@ -110,7 +118,7 @@ function NewJobContent() {
               <span className="text-sm">{t('employer:jobNew.checkingCredits')}</span>
             </div>
           ) : outOfCredits ? (
-            <OutOfCreditsUpsell wallet={wallet} />
+            <OutOfCreditsUpsell wallet={wallet} onPurchased={handlePurchased} />
           ) : (
             <>
               {/* Publishing silently spends a credit. When that credit is the free
