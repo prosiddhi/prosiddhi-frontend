@@ -9,10 +9,23 @@
 //
 // Price honesty: the breakdown shown before paying comes from the plan (list
 // price, offer discount, GST, total). Razorpay charges the ORDER's amount, so if
-// the order's amount differs from the total we showed (an offer ended a minute
-// ago, say), Razorpay is NOT opened — the buyer first sees the server's own
-// invoice preview and a fresh "Pay ₹X" button. Every amount is the server's;
-// this file only formats them.
+// the order's pre-GST price differs from the one we showed (an offer ended a
+// minute ago, say), Razorpay is NOT opened — the buyer first sees the earlier
+// total, the new total and the difference, with the server's own invoice preview
+// and a fresh "Pay ₹X" button for that same order. Every amount is the server's;
+// this file only formats them (and subtracts the two totals for the difference).
+//
+// Back on that screen returns to the form with every field still filled in and
+// creates no order. `priceShown` then holds the new price the buyer has seen: the
+// form displays it, and the next order is compared with it rather than with the
+// stale plan, so the same new price does not bring the repriced screen back.
+//
+// One checkout at a time: `inFlightRef` is a synchronous lock (state alone would
+// let two quick clicks both pass). It is taken before /billing/checkout and held
+// until the Razorpay sheet is dismissed, or the attempt fails before the sheet
+// opens. It is NOT released on `payment.failed` (the sheet is still open for its
+// own retry) and never once a payment is captured. Each attempt holds a token, so
+// a late callback from an earlier attempt cannot unlock a newer one.
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -78,6 +91,14 @@ function breakdownFromOrder(preview: CheckoutOrder['invoicePreview']): Breakdown
     },
     totalInr: preview.totalInr,
   }
+}
+
+// The form's figures after the buyer has gone Back from the repriced screen: the
+// server's new prices, with GST back on one line because the state split can
+// change if they edit the state (the next order will show the real split).
+function breakdownAfterReprice(preview: CheckoutOrder['invoicePreview']): Breakdown {
+  const b = breakdownFromOrder(preview)
+  return { ...b, gst: { split: false, gstInr: Math.round((b.totalInr - b.baseInr) * 100) / 100 } }
 }
 
 // One line of a price breakdown. `total` is the bold last line.
@@ -180,6 +201,13 @@ export function CheckoutModal({
   // An order priced differently from the plan we showed. Held so the buyer can
   // see the new breakdown and pay that same order.
   const [repriced, setRepriced] = useState<CheckoutOrder | null>(null)
+  // Set when the buyer goes Back from the repriced screen: the price they have now
+  // seen. The form shows it, and the next order is compared with it (not with the
+  // stale plan), so seeing the same new price again does not bring the screen back.
+  const [priceShown, setPriceShown] = useState<Breakdown | null>(null)
+  const earlier = priceShown ?? breakdownFromPlan(plan)
+  // New total less the earlier one, both the server's; only the subtraction is ours.
+  const priceDelta = repriced ? Math.round((repriced.invoicePreview.totalInr - earlier.totalInr) * 100) / 100 : 0
 
   // The Razorpay handler is async and fires from a sync SDK callback, so it can
   // resolve after this modal unmounts. Guard state writes; `settled` also blocks
@@ -191,6 +219,27 @@ export function CheckoutModal({
       mountedRef.current = false
     }
   }, [])
+
+  // One checkout attempt at a time. `submitting` is state, so two clicks that land
+  // before a re-render would both see it as false; this ref is set synchronously.
+  // It holds a token, and only the attempt that took the lock can release it, so a
+  // late callback from an earlier attempt cannot unlock a newer one. It is held
+  // from before /billing/checkout until the Razorpay sheet is dismissed (or the
+  // attempt fails before the sheet opens), and never released once a payment is
+  // captured (settledRef).
+  const inFlightRef = useRef<symbol | null>(null)
+  const acquireLock = () => {
+    if (inFlightRef.current) return null
+    const token = Symbol('checkout')
+    inFlightRef.current = token
+    return token
+  }
+  // True when `token` still held the lock (and now does not).
+  const releaseLock = (token: symbol) => {
+    if (inFlightRef.current !== token) return false
+    inFlightRef.current = null
+    return true
+  }
 
   const gstinNorm = gstin.trim().toUpperCase()
   const hasGstin = gstinNorm.length > 0
@@ -217,10 +266,20 @@ export function CheckoutModal({
   }, [hasGstin, isAuthenticated])
 
   // Closing reports whether checkout found a new price, so the caller can refresh.
-  const close = () => onClose(repriced !== null)
+  const close = () => onClose(repriced !== null || priceShown !== null)
+
+  // Back to the form from the repriced screen. The form fields live in this
+  // component's state, so they are still filled in. No order is created; the
+  // abandoned one is simply never paid. Not while a payment is in progress.
+  const handleBack = () => {
+    if (!repriced || inFlightRef.current) return
+    setPriceShown(breakdownAfterReprice(repriced.invoicePreview))
+    setRepriced(null)
+    setError('')
+  }
 
   // Opens the Razorpay sheet for a created order. Throws if the SDK won't load.
-  const openRazorpay = async (order: CheckoutOrder) => {
+  const openRazorpay = async (order: CheckoutOrder, token: symbol) => {
     const Razorpay = await loadRazorpay()
     const rzp = new Razorpay({
       key: order.keyId,
@@ -267,15 +326,20 @@ export function CheckoutModal({
         // Buyer closed the Razorpay sheet without completing payment. Only
         // resets when nothing was captured (settledRef still false).
         ondismiss: () => {
-          if (mountedRef.current && !settledRef.current) setSubmitting(false)
+          if (settledRef.current) return
+          const owned = releaseLock(token)
+          if (mountedRef.current && owned) setSubmitting(false)
         },
       },
     })
     rzp.on('payment.failed', () => {
-      // No capture occurred — safe to let the buyer retry.
-      if (mountedRef.current && !settledRef.current) {
+      // No capture occurred, but the sheet is still open (it offers its own retry
+      // on this same order). So the lock and `submitting` stay as they are; the
+      // buyer can only start a new checkout once the sheet is dismissed. Only the
+      // current attempt may show the error.
+      if (settledRef.current) return
+      if (mountedRef.current && inFlightRef.current === token) {
         setError(t('employer:checkout.paymentFailed'))
-        setSubmitting(false)
       }
     })
     rzp.open()
@@ -284,11 +348,14 @@ export function CheckoutModal({
   // Pay the order that came back with a new price (the buyer has now seen it).
   const handlePayRepriced = async () => {
     if (!repriced) return
+    const token = acquireLock()
+    if (!token) return
     setError('')
     setSubmitting(true)
     try {
-      await openRazorpay(repriced)
+      await openRazorpay(repriced, token)
     } catch (e) {
+      releaseLock(token)
       setSubmitting(false)
       setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
     }
@@ -321,6 +388,10 @@ export function CheckoutModal({
       return
     }
 
+    // Taken before the first await, so a second call stops here.
+    const token = acquireLock()
+    if (!token) return
+
     setSubmitting(true)
     try {
       const order = await subscriptionAPI.checkout({
@@ -334,15 +405,17 @@ export function CheckoutModal({
       // minute ago, say), stop and show the new breakdown first — one more click
       // to pay it. Compared before GST on purpose: the plan list and the order
       // round GST differently, so their totals can differ by a paisa.
-      if (order.invoicePreview.baseInr !== plan.baseInr) {
+      if (order.invoicePreview.baseInr !== earlier.baseInr) {
+        releaseLock(token)
         if (mountedRef.current) {
           setRepriced(order)
           setSubmitting(false)
         }
         return
       }
-      await openRazorpay(order)
+      await openRazorpay(order, token)
     } catch (e) {
+      releaseLock(token)
       setSubmitting(false)
       // The BE refuses a bad address before any order exists, so nothing was
       // charged and the buyer can fix it and pay again. Shown on the field.
@@ -418,6 +491,17 @@ export function CheckoutModal({
             <h3 className="text-xl font-semibold mb-1">{t('employer:checkout.priceChangedTitle')}</h3>
             <p className="text-sm text-[#717182] mb-4">{t('employer:checkout.priceChangedBody')}</p>
 
+            {/* Old against new, both the server's totals. */}
+            <div className="bg-neutral-50 rounded-lg p-4 mb-3 space-y-1.5 text-sm">
+              <PriceRow label={t('employer:checkout.priceWas')} value={formatInr(earlier.totalInr, true)} />
+              <PriceRow label={t('employer:checkout.priceNow')} value={formatInr(repriced.invoicePreview.totalInr, true)} />
+              <PriceRow
+                label={t('employer:checkout.priceDifference')}
+                value={`${priceDelta > 0 ? '+' : priceDelta < 0 ? '−' : ''}${formatInr(Math.abs(priceDelta), true)}`}
+                saving={priceDelta < 0}
+              />
+            </div>
+
             <PriceBreakdown b={breakdownFromOrder(repriced.invoicePreview)} />
 
             {error && (
@@ -438,14 +522,22 @@ export function CheckoutModal({
                 ? t('employer:checkout.processing')
                 : t('employer:checkout.pay', { amount: formatInr(repriced.amountInr, true) })}
             </button>
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={submitting}
+              className="w-full mt-2 py-2.5 border border-gray-300 text-black rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {t('common:buttons.back')}
+            </button>
           </>
         ) : (
           <>
             <h3 className="text-xl font-semibold mb-1">{t('employer:checkout.title')}</h3>
             <p className="text-sm text-[#717182] mb-4">{planName(t, plan)}</p>
 
-            {/* Price breakdown — the plan's own figures */}
-            <PriceBreakdown b={breakdownFromPlan(plan)} />
+            {/* Price breakdown — the plan's own figures, or the new price once seen */}
+            <PriceBreakdown b={earlier} />
 
             {/* GSTIN (optional) */}
             <div className="mb-4">
@@ -538,7 +630,7 @@ export function CheckoutModal({
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {submitting
                 ? t('employer:checkout.processing')
-                : t('employer:checkout.pay', { amount: formatInr(plan.totalInr, true) })}
+                : t('employer:checkout.pay', { amount: formatInr(earlier.totalInr, true) })}
             </button>
           </>
         )}
