@@ -239,7 +239,16 @@
     "rejectionReason": "Rejection reason",
     "minOneTitle": "At least one document is required",
     "removeTitle": "Remove document",
-    "minOneHint": "At least one document must remain on file. Upload another to replace this one."
+    "minOneHint": "At least one document must remain on file. Upload another to replace this one.",
+    "view": "View",
+    "download": "Download",
+    "preparing": "Preparing…",
+    "closeViewer": "Close",
+    "previewUnavailable": "Preview isn't available for this file type. You can download it instead.",
+    "linkExpired": "This document link has expired. Please try again.",
+    "fetchError": "Couldn't open this document. Check your connection and try again.",
+    "missing": "This document is no longer available.",
+    "downloadFallback": "We couldn't prepare this file here, so it was sent to your browser's standard download. The file name may differ, and a photo may open in a new tab instead of saving."
   },
   "verificationStatus": {
     "PENDING": "Pending review",

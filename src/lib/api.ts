@@ -100,6 +100,53 @@ export function resolveMediaUrl(path?: string | null): string {
   return `${MEDIA_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
+/** Why a signed-file download failed — lets the caller choose the message. */
+export class SignedFileError extends Error {
+  // `network`: the request never produced a response (offline, or blocked by CORS).
+  // `failed`: a response arrived but was unusable (5xx, other status, unreadable body).
+  constructor(public readonly reason: 'expired' | 'failed' | 'missing' | 'network') {
+    super(`Signed file request failed: ${reason}`)
+    this.name = 'SignedFileError'
+  }
+}
+
+/**
+ * Download a private file from its signed link (`UserDocument.fileUrl`) as a Blob.
+ *
+ * Deliberately NOT `apiRequest`: the link is already authorised by its signature, and
+ * on GCS it redirects to storage.googleapis.com. A plain GET with no custom headers and
+ * no credentials stays a CORS "simple" request (no preflight), and an Authorization or
+ * JSON Content-Type header would only break it.
+ *
+ * ⚠️ CORS, to verify with DevOps: on GCS the API answers with a cross-origin 302 to
+ * storage.googleapis.com. Per the Fetch spec a browser follows a cross-origin redirect
+ * with `Origin: null`, so a bucket rule listing only the portal origin may NOT match
+ * the second hop; it may need to allow `*` (or `null`) for GET. Not yet confirmed
+ * against a real bucket. Until the rule is right, the browser blocks the response and
+ * this surfaces as `network`.
+ */
+export async function fetchSignedFile(url: string, signal?: AbortSignal): Promise<Blob> {
+  let response: Response
+  try {
+    response = await fetch(resolveMediaUrl(url), { signal, credentials: 'omit' })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    throw new SignedFileError('network')
+  }
+  // The BE answers an expired or tampered link with 403 (GCS: 403 too); 404 is a file
+  // that is no longer in storage. Anything else (5xx, a bad request) is a plain failure.
+  if (response.status === 401 || response.status === 403) throw new SignedFileError('expired')
+  if (response.status === 404) throw new SignedFileError('missing')
+  if (!response.ok) throw new SignedFileError('failed')
+  try {
+    return await response.blob()
+  } catch (err) {
+    // The connection dropped part-way through the body.
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    throw new SignedFileError('failed')
+  }
+}
+
 /** Standard backend response envelope. */
 interface ApiEnvelope<T> {
   success: boolean
