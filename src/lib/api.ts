@@ -2685,8 +2685,11 @@ export interface VerifyPaymentInput {
 
 export const subscriptionAPI = {
   // Public plan catalog. GET /api/plans → Plan[] (no auth required).
-  getPlans: async () => {
-    return apiRequest<Plan[]>('/plans')
+  // `fresh` bypasses and replaces the browser's cached copy (the BE sends
+  // max-age=60); 'reload', not 'no-store', so later cached reads see the new prices.
+  // Only for re-reading prices after checkout found a change.
+  getPlans: async ({ fresh = false }: { fresh?: boolean } = {}) => {
+    return apiRequest<Plan[]>('/plans', fresh ? { cache: 'reload' } : {})
   },
 
   // Employer credit wallet. GET /api/employers/me/credits (auth: employer).

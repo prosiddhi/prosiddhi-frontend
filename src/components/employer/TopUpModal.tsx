@@ -57,9 +57,18 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   }, [])
 
   // Hand off to the real checkout for the pack; closing checkout closes the
-  // whole top-up flow.
+  // whole top-up flow. If checkout repriced, refresh the cached /plans so the
+  // next open shows the new price.
   if (checkingOut && pack) {
-    return <CheckoutModal plan={pack} onClose={onClose} />
+    return (
+      <CheckoutModal
+        plan={pack}
+        onClose={(repriced) => {
+          if (repriced) void subscriptionAPI.getPlans({ fresh: true }).catch(() => {})
+          onClose()
+        }}
+      />
+    )
   }
 
   const busy = loading || walletLoading

@@ -194,11 +194,12 @@ export function PricingPlans({ canBuy }: { canBuy: boolean }) {
   const [selected, setSelected] = useState<Plan | null>(null)
   const [tab, setTab] = useState<Tab>('jobs')
 
-  const load = useCallback(async () => {
+  // `fresh` bypasses the browser cache: used after checkout found a new price.
+  const load = useCallback(async (fresh = false) => {
     setLoading(true)
     setError(false)
     try {
-      setPlans(await subscriptionAPI.getPlans())
+      setPlans(await subscriptionAPI.getPlans({ fresh }))
     } catch {
       setError(true)
     } finally {
@@ -302,7 +303,7 @@ export function PricingPlans({ canBuy }: { canBuy: boolean }) {
           onClose={(repriced) => {
             setSelected(null)
             // Checkout found a new price, so the cards are out of date.
-            if (repriced) void load()
+            if (repriced) void load(true)
           }}
         />
       )}
