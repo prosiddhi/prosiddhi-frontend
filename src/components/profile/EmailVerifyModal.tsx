@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
+import { isOtpRejection, otpCooldownSeconds, otpFlowErrorMessage } from '@/lib/otpError'
+import { refreshAfterContactChange } from '@/lib/contactChange'
 import { X, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { authAPI, emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
@@ -90,7 +91,7 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       setCooldown(timing.cooldownSeconds)
       setExpiresIn(timing.expiresIn)
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.sendError'))
+      setError(otpFlowErrorMessage(err, t, 'profile:seeker.emailModal.sendError'))
       // The server refused because a code went out moments ago: count down what is left.
       const wait = otpCooldownSeconds(err)
       if (wait !== null) setCooldown(wait)
@@ -114,10 +115,11 @@ export function EmailVerifyModal({ isOpen, onClose, mode, currentEmail, onSucces
       } else {
         await authAPI.changeEmail(trimmedEmail, otp.join(''))
       }
-      await onSuccess()
+      // The change is saved. A failed profile refresh is not a failed verification.
+      await refreshAfterContactChange(onSuccess)
       setStep('success')
     } catch (err) {
-      setError(otpErrorMessage(err, t, 'profile:seeker.emailModal.verifyError', expiresIn))
+      setError(otpFlowErrorMessage(err, t, 'profile:seeker.emailModal.verifyError', expiresIn))
       // Only a rejected code is emptied; a network or server failure keeps the digits.
       // The step, address and cooldown are left alone.
       if (isOtpRejection(err)) {

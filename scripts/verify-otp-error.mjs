@@ -44,7 +44,7 @@ function loadLib(name) {
   return mod.exports
 }
 
-const { otpErrorMessage, otpCooldownSeconds, isOtpRejection, hasUnmappedCode } = loadLib('otpError')
+const { otpErrorMessage, otpCooldownSeconds, isOtpRejection, hasUnmappedCode, otpFlowErrorMessage } = loadLib('otpError')
 
 const LANGUAGES = ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn']
 
@@ -233,6 +233,20 @@ expect('unmapped: network failure (no code) is not a match', hasUnmappedCode(new
 expect('unmapped: non-string code is ignored', hasUnmappedCode(coded(42, BE_EN)), false)
 expect('unmapped: not an Error', hasUnmappedCode({ code: 'INTERNAL_ERROR' }), false)
 expect('unmapped: ADMIN_ACCOUNT (handled by the login page before this)', hasUnmappedCode(coded('ADMIN_ACCOUNT', BE_EN)), true)
+
+// --- otpFlowErrorMessage: the Change Email / Change Phone modals (an unmapped code gets the stage's fallback) ---
+expect('flow: unmapped code uses the fallback key, not the backend text', otpFlowErrorMessage(coded('INTERNAL_ERROR', BE_EN), en, FALLBACK), FALLBACK)
+expect('flow: unmapped code uses the key it was given (send vs verify)', otpFlowErrorMessage(coded('SOMETHING_NEW', BE_EN), en, 'other.key'), 'other.key')
+expect('flow: OTP_INVALID keeps its message', otpFlowErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: 2 }), en, FALLBACK), 'That code is wrong. Tries left: 2.')
+expect('flow: OTP_EXPIRED keeps its message, with expiresIn', otpFlowErrorMessage(coded('OTP_EXPIRED', BE_EN), en, FALLBACK, 5), enExpired('5 minutes'))
+expect('flow: RATE_LIMITED keeps its message', otpFlowErrorMessage(coded('RATE_LIMITED', BE_EN), en, FALLBACK), 'Too many tries. Please wait a while and try again.')
+expect('flow: EMAIL_ALREADY_REGISTERED keeps its message', otpFlowErrorMessage(coded('EMAIL_ALREADY_REGISTERED', BE_EN), en, FALLBACK), 'Another account already uses this email address.')
+expect('flow: PHONE_ALREADY_REGISTERED keeps its message', otpFlowErrorMessage(coded('PHONE_ALREADY_REGISTERED', BE_EN), en, FALLBACK), 'Another account already uses this phone number.')
+expect('flow: OTP_COOLDOWN keeps its seconds', otpFlowErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), en, FALLBACK), 'Please wait 12 seconds before asking for another code.')
+expect('flow: an uncoded error keeps its message', otpFlowErrorMessage(new Error('Something specific'), en, FALLBACK), 'Something specific')
+expect('flow: the network error (uncoded) keeps its message', otpFlowErrorMessage(new Error("Can't reach the server. Check your connection and try again."), en, FALLBACK), "Can't reach the server. Check your connection and try again.")
+expect('flow: an uncoded legacy OTP message still maps', otpFlowErrorMessage(new Error('No OTP request found for this phone number'), en, FALLBACK), 'No code was sent yet. Please ask for a new code.')
+expect('flow: an uncoded error with an empty message uses the fallback', otpFlowErrorMessage(new Error(''), en, FALLBACK), FALLBACK)
 
 if (failures.length) {
   console.error(`\n✗ ${failures.length} of ${checks} OTP error-message checks failed:\n`)

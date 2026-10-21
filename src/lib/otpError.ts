@@ -108,6 +108,20 @@ export function hasUnmappedCode(err: unknown): boolean {
   return code !== undefined && !MAPPED_CODES.has(code)
 }
 
+/**
+ * `otpErrorMessage`, except that a backend code with no locale string gets `fallbackKey`
+ * instead of the backend's English text. Errors with no code, and every mapped code, are
+ * exactly what `otpErrorMessage` gives. For screens that have no special handling of their own.
+ */
+export function otpFlowErrorMessage(
+  err: unknown,
+  t: TFunction,
+  fallbackKey: string,
+  expiresIn?: number,
+): string {
+  return hasUnmappedCode(err) ? t(fallbackKey) : otpErrorMessage(err, t, fallbackKey, expiresIn)
+}
+
 // `count` picks the singular or plural sentence; `expiresIn` fills the number.
 function expiredMessage(t: TFunction, expiresIn?: number): string {
   const minutes = readOtpSendTiming({ expiresIn }).expiresIn
