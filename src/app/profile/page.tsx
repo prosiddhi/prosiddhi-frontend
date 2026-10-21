@@ -579,7 +579,8 @@ function SeekerProfileContent() {
                 <div className="relative w-32 h-32 flex-shrink-0">
                   <div className="w-32 h-32 rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center">
                     {photo ? (
-                      <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill className="object-cover" />
+                      // unoptimized: the BE may return an absolute GCS/CDN photo URL outside images.remotePatterns.
+                      <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill unoptimized className="object-cover" />
                     ) : (
                       <span className="text-4xl font-semibold text-[#236987]">
                         {(fullName || '?').charAt(0).toUpperCase()}

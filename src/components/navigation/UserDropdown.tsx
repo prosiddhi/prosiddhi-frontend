@@ -170,11 +170,13 @@ export function UserDropdown() {
               prefer shrinking text over shrinking an image otherwise. */}
           <div className="w-8 h-8 sm:w-[38px] sm:h-[38px] rounded-full bg-primary-50 overflow-hidden flex items-center justify-center shrink-0">
             {photo ? (
+              // unoptimized: the BE may return an absolute GCS/CDN photo URL outside images.remotePatterns.
               <Image
                 src={photo}
                 alt=""
                 width={38}
                 height={38}
+                unoptimized
                 className="w-full h-full object-cover"
               />
             ) : (
