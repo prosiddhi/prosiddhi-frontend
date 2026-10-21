@@ -145,6 +145,7 @@ expect('code: OTP_NOT_FOUND', otpErrorMessage(coded('OTP_NOT_FOUND', BE_EN), en,
 expect('code: OTP_COOLDOWN with seconds', otpErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), en, FALLBACK), 'Please wait 12 seconds before asking for another code.')
 expect('code: OTP_COOLDOWN without readable seconds keeps the message', otpErrorMessage(coded('OTP_COOLDOWN', BE_EN), en, FALLBACK), BE_EN)
 expect('code: OTP_ALREADY_VERIFIED', otpErrorMessage(coded('OTP_ALREADY_VERIFIED', 'This OTP has already been verified'), en, FALLBACK), 'This code has already been used. If you need to try again, ask for a new code.')
+expect('code: OTP_NOT_VERIFIED', otpErrorMessage(coded('OTP_NOT_VERIFIED', 'Please verify the code first'), en, FALLBACK), 'Your code was not verified. Please enter the code again.')
 expect('code: PHONE_ALREADY_REGISTERED', otpErrorMessage(coded('PHONE_ALREADY_REGISTERED', 'This phone number is already registered'), en, FALLBACK), 'Another account already uses this phone number.')
 expect('code: EMAIL_ALREADY_REGISTERED', otpErrorMessage(coded('EMAIL_ALREADY_REGISTERED', 'This email is already registered'), en, FALLBACK), 'Another account already uses this email address.')
 expect('code: RATE_LIMITED', otpErrorMessage(coded('RATE_LIMITED', 'Too many OTP requests, please try again after 15 minutes.'), en, FALLBACK), 'Too many tries. Please wait a while and try again.')
@@ -173,9 +174,11 @@ expect('cooldown: undefined', otpCooldownSeconds(undefined), null)
 expect('cooldown: seconds too large for an integer', otpCooldownSeconds(new Error('Please wait 99999999999999999999s before requesting another OTP')), null)
 
 // --- isOtpRejection: when a failed code check should empty the boxes ---
-for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED']) {
+for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED', 'OTP_NOT_VERIFIED']) {
   expect(`rejection: ${code}`, isOtpRejection(coded(code, BE_EN)), true)
 }
+// OTP_NOT_VERIFIED is known to the code-first path only: a message alone does not make a rejection.
+expect('not a rejection: OTP_NOT_VERIFIED wording without a code', isOtpRejection(new Error('Please verify the code first')), false)
 // Not rejections of the code: a send refusal, limits, duplicates, server and account errors.
 for (const code of ['OTP_COOLDOWN', 'RATE_LIMITED', 'PHONE_ALREADY_REGISTERED', 'EMAIL_ALREADY_REGISTERED', 'INTERNAL_ERROR', 'ADMIN_ACCOUNT', 'SOMETHING_NEW']) {
   expect(`not a rejection: ${code}`, isOtpRejection(coded(code, 'Invalid OTP. You have 3 attempt(s) left')), false)
@@ -197,7 +200,7 @@ expect('not a rejection: not an Error', isOtpRejection({ code: 'OTP_INVALID' }),
 expect('not a rejection: undefined', isOtpRejection(undefined), false)
 
 // --- The four new keys, in every language ---
-const NEW_KEYS = ['alreadyVerified', 'phoneTaken', 'emailTaken', 'rateLimited']
+const NEW_KEYS = ['alreadyVerified', 'phoneTaken', 'emailTaken', 'rateLimited', 'notVerified']
 const enAuth = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'locales', 'en', 'auth.json'), 'utf8'))
 for (const lng of LANGUAGES) {
   const auth = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'locales', lng, 'auth.json'), 'utf8'))
@@ -213,8 +216,9 @@ for (const lng of LANGUAGES) {
     otpErrorMessage(coded('PHONE_ALREADY_REGISTERED', BE_EN), t, FALLBACK),
     otpErrorMessage(coded('EMAIL_ALREADY_REGISTERED', BE_EN), t, FALLBACK),
     otpErrorMessage(coded('RATE_LIMITED', BE_EN), t, FALLBACK),
+    otpErrorMessage(coded('OTP_NOT_VERIFIED', BE_EN), t, FALLBACK),
   ]
-  check(`${lng}: the four code messages come from the locale, all different`, samples.every((s) => s !== BE_EN && s !== FALLBACK) && new Set(samples).size === 4, JSON.stringify(samples))
+  check(`${lng}: the five code messages come from the locale, all different`, samples.every((s) => s !== BE_EN && s !== FALLBACK) && new Set(samples).size === 5, JSON.stringify(samples))
   const wrong = otpErrorMessage(coded('OTP_INVALID', BE_EN, { attemptsLeft: 3 }), t, FALLBACK)
   check(`${lng}: OTP_INVALID shows the structured attemptsLeft`, wrong.includes('3') && !wrong.includes('{{'), wrong)
   const wait = otpErrorMessage(coded('OTP_COOLDOWN', 'Please wait 12s before requesting another OTP'), t, FALLBACK)
@@ -222,7 +226,7 @@ for (const lng of LANGUAGES) {
 }
 
 // --- hasUnmappedCode: a backend code with no locale string (login screens show their fallback) ---
-for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED', 'OTP_COOLDOWN', 'PHONE_ALREADY_REGISTERED', 'EMAIL_ALREADY_REGISTERED', 'RATE_LIMITED']) {
+for (const code of ['OTP_INVALID', 'OTP_EXPIRED', 'OTP_TOO_MANY_ATTEMPTS', 'OTP_NOT_FOUND', 'OTP_ALREADY_VERIFIED', 'OTP_NOT_VERIFIED', 'OTP_COOLDOWN', 'PHONE_ALREADY_REGISTERED', 'EMAIL_ALREADY_REGISTERED', 'RATE_LIMITED']) {
   expect(`mapped code: ${code}`, hasUnmappedCode(coded(code, BE_EN)), false)
 }
 for (const code of ['INTERNAL_ERROR', 'ACCOUNT_SUSPENDED', 'INVALID_PHONE', 'SOMETHING_NEW']) {

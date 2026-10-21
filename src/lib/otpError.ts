@@ -58,12 +58,15 @@ export function otpCooldownSeconds(err: unknown): number | null {
 // The codes the backend answers a CHECKED code with when the code itself is the
 // problem (utils/error-codes.ts): wrong, expired, out of tries, none pending, or
 // already used. OTP_COOLDOWN is a send refusal and is deliberately not here.
+// OTP_NOT_VERIFIED is only answered by reset-password, for a code that was never
+// verified: the code is no use to the caller either, so the boxes empty here too.
 const OTP_REJECTION_CODES = new Set([
   'OTP_INVALID',
   'OTP_EXPIRED',
   'OTP_TOO_MANY_ATTEMPTS',
   'OTP_NOT_FOUND',
   'OTP_ALREADY_VERIFIED',
+  'OTP_NOT_VERIFIED',
 ])
 
 // The same five from a backend that predates the codes (the wording of its OtpError).
@@ -150,6 +153,8 @@ export function otpErrorMessage(
       return t('auth:otpErrors.notRequested')
     case 'OTP_ALREADY_VERIFIED':
       return t('auth:otpErrors.alreadyVerified')
+    case 'OTP_NOT_VERIFIED':
+      return t('auth:otpErrors.notVerified')
     case 'PHONE_ALREADY_REGISTERED':
       return t('auth:otpErrors.phoneTaken')
     case 'EMAIL_ALREADY_REGISTERED':

@@ -1383,8 +1383,21 @@ export const authAPI = {
     })
   },
 
-  // Reset password with the FORGOT_PASSWORD OTP (email or phone — same
-  // dispatch as forgotPassword above). POST /api/auth/reset-password.
+  // Step 2 of the reset: check the FORGOT_PASSWORD code and mark it verified.
+  // POST /api/auth/verify-reset-otp { identifier, otp }. Grants nothing by
+  // itself; resetPassword below accepts only a code verified here, sent again
+  // unchanged. A second call for the same code answers OTP_ALREADY_VERIFIED.
+  // Same `identifier` rule as resetPassword.
+  verifyResetOtp: async (identifier: string, otp: string) => {
+    return apiRequest<{ identifier: string }>('/auth/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, otp }),
+    })
+  },
+
+  // Step 3: set the new password with the code verifyResetOtp verified (email
+  // or phone — same dispatch as forgotPassword above). POST /api/auth/reset-password.
+  // A code that skipped verification answers 400 OTP_NOT_VERIFIED.
   // `identifier` MUST be the exact value forgotPassword was called with: the
   // code is stored against it, so asking by phone and resetting by email
   // looks up a row that was never written.

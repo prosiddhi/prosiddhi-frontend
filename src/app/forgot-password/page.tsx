@@ -27,11 +27,16 @@ import { readOtpSendTiming } from '@/lib/otpSend'
 const OTP_LENGTH = 6
 
 // The code boxes and the new-password fields share the 'otp' stage: the password
-// fields appear under the boxes once `codeEntered` is set.
+// fields appear under the boxes once the code is verified (`codeVerified`).
 type Stage = 'identifier' | 'otp' | 'done'
 
 // The weak-password message is not shown: the live checklist already says which rules are unmet.
 const WEAK_KEY = 'auth:forgot.errorRule'
+
+// verify-reset-otp answers OTP_ALREADY_VERIFIED for a code that is already verified
+// (a retry after a lost answer, or a stale code). Read off `code` like otpError.ts does.
+const isAlreadyVerified = (err: unknown) =>
+  err instanceof Error && (err as { code?: unknown }).code === 'OTP_ALREADY_VERIFIED'
 
 const resetPasswordSchema = newPasswordSchema({
   weak: WEAK_KEY,
@@ -42,9 +47,22 @@ export default function ForgotPasswordPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const [stage, setStage] = useState<Stage>('identifier')
-  // True once the user has entered six digits and pressed Continue. This is NOT
-  // server verification: the BE checks the code only in the reset-password call.
-  const [codeEntered, setCodeEntered] = useState(false)
+  // True only after POST /auth/verify-reset-otp has answered 200 (or answered
+  // OTP_ALREADY_VERIFIED for the very code this session already sent, see
+  // handleVerifyOtp). The password fields are gated on it, and the boxes are locked
+  // while it is set, so the code that reset-password receives is the one verified.
+  const [codeVerified, setCodeVerified] = useState(false)
+  // Dedicated to the verify call. `verifying` drives the disabled/label state; the
+  // ref is taken synchronously, so a double-click cannot send two requests before
+  // the first re-render.
+  const [verifying, setVerifying] = useState(false)
+  const verifyingRef = useRef(false)
+  // The code of a verify request that the server may have accepted: set when the
+  // request goes out, kept if no answer came back (network, 5xx), cleared when the
+  // server rejects the code and by every reset of the flow. It is the only
+  // thing that lets OTP_ALREADY_VERIFIED count as "verified" — a code typed fresh
+  // is never one the server was shown, so it never matches.
+  const sentCode = useRef<string | null>(null)
   // The raw field value (email OR phone) lives in RHF below; this is the
   // NORMALIZED value — lowercased email or E.164 phone — that toIdentifier(raw)
   // produced, kept for the OTP subtitle and the final reset-password call. Same
@@ -91,11 +109,11 @@ export default function ForgotPasswordPage() {
   // whether or not an account exists, so this reveals nothing.
   const [sendTiming, setSendTiming] = useState(() => readOtpSendTiming(undefined))
 
-  // When Continue reveals the password fields, move focus to the first one. RHF's
+  // When a verified code reveals the password fields, move focus to the first one. RHF's
   // setFocus uses the ref the Controller already registers, so no extra ref.
   useEffect(() => {
-    if (codeEntered) resetForm.setFocus('newPassword')
-  }, [codeEntered, resetForm])
+    if (codeVerified) resetForm.setFocus('newPassword')
+  }, [codeVerified, resetForm])
 
   const handleClose = () => router.push('/')
   const handleBackToLogin = () => router.push('/login')
@@ -137,7 +155,9 @@ export default function ForgotPasswordPage() {
       setDevOtp(IS_DEV_BUILD ? res?.otp : undefined)
       setSendTiming(readOtpSendTiming(res))
       setOtp(EMPTY_OTP)
-      setCodeEntered(false)
+      // A new code replaces the old row on the server, verified or not.
+      setCodeVerified(false)
+      sentCode.current = null
       // The password fields are hidden for the new code: start them clean so no
       // old value, error, red border or revealed text comes back with them.
       resetForm.reset()
@@ -153,24 +173,58 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  // Stage 2 — collect the code and advance. We do NOT pre-verify here: the BE
-  // reset-password endpoint verifies the OTP itself (and verifyOTP throws
-  // "already verified" if called twice), so a separate /email-otp/verify call
-  // would make the final reset fail. The code is validated at the reset step.
-  // `code` is the same six-character string the single input used to hold, so
-  // the rule below and the payload in handleReset are byte-for-byte what they
-  // were. A hole anywhere makes it shorter than 6 and is rejected, as before.
+  // Stage 2 — check the code with POST /auth/verify-reset-otp; the password fields
+  // appear only on success. reset-password then takes the SAME code again and the BE
+  // refuses one that was not verified (OTP_NOT_VERIFIED), so the boxes stay locked
+  // while the password fields show.
+  // `code` is the same six-character string the single input used to hold. A hole
+  // anywhere makes it shorter than 6 and is rejected, as before.
   const code = otp.join('')
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (verifyingRef.current || loading) return
     if (code.length !== OTP_LENGTH) {
       setError(t('auth:forgot.errorCodeIncomplete'))
       return
     }
+    verifyingRef.current = true
+    setVerifying(true)
     setError('')
     setResendNotice(false)
-    setCodeEntered(true)
+    const sent = code
+    // The code an earlier request of this session may already have had verified.
+    const earlier = sentCode.current
+    sentCode.current = sent
+    try {
+      await authAPI.verifyResetOtp(identifier, sent)
+      setCodeVerified(true)
+    } catch (err) {
+      if (isAlreadyVerified(err) && earlier === sent) {
+        // The first answer was lost and this retry found the code verified: it is
+        // the code this session sent, and reset-password re-checks it anyway.
+        setCodeVerified(true)
+        return
+      }
+      setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed', sendTiming.expiresIn))
+      if (isAlreadyVerified(err)) {
+        // Verified on the server, but not with this code (typed fresh, or a different
+        // one from the lost request). Never let it through; keep what we know of
+        // the earlier request so retyping that code still works.
+        sentCode.current = earlier
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      } else if (isOtpRejection(err)) {
+        sentCode.current = null
+        setOtp(EMPTY_OTP)
+        otpInputRef.current?.focusFirst()
+      }
+      // Any other failure (network, 429, 5xx) says nothing about the digits: they
+      // stay, and so does sentCode, because the server may have accepted them.
+    } finally {
+      verifyingRef.current = false
+      setVerifying(false)
+    }
   }
 
   // Clears the error as soon as the code is edited, as the old per-box handlers did.
@@ -179,7 +233,7 @@ export default function ForgotPasswordPage() {
     if (error) setError('')
   }
 
-  // Stage 3 — set the new password (BE verifies the OTP, then consumes it).
+  // Stage 3 — set the new password (BE re-checks the verified OTP, then consumes it).
   const onReset: SubmitHandler<NewPasswordValues> = async (values) => {
     try {
       setLoading(true)
@@ -187,10 +241,15 @@ export default function ForgotPasswordPage() {
       setStage('done')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:forgot.errorResetFailed', sendTiming.expiresIn))
-      // The code is only checked here. A rejected one is emptied for a fresh code; the
-      // password fields, the stage and the cooldown stay as they are. Any other failure
-      // (network, 429, "no account") keeps the digits.
+      // A rejected code (including OTP_NOT_VERIFIED, and OTP_ALREADY_VERIFIED, which is
+      // an error here) is no longer the verified one: back to the code step with the
+      // boxes unlocked and emptied. The stage, the cooldown and what was typed in the
+      // password fields stay as they are. Any other failure (network, 429, "no
+      // account", a weak password) keeps the verified state and the digits, so the
+      // same code and password can be submitted again.
       if (isOtpRejection(err)) {
+        setCodeVerified(false)
+        sentCode.current = null
         setOtp(EMPTY_OTP)
         otpInputRef.current?.focusFirst()
       }
@@ -238,7 +297,7 @@ export default function ForgotPasswordPage() {
   const validationKey =
     stage === 'identifier'
       ? identifierForm.formState.errors.identifier?.message
-      : stage === 'otp' && codeEntered
+      : stage === 'otp' && codeVerified
       ? passwordFormMessageKey(resetErrors)
       : undefined
   // A weak password is left to the checklist, so it gets no banner.
@@ -330,14 +389,14 @@ export default function ForgotPasswordPage() {
               <h1 className="text-2xl sm:text-3xl font-semibold text-black mb-2 leading-tight">
                 {stage === 'identifier'
                   ? t('auth:forgot.titleEmail')
-                  : codeEntered
+                  : codeVerified
                   ? t('auth:forgot.titleReset')
                   : t('auth:forgot.titleOtp')}
               </h1>
               <p className="text-base sm:text-lg text-[#777776]">
                 {stage === 'identifier'
                   ? t('auth:forgot.subtitleIdentifier')
-                  : codeEntered
+                  : codeVerified
                   ? t('auth:forgot.subtitleReset')
                   : t('auth:forgot.subtitleOtp', { identifier })}
               </p>
@@ -398,7 +457,7 @@ export default function ForgotPasswordPage() {
               One form so the code boxes stay mounted and editable when the
               password fields appear; Enter submits whichever step is showing. */}
           {stage === 'otp' && (
-            <form onSubmit={codeEntered ? handleReset : handleVerifyOtp} className="space-y-5">
+            <form onSubmit={codeVerified ? handleReset : handleVerifyOtp} className="space-y-5">
               <div>
                 <label id="otp-label" htmlFor="otp-0" className="block text-base font-medium text-black mb-2">
                   {t('auth:forgot.codeLabel')}
@@ -421,11 +480,11 @@ export default function ForgotPasswordPage() {
                   idPrefix="otp"
                   labelledBy="otp-label"
                   ariaLabel={t('auth:forgot.codeLabel')}
-                  disabled={loading || resending}
+                  disabled={loading || resending || verifying || codeVerified}
                 />
               </div>
 
-              {codeEntered && (
+              {codeVerified && (
                 <>
                   <div>
                     <label htmlFor="newPassword" className="block text-base font-medium text-black mb-2">{t('auth:forgot.newPasswordLabel')}</label>
@@ -486,9 +545,11 @@ export default function ForgotPasswordPage() {
               )}
 
               <div>
-                <button type="submit" disabled={loading || resending || code.length !== OTP_LENGTH} className={primaryBtnCls}>
-                  {!codeEntered
-                    ? t('buttons.continue')
+                <button type="submit" disabled={loading || resending || verifying || code.length !== OTP_LENGTH} className={primaryBtnCls}>
+                  {!codeVerified
+                    ? verifying
+                    ? t('auth:forgot.verifying')
+                    : t('buttons.continue')
                     : loading
                     ? t('auth:forgot.saving')
                     : t('auth:forgot.resetPassword')}
@@ -498,10 +559,10 @@ export default function ForgotPasswordPage() {
                   onBusyChange={setResending}
                   cooldownSeconds={sendTiming.cooldownSeconds}
                   startOnMount
-                  disabled={loading}
+                  disabled={loading || verifying}
                   className="mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors"
                 />
-                <button type="button" disabled={resending || loading} onClick={() => { setStage('identifier'); setCodeEntered(false); setOtp(EMPTY_OTP); resetForm.reset(); setNewPasswordTouched(false); setError(''); setResendNotice(false) }} className={`${backBtnCls} disabled:opacity-50`}>
+                <button type="button" disabled={resending || loading || verifying} onClick={() => { setStage('identifier'); setCodeVerified(false); sentCode.current = null; setOtp(EMPTY_OTP); resetForm.reset(); setNewPasswordTouched(false); setError(''); setResendNotice(false) }} className={`${backBtnCls} disabled:opacity-50`}>
                   <ArrowLeft className="w-4 h-4 shrink-0" /> {t('auth:forgot.useDifferentIdentifier')}
                 </button>
               </div>
