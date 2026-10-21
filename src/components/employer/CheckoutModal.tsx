@@ -260,6 +260,8 @@ export function CheckoutModal({
   // Place of supply is required only when no GSTIN is given (BE derives the
   // state from the GSTIN's first two digits otherwise).
   const stateRequired = !hasGstin
+  // With a GSTIN the BE reads the state from it, so a state picked earlier is stale.
+  const stateValue = hasGstin ? '' : placeOfSupply
 
   // Prefill from the fresh profile (the session copy can be stale, and this prints
   // on a tax invoice). Single attempt; a failure leaves the box empty, and so does
@@ -411,8 +413,7 @@ export function CheckoutModal({
       const order = await subscriptionAPI.checkout({
         planCode: plan.code,
         gstin: hasGstin ? gstinNorm : undefined,
-        // With a GSTIN the BE reads the state from it; a state picked earlier is stale.
-        placeOfSupply: hasGstin ? undefined : placeOfSupply || undefined,
+        placeOfSupply: stateValue || undefined,
         billingAddress: hasGstin ? billing : undefined,
       })
 
@@ -618,7 +619,7 @@ export function CheckoutModal({
               </label>
               <select
                 id="checkout-place-of-supply"
-                value={hasGstin ? '' : placeOfSupply}
+                value={stateValue}
                 onChange={(e) => setPlaceOfSupply(e.target.value)}
                 disabled={hasGstin}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"
