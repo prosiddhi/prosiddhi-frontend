@@ -53,7 +53,7 @@ This is a project-specific security spec for the actual stack: **Express 5 + Pri
 
 **Email OTP** (already implemented):
 - Same parameters as phone OTP. 30s resend cooldown.
-- Composite key `(email, purpose)` — purposes are `FORGOT_PASSWORD`, `CHANGE_EMAIL`, `REGISTRATION`.
+- Composite key `(email, purpose)` — the database enum has three values: `FORGOT_PASSWORD`, `CHANGE_EMAIL`, `REGISTRATION`. The public `/email-otp/*` API accepts only `REGISTRATION` and `CHANGE_EMAIL`; `FORGOT_PASSWORD` codes are issued and checked only by `/auth/forgot-password` and `/auth/reset-password`.
 - Same mock-mode prod gate as phone OTP.
 
 **No Aadhaar OTP.** Aadhaar is removed entirely per Q3/Q4 revoked 2026-05-09. The `aadhaar.controller.ts`, `aadhaar.service.ts`, `aadhaar.validator.ts`, `aadhaar.routes.ts`, `AadhaarVerification` Prisma model, and `User.aadhaarNumber` field all delete in S1 day 1.

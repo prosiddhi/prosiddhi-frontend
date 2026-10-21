@@ -1539,7 +1539,11 @@ export const otpAPI = {
 // mark does NOT expire (only the 6-digit code does, after 10 minutes), so a
 // long form between verifying and registering is safe — but it IS single-use,
 // so a replayed register finds it already burned.
-export type EmailOtpPurpose = 'REGISTRATION' | 'CHANGE_EMAIL' | 'FORGOT_PASSWORD'
+//
+// The public /email-otp/* routes accept only these two purposes. A password-reset
+// code (FORGOT_PASSWORD) is issued and checked by authAPI.forgotPassword /
+// authAPI.resetPassword; sending it here returns 400.
+export type EmailOtpPurpose = 'REGISTRATION' | 'CHANGE_EMAIL'
 
 // `otp` is echoed in non-production only; absent in production. Never make a
 // flow depend on it.

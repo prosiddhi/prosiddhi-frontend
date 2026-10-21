@@ -219,8 +219,9 @@ const searchBox = (page) => page.getByPlaceholder(/skill|keyword|search/i).first
           const ok = await post(verifyPath, { ...body, [key]: code })
           return ok?.success === true
         }
-        // `purpose` is required and enum-checked: REGISTRATION | CHANGE_EMAIL |
-        // FORGOT_PASSWORD. Omitting it fails validation, and the failure reads
+        // `purpose` is required and enum-checked: REGISTRATION | CHANGE_EMAIL
+        // (FORGOT_PASSWORD is refused here; reset codes use /auth/forgot-password).
+        // Omitting it fails validation, and the failure reads
         // as a missing OTP rather than a missing field.
         const emailOk = await verify('email', '/email-otp/send', '/email-otp/verify', { email, purpose: 'REGISTRATION' }, 'otp')
         const phoneOk = await verify('phone', '/otp/send', '/otp/verify', { phoneNumber: phone }, 'otp')
