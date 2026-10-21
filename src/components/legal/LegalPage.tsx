@@ -8,7 +8,9 @@ import { ChevronLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Footer } from '@/components/home/Footer'
 import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher'
+import { useAuth } from '@/contexts/AuthContext'
 import { TERMS_LAST_UPDATED } from '@/lib/legal'
+import { homeRouteForRole } from '@/lib/routes'
 
 /**
  * Shared shell for the public legal pages (/privacy, /terms, /contact).
@@ -33,16 +35,20 @@ export function LegalPage({
   // 'legal' holds this page's own copy; 'common' holds the app name for the logo.
   const { t } = useTranslation(['legal', 'common'])
   const router = useRouter()
+  const { user } = useAuth()
+  // A signed-in person goes back to their own app home, not the public landing
+  // page (which shows Register / Login and looks like they were signed out).
+  const logoHref = user ? homeRouteForRole(user.role) : '/'
 
   // These pages are public and often opened straight from a link (Google Play,
   // an email), where there is no previous page to go back to — send them home.
-  const goBack = () => (window.history.length > 1 ? router.back() : router.push('/'))
+  const goBack = () => (window.history.length > 1 ? router.back() : router.push(logoHref))
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-white shadow-[10px_10px_50px_0px_rgba(0,0,0,0.05)] sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] flex items-center justify-between">
-          <Link href="/" className="flex items-center min-h-[44px]">
+          <Link href={logoHref} className="flex items-center min-h-[44px]">
             <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
               <Image
                 src="/assets/prosiddhi-logo-horizontal.png"
