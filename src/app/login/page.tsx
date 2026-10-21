@@ -149,6 +149,14 @@ function initialRoleFor(returnUrl: string | null): LoginRole {
   return 'seeker'
 }
 
+// BE login refusal code -> message key. The credentials were right but the account
+// cannot sign in (401). A Map, not an object, so a code like `constructor` cannot match.
+const LOGIN_REFUSALS = new Map<string, string>([
+  ['EMAIL_NOT_VERIFIED', 'auth:login.errorEmailNotVerified'],
+  ['PHONE_NOT_VERIFIED', 'auth:login.errorPhoneNotVerified'],
+  ['ACCOUNT_REJECTED', 'auth:login.errorAccountRejected'],
+  ['ACCOUNT_SUSPENDED', 'auth:login.errorAccountSuspended'],
+])
 
 function LoginContent() {
   const router = useRouter()
@@ -304,6 +312,9 @@ function LoginContent() {
    * gate runs (auth.service.ts:544-546, a hard delete in otp.service.ts:338),
    * so by the time this 403 arrives the code the user is holding is already
    * dead and "try again" would be a lie.
+   *
+   * Returns true when the OTP is known to be spent: a wrong role, or an account
+   * refused after the code was checked (LOGIN_REFUSALS). Both also call `onWrongRole`.
    */
   const handleLoginError = (err: unknown, onWrongRole?: () => void): boolean => {
     // TD-43's role-agnostic endpoint has no role to mismatch, so it refuses an
@@ -340,6 +351,14 @@ function LoginContent() {
           ? t('auth:login.errorWrongRoleEmployer')
           : t('auth:login.errorWrongRoleSeeker'),
       )
+      return true
+    }
+    const refusal = err instanceof ApiError && err.code ? LOGIN_REFUSALS.get(err.code) : undefined
+    if (refusal) {
+      setError(t(refusal))
+      // The phone-OTP arm verifies AND consumes the code before these gates, so the
+      // code is spent here too: same reset as a wrong role (back to the Send step).
+      onWrongRole?.()
       return true
     }
     setError(loginOtpMessage(err, 'auth:login.errorLogin', sendTiming.expiresIn))

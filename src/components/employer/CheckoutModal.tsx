@@ -156,6 +156,8 @@ const CHECKOUT_REFUSALS = new Map<string, { key: string; final?: boolean }>([
   ['CHECKOUT_PAYMENT_PENDING', { key: 'employer:checkout.paymentPending', final: true }],
   ['CHECKOUT_IN_PROGRESS', { key: 'employer:checkout.inProgress' }],
   ['CHECKOUT_STATUS_UNKNOWN', { key: 'employer:checkout.statusUnknown' }],
+  ['PLAN_NOT_FOUND', { key: 'employer:checkout.planNotFound' }],
+  ['PLAN_UNAVAILABLE', { key: 'employer:checkout.planUnavailable' }],
 ])
 
 // The BE's rule for the invoice address, checked on the trimmed value.

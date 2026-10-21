@@ -161,6 +161,8 @@
     "paymentPending": "An earlier payment is still being confirmed. Please don't pay again. Check your dashboard in a few minutes, or contact support if your balance does not update.",
     "inProgress": "Another checkout is being set up. Please wait a few seconds and try again.",
     "statusUnknown": "We couldn't set up your payment just now. You have not been charged for this attempt. Please try again in a minute.",
+    "planNotFound": "We couldn't find this plan. Please refresh the page and choose a plan again.",
+    "planUnavailable": "This plan is no longer available. Please refresh the page and choose another plan.",
     "checkoutFailed": "Couldn't start checkout. Please try again.",
     "successTitle": "Payment successful",
     "successBody": "{{post}} Job Posts and {{download}} Candidate Unlocks were added to your balance.",
