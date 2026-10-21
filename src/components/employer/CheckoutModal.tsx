@@ -149,6 +149,15 @@ function PriceBreakdown({ b }: { b: Breakdown }) {
   )
 }
 
+// BE refusal code -> message. The BE refuses before making a new order, so nothing
+// is charged by the refused attempt. Only a pending earlier payment is final: paying
+// again could charge twice, so the Pay button is turned off.
+const CHECKOUT_REFUSALS = new Map<string, { key: string; final?: boolean }>([
+  ['CHECKOUT_PAYMENT_PENDING', { key: 'employer:checkout.paymentPending', final: true }],
+  ['CHECKOUT_IN_PROGRESS', { key: 'employer:checkout.inProgress' }],
+  ['CHECKOUT_STATUS_UNKNOWN', { key: 'employer:checkout.statusUnknown' }],
+])
+
 // The BE's rule for the invoice address, checked on the trimmed value.
 const BILLING_ADDRESS_MIN = 5
 const BILLING_ADDRESS_MAX = 500
@@ -198,6 +207,9 @@ export function CheckoutModal({
   // webhook is the backstop, so credits still land — but we must NOT re-offer a
   // Pay button here or the buyer could be charged twice.
   const [capturedPending, setCapturedPending] = useState(false)
+  // The BE says an earlier payment is paid or mid-payment (CHECKOUT_PAYMENT_PENDING).
+  // Same rule as above: no Pay button, or the buyer could be charged twice.
+  const [paymentPending, setPaymentPending] = useState(false)
   // An order priced differently from the plan we showed. Held so the buyer can
   // see the new breakdown and pay that same order.
   const [repriced, setRepriced] = useState<CheckoutOrder | null>(null)
@@ -419,12 +431,17 @@ export function CheckoutModal({
       setSubmitting(false)
       // The BE refuses a bad address before any order exists, so nothing was
       // charged and the buyer can fix it and pay again. Shown on the field.
-      const required = e instanceof ApiError && e.code === 'BILLING_ADDRESS_REQUIRED'
+      const code = e instanceof ApiError ? e.code : undefined
+      const required = code === 'BILLING_ADDRESS_REQUIRED'
+      const refusal = code ? CHECKOUT_REFUSALS.get(code) : undefined
       if (required || fieldErrorsByPath(e).billingAddress) {
         setBillingError(
           t(required ? 'employer:checkout.billingAddressRequired' : 'employer:checkout.billingAddressLength'),
         )
         billingRef.current?.focus()
+      } else if (refusal) {
+        setError(t(refusal.key))
+        if (refusal.final) setPaymentPending(true)
       } else {
         setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
       }
@@ -624,7 +641,7 @@ export function CheckoutModal({
             <button
               type="button"
               onClick={handlePay}
-              disabled={submitting}
+              disabled={submitting || paymentPending}
               className="w-full py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -632,6 +649,15 @@ export function CheckoutModal({
                 ? t('employer:checkout.processing')
                 : t('employer:checkout.pay', { amount: formatInr(earlier.totalInr, true) })}
             </button>
+            {paymentPending && (
+              <button
+                type="button"
+                onClick={() => router.push('/employer')}
+                className="w-full mt-2 py-2.5 border border-gray-300 text-black rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium"
+              >
+                {t('employer:checkout.goToDashboard')}
+              </button>
+            )}
           </>
         )}
       </div>
