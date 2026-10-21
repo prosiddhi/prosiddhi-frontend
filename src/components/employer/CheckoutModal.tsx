@@ -411,7 +411,8 @@ export function CheckoutModal({
       const order = await subscriptionAPI.checkout({
         planCode: plan.code,
         gstin: hasGstin ? gstinNorm : undefined,
-        placeOfSupply: placeOfSupply || undefined,
+        // With a GSTIN the BE reads the state from it; a state picked earlier is stale.
+        placeOfSupply: hasGstin ? undefined : placeOfSupply || undefined,
         billingAddress: hasGstin ? billing : undefined,
       })
 
@@ -617,7 +618,7 @@ export function CheckoutModal({
               </label>
               <select
                 id="checkout-place-of-supply"
-                value={placeOfSupply}
+                value={hasGstin ? '' : placeOfSupply}
                 onChange={(e) => setPlaceOfSupply(e.target.value)}
                 disabled={hasGstin}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-50 disabled:opacity-50"
