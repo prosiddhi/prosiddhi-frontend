@@ -252,6 +252,8 @@
       "SPEND_POST": "જોબ પોસ્ટ",
       "SPEND_UNLOCK": "ઉમેદવાર અનલૉક",
       "REFUND_DELETE": "રિફંડ (નોકરી કાઢી નાખી)",
+      "REFUND_REJECT": "રિફંડ (જોબ પોસ્ટ નામંજૂર)",
+      "REFUND_UNLOCK_DELETED": "રિફંડ (ઉમેદવાર કાઢી નાખ્યો)",
       "EXPIRE": "સમાપ્ત"
     }
   },
