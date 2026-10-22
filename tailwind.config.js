@@ -274,6 +274,10 @@ module.exports = {
           from: { transform: 'translateY(-20px)', opacity: 0 },
           to: { transform: 'translateY(0)', opacity: 1 },
         },
+        twinkle: {
+          '0%, 100%': { opacity: 0.15, transform: 'scale(0.6)' },
+          '50%': { opacity: 1, transform: 'scale(1)' },
+        },
       },
       
       animation: {
@@ -282,6 +286,7 @@ module.exports = {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.4s ease-out',
         'slide-down': 'slideDown 0.4s ease-out',
+        twinkle: 'twinkle 2.6s ease-in-out infinite',
       },
     },
   },

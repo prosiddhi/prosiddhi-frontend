@@ -1,6 +1,8 @@
 'use client'
 
+import { ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { LaunchRibbon } from './LaunchRibbon'
 
 /**
  * Landing hero. Every string goes through `common:home.hero*` — this component
@@ -12,9 +14,8 @@ export function HeroSection() {
 
   return (
     // pt-[91px], not pt-16: Header.tsx is `fixed` and `h-[75px]` at every
-    // breakpoint, so 64px of padding put the badge underneath it — the trust
-    // claim was half-hidden behind the logo bar on a phone. 75 + 16 of
-    // breathing room.
+    // breakpoint, so 64px of padding put the first line underneath it — it was
+    // half-hidden behind the logo bar on a phone. 75 + 16 of breathing room.
     //
     // The bottom padding is deliberately much smaller than the top: the hero and
     // "What are you looking for?" are one thought, not two sections, and the gap
@@ -29,38 +30,7 @@ export function HeroSection() {
     // side, leaving a 390px screen a 262px text column.
     <section className="pt-[91px] sm:pt-24 pb-4 sm:pb-5 lg:pb-5">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Launch badge: gold so it stands out from the blue trust badge below.
-            `rounded-2xl` on phones because a full pill looks broken once the text wraps. */}
-        <div className="flex justify-center mb-3 sm:mb-4">
-          <div className="bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 border border-amber-400 rounded-2xl sm:rounded-full px-4 py-2 inline-flex items-center gap-2 shadow-sm max-w-full">
-            <span aria-hidden="true" className="text-amber-600">★</span>
-            <span className="text-xs sm:text-sm font-semibold text-amber-900 text-center">
-              {t('home.launchBadge')}
-            </span>
-          </div>
-        </div>
-
-        {/* Trust badge (TD-12). This said "Work Opportunities for Everyone",
-            which promises nothing, in a market where charging a jobseeker a
-            fee to "get" them a job is the standard scam. It now carries the
-            one thing we can state as fact and that answers that fear.
-            Deliberately the same sentence as employer plans.seekersFree, so
-            the promise on the front page and the promise on the pricing page
-            are word for word the same in all ten languages.
-
-            primary-80, not primary-50: the brand sky is 2.0:1 on white and
-            this is the line that has to be read. primary-80 is 6.1:1 on white
-            and 5.9:1 on the primary-10 fill it now sits on — the white pill on
-            a white page was a border and nothing else, so the one reassurance
-            above the fold read as a stray outline. This is the `.badge-primary`
-            pairing from globals.css, not a new colour. */}
-        <div className="flex justify-center mb-4 sm:mb-5">
-          <div className="bg-primary-10 border border-primary-20 rounded-full px-3.5 sm:px-4 py-1.5 inline-flex items-center">
-            <span className="text-xs font-medium text-primary-80 text-center">
-              {t('home.heroBadge')}
-            </span>
-          </div>
-        </div>
+        <LaunchRibbon />
 
         {/* Heading.
             52px at `xl`, not 60: at 60 the English title measures ~1140px and
@@ -82,6 +52,26 @@ export function HeroSection() {
             second row; it is still under the 75-character comfortable maximum. */}
         <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-500 text-center max-w-[760px] mx-auto">
           {t('home.heroSubtitle')}
+        </p>
+
+        {/* Trust promise (TD-12). This said "Work Opportunities for Everyone",
+            which promises nothing, in a market where charging a jobseeker a
+            fee to "get" them a job is the standard scam. It now carries the
+            one thing we can state as fact and that answers that fear.
+            Deliberately the same sentence as employer plans.seekersFree, so
+            the promise on the front page and the promise on the pricing page
+            are word for word the same in all ten languages.
+
+            2026-10-22: moved from a 12px pill ABOVE the heading to here, as
+            the last line of the pitch (find jobs → in your language → free),
+            and made the strongest line after the heading: bold primary-100
+            with a green shield ("safe"). No highlight behind it — the shield
+            and the weight carry it. */}
+        <p className="mt-4 sm:mt-5 flex items-center justify-center gap-2 text-center">
+          <ShieldCheck aria-hidden="true" className="shrink-0 w-5 h-5 sm:w-6 sm:h-6 text-green-600" strokeWidth={2.25} />
+          <span className="text-base sm:text-lg lg:text-xl font-bold leading-snug text-primary-100">
+            {t('home.heroBadge')}
+          </span>
         </p>
       </div>
     </section>
