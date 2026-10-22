@@ -2758,6 +2758,16 @@ export const subscriptionAPI = {
     return apiRequest<Plan[]>('/plans', fresh ? { cache: 'reload' } : {})
   },
 
+  // One plan by code, hidden ones included — the private link a salesperson
+  // sends (/employer/plans?plan=<code>). GET /api/plans/:code → Plan. 404
+  // PLAN_NOT_FOUND when the code is unknown or the plan is retired; 400 when the
+  // code is malformed (e.g. over 64 chars). The private-plan page shows both as
+  // "link not available". Same shape and caching as the catalog; checkout still
+  // validates and re-prices.
+  getPlan: async (code: string, { fresh = false }: { fresh?: boolean } = {}) => {
+    return apiRequest<Plan>(`/plans/${encodeURIComponent(code)}`, fresh ? { cache: 'reload' } : {})
+  },
+
   // Employer credit wallet. GET /api/employers/me/credits (auth: employer).
   getCredits: async () => {
     return apiRequest<Wallet>('/employers/me/credits')

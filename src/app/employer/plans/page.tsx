@@ -7,11 +7,13 @@
 // quick single-pack top-up shortcut via <TopUpModal />.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { ChevronLeft, Plus } from 'lucide-react'
 import { PricingPlans } from '@/components/employer/PricingPlans'
+import { PrivatePlan } from '@/components/employer/PrivatePlan'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
@@ -24,6 +26,9 @@ function PlansContent() {
   // top-up. Unknown role (still loading, or the wallet failed) → no button.
   const { wallet } = useCredits()
   const canBuy = wallet?.role === 'OWNER'
+  // /employer/plans?plan=<code> is the private link for a hidden plan: it shows just
+  // that plan. The public list below never contains a hidden plan.
+  const planCode = useSearchParams().get('plan')?.trim() || undefined
 
   return (
     <div className="min-h-screen bg-[#f7fbfd] flex flex-col">
@@ -59,7 +64,7 @@ function PlansContent() {
           {wallet && !canBuy && (
             <p className="text-sm text-[#717182] mb-4">{t('employer:myPlans.ownerBuysNote')}</p>
           )}
-          <PricingPlans canBuy={canBuy} />
+          {planCode ? <PrivatePlan key={planCode} planCode={planCode} canBuy={canBuy} /> : <PricingPlans canBuy={canBuy} />}
         </div>
       </main>
 
@@ -69,9 +74,14 @@ function PlansContent() {
 }
 
 export default function EmployerPlansPage() {
+  // `useSearchParams` (for ?plan=) needs a Suspense boundary or the static prerender
+  // of this route fails at build time — same as /login and /change-password, which
+  // also wrap Suspense around ProtectedRoute.
   return (
-    <ProtectedRoute requiredRole="employer">
-      <PlansContent />
-    </ProtectedRoute>
+    <Suspense fallback={null}>
+      <ProtectedRoute requiredRole="employer">
+        <PlansContent />
+      </ProtectedRoute>
+    </Suspense>
   )
 }
