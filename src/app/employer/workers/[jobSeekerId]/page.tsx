@@ -11,13 +11,13 @@
 // sold a pack that adds none. The only unlocks today are the free trial's.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import { useCredits } from '@/hooks/useCredits'
-import { ApiError, candidateAPI, type CandidateProfile } from '@/lib/api'
+import { ApiError, candidateAPI, type CandidateProfile, type Wallet } from '@/lib/api'
 import { formatMonthYear } from '@/lib/jobFormat'
 import { CandidateAvatar } from '@/components/employer/CandidateAvatar'
 import { ActivelyLookingBadge } from '@/components/employer/ActivelyLookingBadge'
@@ -53,6 +53,22 @@ function CandidateContent() {
 
   const { wallet, reload: reloadWallet } = useCredits()
 
+  // The cached zero a click started a reload from. useCredits only calls setWallet
+  // on a successful fetch, so a different wallet object means that reload finished OK;
+  // the same object means it is still in flight or failed. Set only by the zero click,
+  // never by the 402 path, so a server "no" is not bounced back to the confirm.
+  const staleWallet = useRef<Wallet | null>(null)
+
+  useEffect(() => {
+    if (!noUnlocks) staleWallet.current = null
+    if (!staleWallet.current || wallet === staleWallet.current) return
+    staleWallet.current = null
+    if ((wallet?.download.balance ?? 0) > 0) {
+      setNoUnlocks(false)
+      setConfirmOpen(true)
+    }
+  }, [noUnlocks, wallet])
+
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -74,6 +90,19 @@ function CandidateContent() {
       active = false
     }
   }, [jobSeekerId, t])
+
+  // A known balance of exactly 0 skips the confirm and the call. While the wallet
+  // is loading or failed to load it is null, so we let the server decide (402 below).
+  const handleUnlockClick = () => {
+    setUnlockError('')
+    if (wallet?.download.balance === 0) {
+      setNoUnlocks(true)
+      staleWallet.current = wallet
+      reloadWallet() // the 0 may be stale; the effect above swaps dialogs if it was
+      return
+    }
+    setConfirmOpen(true)
+  }
 
   const handleUnlock = async () => {
     setUnlocking(true)
@@ -177,7 +206,7 @@ function CandidateContent() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => { setUnlockError(''); setConfirmOpen(true) }}
+                      onClick={handleUnlockClick}
                       className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm font-medium whitespace-nowrap"
                     >
                       <Unlock className="w-4 h-4" /> {t('employer:candidate.unlockCta')}
