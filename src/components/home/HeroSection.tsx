@@ -29,6 +29,17 @@ export function HeroSection() {
     // side, leaving a 390px screen a 262px text column.
     <section className="pt-[91px] sm:pt-24 pb-4 sm:pb-5 lg:pb-5">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Launch badge: gold so it stands out from the blue trust badge below.
+            `rounded-2xl` on phones because a full pill looks broken once the text wraps. */}
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <div className="bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 border border-amber-400 rounded-2xl sm:rounded-full px-4 py-2 inline-flex items-center gap-2 shadow-sm max-w-full">
+            <span aria-hidden="true" className="text-amber-600">★</span>
+            <span className="text-xs sm:text-sm font-semibold text-amber-900 text-center">
+              {t('home.launchBadge')}
+            </span>
+          </div>
+        </div>
+
         {/* Trust badge (TD-12). This said "Work Opportunities for Everyone",
             which promises nothing, in a market where charging a jobseeker a
             fee to "get" them a job is the standard scam. It now carries the
