@@ -252,6 +252,8 @@
       "SPEND_POST": "जॉब पोस्ट",
       "SPEND_UNLOCK": "उम्मीदवार अनलॉक",
       "REFUND_DELETE": "वापसी (नौकरी हटाई गई)",
+      "REFUND_REJECT": "वापसी (जॉब पोस्ट अस्वीकृत)",
+      "REFUND_UNLOCK_DELETED": "वापसी (उम्मीदवार हटाया गया)",
       "EXPIRE": "समाप्त"
     }
   },
