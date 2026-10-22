@@ -207,6 +207,7 @@ function EmployerDashboardContent() {
   const [recentPanel, reloadRecent] = usePanel(fetchRecent)
   const [unlockedCount, setUnlockedCount] = useState<number | null>(null)
   const [accountStatus, setAccountStatus] = useState<string | null>(null)
+  const [isIndividual, setIsIndividual] = useState(false)
 
   // Supplementary and independent of the panels: each hides its card on failure
   // instead of showing an error, so neither can hold the panels up.
@@ -221,7 +222,9 @@ function EmployerDashboardContent() {
     employerAPI
       .getProfile()
       .then((p) => {
-        if (!ignore) setAccountStatus(p?.accountStatus ?? null)
+        if (ignore) return
+        setAccountStatus(p?.accountStatus ?? null)
+        setIsIndividual(p?.role === 'EMPLOYER_INDIVIDUAL' || p?.employer?.employerType === 'INDIVIDUAL')
       })
       .catch(() => {})
     return () => {
@@ -242,15 +245,20 @@ function EmployerDashboardContent() {
 
           {/* Each panel below loads, fails and retries on its own, so one slow or
               failing request never blanks the others. */}
-          {/* Documents are with admin. Only PENDING_ADMIN_APPROVAL: a business that
-              has not uploaded yet (PENDING_DOCUMENTS) has no review running, so the
-              2-working-days promise would be false for them. */}
+          {/* With admin. Only PENDING_ADMIN_APPROVAL: a business that has not
+              uploaded yet (PENDING_DOCUMENTS) has no review running, so the
+              2-working-days promise would be false for them. A single-user
+              employer has no documents: what the admin reviews is the account. */}
           {accountStatus === 'PENDING_ADMIN_APPROVAL' && (
             <div className="mb-6 sm:mb-8 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
               <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-secondary-70">{t('employer:docsReview.title')}</p>
-                <p className="text-sm text-secondary-70">{t('employer:docsReview.sla')}</p>
+                <p className="text-sm font-semibold text-secondary-70">
+                  {t(isIndividual ? 'employer:accountReview.title' : 'employer:docsReview.title')}
+                </p>
+                <p className="text-sm text-secondary-70">
+                  {t(isIndividual ? 'employer:accountReview.body' : 'employer:docsReview.sla')}
+                </p>
               </div>
             </div>
           )}

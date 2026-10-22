@@ -12,13 +12,16 @@ import { employerAPI, fieldErrorsByPath, teamAPI, type PostJobData } from '@/lib
 import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
 import { myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, Clock, Loader2 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
 // The BE 402 message when a publish is attempted at zero POST credits
 // (job.controller). Used as the reactive-gate signal (the {kind:'POST'} payload
 // is dev-only, so we match the stable server message).
 const NO_CREDITS_RE = /insufficient\s+post\s+credit/i
+// The BE 400 when the organisation's account is not ACTIVE (job.service createJob):
+// waiting for admin approval, or suspended.
+const NOT_ACTIVE_RE = /account is not active/i
 
 function NewJobContent() {
   const { t } = useTranslation()
@@ -30,6 +33,12 @@ function NewJobContent() {
   // Reactive gate: flipped if a publish attempt is rejected for 0 credits
   // (covers the race where the balance hit 0 after this page loaded).
   const [blockedNoCredits, setBlockedNoCredits] = useState(false)
+  // The organisation's account status, when the logged-in user's own record IS
+  // the organisation (see the effect below). A pending account reads 0 credits
+  // and cannot buy a plan either, so without this it would be offered the
+  // upsell. null = unknown: the form shows and the server still refuses.
+  const [orgStatus, setOrgStatus] = useState<string | null>(null)
+  const [blockedNotActive, setBlockedNotActive] = useState(false)
 
   const { wallet, loading: walletLoading, reload: reloadWallet } = useCredits()
 
@@ -59,6 +68,7 @@ function NewJobContent() {
     Promise.all([employerAPI.getProfile(), teamAPI.getEntitlements()])
       .then(([profile, entitlements]) => {
         if (profile.employer?.id !== entitlements.employerId) return
+        setOrgStatus(profile.accountStatus ?? null)
         setCompanyNameSuggestion(profile.employer?.companyName?.trim() || undefined)
       })
       .catch(() => {})
@@ -69,6 +79,7 @@ function NewJobContent() {
   // real enforcement, so we don't wrongly lock a paying employer out on a fetch
   // blip.
   const outOfCredits = blockedNoCredits || (wallet !== null && wallet.post.balance === 0)
+  const notActive = blockedNotActive || (orgStatus !== null && orgStatus !== 'ACTIVE')
 
   const handleSubmit = async (data: PostJobData) => {
     setSubmitting(true)
@@ -85,7 +96,9 @@ function NewJobContent() {
       router.push(myJobsUrl(isJobUnderReview(job) ? 'pending' : 'active'))
     } catch (err) {
       const message = err instanceof Error ? err.message : t('employer:jobNew.publishFailed')
-      if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {
+      if (err instanceof Error && NOT_ACTIVE_RE.test(err.message)) {
+        setBlockedNotActive(true) // swap the form for the not-active notice
+      } else if (err instanceof Error && NO_CREDITS_RE.test(err.message)) {
         setBlockedNoCredits(true) // swap the form for the upsell
         // The wallet in hand is the pre-publish snapshot, so it still shows the
         // credits the server has just refused. The upsell reads it to decide
@@ -112,7 +125,18 @@ function NewJobContent() {
             <span>{t('employer:jobNew.backToMyJobs')}</span>
           </Link>
           <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black mb-6 sm:mb-8">{t('employer:jobNew.title')}</h1>
-          {walletLoading ? (
+          {notActive ? (
+            <div role="status" className="max-w-2xl bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6 flex items-start gap-3">
+              <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-black">{t('employer:jobNew.notActiveTitle')}</p>
+                <p className="text-sm text-[#717182] mt-1">{t('employer:jobNew.notActiveBody')}</p>
+                <Link href="/employer" className="inline-block mt-4 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
+                  {t('employer:jobNew.backToDashboard')}
+                </Link>
+              </div>
+            </div>
+          ) : walletLoading ? (
             <div className="flex items-center gap-2 py-10 text-[#717182]">
               <Loader2 className="w-5 h-5 animate-spin text-primary-50" />
               <span className="text-sm">{t('employer:jobNew.checkingCredits')}</span>
