@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
-import { ChevronRight, ChevronLeft, X, Upload, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, ChevronLeft, X, Upload, Plus, Trash2, AlertCircle } from 'lucide-react'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
+import { MAX_DOCUMENT_BYTES } from '@/lib/uploadFile'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 interface Experience {
@@ -28,6 +29,8 @@ export default function RegisterExperiencePage() {
       : [{ id: '1', designation: '', fromYear: '', toYear: '' }]
   )
   const [document, setDocument] = useState<File | null>(data.document ?? null)
+  // Why the last picked file was refused. Shown above the upload box, not in a browser alert.
+  const [documentError, setDocumentError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Guard: must have chosen a sector (categories step) first. Waits for the
@@ -83,16 +86,29 @@ export default function RegisterExperiencePage() {
 
   const handleDocumentUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // Validate file type
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-      if (validTypes.includes(file.type)) {
-        setDocument(file)
-      } else {
-        alert(t('auth:experience.invalidDocument'))
-      }
+    // So choosing the same file again fires onChange again.
+    e.target.value = ''
+    if (!file) return
+    // Job seekers upload PDF, JPG or PNG only: that is all POST /jobseekers/register
+    // takes. (Word files used to be offered here and were refused at the LAST step.)
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    if (!validTypes.includes(file.type)) {
+      setDocumentError(t('auth:experience.invalidDocument'))
+    } else if (file.type === 'application/pdf' && file.size > MAX_DOCUMENT_BYTES) {
+      // Said now, on this step -- not after the seeker has verified a phone and chosen a password.
+      setDocumentError(t('common:uploadErrors.fileTooLarge'))
+    } else {
+      setDocumentError('')
+      setDocument(file)
     }
   }
+
+  const documentErrorNote = documentError ? (
+    <div role="alert" className="flex items-start gap-2 mb-4 max-w-[640px] text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+      <span>{documentError}</span>
+    </div>
+  ) : null
 
   const handleDocumentClick = () => {
     fileInputRef.current?.click()
@@ -289,11 +305,13 @@ export default function RegisterExperiencePage() {
                   <VoiceButton label={t('auth:experience.uploadVoice')} iconClassName="w-[22px] h-[22px] text-gray-600" className="p-1" />
                 </div>
 
+                {documentErrorNote}
+
                 {/* Upload Area */}
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.doc,.docx"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleDocumentUpload}
                   className="hidden"
                 />
@@ -487,10 +505,12 @@ export default function RegisterExperiencePage() {
               <VoiceButton label={t('auth:experience.uploadVoice')} iconClassName="w-5 h-5 text-gray-600" className="p-1" />
             </div>
 
+            {documentErrorNote}
+
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.doc,.docx"
+              accept=".pdf,.jpg,.jpeg,.png"
               onChange={handleDocumentUpload}
               className="hidden"
             />

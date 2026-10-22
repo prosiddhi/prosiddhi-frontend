@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
+import { uploadErrorMessage } from '@/lib/uploadFile'
 import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
 import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
 import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
@@ -271,7 +272,7 @@ function EmployerProfileContent() {
       // Keep the header avatar in step with the new photo.
       updateUser({ profile: { ...user?.profile, profilePhoto: res.profilePhoto } })
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : t('profile:employer.photoError'))
+      setSaveError(uploadErrorMessage(err, t, t('profile:employer.photoError')))
     } finally {
       setPhotoUploading(false)
     }
@@ -668,7 +669,7 @@ function EmployerProfileContent() {
                   <p className="text-sm text-[#717182] mb-4">{t('profile:employer.documentsHint')}</p>
                   <DocumentsSection
                     allowedTypes={[...EMPLOYER_DOC_TYPES]}
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                     minOne
                     list={employerAPI.listDocuments}
                     upload={employerAPI.uploadDocument}

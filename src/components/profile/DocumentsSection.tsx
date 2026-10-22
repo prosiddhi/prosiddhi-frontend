@@ -6,6 +6,7 @@ import { ApiError, fetchSignedFile, resolveMediaUrl, SignedFileError, type UserD
 import { verificationStatusPill, verificationStatusIcon } from '@/lib/applicationStatus'
 import { isPreviewable, sniffPreviewType } from '@/lib/documentPreview'
 import { saveBlob } from '@/lib/saveBlob'
+import { MAX_DOCUMENT_BYTES, uploadErrorMessage } from '@/lib/uploadFile'
 import {
   FileText,
   Upload,
@@ -71,6 +72,10 @@ export function DocumentsSection({
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // ".pdf,.jpg,.jpeg,.png" -> "PDF, JPG, PNG" for the hint under the picker.
+  const acceptedTypes = Array.from(
+    new Set(accept.split(',').map((ext) => ext.trim().replace(/^\./, '').toUpperCase().replace(/^JPEG$/, 'JPG'))),
+  ).join(', ')
 
   // View / Download. One file request at a time: `busy` drives the UI, `inFlight`
   // (a ref, so it flips before React re-renders) swallows a rapid second click.
@@ -149,7 +154,7 @@ export function DocumentsSection({
         setError(t('profile:documents.loadError'))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('profile:documents.uploadError'))
+      setError(uploadErrorMessage(err, t, t('profile:documents.uploadError')))
     } finally {
       setUploading(false)
     }
@@ -308,6 +313,9 @@ export function DocumentsSection({
           {uploading ? t('profile:documents.uploading') : t('profile:documents.uploadDocument')}
         </button>
       </div>
+      <p className="mb-3 text-xs text-[#717182]">
+        {t('profile:documents.acceptedHint', { types: acceptedTypes, maxMb: MAX_DOCUMENT_BYTES / (1024 * 1024) })}
+      </p>
 
       {error && (
         <div className="flex items-start gap-2 mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

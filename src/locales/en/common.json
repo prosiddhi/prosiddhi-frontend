@@ -306,5 +306,10 @@
   "interviewErrors": {
     "date": "Pick a real date that is today or later.",
     "time": "Choose a valid time, like 15:30."
+  },
+  "uploadErrors": {
+    "fileTooLarge": "This file is too big. Documents can be up to 5 MB.",
+    "fileTypeNotAllowed": "This type of file can't be uploaded here.",
+    "fileUnreadable": "We couldn't read this file. Please choose another one."
   }
 }

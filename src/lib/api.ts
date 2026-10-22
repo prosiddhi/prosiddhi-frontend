@@ -1,5 +1,6 @@
 import type { SupportedLanguage } from '@/i18n/languages'
 import { parseRetryAfter, readAttemptsLeft, type OtpSendMeta } from '@/lib/otpSend'
+import { prepareUpload } from '@/lib/uploadFile'
 
 // API Configuration
 //
@@ -1839,8 +1840,9 @@ export const jobSeekerAPI = {
         }))
       if (mapped.length) fd.append('workExperiences', JSON.stringify(mapped))
     }
-    if (data.profilePic) fd.append('profilePic', data.profilePic)
-    if (data.document) fd.append('document', data.document)
+    // Each file is size-checked and, if it is a big image, shrunk first (lib/uploadFile).
+    if (data.profilePic) fd.append('profilePic', await prepareUpload(data.profilePic, 'profilePhoto'))
+    if (data.document) fd.append('document', await prepareUpload(data.document, 'document'))
     // Always sent, never gated on truthiness like the optional fields above —
     // the BE's booleanField() treats a missing key as a gap, not a decline.
     fd.append('whatsappConsent', String(data.whatsappConsent))
@@ -2012,7 +2014,7 @@ export const jobSeekerAPI = {
   // Profile photo. POST /api/jobseekers/me/profile-photo (multipart field `profilePic`).
   updateProfilePhoto: async (file: File) => {
     const fd = new FormData()
-    fd.append('profilePic', file)
+    fd.append('profilePic', await prepareUpload(file, 'profilePhoto'))
     return apiRequest<{ profilePhoto: string }>('/jobseekers/me/profile-photo', {
       method: 'POST',
       body: fd,
@@ -2026,7 +2028,7 @@ export const jobSeekerAPI = {
   },
   uploadDocument: async (file: File, type?: DocumentType) => {
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', await prepareUpload(file, 'document'))
     if (type) fd.append('type', type)
     return apiRequest<UserDocument>('/jobseekers/me/documents', { method: 'POST', body: fd })
   },
@@ -2557,7 +2559,7 @@ export const employerAPI = {
   // Profile photo. POST /api/employers/me/profile-photo (multipart field `profilePic`).
   updateProfilePhoto: async (file: File) => {
     const fd = new FormData()
-    fd.append('profilePic', file)
+    fd.append('profilePic', await prepareUpload(file, 'profilePhoto'))
     return apiRequest<{ profilePhoto: string }>('/employers/me/profile-photo', {
       method: 'POST',
       body: fd,
@@ -2571,7 +2573,7 @@ export const employerAPI = {
   },
   uploadDocument: async (file: File, type?: DocumentType) => {
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', await prepareUpload(file, 'document'))
     if (type) fd.append('type', type)
     return apiRequest<UserDocument>('/employers/me/documents', { method: 'POST', body: fd })
   },
