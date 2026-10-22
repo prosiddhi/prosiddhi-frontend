@@ -43,6 +43,7 @@ import {
   Layers,
   Zap,
   Building2,
+  Lock,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -116,6 +117,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
+  const [fullJobId, setFullJobId] = useState('')
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
@@ -125,6 +127,11 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
   const { user } = useAuth()
   const isSeeker = user?.role === 'JOB_SEEKER'
   const appliedMeta = hasApplied ? appliedCtaMeta(applicationStatus) : null
+  // Closed when the job says so, or when Apply just came back JOB_APPLICATIONS_FULL
+  // (the job loaded as open and filled up since). Keyed by job id so it never
+  // carries over to another job. A seeker who already applied keeps their status.
+  const applicationsClosed =
+    !hasApplied && !!job && (job.applicationsClosed === true || fullJobId === job.id)
 
   useEffect(() => {
     if (!jobId) return
@@ -428,14 +435,20 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <button
                     onClick={() => setIsApplyModalOpen(true)}
-                    disabled={hasApplied}
+                    disabled={hasApplied || applicationsClosed}
                     className={`inline-flex items-center justify-center min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] disabled:cursor-not-allowed ${
                       appliedMeta
                         ? appliedMeta.pill
-                        : 'bg-primary-50 text-primary-100 hover:bg-primary-60 disabled:opacity-60'
+                        : applicationsClosed
+                          ? 'bg-gray-200 text-gray-600'
+                          : 'bg-primary-50 text-primary-100 hover:bg-primary-60 disabled:opacity-60'
                     }`}
                   >
-                    {hasApplied ? (appliedMeta?.label ?? t('seeker:jobDetails.applied')) : t('buttons.apply')}
+                    {hasApplied
+                      ? (appliedMeta?.label ?? t('seeker:jobDetails.applied'))
+                      : applicationsClosed
+                        ? t('seeker:jobCard.applicationsClosed')
+                        : t('buttons.apply')}
                   </button>
                   {/* Contact recruiter (PJP-113). Shown only when
                       NEXT_PUBLIC_EMPLOYER_CONTACT_VISIBLE=true (off by default; the
@@ -462,12 +475,22 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                   brings them back to this job to apply for real. */}
               {!user && (
                 <div className="mb-4 sm:mb-6">
-                  <Link
-                    href={loginForJobHref(job.id)}
-                    className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] bg-primary-50 text-primary-100 hover:bg-primary-60"
-                  >
-                    {t('buttons.apply')}
-                  </Link>
+                  {applicationsClosed ? (
+                    // Nothing to sign in for: a closed job cannot be applied to.
+                    <span
+                      aria-disabled="true"
+                      className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg text-[clamp(14px,12.67px_+_0.21vw,16px)] bg-gray-200 text-gray-600 cursor-not-allowed"
+                    >
+                      {t('seeker:jobCard.applicationsClosed')}
+                    </span>
+                  ) : (
+                    <Link
+                      href={loginForJobHref(job.id)}
+                      className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] bg-primary-50 text-primary-100 hover:bg-primary-60"
+                    >
+                      {t('buttons.apply')}
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -590,6 +613,12 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                           {formatSalaryLine(rel.salaryMin, rel.salaryMax, rel.paymentType)}
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          {rel.applicationsClosed === true && (
+                            <div className="bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              <span className="text-xs font-medium">{t('seeker:jobCard.applicationsClosed')}</span>
+                            </div>
+                          )}
                           {rel.jobType && (
                             <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
                               <Clock className="w-3 h-3 text-[#3386a9]" />
@@ -633,6 +662,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
             setHasApplied(true)
             setApplicationStatus('PENDING')
           }}
+          onFull={() => setFullJobId(job.id)}
         />
       )}
 
