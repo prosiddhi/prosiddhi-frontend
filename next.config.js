@@ -54,6 +54,23 @@ const nextConfig = {
         ...(apiOrigin.port ? { port: apiOrigin.port } : {}),
         pathname: '/uploads/**',
       },
+      // Profile photos on Google Cloud: the backend returns the full
+      // https://storage.googleapis.com/<bucket>/profile-pics/<id>/<file> URL and
+      // resolveMediaUrl passes it through. Pinned to the staging and production
+      // public buckets and their profile-pics folder only; documents live in a
+      // separate private bucket and must never be proxied.
+      // Today every photo <Image> sets `unoptimized`, which skips this allowlist,
+      // so these entries only take effect if that flag is ever removed.
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/prosiddhi-stg-510108-uploads-public/profile-pics/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/prosiddhi-prod-510106-uploads-public/profile-pics/**',
+      },
     ],
     // Next 16 refuses to optimize images from private/loopback addresses. Our local
     // API runs on localhost, so allow it for `next dev` only. Production stays strict:
