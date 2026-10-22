@@ -46,7 +46,16 @@ function load(name) {
 
 const { toMobileDigits, toE164, toMobileInputDigits } = load('lib/identifier')
 const { GSTIN_REGEX } = load('lib/gst')
-const { isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier, GST_INPUT_MAX_LENGTH } =
+const {
+  isValidGstNumber,
+  isValidRegistrationNumber,
+  normaliseIdentifier,
+  GST_INPUT_MAX_LENGTH,
+  COMPANY_NAME_MAX_LENGTH,
+  COMPANY_ADDRESS_MAX_LENGTH,
+  DESIGNATION_MAX_LENGTH,
+  WORK_POSITION_MAX_LENGTH,
+} =
   load('lib/businessIdentifiers')
 const {
   isStrongPassword,
@@ -54,7 +63,7 @@ const {
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
 } = load('lib/validation/passwordPolicy')
-const { nameProblem, isValidPersonName, NAME_MIN_LENGTH } = load('lib/nameValidation')
+const { nameProblem, isValidPersonName, NAME_MIN_LENGTH, NAME_MAX_LENGTH } = load('lib/nameValidation')
 
 const failures = []
 const counts = {}
@@ -343,10 +352,11 @@ const NAMES = [
   ['́́', N, 'combining marks only: no letter'],
   ['‌‍', N, 'ZWNJ/ZWJ only: no letter'],
   ['𠀀', null, 'QUIRK: one astral letter is 2 UTF-16 units, so it passes the length check'],
-  // DIFFERENCE: no maximum on the portal; the backend rejects more than 100.
+  // nameProblem has no maximum on purpose: the portal enforces the backend's 100 as the
+  // inputs' maxLength (NAME_MAX_LENGTH), so the rule itself stays about content.
   ['a'.repeat(100), null, 'exactly 100'],
-  ['a'.repeat(101), null, 'DIFFERENCE: no portal maximum (backend personNameSchema max is 100)'],
-  ['a'.repeat(1000), null, 'DIFFERENCE: no portal maximum'],
+  ['a'.repeat(101), null, 'no maximum in the rule; the inputs cap at NAME_MAX_LENGTH'],
+  ['a'.repeat(1000), null, 'no maximum in the rule'],
 ]
 // The isValidPersonName line is a CONSISTENCY CHECK (expected derived from nameProblem's column);
 // the nameProblem line is the hand-written golden value.
@@ -355,6 +365,32 @@ for (const [input, problem, note] of NAMES) {
   expect(`[consistency] isValidPersonName(${JSON.stringify(input)}) - ${note}`, isValidPersonName(input), problem === null)
 }
 expect('NAME_MIN_LENGTH', NAME_MIN_LENGTH, 2)
+// Input caps = the backend's maxima (personNameSchema 100; auth.validator.ts companyName 200,
+// companyAddress 500, designation 100).
+expect('NAME_MAX_LENGTH', NAME_MAX_LENGTH, 100)
+expect('COMPANY_NAME_MAX_LENGTH', COMPANY_NAME_MAX_LENGTH, 200)
+expect('COMPANY_ADDRESS_MAX_LENGTH', COMPANY_ADDRESS_MAX_LENGTH, 500)
+expect('DESIGNATION_MAX_LENGTH', DESIGNATION_MAX_LENGTH, 100)
+expect('WORK_POSITION_MAX_LENGTH', WORK_POSITION_MAX_LENGTH, 200)
+
+// ------------------------------------------------------ input caps are wired up
+// Source-text count of `maxLength={CONST}` per file, so an input losing its cap (or a new one
+// added) changes the count. A tripwire, not proof: it does not check WHICH input carries it.
+begin('input-caps')
+const CAP_USES = {
+  'app/employer/profile/page.tsx': { NAME_MAX_LENGTH: 1, DESIGNATION_MAX_LENGTH: 1, COMPANY_NAME_MAX_LENGTH: 1, COMPANY_ADDRESS_MAX_LENGTH: 1 },
+  'app/employer/register/account/page.tsx': { NAME_MAX_LENGTH: 1, DESIGNATION_MAX_LENGTH: 1 },
+  'app/employer/register/company-details/page.tsx': { COMPANY_NAME_MAX_LENGTH: 1, COMPANY_ADDRESS_MAX_LENGTH: 1 },
+  'app/profile/page.tsx': { NAME_MAX_LENGTH: 1, WORK_POSITION_MAX_LENGTH: 1, COMPANY_NAME_MAX_LENGTH: 1 },
+  'app/register/profile/page.tsx': { NAME_MAX_LENGTH: 2 },
+  'app/register/experience/page.tsx': { WORK_POSITION_MAX_LENGTH: 2 },
+}
+for (const [rel, uses] of Object.entries(CAP_USES)) {
+  const src = fs.readFileSync(path.join(ROOT, 'src', rel), 'utf8')
+  for (const [constant, expected] of Object.entries(uses)) {
+    expect(`${rel} uses maxLength={${constant}}`, src.split(`maxLength={${constant}}`).length - 1, expected)
+  }
+}
 
 // ------------------------------------------- backend drift guard (when present)
 // Cheap tripwire, not a parity proof: confirm the backend still contains the exact
@@ -386,11 +422,32 @@ for (const [rel, needle, label] of BE_PATTERNS) {
   expect(`backend ${rel} still contains: ${label}`, found, true)
 }
 
+// The limits behind the input caps, read as NUMBERS and compared with the constants, so a
+// reformatted schema does not trip them and a changed limit does. Same SKIPPED rule as above.
+const BE_LIMITS = [
+  ['designation', /designation:\s*z\.string\(\)\.max\((\d+)\)\.optional\(\)/, DESIGNATION_MAX_LENGTH],
+  ['companyName', /companyName:\s*z\.string\(\)\.min\(2\)\.max\((\d+)\)\.optional\(\)/, COMPANY_NAME_MAX_LENGTH],
+  ['companyAddress', /companyAddress:\s*z\.string\(\)\.min\(5\)\.max\((\d+)\)\.optional\(\)/, COMPANY_ADDRESS_MAX_LENGTH],
+  ['work position', /position:\s*z\.string\(\)\.min\(1,[^)]*\)\.max\((\d+)\)/, WORK_POSITION_MAX_LENGTH],
+  // Anchored to the line after `position`, so it cannot match the employer companyName
+  ['work experience companyName', /position:[^\n]*\n\s*companyName:\s*z\.string\(\)\.max\((\d+)\)/, COMPANY_NAME_MAX_LENGTH],
+]
+const authValidator = path.join(BE, 'validators/auth.validator.ts')
+const authValidatorSrc = fs.existsSync(authValidator) ? fs.readFileSync(authValidator, 'utf8') : null
+for (const [label, pattern, constant] of BE_LIMITS) {
+  if (authValidatorSrc === null) {
+    beSkipped++
+    continue
+  }
+  const match = pattern.exec(authValidatorSrc)
+  expect(`backend auth.validator.ts ${label} limit`, match ? Number(match[1]) : null, constant)
+}
+
 // ---------------------------------------------------------------------- report
 const driftRan = counts['backend-drift']
 const total = Object.values(counts).reduce((sum, n) => sum + n, 0)
 const driftStatus =
-  beSkipped === BE_PATTERNS.length
+  beSkipped === BE_PATTERNS.length + BE_LIMITS.length
     ? 'backend drift guard: SKIPPED (backend repo not found - NOT checked)'
     : beSkipped > 0
       ? `backend drift guard: PARTIAL (${driftRan} ran, ${beSkipped} SKIPPED - file missing)`

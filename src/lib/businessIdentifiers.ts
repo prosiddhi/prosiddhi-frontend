@@ -26,6 +26,20 @@ const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/
  */
 export const GST_INPUT_MAX_LENGTH = 20
 
+/**
+ * Backend caps on the employer's free-text fields (auth.validator.ts: companyName
+ * 200, companyAddress 500, designation 100). Used as `maxLength` on the inputs.
+ */
+export const COMPANY_NAME_MAX_LENGTH = 200
+export const COMPANY_ADDRESS_MAX_LENGTH = 500
+export const DESIGNATION_MAX_LENGTH = 100
+
+/**
+ * A seeker's work-experience position (PUT /profile `workExperiences[].position`,
+ * max 200). Not the employer designation above, which is 100.
+ */
+export const WORK_POSITION_MAX_LENGTH = 200
+
 const REGISTRATION_MIN = 5
 const REGISTRATION_MAX = 50
 

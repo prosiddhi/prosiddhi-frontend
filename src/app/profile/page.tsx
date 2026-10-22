@@ -59,7 +59,8 @@ import {
   FileText,
   Sparkles,
 } from 'lucide-react'
-import { nameProblem } from '@/lib/nameValidation'
+import { COMPANY_NAME_MAX_LENGTH, WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
+import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { Field } from '@/components/form/Field'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 
@@ -649,7 +650,7 @@ function SeekerProfileContent() {
                     <>
                     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
                       <Field label={t('profile:seeker.fullName')} className={fieldLabelCls}>
-                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
+                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
                       </Field>
                       <EmailStatusField
                         label={t('profile:seeker.emailAddress')}
@@ -894,10 +895,10 @@ function SeekerProfileContent() {
                         </button>
                         <div className="grid sm:grid-cols-2 gap-3">
                           <Field label={t('profile:seeker.position')} className={fieldLabelCls}>
-                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} placeholder={t('profile:seeker.positionPlaceholder')} className={inputCls} />
+                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} maxLength={WORK_POSITION_MAX_LENGTH} placeholder={t('profile:seeker.positionPlaceholder')} className={inputCls} />
                           </Field>
                           <Field label={t('profile:seeker.company')} className={fieldLabelCls}>
-                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
+                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
                           </Field>
                           <Field label={t('profile:seeker.startDate')} className={fieldLabelCls}>
                             <DatePicker value={exp.startDate ?? ''} onChange={(v) => setExp(exp.key, 'startDate', v)} className={inputCls} />

@@ -22,7 +22,7 @@ import {
   type EmployerProfileUpdate,
   type CompanySize,
 } from '@/lib/api'
-import { GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
+import { COMPANY_ADDRESS_MAX_LENGTH, COMPANY_NAME_MAX_LENGTH, DESIGNATION_MAX_LENGTH, GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
 import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
 import { IdentifierError } from '@/components/form/IdentifierError'
 import { LANGUAGES } from '@/lib/jobCategories'
@@ -40,7 +40,7 @@ import {
   Phone,
   Mail,
 } from 'lucide-react'
-import { nameProblem } from '@/lib/nameValidation'
+import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { checkEmail } from '@/lib/email'
 import { Field } from '@/components/form/Field'
 import { DatePicker } from '@/components/form/DatePicker'
@@ -548,10 +548,10 @@ function EmployerProfileContent() {
                     {editing ? (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
                         <Field label={t('profile:employer.fullName')} className={fieldLabelCls}>
-                          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('profile:employer.fullNamePlaceholder')} className={inputCls} />
+                          <input value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:employer.fullNamePlaceholder')} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.designation')} className={fieldLabelCls}>
-                          <input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder={t('profile:employer.designationPlaceholder')} className={inputCls} />
+                          <input value={designation} onChange={(e) => setDesignation(e.target.value)} maxLength={DESIGNATION_MAX_LENGTH} placeholder={t('profile:employer.designationPlaceholder')} className={inputCls} />
                         </Field>
                       </div>
                     ) : (
@@ -569,13 +569,13 @@ function EmployerProfileContent() {
                     {editing ? (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
                         <Field label={t('profile:employer.companyName')} className={fieldLabelCls}>
-                          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t('profile:employer.companyNamePlaceholder')} className={inputCls} />
+                          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:employer.companyNamePlaceholder')} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.companyEmail')} className={fieldLabelCls}>
                           <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder={t('profile:employer.companyEmailPlaceholder')} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.companyAddress')} className={fieldLabelCls} full>
-                          <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder={t('profile:employer.companyAddressPlaceholder')} className={inputCls} />
+                          <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} maxLength={COMPANY_ADDRESS_MAX_LENGTH} placeholder={t('profile:employer.companyAddressPlaceholder')} className={inputCls} />
                         </Field>
                         <Field label={t('profile:employer.foundedDate')} className={fieldLabelCls}>
                           <DatePicker value={companyFoundedDate} onChange={setCompanyFoundedDate} minYear={1800} className={inputCls} />
