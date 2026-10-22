@@ -36,11 +36,8 @@ export const REGISTERED_OFFICE = [
 /** GSTIN (GST REG-06). */
 export const GSTIN = '29ABBCA8287G1ZA'
 
-/**
- * Public phone numbers, in the order shown (Nazir, 2026-10-22). The second is
- * also the developer phone published on Google Play — keep it while Play has it.
- */
-export const SUPPORT_PHONES = ['+91 97410 66225', '+91 70265 54789'] as const
+/** Public phone numbers, in the order shown (Nazir, 2026-10-22). */
+export const SUPPORT_PHONES = ['+91 97410 66225', '+91 91107 62251'] as const
 
 /** All numbers in one line for sentences ("call {{phone}}"). " / " reads the
  *  same in every language, so no translation needs an "or". */
