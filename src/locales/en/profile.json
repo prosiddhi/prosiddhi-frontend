@@ -232,6 +232,7 @@
     "uploadDocument": "Upload Document",
     "loadError": "Failed to load documents.",
     "uploadError": "Failed to upload document.",
+    "acceptedHint": "Accepted: {{types}}. Up to {{maxMb}} MB each.",
     "minOneError": "At least one document is required. Upload another before removing this one.",
     "removeConfirm": "Remove this document? This cannot be undone.",
     "removeError": "Failed to remove document.",

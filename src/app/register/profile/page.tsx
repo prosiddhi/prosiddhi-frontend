@@ -19,6 +19,9 @@ import { checkEmail } from '@/lib/email'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 import { SELECT_CHEVRON_CLS } from '@/components/form/selectChevron'
 
+// What POST /jobseekers/register takes as a profile photo (the backend's imageFileFilter).
+const PROFILE_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
 export default function RegisterProfilePage() {
   const router = useRouter()
   const { t } = useTranslation()
@@ -63,7 +66,16 @@ export default function RegisterProfilePage() {
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    // So choosing the same file again fires onChange again.
+    e.target.value = ''
     if (!file) return
+    // The picker's filter is only a hint ("All files" overrides it). A PDF here used
+    // to be previewed as a broken image and refused at the LAST sign-up step; say so now.
+    if (!PROFILE_PHOTO_TYPES.includes(file.type)) {
+      setError(t('common:uploadErrors.fileTypeNotAllowed'))
+      return
+    }
+    if (error) setError('')
     update({ profilePic: file })
     const reader = new FileReader()
     reader.onloadend = () => setProfileImage(reader.result as string)

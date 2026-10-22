@@ -13,6 +13,7 @@ import { authAPI, classifyRegisterError, emailOtpAPI, jobSeekerAPI } from '@/lib
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { readOtpSendTiming } from '@/lib/otpSend'
+import { knownUploadErrorMessage } from '@/lib/uploadFile'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 import { nameProblem } from '@/lib/nameValidation'
@@ -258,6 +259,12 @@ export default function RegisterPasswordPage() {
    * neither.
    */
   const handleRegisterFailure = (err: unknown) => {
+    // A refused photo or document (too big / wrong type / unreadable): say so in the user's language.
+    const uploadMessage = knownUploadErrorMessage(err, t)
+    if (uploadMessage) {
+      setError(uploadMessage)
+      return
+    }
     const failure = classifyRegisterError(err)
     switch (failure.kind) {
       case 'fields':

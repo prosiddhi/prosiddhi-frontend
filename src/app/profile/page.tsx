@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { Footer } from '@/components/home/Footer'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
+import { uploadErrorMessage } from '@/lib/uploadFile'
 import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
 import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
 import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
@@ -305,7 +306,7 @@ function SeekerProfileContent() {
       // Keep the header avatar in step with the new photo.
       updateUser({ profile: { ...user?.profile, profilePhoto: res.profilePhoto } })
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : t('profile:seeker.photoError'))
+      setSaveError(uploadErrorMessage(err, t, t('profile:seeker.photoError')))
     } finally {
       setPhotoUploading(false)
     }
