@@ -628,6 +628,7 @@ function LoginContent() {
   const bannerMessage = error || (activeValidationKey ? t(activeValidationKey) : '')
 
   const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
+  const bindPhoneValue = bindSendForm.watch('phone')
 
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
@@ -794,7 +795,7 @@ function LoginContent() {
 
               {!otpSent ? (
                 <form onSubmit={phoneOtpSendForm.handleSubmit(onSendOtp)}>
-                  <button type="submit" disabled={loading || !sendOtpPhoneValue} className={PRIMARY_BTN_CLS}>
+                  <button type="submit" disabled={loading || !toE164(sendOtpPhoneValue)} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:login.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
@@ -1043,7 +1044,7 @@ function LoginContent() {
                     onInputRefused={() => setError(t('auth:phone.errorInvalid'))}
                     onInputAccepted={() => setError('')}
                   />
-                  <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
+                  <button type="submit" disabled={loading || !toE164(bindPhoneValue)} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
                   </button>
                 </form>
