@@ -176,8 +176,18 @@ export function Footer({
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
-                <li><Link href="/refund-policy" className={linkClass}>{t('footer.refund')}</Link></li>
-                <li><Link href="/delivery-policy" className={linkClass}>{t('footer.delivery')}</Link></li>
+                {/* Hidden for a known seeker and on the seeker landing page (they pay nothing).
+                    Same pending rule as the employer column: invisible, not removed, until the role is known. */}
+                {showEmployers && (
+                  <li className={employersPending ? 'invisible' : undefined} aria-hidden={employersPending || undefined}>
+                    <Link href="/refund-policy" className={linkClass}>{t('footer.refund')}</Link>
+                  </li>
+                )}
+                {showEmployers && (
+                  <li className={employersPending ? 'invisible' : undefined} aria-hidden={employersPending || undefined}>
+                    <Link href="/delivery-policy" className={linkClass}>{t('footer.delivery')}</Link>
+                  </li>
+                )}
                 <li><Link href="/delete-account" className={linkClass}>{t('breadcrumbs.deleteAccount', { ns: 'common' })}</Link></li>
               </ul>
             </div>
