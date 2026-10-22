@@ -11,7 +11,7 @@ import {
   GSTIN,
   REGISTERED_OFFICE,
   SUPPORT_EMAIL,
-  SUPPORT_PHONE,
+  SUPPORT_PHONE_TEXT,
 } from '@/lib/legal'
 
 /**
@@ -46,7 +46,7 @@ const LINKS: Record<string, ReactElement> = {
 const VALUES = {
   company: COMPANY_LEGAL_NAME,
   email: SUPPORT_EMAIL,
-  phone: SUPPORT_PHONE,
+  phone: SUPPORT_PHONE_TEXT,
 }
 
 // legal.ts leaves a value empty while it is unconfirmed; print only what is set.

@@ -36,8 +36,15 @@ export const REGISTERED_OFFICE = [
 /** GSTIN (GST REG-06). */
 export const GSTIN = '29ABBCA8287G1ZA'
 
-/** Public phone — the same number published as the developer phone on Google Play. */
-export const SUPPORT_PHONE = '+91 70265 54789'
+/**
+ * Public phone numbers, in the order shown (Nazir, 2026-10-22). The second is
+ * also the developer phone published on Google Play — keep it while Play has it.
+ */
+export const SUPPORT_PHONES = ['+91 97410 66225', '+91 70265 54789'] as const
+
+/** All numbers in one line for sentences ("call {{phone}}"). " / " reads the
+ *  same in every language, so no translation needs an "or". */
+export const SUPPORT_PHONE_TEXT = SUPPORT_PHONES.join(' / ')
 
 /**
  * Grievance Officer — required by the IT (Intermediary) Rules 2021 Rule 3(2), the

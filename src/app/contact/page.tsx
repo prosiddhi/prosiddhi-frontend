@@ -11,7 +11,8 @@ import {
   GSTIN,
   REGISTERED_OFFICE,
   SUPPORT_EMAIL,
-  SUPPORT_PHONE,
+  SUPPORT_PHONES,
+  SUPPORT_PHONE_TEXT,
 } from '@/lib/legal'
 
 /**
@@ -44,14 +45,19 @@ export default function ContactPage() {
       </LegalSection>
 
       <LegalSection title={t('contact.phone.title')}>
-        <p>{t('contact.phone.body', { phone: SUPPORT_PHONE })}</p>
-        <a
-          href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}
-          className="inline-flex items-center gap-2 min-h-[48px] px-6 border border-primary-50 text-primary-90 rounded-lg hover:bg-primary-10 transition-colors"
-        >
-          <Phone className="w-5 h-5" />
-          {SUPPORT_PHONE}
-        </a>
+        <p>{t('contact.phone.body', { phone: SUPPORT_PHONE_TEXT })}</p>
+        <div className="flex flex-wrap gap-3">
+          {SUPPORT_PHONES.map((phone) => (
+            <a
+              key={phone}
+              href={`tel:${phone.replace(/\s/g, '')}`}
+              className="inline-flex items-center gap-2 min-h-[48px] px-6 border border-primary-50 text-primary-90 rounded-lg hover:bg-primary-10 transition-colors"
+            >
+              <Phone className="w-5 h-5" />
+              {phone}
+            </a>
+          ))}
+        </div>
       </LegalSection>
 
       <LegalSection title={t('contact.help.title')}>
