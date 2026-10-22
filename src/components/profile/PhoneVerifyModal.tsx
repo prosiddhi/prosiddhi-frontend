@@ -66,10 +66,15 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
   if (!isOpen) return null
 
   const e164 = toE164(phoneNumber)
-  const canSendOtp = !!e164
+  // The entered number is the one already on the account (compared as +91 numbers, so a stored
+  // number in any shape the helper accepts still matches). Sending a code to it would only end in
+  // a misleading "another account" refusal, so it is stopped here.
+  const isCurrentNumber = e164 !== null && e164 === (toE164(currentPhoneNumber) ?? currentPhoneNumber)
+  const canSendOtp = !!e164 && !isCurrentNumber
+  const shownError = error || (step === 'phone' && isCurrentNumber ? t('profile:seeker.phoneModal.samePhone') : '')
 
   const sendOtp = async () => {
-    if (!e164 || sending) return
+    if (!e164 || isCurrentNumber || sending) return
     setSending(true)
     setError('')
     try {
@@ -119,13 +124,14 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={sending || verifying ? undefined : onClose} />
 
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px]">
         <button
           onClick={onClose}
+          disabled={sending || verifying}
           aria-label={t('profile:seeker.phoneModal.cancel')}
-          className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
         >
           <X className="w-5 h-5" />
         </button>
@@ -166,10 +172,11 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
 
               {step === 'phone' ? (
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-black mb-1.5 block">
+                  <label htmlFor="change-phone-input" className="text-sm font-medium text-black mb-1.5 block">
                     {t('profile:seeker.phoneModal.phoneLabel')}
                   </label>
                   <input
+                    id="change-phone-input"
                     type="tel"
                     inputMode="numeric"
                     value={phoneNumber}
@@ -235,10 +242,10 @@ export function PhoneVerifyModal({ isOpen, onClose, currentPhoneNumber, onSucces
                 </div>
               )}
 
-              {error && (
+              {shownError && (
                 <div className="mb-4 flex items-start gap-2 text-red-600 text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
+                  <span>{shownError}</span>
                 </div>
               )}
 

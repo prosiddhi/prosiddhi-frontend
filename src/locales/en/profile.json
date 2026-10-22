@@ -60,6 +60,7 @@
       "intro": "Enter your new phone number. We'll send a 6-digit code to confirm it.",
       "phoneLabel": "Phone Number",
       "phonePlaceholder": "9876543210",
+      "samePhone": "This is already your current phone number. Enter a different one.",
       "sendOtp": "Send OTP",
       "sending": "Sending…",
       "otpLabel": "Enter the 6-digit code",
