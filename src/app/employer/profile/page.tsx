@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { DocumentsSection } from '@/components/profile/DocumentsSection'
-import { uploadErrorMessage } from '@/lib/uploadFile'
+import { isProfilePhotoType, uploadErrorMessage } from '@/lib/uploadFile'
 import { EmailVerifyModal, type EmailVerifyMode } from '@/components/profile/EmailVerifyModal'
 import { PhoneVerifyModal } from '@/components/profile/PhoneVerifyModal'
 import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
@@ -112,7 +112,7 @@ const ACCOUNT_STATUS_DOT: Record<string, string> = {
 }
 
 function EmployerProfileContent() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user, updateUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -132,6 +132,11 @@ function EmployerProfileContent() {
   const [verificationStatus, setVerificationStatus] = useState<string>('')
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
+  // Why the last photo was refused. Its own message under the avatar: the save bar's
+  // `saveError` is only on screen while editing, and the camera button works any time.
+  // Kept with the language it was written in: the text is translated when the error happens, so
+  // it is hidden once the user switches language (they get a fresh one in the new language).
+  const [photoError, setPhotoError] = useState<{ message: string; lang: string } | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
 
   // Root account fields (common to both employer types).
@@ -264,15 +269,20 @@ function EmployerProfileContent() {
     const file = e.target.files?.[0]
     if (photoRef.current) photoRef.current.value = ''
     if (!file) return
+    // Refuse a non-image here, in the open, before anything is uploaded.
+    if (!isProfilePhotoType(file)) {
+      setPhotoError({ message: t('common:uploadErrors.fileTypeNotAllowed'), lang: i18n.language })
+      return
+    }
     setPhotoUploading(true)
-    setSaveError('')
+    setPhotoError(null)
     try {
       const res = await employerAPI.updateProfilePhoto(file)
       setPhoto(res.profilePhoto)
       // Keep the header avatar in step with the new photo.
       updateUser({ profile: { ...user?.profile, profilePhoto: res.profilePhoto } })
     } catch (err) {
-      setSaveError(uploadErrorMessage(err, t, t('profile:employer.photoError')))
+      setPhotoError({ message: uploadErrorMessage(err, t, t('profile:employer.photoError')), lang: i18n.language })
     } finally {
       setPhotoUploading(false)
     }
@@ -458,6 +468,12 @@ function EmployerProfileContent() {
                     {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                   </button>
                 </div>
+                {photoError && photoError.lang === i18n.language && (
+                  <p role="alert" className="mt-3 flex items-start gap-1.5 text-sm text-red-600 text-left">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>{photoError.message}</span>
+                  </p>
+                )}
                 <p className="text-xl font-semibold text-black mt-5 break-words">{displayName}</p>
                 {employerType && (
                   <p className="text-xs text-[#717182] mt-1">
