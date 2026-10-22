@@ -21,7 +21,7 @@ export const COMPANY_LEGAL_NAME = 'AZKASHINE SOFTWARE AND SERVICES PRIVATE LIMIT
 export const PRODUCT_NAME = 'ProSiddhi'
 
 /** Public support / grievance contact. */
-export const SUPPORT_EMAIL = 'biz-ops@azkashine.com'
+export const SUPPORT_EMAIL = 'prosiddhisales@azkashine.com'
 
 /** Corporate Identification Number (Certificate of Incorporation). */
 export const CIN = 'U62013KA2024PTC195985'
