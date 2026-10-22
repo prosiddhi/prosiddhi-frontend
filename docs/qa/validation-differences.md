@@ -53,7 +53,7 @@ Notes:
 ## 3. Other confirmed differences
 
 1. **Phone.** Portal `toE164` is strict Indian mobile: `^(?:\+91|91|0)?([6-9]\d{9})$`, nothing trimmed. Backend `phoneRegex` is `^\+?[1-9]\d{1,14}$` (any country, 2–15 digits) and `normalizePhoneNumber` strips whitespace and accepts bare 10-digit or 12-digit-with-91. The portal is stricter; API callers can register numbers the portal would refuse. Phase 2 territory; no change made.
-2. **Person name length.** Backend `personNameSchema` has a 100-character maximum. Portal `nameProblem` has no maximum (101 and 1000 characters both return `null`). Character rules are otherwise identical, including the allowlist.
+2. **Person name length — closed.** Backend `personNameSchema` caps at 100. The portal now sets `maxLength` from `NAME_MAX_LENGTH` (100) on every full-name input, and likewise company name 200, company address 500 and employer designation 100 (`businessIdentifiers.ts`). `nameProblem` itself still has no maximum (101 and 1000 characters return `null`); the cap lives on the inputs. Character rules are otherwise identical, including the allowlist.
 3. **Password.** Same rule on both sides (8–64, lower, upper, digit, non-alphanumeric). Length is counted in UTF-16 units on both, so an emoji counts as 2.
 4. **Registration number.** Same rule on both sides (trim, upper-case, 5–50 characters, no pattern). Length is measured after upper-casing, so `ß` counts as 2 (`SS`).
 
@@ -69,5 +69,5 @@ Notes:
 
 1. Which GSTIN position-13 rule is right? The official rule is **unverified**: it has not been checked in this phase and needs confirming against the authoritative GSTN specification. Until then neither pattern is treated as correct. Backend decision.
 2. Should the portal phone rule stay India-only, or follow the backend's E.164? (Phase 2.)
-3. Should the portal enforce the 100-character name maximum the backend already enforces?
+3. ~~Should the portal enforce the 100-character name maximum?~~ Done as an input `maxLength`; no error message.
 4. Should the 254 cap apply on routes where the backend has none?

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Link from 'next/link'
 import { authAPI, classifyRegisterError, employerAPI, type CompanySize } from '@/lib/api'
-import { GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
+import { COMPANY_ADDRESS_MAX_LENGTH, COMPANY_NAME_MAX_LENGTH, GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
 import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
 import { IdentifierError } from '@/components/form/IdentifierError'
 import { useAuth } from '@/contexts/AuthContext'
@@ -298,7 +298,7 @@ export default function CompanyDetailsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyName')} <span className="text-red-500">*</span></label>
-                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder={t('employerRegister:companyDetails.companyNamePlaceholder')} disabled={loading} className={inputCls} />
+                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('employerRegister:companyDetails.companyNamePlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyEmail')} <span className="text-red-500">*</span></label>
@@ -306,7 +306,7 @@ export default function CompanyDetailsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyAddress')} <span className="text-red-500">*</span></label>
-                <input type="text" value={form.companyAddress} onChange={(e) => set('companyAddress', e.target.value)} placeholder={t('employerRegister:companyDetails.companyAddressPlaceholder')} disabled={loading} className={inputCls} />
+                <input type="text" value={form.companyAddress} onChange={(e) => set('companyAddress', e.target.value)} maxLength={COMPANY_ADDRESS_MAX_LENGTH} placeholder={t('employerRegister:companyDetails.companyAddressPlaceholder')} disabled={loading} className={inputCls} />
               </div>
               <div>
                 <label htmlFor={foundedId} className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.foundedDate')} <span className="text-red-500">*</span></label>

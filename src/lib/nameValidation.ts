@@ -63,6 +63,9 @@ const ALLOWED = /^[\p{L}\p{M}\s'’,.\u200C\u200D\p{Pd}]+$/u
 
 export const NAME_MIN_LENGTH = 2
 
+/** The backend's cap (personNameSchema / editableNameSchema). Used as input `maxLength`, not as an error. */
+export const NAME_MAX_LENGTH = 100
+
 /**
  * True when `value` is usable as a person's name in any script we ship.
  *

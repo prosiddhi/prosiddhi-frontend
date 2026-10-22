@@ -8,6 +8,7 @@ import { VoiceButton } from '@/components/feedback/VoiceButton'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
 interface Experience {
@@ -219,6 +220,7 @@ export default function RegisterExperiencePage() {
                         <input
                           type="text"
                           value={exp.designation}
+                          maxLength={WORK_POSITION_MAX_LENGTH}
                           onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                           placeholder={t('auth:experience.designationPlaceholder')}
                           className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
@@ -425,6 +427,7 @@ export default function RegisterExperiencePage() {
                     <input
                       type="text"
                       value={exp.designation}
+                      maxLength={WORK_POSITION_MAX_LENGTH}
                       onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                       placeholder={t('auth:experience.designationPlaceholder')}
                       className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"

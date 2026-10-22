@@ -13,7 +13,7 @@ import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
-import { nameProblem } from '@/lib/nameValidation'
+import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { isAtLeast18 } from '@/lib/dateInput'
 import { checkEmail } from '@/lib/email'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
@@ -264,6 +264,7 @@ export default function RegisterProfilePage() {
                   <input
                     type="text"
                     value={fullName}
+                    maxLength={NAME_MAX_LENGTH}
                     onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
                     placeholder={t('auth:profile.fullNamePlaceholder')}
                     className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base"
@@ -359,6 +360,7 @@ export default function RegisterProfilePage() {
               <input
                 type="text"
                 value={fullName}
+                maxLength={NAME_MAX_LENGTH}
                 onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
                 className="w-full h-12 px-3 border rounded-lg"
               />

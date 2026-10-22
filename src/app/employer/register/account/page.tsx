@@ -11,7 +11,8 @@ import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
-import { nameProblem } from '@/lib/nameValidation'
+import { DESIGNATION_MAX_LENGTH } from '@/lib/businessIdentifiers'
+import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import {
   newPasswordSchema,
@@ -349,6 +350,7 @@ export default function AccountSetupPage() {
                       id="fullName"
                       type="text"
                       value={fullName}
+                      maxLength={NAME_MAX_LENGTH}
                       onChange={(e) => { setFullName(e.target.value); if (error) setError('') }}
                       placeholder={t('employerRegister:account.fullNamePlaceholder')}
                       disabled={loading}
@@ -363,6 +365,7 @@ export default function AccountSetupPage() {
                       id="designation"
                       type="text"
                       value={designation}
+                      maxLength={DESIGNATION_MAX_LENGTH}
                       onChange={(e) => setDesignation(e.target.value)}
                       placeholder={t('employerRegister:account.designationPlaceholder')}
                       disabled={loading}
