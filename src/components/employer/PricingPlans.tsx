@@ -29,7 +29,7 @@ import { formatShortDate } from '@/lib/jobFormat'
 
 type Tab = 'jobs' | 'bundle' | 'database'
 
-function PlanCard({
+export function PlanCard({
   plan,
   onBuy,
   canBuy,
