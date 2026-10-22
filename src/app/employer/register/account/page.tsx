@@ -191,8 +191,9 @@ export default function AccountSetupPage() {
       setFieldErrors([])
       setNeedsReverify(null)
 
-      // Creates the account ACTIVE, with trial credits granted (1 post,
-      // 3 downloads, 14 days). No verification step follows.
+      // Creates the account waiting for admin approval (PENDING_ADMIN_APPROVAL).
+      // The trial credits are granted when an admin approves it. No verification
+      // step follows.
       const created = await employerAPI.registerIndividual({
         email: data.email,
         password: newPassword,

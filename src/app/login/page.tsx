@@ -555,15 +555,16 @@ function LoginContent() {
   }
 
   // Tail of the phone bind. The session's user was stamped
-  // PENDING_OTP_VERIFICATION / phoneNumber: null at Google sign-up; a successful
-  // changePhone() call always flips PENDING_OTP_VERIFICATION -> ACTIVE
-  // server-side (auth.service.ts changePhone, `shouldActivate`). That fact isn't
-  // in the response body (it returns only `{ phoneNumber }`), but it's true by
-  // construction of having reached this line, so patching it locally isn't a
-  // manufactured claim. `phoneVerified` is deliberately NOT patched here: the
-  // backend doesn't return it and AuthUser has no such field.
+  // PENDING_OTP_VERIFICATION / phoneNumber: null at Google sign-up. A successful
+  // changePhone() moves it on server-side, but the response returns only
+  // `{ phoneNumber }`. A job seeker always becomes ACTIVE. An employer does not:
+  // a company waits for its documents (PENDING_DOCUMENTS) and a single-user
+  // employer for an admin (PENDING_ADMIN_APPROVAL), so their status is left for
+  // the pages that read it fresh from the server. `phoneVerified` is
+  // deliberately NOT patched here: the backend doesn't return it and AuthUser has
+  // no such field.
   const completeBind = (e164: string) => {
-    updateUser({ phoneNumber: e164, accountStatus: 'ACTIVE' })
+    updateUser({ phoneNumber: e164, ...(bindUser?.role === 'JOB_SEEKER' ? { accountStatus: 'ACTIVE' } : {}) })
     if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
     router.push(bindUser ? homeRouteForRole(bindUser.role) : '/')
   }
