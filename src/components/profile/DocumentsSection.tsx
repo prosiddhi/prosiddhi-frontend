@@ -137,7 +137,17 @@ export function DocumentsSection({
     setNotice('')
     try {
       const created = await upload(file, uploadType)
-      setDocs((prev) => [created, ...prev])
+      // The BE can replace or remove an older row on upload (employer GST / company
+      // registration are one-per-type), and POST returns only the new row. So the list
+      // is re-read instead of prepending. If that read fails the upload still worked:
+      // show the new row, and say the LIST could not be refreshed (never "upload failed").
+      const fresh = await list().catch(() => null)
+      if (Array.isArray(fresh)) {
+        setDocs(fresh)
+      } else {
+        setDocs((prev) => [created, ...prev])
+        setError(t('profile:documents.loadError'))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('profile:documents.uploadError'))
     } finally {
@@ -291,7 +301,7 @@ export function DocumentsSection({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          disabled={uploading}
+          disabled={uploading || loading || deletingId !== null}
           className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm disabled:opacity-60"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -384,7 +394,7 @@ export function DocumentsSection({
                   <button
                     type="button"
                     onClick={() => handleDelete(doc)}
-                    disabled={deletingId === doc.id || atMin}
+                    disabled={deletingId === doc.id || atMin || uploading}
                     title={atMin ? t('profile:documents.minOneTitle') : t('profile:documents.removeTitle')}
                     aria-label={t('profile:documents.removeTitle')}
                     className="inline-flex items-center gap-1.5 min-h-[40px] px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
