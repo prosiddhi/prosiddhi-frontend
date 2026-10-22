@@ -22,7 +22,7 @@ import {
   type AuthUser,
 } from '@/lib/api'
 import { safeInternalPath } from '@/lib/safeRedirect'
-import { toIdentifier, toE164 } from '@/lib/identifier'
+import { toIdentifier, toE164, toMobileDigits } from '@/lib/identifier'
 import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
 import { showToast } from '@/lib/toast'
 import { displayName } from '@/lib/userDisplay'
@@ -403,7 +403,10 @@ function LoginContent() {
     // email. Carrying "boss@acme.com" into a box labelled Phone Number
     // prefills a dead end: Send OTP cannot do anything with it.
     const currentIdentifier = phonePasswordForm.getValues('identifier')
-    phoneOtpSendForm.setValue('phone', currentIdentifier.includes('@') ? '' : currentIdentifier)
+    // The field only holds up to 10 digits (PhoneNumberField refuses anything else
+    // while editing), so carry the digits, not the text: "+919876543210" would
+    // otherwise be stuck there, and an email or half-typed number becomes empty.
+    phoneOtpSendForm.setValue('phone', toMobileDigits(currentIdentifier) ?? '')
     setTab('phoneOtp')
     setError('')
     setOtpSent(false)
@@ -785,6 +788,8 @@ function LoginContent() {
                 placeholder={t('auth:login.phonePlaceholder')}
                 disabled={otpSent}
                 register={phoneOtpSendForm.register('phone')}
+                onInputRefused={() => setError(t('auth:phone.errorInvalid'))}
+                onInputAccepted={() => setError('')}
               />
 
               {!otpSent ? (
@@ -1035,6 +1040,8 @@ function LoginContent() {
                     placeholder={t('auth:bindPhone.phonePlaceholder')}
                     required
                     register={bindSendForm.register('phone')}
+                    onInputRefused={() => setError(t('auth:phone.errorInvalid'))}
+                    onInputAccepted={() => setError('')}
                   />
                   <button type="submit" disabled={loading} className={PRIMARY_BTN_CLS}>
                     {loading ? t('auth:bindPhone.sending') : t('buttons.sendOtp')}
