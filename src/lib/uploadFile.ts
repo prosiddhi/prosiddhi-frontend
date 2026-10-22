@@ -12,6 +12,15 @@ import { shrinkImage, type ImageKind } from '@/lib/shrinkImage'
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
 
+/**
+ * What the backend takes as a profile photo (its imageFileFilter). A file input's
+ * `accept` is only a hint: the file dialog's "All files" overrides it, so a PDF can
+ * still be chosen. Check this before uploading.
+ */
+export const PROFILE_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
+export const isProfilePhotoType = (file: File): boolean => PROFILE_PHOTO_TYPES.includes(file.type)
+
 /** The backend's stable upload error codes (docs: "Smaller, safer uploads", shared contract). */
 export type UploadErrorCode = 'FILE_TOO_LARGE' | 'FILE_TYPE_NOT_ALLOWED' | 'FILE_UNREADABLE'
 
