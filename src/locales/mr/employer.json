@@ -252,6 +252,8 @@
       "SPEND_POST": "नोकरी पोस्ट",
       "SPEND_UNLOCK": "उमेदवार अनलॉक",
       "REFUND_DELETE": "परतावा (नोकरी हटवली)",
+      "REFUND_REJECT": "परतावा (नोकरी पोस्ट नाकारली)",
+      "REFUND_UNLOCK_DELETED": "परतावा (उमेदवार हटवला)",
       "EXPIRE": "मुदत संपली"
     }
   },

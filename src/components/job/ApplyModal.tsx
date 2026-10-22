@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { jobSeekerAPI } from '@/lib/api'
+import { ApiError, jobSeekerAPI } from '@/lib/api'
 
 // The BE caps the cover message at 1000 chars (application.validator).
 const MESSAGE_MAX = 1000
+// Mirrors MAX_APPLICATIONS_PER_JOB in prosiddhi-backend job.service.ts; only used
+// to word the "limit reached" message.
+const MAX_APPLICANTS = 50
 
 interface ApplyModalProps {
   isOpen: boolean
@@ -16,6 +19,8 @@ interface ApplyModalProps {
   companyName: string
   /** Called after a successful submission, so the parent can reflect "Applied". */
   onApplied?: () => void
+  /** Called when the BE says the job is full (409 JOB_APPLICATIONS_FULL), so the parent can show it as closed. */
+  onFull?: () => void
 }
 
 /**
@@ -25,17 +30,20 @@ interface ApplyModalProps {
  * the audio feature (see docs/PRODUCT.md). The application is text-only; the BE
  * still accepts an empty message, so applying with nothing but the profile works.
  */
-export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onApplied }: ApplyModalProps) {
+export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onApplied, onFull }: ApplyModalProps) {
   const { t } = useTranslation()
   const [textMessage, setTextMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [success, setSuccess] = useState(false)
+  // Set once the BE reports the job full: sending again would only fail again.
+  const [full, setFull] = useState(false)
 
   const handleClose = useCallback(() => {
     setTextMessage('')
     setSubmitError('')
     setSuccess(false)
+    setFull(false)
     onClose()
   }, [onClose])
 
@@ -50,6 +58,12 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
       setSuccess(true)
       onApplied?.()
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'JOB_APPLICATIONS_FULL') {
+        setFull(true)
+        setSubmitError(t('seeker:applyModal.applicationsFull', { count: MAX_APPLICANTS }))
+        onFull?.()
+        return
+      }
       setSubmitError(err instanceof Error ? err.message : t('seeker:applyModal.submitError'))
     } finally {
       setSubmitting(false)
@@ -171,7 +185,7 @@ export function ApplyModal({ isOpen, onClose, jobId, jobTitle, companyName, onAp
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || full}
                   className="flex-1 min-h-[48px] px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}

@@ -850,6 +850,10 @@ export interface Job {
   hasReported?: boolean
   // GET /jobs/:id only: true for the owning employer and their team members.
   isOwner?: boolean
+  // True once the job holds the maximum applications that were not withdrawn;
+  // apply then answers 409 JOB_APPLICATIONS_FULL. Sent on the job lists and the
+  // detail read. An older backend omits it — treat `undefined` as "open".
+  applicationsClosed?: boolean
   [key: string]: unknown
 }
 

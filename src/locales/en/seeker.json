@@ -14,7 +14,8 @@
     "perMonth": "{{salary}} / Month",
     "saveJob": "Save Job",
     "saved": "Saved",
-    "viewJob": "View Job"
+    "viewJob": "View Job",
+    "applicationsClosed": "Applications closed"
   },
   "jobFeed": {
     "pageTitle": "Job feed",
@@ -238,7 +239,8 @@
     "close": "Close",
     "submit": "Apply for this Job",
     "submitting": "Submitting...",
-    "submitError": "Failed to submit application. Please try again."
+    "submitError": "Failed to submit application. Please try again.",
+    "applicationsFull": "This job has reached its limit of {{count}} applicants."
   },
   "contactModal": {
     "title": "Contact the Recruiter",

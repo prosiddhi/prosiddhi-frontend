@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { humanizeJobType, formatSalaryLine, relativeTime, initials, jobPlaceTags } from '@/lib/jobFormat'
 import type { Job } from '@/lib/api'
-import { Bookmark, BookmarkCheck, Briefcase, Clock, IndianRupee, Loader2, MapPin } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Briefcase, Clock, IndianRupee, Loader2, Lock, MapPin } from 'lucide-react'
 
 /** The list a job card sits in — carried into the Job Details URL as `?from=`. */
 export type JobListOrigin = 'home' | 'job-feed' | 'saved-jobs' | 'employee'
@@ -121,6 +121,15 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
           {/* Quick metadata — job type, category, location as compact
               pills, not a dense text line: three short, scannable facts. */}
           <div className="flex flex-wrap gap-2 mt-2">
+            {/* The card has no Apply button (View Job opens the details page, where
+                Apply is disabled too), so this label is how the seeker learns it
+                before opening the job. */}
+            {job.applicationsClosed === true && (
+              <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full text-xs font-medium">
+                <Lock className="w-3 h-3" />
+                {t('seeker:jobCard.applicationsClosed')}
+              </span>
+            )}
             {job.jobType && (
               <span className="inline-flex items-center gap-1 bg-[#efefef] px-3 py-1 rounded-full text-xs text-black">
                 <Clock className="w-3 h-3 text-[#3386a9]" />

@@ -252,6 +252,8 @@
       "SPEND_POST": "Job post",
       "SPEND_UNLOCK": "Candidate unlock",
       "REFUND_DELETE": "Refund (job deleted)",
+      "REFUND_REJECT": "Refund (post rejected)",
+      "REFUND_UNLOCK_DELETED": "Refund (candidate deleted)",
       "EXPIRE": "Expired"
     }
   },
