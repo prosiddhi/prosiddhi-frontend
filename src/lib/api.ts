@@ -2078,13 +2078,13 @@ export type PaymentTypeValue = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FIXE
 export type UrgencyLevelValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 // Mirrors the BE createJobSchema (POST /api/jobs). Only `title/description/
-// category/cityIds/jobType` are required server-side; the rest are optional.
+// cityIds/jobType` are required server-side; the rest are optional.
 export interface JobFields {
   title: string
   description: string
-  // BR-3 — 3-level taxonomy. `category` required (BE), `sector`/`jobTitle`
-  // optional; when sent they must form a valid path (BE validateTriple).
-  category: string
+  // BR-3 — 3-level taxonomy. All three are optional; when sent they must form
+  // a valid path (BE validateTriple).
+  category?: string
   sector?: string
   jobTitle?: string
   requirements?: string

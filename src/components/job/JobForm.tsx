@@ -103,12 +103,12 @@ const inputCls =
 const pickerSelectCls = `${inputCls} disabled:opacity-50 disabled:cursor-not-allowed`
 const sectionTitleCls = 'text-base font-semibold text-black'
 
-// Which fields get the `*` (DEF-024): title, category, description, cities,
+// Which fields get the `*` (DEF-024): title, description, cities,
 // jobType - exactly what createJobSchema requires with no default
 // (prosiddhi-backend/src/validators/job.validator.ts). Everything else posts fine
-// empty. Salary, skills, requirements, company name, sector and job title say
-// "(Optional)". Pay period, urgency and positions say neither: they always hold a
-// value because the form supplies a default.
+// empty. Salary, skills, requirements, company name, category, sector and job
+// title say "(Optional)". Pay period, urgency and positions say neither: they
+// always hold a value because the form supplies a default.
 
 // The order the fields appear on the page. On a failed Submit focus goes to the
 // first one with a problem in THIS order, not in the order react-hook-form
@@ -251,12 +251,12 @@ export function JobForm(props: JobFormProps) {
     const base = {
       title: values.title.trim(),
       description: values.description.trim(),
-      category: values.category.trim(),
       jobType: values.jobType as JobTypeValue,
       paymentType: values.paymentType,
       urgencyLevel: values.urgencyLevel,
       numberOfPositions: values.numberOfPositions ? Number(values.numberOfPositions) : 1,
       ...(values.companyName.trim() ? { companyName: values.companyName.trim() } : {}),
+      ...(values.category.trim() ? { category: values.category.trim() } : {}),
       ...(values.sector ? { sector: values.sector } : {}),
       ...(values.jobTitle ? { jobTitle: values.jobTitle } : {}),
       ...(values.requirements.trim() ? { requirements: values.requirements.trim() } : {}),
@@ -310,10 +310,9 @@ export function JobForm(props: JobFormProps) {
             <input id="job-title" className={fieldCls('title')} placeholder={t('employer:jobForm.jobTitlePlaceholder')} {...register('title')} />
           </Field>
 
-          {/* Category is required; sector and jobTitle are optional server-side. */}
+          {/* Category, sector and job title are all optional. */}
           <TaxonomyPicker
-            required={['category']}
-            optional={['sector', 'jobTitle']}
+            optional={['category', 'sector', 'jobTitle']}
             value={{
               category: f.category || undefined,
               sector: f.sector || undefined,

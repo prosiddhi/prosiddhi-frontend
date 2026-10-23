@@ -32,7 +32,7 @@ const V = 'employer:jobForm.validation.'
 const LIMITS = {
   title: { min: 5, max: 200 },
   companyName: { max: 200 },
-  category: { min: 2, max: 100 },
+  category: { max: 100 },
   description: { min: 50, max: 5000 },
   cities: { min: 1, max: 5 },
   requirements: { max: 3000 },
@@ -112,7 +112,8 @@ export function buildJobFormSchema({ requireCities }: { requireCities: boolean }
     .object({
       title: text(LIMITS.title.min, LIMITS.title.max, V + 'titleMin', V + 'titleMax'),
       companyName: maxText(LIMITS.companyName.max, V + 'companyMax'),
-      category: text(LIMITS.category.min, LIMITS.category.max, V + 'categoryRequired', V + 'categoryMax'),
+      // Optional, like sector and job title. Only the upper limit applies.
+      category: maxText(LIMITS.category.max, V + 'categoryMax'),
       // Chosen from the picker, which only offers valid names — nothing to check here.
       sector: z.string(),
       jobTitle: z.string(),
