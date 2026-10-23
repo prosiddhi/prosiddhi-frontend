@@ -80,9 +80,9 @@ expect('title 200', messageFor('title', { title: 'x'.repeat(200) }), null)
 expect('title 201', messageFor('title', { title: 'x'.repeat(201) }), V + 'titleMax')
 expect('title is measured trimmed', messageFor('title', { title: '  abcd  ' }), V + 'titleMin')
 
-// category 2..100
-expect('category empty', messageFor('category', { category: '' }), V + 'categoryRequired')
-expect('category 1', messageFor('category', { category: 'x' }), V + 'categoryRequired')
+// category is optional: blank and short values pass, only the upper limit (100) applies
+expect('category empty', messageFor('category', { category: '' }), null)
+expect('category 1', messageFor('category', { category: 'x' }), null)
 expect('category 100', messageFor('category', { category: 'x'.repeat(100) }), null)
 expect('category 101', messageFor('category', { category: 'x'.repeat(101) }), V + 'categoryMax')
 

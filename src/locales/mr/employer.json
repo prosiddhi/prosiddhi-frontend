@@ -480,7 +480,6 @@
   "jobForm": {
     "validation": {
       "titleMin": "शीर्षक किमान 5 अक्षरांचे हवे.",
-      "categoryRequired": "प्रकार निवडणे आवश्यक आहे.",
       "descriptionMin": "वर्णन किमान 50 अक्षरांचे हवे.",
       "locationRequired": "ठिकाण भरणे आवश्यक आहे.",
       "citiesRequired": "किमान एक शहर निवडा.",

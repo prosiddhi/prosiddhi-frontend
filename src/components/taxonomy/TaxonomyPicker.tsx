@@ -46,11 +46,10 @@ interface TaxonomyPickerProps {
    *
    * `true` marks all three — the seeker flows, where the backend genuinely
    * requires the whole triple (auth.validator.ts: preferredSector and
-   * preferredJobTitle are both required). An array marks only those levels:
-   * the job form needs it, because createJobSchema requires `category` but
-   * leaves `sector` and `jobTitle` optional, so marking all three there would
-   * claim two fields are mandatory when the server accepts the job without
-   * them (DEF-024).
+   * preferredJobTitle are both required). An array marks only those levels,
+   * for a form where just part of the triple is mandatory, so it does not claim
+   * a field is mandatory when the server accepts the form without it (DEF-024).
+   * Leave it off, and use `optional`, when none of the levels is mandatory.
    *
    * Drives `aria-required` as well as the visual `*`.
    */

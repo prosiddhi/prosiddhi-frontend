@@ -480,7 +480,6 @@
   "jobForm": {
     "validation": {
       "titleMin": "শিরোনাম অন্তত 5 অক্ষরের হতে হবে।",
-      "categoryRequired": "ক্যাটাগরি দিতেই হবে।",
       "descriptionMin": "বিবরণ অন্তত 50 অক্ষরের হতে হবে।",
       "locationRequired": "জায়গা দিতেই হবে।",
       "citiesRequired": "অন্তত একটি শহর বেছে নিন।",
