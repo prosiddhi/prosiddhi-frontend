@@ -1,6 +1,7 @@
 import type { SupportedLanguage } from '@/i18n/languages'
 import { parseRetryAfter, readAttemptsLeft, type OtpSendMeta } from '@/lib/otpSend'
 import { prepareUpload } from '@/lib/uploadFile'
+import { reportServerOtp } from '@/lib/serverOtp'
 
 // API Configuration
 //
@@ -683,6 +684,8 @@ async function performRequest<T>(
   }
 
   const json = (await response.json()) as ApiEnvelope<T> | T
+  // Staging test mode: a code the backend echoed opens the test-OTP pop-up.
+  reportServerOtp(json)
   // Unwrap the standard envelope when present; tolerate raw payloads.
   if (json && typeof json === 'object' && 'data' in (json as ApiEnvelope<T>)) {
     return (json as ApiEnvelope<T>).data
