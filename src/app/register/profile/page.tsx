@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, ChangeEvent, useEffect } from 'react'
+import { useState, useRef, useCallback, ChangeEvent, useEffect, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import { otpErrorMessage } from '@/lib/otpError'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
@@ -18,6 +18,11 @@ import { isAtLeast18 } from '@/lib/dateInput'
 import { checkEmail } from '@/lib/email'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 import { SELECT_CHEVRON_CLS } from '@/components/form/selectChevron'
+import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
+import { UseMyLocation } from '@/components/location/UseMyLocation'
+import { useStates } from '@/hooks/useLocations'
+import { nearestCityNote, useNearestCity } from '@/hooks/useNearestCity'
+import { homeCityProblem, type HomeCityProblem } from '@/lib/homeCityValidation'
 
 // What POST /jobseekers/register takes as a profile photo (the backend's imageFileFilter).
 const PROFILE_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -45,6 +50,53 @@ export default function RegisterProfilePage() {
   // update() and router.push() again.
   const advancingRef = useRef(false)
 
+  // Home city (BR: required). The state being browsed is kept beside the city so "state
+  // picked, no city yet" is not mistaken for "nothing picked". Both desktop and mobile
+  // layouts render a picker; they share this state, and each has a ref for focus.
+  const [homeCity, setHomeCity] = useState<SelectedCity | null>(data.homeCity)
+  const [homeStateCode, setHomeStateCode] = useState<number | null>(data.homeStateCode)
+  const [locationProblem, setLocationProblem] = useState<HomeCityProblem | null>(null)
+  const stateLgRef = useRef<HTMLSelectElement>(null)
+  const stateSmRef = useRef<HTMLSelectElement>(null)
+  const cityLgRef = useRef<HTMLSelectElement>(null)
+  const citySmRef = useRef<HTMLSelectElement>(null)
+  const { states } = useStates()
+  // "Use my current location" fills in the city, and with it the state. The picker only
+  // reports a state code when the USER picks one, so look the code up by name here.
+  const applyLocatedCity = useCallback(
+    (city: SelectedCity) => {
+      setHomeCity(city)
+      setHomeStateCode(states.find((s) => s.name === city.stateName)?.code ?? null)
+      setLocationProblem(null)
+    },
+    [states]
+  )
+  const {
+    locate,
+    begin: beginLocate,
+    cancel: cancelLocate,
+    locating,
+    outcome: locateOutcome,
+  } = useNearestCity(applyLocatedCity)
+  // A hand-made pick ends any lookup still running: its late answer must not overwrite it.
+  const changeHomeCity = useCallback(
+    (next: SelectedCity | null) => {
+      cancelLocate()
+      setHomeCity(next)
+      setLocationProblem(null)
+    },
+    [cancelLocate]
+  )
+  const changeHomeState = useCallback(
+    (code: number | null) => {
+      cancelLocate()
+      setHomeStateCode(code)
+      setLocationProblem(null)
+    },
+    [cancelLocate]
+  )
+  const locationNote = nearestCityNote(locateOutcome, t, 'auth:profile.locationPicked')
+
   // Guard: require a verified phone. Waits for the sessionStorage restore.
   useEffect(() => {
     if (!hydrated) return
@@ -59,6 +111,8 @@ export default function RegisterProfilePage() {
     setEmail((prev) => prev || data.email)
     setDateOfBirth((prev) => prev || data.dateOfBirth)
     setGender((prev) => prev || data.gender)
+    setHomeCity((prev) => prev ?? data.homeCity)
+    setHomeStateCode((prev) => prev ?? data.homeStateCode)
     // Seeding from the restore is a one-shot effect keyed on `hydrated`; adding
     // the data fields here would re-run it on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,10 +170,59 @@ export default function RegisterProfilePage() {
       setError(t('auth:profile.errorGender'))
       return false
     }
+    // Home city: the BE refuses the register call without one (CITY_REQUIRED), and the
+    // password step has no city field, so it is checked here where the field lives.
+    const cityProblem = homeCityProblem(homeStateCode, homeCity?.id)
+    if (cityProblem) {
+      setLocationProblem(cityProblem)
+      // Both layouts are in the DOM; only the one the breakpoint shows has a box. Focus goes
+      // to the select the message is about.
+      const refs = cityProblem === 'stateRequired' ? [stateLgRef, stateSmRef] : [cityLgRef, citySmRef]
+      refs.map((r) => r.current).find((el) => el?.offsetParent)?.focus()
+      return false
+    }
     return true
   }
 
-  const base = { fullName: fullName.trim(), dateOfBirth, gender }
+  const base = { fullName: fullName.trim(), dateOfBirth, gender, homeCity, homeStateCode }
+
+  // The State + City block, rendered in both layouts. `suffix` keeps the two copies' ids apart.
+  const locationFields = (
+    refs: { state: Ref<HTMLSelectElement>; city: Ref<HTMLSelectElement> },
+    suffix: string,
+    selectCls: string,
+    labelCls: string
+  ) => (
+    <div role="group" aria-labelledby={`home-location-${suffix}`}>
+      <p id={`home-location-${suffix}`} className={labelCls}>{t('profile:seeker.location')}</p>
+      {/* Controlled (`stateCode`): the two layouts each hold a picker, and they must show the
+          same state even when no city is chosen, and after the saved progress is restored. */}
+      <StateCitySelect
+        value={homeCity}
+        onChange={changeHomeCity}
+        stateCode={homeStateCode}
+        onStateChange={changeHomeState}
+        required
+        stateLabel={`${t('location.stateLabel')} *`}
+        stateRef={refs.state}
+        cityRef={refs.city}
+        stateError={locationProblem === 'stateRequired' ? t('auth:profile.errorState') : undefined}
+        error={locationProblem === 'cityRequired' ? t('auth:profile.errorCity') : undefined}
+        disabled={loading}
+        selectClassName={selectCls}
+        labelClassName={labelCls}
+      />
+      <div className="mt-2">
+        <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={loading || locating} />
+      </div>
+      <p
+        className={`text-sm mt-1.5 ${locationNote ? (locationNote.ok ? 'text-green-700' : 'text-red-600') : 'text-[#767676]'}`}
+        role="status"
+      >
+        {locating ? t('profile:seeker.locationLookingUp') : (locationNote?.text ?? t('profile:seeker.locationHint'))}
+      </p>
+    </div>
+  )
 
   // "Continue without email" from the prompt: skip the verify step entirely.
   // Nothing is sent, and the flow never shows a screen that would read as "you
@@ -325,6 +428,15 @@ export default function RegisterProfilePage() {
                     <option value="OTHER">{t('auth:profile.genderOther')}</option>
                   </select>
                 </div>
+
+                <div className="max-w-[640px]">
+                  {locationFields(
+                    { state: stateLgRef, city: cityLgRef },
+                    'lg',
+                    'w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base',
+                    'text-base font-medium text-black mb-2 block'
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end max-w-[640px]">
@@ -419,6 +531,15 @@ export default function RegisterProfilePage() {
                 <option value="FEMALE">{t('auth:profile.genderFemale')}</option>
                 <option value="OTHER">{t('auth:profile.genderOther')}</option>
               </select>
+            </div>
+
+            <div>
+              {locationFields(
+                { state: stateSmRef, city: citySmRef },
+                'sm',
+                'w-full h-12 px-3 border rounded-lg',
+                'text-base font-medium mb-2 block'
+              )}
             </div>
           </div>
 

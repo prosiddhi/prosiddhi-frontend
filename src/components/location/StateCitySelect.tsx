@@ -61,6 +61,17 @@ interface CommonProps {
   onStateChange?: (stateCode: number | null) => void
   /** The state to start on, read once on mount: a host restoring a state it saved from `onStateChange`. */
   initialStateCode?: number | null
+  /**
+   * Makes the State select CONTROLLED: the host owns the state being browsed (kept in step
+   * through `onStateChange`) and `initialStateCode` is ignored. A host that renders the
+   * picker twice, e.g. a desktop and a mobile layout, needs it so both show the same state
+   * even when no city is chosen. `undefined` (the default) leaves the picker uncontrolled.
+   */
+  stateCode?: number | null
+  /** Already-translated message for the State select, when the host's rule is about the state. */
+  stateError?: string
+  /** Lets the host form focus the State select on a failed submit. */
+  stateRef?: Ref<HTMLSelectElement>
   onBlur?: () => void
   /** Override the default "State" / "City" labels (already translated). */
   stateLabel?: string
@@ -118,6 +129,7 @@ function StateCitySelectInner(props: StateCitySelectProps) {
   useImperativeHandle(cityRef, () => cityElement.current as HTMLSelectElement, [])
   // The State select, for the one case the City select cannot take focus (see removeCity).
   const stateElement = useRef<HTMLSelectElement>(null)
+  useImperativeHandle(props.stateRef, () => stateElement.current as HTMLSelectElement, [])
 
   // The two modes, pulled apart once so the rest reads without `props.multiple` checks.
   const multi = props.multiple ? props : null
@@ -129,7 +141,13 @@ function StateCitySelectInner(props: StateCitySelectProps) {
 
   // The state being browsed. `null` until the user picks one; in single mode the
   // saved city's state fills in until then (matched by name — see the header).
-  const [browsed, setBrowsed] = useState<number | null>(props.initialStateCode ?? null)
+  const [ownBrowsed, setOwnBrowsed] = useState<number | null>(props.initialStateCode ?? null)
+  const controlled = props.stateCode !== undefined
+  const browsed = controlled ? (props.stateCode ?? null) : ownBrowsed
+  // A controlled host changes the state through `onStateChange`; nothing is kept here.
+  const setBrowsed = (next: number | null) => {
+    if (!controlled) setOwnBrowsed(next)
+  }
   const savedState = singleValue?.stateName ? states.find((s) => s.name === singleValue.stateName) : undefined
 
   // The form handed us a different city (another record loaded, or a reset): if it
@@ -251,10 +269,13 @@ function StateCitySelectInner(props: StateCitySelectProps) {
           <select
             id={`${id}-state`}
             ref={stateElement}
-            className={`${selectClassName} ${SELECT_CHEVRON_CLS}`}
+            className={`${selectClassName} ${SELECT_CHEVRON_CLS}${props.stateError ? ` ${INVALID_CLS}` : ''}`}
             value={stateCode ?? ''}
             onChange={(e) => handleState(e.target.value)}
             disabled={disabled || statesLoading || statesError}
+            aria-required={required ? true : undefined}
+            aria-invalid={props.stateError ? true : undefined}
+            aria-describedby={props.stateError ? `${id}-state-error` : undefined}
           >
             <option value="">
               {statesLoading ? t('location.loading') : t('location.statePlaceholder')}
@@ -265,6 +286,7 @@ function StateCitySelectInner(props: StateCitySelectProps) {
               </option>
             ))}
           </select>
+          <FieldError id={`${id}-state-error`} message={props.stateError} />
         </div>
 
         <div>
