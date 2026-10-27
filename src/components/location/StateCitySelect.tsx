@@ -273,6 +273,7 @@ function StateCitySelectInner(props: StateCitySelectProps) {
             value={stateCode ?? ''}
             onChange={(e) => handleState(e.target.value)}
             disabled={disabled || statesLoading || statesError}
+            aria-required={required ? true : undefined}
             aria-invalid={props.stateError ? true : undefined}
             aria-describedby={props.stateError ? `${id}-state-error` : undefined}
           >

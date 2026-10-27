@@ -275,6 +275,13 @@ export default function RegisterPasswordPage() {
     const failure = classifyRegisterError(err)
     switch (failure.kind) {
       case 'fields':
+        // A city the schema refuses (not even an id) is the same dead end as an unknown one:
+        // forget it, and `cityIssue` blocks the button with a link to the field. Its raw
+        // message is English and names an endpoint, so it is not shown.
+        if (failure.fields.cityId) {
+          update({ homeCity: null, homeStateCode: null })
+          break
+        }
         // `password` is the only field the user can fix from this screen; the
         // rest were collected earlier, so surface those as a general message.
         setFieldErrors(failure.fields.password ?? [])

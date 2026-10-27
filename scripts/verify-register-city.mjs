@@ -69,6 +69,14 @@ expect('city from "Use my location" (no state code)', homeCityProblem(null, CITY
 const api = (message, code) => new ApiError(message, 400, undefined, undefined, code)
 expect('code: CITY_REQUIRED', classifyRegisterError(api('Select your city, or use your location', 'CITY_REQUIRED')), { kind: 'cityInvalid', message: 'Select your city, or use your location' })
 expect('code: INVALID_CITY', classifyRegisterError(api('Unknown city', 'INVALID_CITY')), { kind: 'cityInvalid', message: 'Unknown city' })
+// A schema refusal of the city arrives as a FIELD error keyed `cityId`, not as a code: the
+// password step reads that key (handleRegisterFailure) to clear the city and link back.
+const schemaErr = new ApiError('Validation failed', 400, undefined, [{ path: 'cityId', message: 'cityId must be an id from GET /locations/cities' }], undefined)
+expect(
+  'schema refusal of cityId stays a field error under `cityId`',
+  classifyRegisterError(schemaErr),
+  { kind: 'fields', fields: { cityId: ['cityId must be an id from GET /locations/cities'] } },
+)
 expect('unrelated code is unaffected', classifyRegisterError(api('x', 'PHONE_NOT_VERIFIED')), { kind: 'phoneUnverified' })
 
 // --- The register call carries the chosen city as `cityId`, and no state field ---
