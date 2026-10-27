@@ -1,5 +1,6 @@
 'use client'
 
+import { useId, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -7,32 +8,15 @@ import { Briefcase } from 'lucide-react'
 import { useCategories, hasJobTitles } from '@/hooks/useCategories'
 import { publicJobsHref } from '@/lib/publicJobs'
 import { categoryLabel } from '@/lib/categoryLabel'
+import { CATEGORY_ICONS, CATEGORY_LUCIDE_ICONS } from '@/lib/categoryIcons'
 
 /**
- * How many category tiles the section shows.
+ * How many category tiles the section shows before "View More".
  *
  * The number lives here rather than inside the slice, so moving the grid to 6 or
  * 10 is a one-line change with nothing else to hunt down.
  */
 const MAX_VISIBLE_CATEGORIES = 8
-
-/**
- * The Figma tile pictures, keyed by the backend's category name.
- *
- * GET /categories carries no icon and no stable id, so this map is keyed by name.
- * A category that is missing here — renamed or added on the backend — still gets
- * a tile, with the generic briefcase instead of a picture. Wrong would be worse
- * than plain, so nothing is guessed from part of a name.
- */
-const CATEGORY_ICONS: Record<string, string> = {
-  'Agri & Food-Based Industries': '/assets/categories/food.png',
-  'Consumer & Lifestyle': '/assets/categories/consumer.png',
-  'Energy & Environment': '/assets/categories/energy.png',
-  'Healthcare & Life Sciences': '/assets/categories/healthcare.png',
-  'Infrastructure & Construction': '/assets/categories/construction.png',
-  'Logistics & Mobility': '/assets/categories/logistics.png',
-  'Manufacturing & Engineering': '/assets/categories/manufacturing.png',
-}
 
 // The picture's box — the same size for a real icon and the briefcase fallback.
 const ICON_BOX = 'w-[56px] h-[56px] sm:w-[65px] sm:h-[65px]'
@@ -40,7 +24,8 @@ const ICON_BOX = 'w-[56px] h-[56px] sm:w-[65px] sm:h-[65px]'
 /**
  * "Categories" — the Figma tile row, shared by the home page and the seeker
  * landing page. Each tile opens the public job list on /employee filtered to that
- * category.
+ * category. The first eight show at first; "View More" opens the rest in place and
+ * "View Less" folds them away again.
  *
  * Renders NOTHING when the list fails or is empty. This is marketing, not a form:
  * a red "Couldn't load the list" on the front page tells a first-time visitor the
@@ -51,10 +36,13 @@ const ICON_BOX = 'w-[56px] h-[56px] sm:w-[65px] sm:h-[65px]'
 export function CategorySection() {
   const { t } = useTranslation()
   const { categories, loading, error } = useCategories()
+  const [expanded, setExpanded] = useState(false)
+  const listId = useId()
 
   // Filter before slicing, so a dead end never takes a slot; the full list is
   // kept because "View More" needs to know whether anything was left over.
   const validCategories = categories.filter(hasJobTitles)
+  const visibleCategories = expanded ? validCategories : validCategories.slice(0, MAX_VISIBLE_CATEGORIES)
 
   if (loading) return <div aria-hidden="true" className="min-h-[360px]" />
   if (error || validCategories.length === 0) return null
@@ -72,9 +60,10 @@ export function CategorySection() {
             the row wraps, which is unavoidable at this tile size; the frame is
             drawn at 1920. Two-up on a phone, so a 390px screen is not one tile
             and 150px of empty gutter. */}
-        <ul className="flex flex-wrap justify-center gap-3 sm:gap-5 max-w-[1800px] mx-auto">
-          {validCategories.slice(0, MAX_VISIBLE_CATEGORIES).map((category) => {
+        <ul id={listId} className="flex flex-wrap justify-center gap-3 sm:gap-5 max-w-[1800px] mx-auto">
+          {visibleCategories.map((category) => {
             const icon = CATEGORY_ICONS[category.name]
+            const LineIcon = CATEGORY_LUCIDE_ICONS[category.name] ?? Briefcase
             return (
               <li key={category.name} className="w-[calc(50%-6px)] sm:w-[205px]">
                 <Link
@@ -85,7 +74,7 @@ export function CategorySection() {
                     <Image src={icon} alt="" width={65} height={65} className={`${ICON_BOX} object-contain`} />
                   ) : (
                     <span className={`${ICON_BOX} rounded-full bg-primary-10 flex items-center justify-center`} aria-hidden="true">
-                      <Briefcase className="w-7 h-7 text-primary-80" />
+                      <LineIcon className="w-7 h-7 text-primary-80" />
                     </span>
                   )}
                   <span className="text-base xl:text-lg text-black leading-snug">
@@ -98,13 +87,19 @@ export function CategorySection() {
         </ul>
 
         {/* "View More" only when there IS more. At 8 or fewer valid categories
-            the row already shows every one of them, so the button would send a
-            seeker to the list to look for a ninth that does not exist. */}
+            the row already shows every one of them, so the button would have
+            nothing to open. */}
         {validCategories.length > MAX_VISIBLE_CATEGORIES && (
           <div className="text-center mt-8">
-            <Link href={publicJobsHref()} className="inline-flex items-center min-h-[44px] px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors">
-              {t('seeker:landing.viewMoreCategory')}
-            </Link>
+            <button
+              type="button"
+              onClick={() => setExpanded((open) => !open)}
+              aria-expanded={expanded}
+              aria-controls={listId}
+              className="inline-flex items-center min-h-[44px] px-3 py-2 border border-secondary-70 rounded-lg text-base text-black hover:bg-secondary-10 transition-colors"
+            >
+              {expanded ? t('seeker:jobFeed.filters.viewLess') : t('seeker:landing.viewMoreCategory')}
+            </button>
           </div>
         )}
       </div>

@@ -5,8 +5,16 @@ import type { TFunction } from 'i18next'
  * "Agri & Food-Based Industries" → "agriFoodBasedIndustries".
  *
  * Only letters and digits count, so "&", "-" and spaces never end up in a key.
+ *
+ * ⚠️ Known limitation: the key comes from the category NAME, and GET /categories
+ * sends no stable id or code. An admin who renames a category in the console moves
+ * its key, and that tile silently shows the English name in every language. The
+ * lasting fix is a backend one: send an immutable `code` with each category and
+ * key the locale files and icons off it. Until then
+ * scripts/verify-categories.mjs is the only guard, and it checks the list we
+ * expect, not the live one.
  */
-function categoryLabelKey(name: string): string {
+export function categoryLabelKey(name: string): string {
   return name
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
