@@ -775,11 +775,23 @@ export interface AuthUser {
    * changed. Absent on a session stored before this field existed — read as false.
    */
   mustChangePassword?: boolean
+  /**
+   * A seeker with no home city, sector or job title. Copied in from the login reply by
+   * `sessionUserFrom` (lib/jobPreferences.ts); the BE sends it beside `user`, not inside it.
+   * Absent on a session stored before this field existed, and for employers: read as false.
+   */
+  needsJobPreferences?: boolean
 }
 
 export interface LoginResult {
   token: string
   user: AuthUser
+  /**
+   * Beside `user`, as the BE sends it. Optional so the portal can deploy ahead of the BE.
+   * Also on Google login (GoogleLoginResult extends this). Not on the register reply, which
+   * never needs it: registration cannot finish without a city and a job preference.
+   */
+  needsJobPreferences?: boolean
 }
 
 // Google login returns the standard login payload plus two routing flags:
@@ -1055,6 +1067,8 @@ export interface SeekerProfile extends SignInMethodFlags {
   accountStatus?: string
   /** Same flag as `AuthUser.mustChangePassword`, read fresh from the server. */
   mustChangePassword?: boolean
+  /** Same flag as `AuthUser.needsJobPreferences`, read fresh from the server. */
+  needsJobPreferences?: boolean
   emailVerified?: boolean
   /** Phone is mandatory at registration, so this is true for every self-registered seeker. */
   phoneVerified?: boolean
@@ -2021,18 +2035,26 @@ export const jobSeekerAPI = {
   },
 
   // Profile (PJP-112). GET /api/jobseekers/profile → full user + nested jobSeeker.
-  getProfile: async () => {
-    return apiRequest<SeekerProfile>('/jobseekers/profile')
+  // `timeoutMs` is opt-in: AuthContext's job-preferences read and the preferences page pass
+  // PROFILE_READ_TIMEOUT_MS so a stalled request ends as an error (RequestTimeoutError) instead
+  // of leaving the app on a loading screen. Other callers are unchanged.
+  getProfile: async (opts?: { signal?: AbortSignal; timeoutMs?: number }) => {
+    return apiRequest<SeekerProfile>('/jobseekers/profile', opts)
   },
 
   // Update profile. PUT /api/jobseekers/profile (JSON). Do NOT send email/phone/
   // password — the BE rejects them. workExperiences (when present) FULL-REPLACES.
   // NOTE: the BE returns the BARE updated JobSeeker record (not the wrapped user
   // shape that GET returns), so callers should re-fetch getProfile() to refresh.
-  updateProfile: async (data: SeekerProfileUpdate) => {
+  //
+  // `timeoutMs` is opt-in (the job-preferences page passes PROFILE_WRITE_TIMEOUT_MS); other callers
+  // are unchanged. A write that times out MAY STILL HAVE SUCCEEDED, so it is never repeated for the
+  // caller: read the profile back (getProfile) to see what the server holds before deciding.
+  updateProfile: async (data: SeekerProfileUpdate, opts?: { timeoutMs?: number }) => {
     return apiRequest<unknown>('/jobseekers/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
+      timeoutMs: opts?.timeoutMs,
     })
   },
 
@@ -2161,6 +2183,17 @@ export interface JobApplication {
 // How long a dashboard panel waits before giving up. Generous on purpose: the portal
 // is used on slow mobile networks, and a proxy usually answers sooner with its own 504.
 const DASHBOARD_TIMEOUT_MS = 20_000
+
+/** How long the seeker profile read behind the job-preferences gate may take before it counts as failed. */
+export const PROFILE_READ_TIMEOUT_MS = 15_000
+
+/**
+ * How long the job-preferences save (PUT /jobseekers/profile) may take. Longer than a read
+ * (15 to 20 s elsewhere in this file) because cutting a WRITE short is the costly case: the
+ * request may still commit after the abort. It is finite so a stalled save cannot hang the
+ * page, and a timeout is never retried automatically (see saveFailureKind).
+ */
+export const PROFILE_WRITE_TIMEOUT_MS = 30_000
 
 // Employer dashboard shapes (GET /api/employers/dashboard/*).
 export interface EmployerDashboardStats {

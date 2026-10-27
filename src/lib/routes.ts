@@ -17,8 +17,14 @@ export const SEEKER_HOME_ROUTE = '/home'
  */
 export const CHANGE_PASSWORD_ROUTE = '/change-password'
 
+/**
+ * The "where do you want to work" screen. A seeker with no home city, sector or job title
+ * (`needsJobPreferences`) is sent here by JobPreferencesGate and can use nothing else.
+ */
+export const JOB_PREFERENCES_ROUTE = '/complete-profile'
+
 /** Not a place to send someone who has just signed in. `/` is the landing page. */
-const AUTH_SCREENS = new Set(['/', '/login', CHANGE_PASSWORD_ROUTE])
+const AUTH_SCREENS = new Set(['/', '/login', CHANGE_PASSWORD_ROUTE, JOB_PREFERENCES_ROUTE])
 
 /**
  * The login page, set to send the person back to `returnPath` afterwards. /login
