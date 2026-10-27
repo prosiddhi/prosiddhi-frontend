@@ -17,11 +17,23 @@ import {
   AUTH_USER_KEY,
   accountEndedReason,
   endServerSession,
+  jobSeekerAPI,
+  PROFILE_READ_TIMEOUT_MS,
   type AuthUser,
+  type SeekerProfile,
 } from '@/lib/api'
+import {
+  profileReadOutcome,
+  profileSyncStatus,
+  seekerSessionPatch,
+  syncAfterLogin,
+  type ProfileSync,
+  type ProfileSyncRecord,
+} from '@/lib/jobPreferences'
 import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { ConsentGate } from '@/components/legal/ConsentGate'
+import { JobPreferencesGate } from '@/components/auth/JobPreferencesGate'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -32,9 +44,30 @@ interface AuthContextValue {
   /**
    * Merge fresh fields into the stored session user. Used after a profile save
    * so the name/photo in the global header updates immediately instead of
-   * staying stale until the next login.
+   * staying stale until the next login. A function receives the CURRENT user and
+   * returns the patch, for a merge that must not be built from a stale render.
    */
-  updateUser: (patch: Partial<AuthUser>) => void
+  updateUser: (patch: Partial<AuthUser> | ((current: AuthUser) => Partial<AuthUser>)) => void
+  /**
+   * Whether the stored seeker's profile has been re-read from the server since this page
+   * loaded, which is what makes `user.needsJobPreferences` trustworthy after a refresh.
+   * - 'loading': a seeker whose flag has not been confirmed yet.
+   * - 'ready': confirmed (by this load's login, or by GET /jobseekers/profile).
+   * - 'failed': the request failed. The stored flag is UNCHANGED: it is not "no".
+   * - 'idle': nothing to confirm (signed out, an employer, or a password change pending).
+   */
+  profileSync: ProfileSync
+  /**
+   * Try the profile read again after 'failed'. Only ever on the user's request: nothing calls
+   * it on a timer. A no-op unless the current read is 'failed'.
+   */
+  retryProfileSync: () => void
+  /**
+   * Take a profile the caller has just read (after saving job preferences) as the answer:
+   * merges it into the user and marks the read 'ready'. Returns false and changes NOTHING when
+   * the reply does not carry `needsJobPreferences` as a boolean.
+   */
+  confirmSeekerProfile: (profile: SeekerProfile) => boolean
   /**
    * Clear the session and navigate away. Defaults to /login.
    *
@@ -122,18 +155,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loggingOutToRef = useRef<string | null>(null)
   const loggingOutTo = useCallback(() => loggingOutToRef.current, [])
 
+  // Whose seeker profile has been settled this page load, and how. Set only when a request
+  // settles (or a login brings a fresh flag), never to "loading": that is derived below.
+  const [sync, setSync] = useState<ProfileSyncRecord>(null)
+
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     loggingOutToRef.current = null
     window.localStorage.setItem(AUTH_TOKEN_KEY, newToken)
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
+    // A login reply carries the flag, so it is already as fresh as a profile read would be.
+    // One without it (the register reply, an older BE) is confirmed by the read below.
+    setSync(syncAfterLogin(newUser))
     // The route-cache purge is NOT done here — see the effect below.
   }, [])
 
-  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+  const updateUser = useCallback((patchOrFn: Partial<AuthUser> | ((current: AuthUser) => Partial<AuthUser>)) => {
     setUser((prev) => {
       if (!prev) return prev
+      const patch = typeof patchOrFn === 'function' ? patchOrFn(prev) : patchOrFn
       // Nothing to change → keep the same object, so a burst of identical patches
       // (several in-flight calls all answering 403 PASSWORD_CHANGE_REQUIRED) is one
       // render, not one per call.
@@ -147,6 +188,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return next
     })
   }, [])
+
+  const syncUserId = user?.id
+  const retryProfileSync = useCallback(() => {
+    setSync((prev) => (prev?.status === 'failed' ? null : prev))
+  }, [])
+  const confirmSeekerProfile = useCallback(
+    (profile: SeekerProfile) => {
+      if (syncUserId === undefined || profileReadOutcome(profile) !== 'ready') return false
+      updateUser((current) => (current.id === syncUserId ? seekerSessionPatch(current, profile) : {}))
+      setSync({ id: syncUserId, status: 'ready' })
+      return true
+    },
+    [syncUserId, updateUser]
+  )
 
   const logout = useCallback(
     (redirectTo?: string) => {
@@ -289,6 +344,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:password-change-required', onPasswordChangeRequired)
   }, [updateUser])
 
+  // A seeker's stored `needsJobPreferences` was written by an earlier visit and can be stale
+  // (a Google sign-up, an admin-added account, a save made on another device), so re-read the
+  // profile once per page load. Employers have no such flag; a forced password change comes
+  // first (the BE would answer 403), and this runs again once it is done.
+  //
+  // Once per person, not per token: a silent token refresh must not fetch again. A failure is
+  // remembered the same way and leaves the stored flag exactly as it was: it is never read as
+  // "no", and it is not retried in a loop (a reload tries again). A 401 is the API client's
+  // ordinary session-expired handling, not something this adds.
+  const profileSync = profileSyncStatus({ isLoading, hasToken: !!token, user, sync })
+
+  useEffect(() => {
+    if (profileSync !== 'loading' || syncUserId === undefined) return
+    let active = true
+    jobSeekerAPI
+      .getProfile({ timeoutMs: PROFILE_READ_TIMEOUT_MS })
+      .then((profile) => {
+        if (!active) return
+        // A reply without the flag as a boolean confirmed nothing: 'failed', and the stored user
+        // is left alone. Otherwise built from the user as it is NOW, and only for the person
+        // the request was made for.
+        const status = profileReadOutcome(profile)
+        if (status === 'ready') {
+          updateUser((current) => (current.id === syncUserId ? seekerSessionPatch(current, profile) : {}))
+        }
+        setSync({ id: syncUserId, status })
+      })
+      .catch(() => {
+        if (active) setSync({ id: syncUserId, status: 'failed' })
+      })
+    return () => {
+      active = false
+    }
+  }, [profileSync, syncUserId, updateUser])
+
   const value: AuthContextValue = {
     user,
     token,
@@ -296,6 +386,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     updateUser,
+    profileSync,
+    retryProfileSync,
+    confirmSeekerProfile,
     logout,
     loggingOutTo,
   }
@@ -304,6 +397,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={value}>
       <PasswordChangeGate />
       {children}
+      {/* The consent dialog paints above this by z-index (z-[60] vs z-40), not by order. */}
+      <JobPreferencesGate />
       {/* After the children so its overlay paints above every page. It waits for the
           password gate (mustChangePassword) before asking for anything. */}
       <ConsentGate />
