@@ -126,6 +126,11 @@ export default function RegisterPasswordPage() {
   // link straight to the field. Same shape as the phone re-verify path below.
   const nameIssue = hydrated && !accountCreated ? nameProblem(data.fullName ?? '') : null
 
+  // Same shape for the home city: the BE refuses the register call without one, and a
+  // journey saved before the profile step asked for it has none. It is also what a
+  // CITY_REQUIRED / INVALID_CITY answer leaves behind (see handleRegisterFailure).
+  const cityIssue = hydrated && !accountCreated && !data.homeCity
+
   // The schema reports the first failing rule (strength, then match) as an i18n
   // key; a server error, when there is one, wins over it. A weak password is left
   // to the checklist, so it gets no banner.
@@ -146,7 +151,7 @@ export default function RegisterPasswordPage() {
     // The disabled button is presentation; THIS is the rule. Leaving the DEF-030
     // check to a `disabled` attribute alone puts it one markup edit away from
     // being gone, and this is the call that creates the account.
-    if (nameIssue || loading || submitting.current) {
+    if (nameIssue || cityIssue || loading || submitting.current) {
       e.preventDefault()
       return
     }
@@ -197,6 +202,8 @@ export default function RegisterPasswordPage() {
         preferredSector: data.preferredSector,
         preferredJobTitle: data.preferredJobTitle,
         preferredLanguage: data.language,
+        // The BE derives the state from the city; there is no state field to send.
+        cityId: data.homeCity?.id,
         // Collected as required on the profile step. The BE's age >= 18 check
         // lives on dateOfBirth, so omitting it silently disables the only
         // minimum-age enforcement there is.
@@ -294,6 +301,11 @@ export default function RegisterPasswordPage() {
       case 'emailTaken':
         setError(t('auth:password.errorEmailTaken'))
         setEmailTaken(true)
+        break
+      case 'cityInvalid':
+        // The BE did not accept the city. Forget it: `cityIssue` then blocks the button
+        // and shows the message with a link back to the field.
+        update({ homeCity: null, homeStateCode: null })
         break
       case 'phoneTaken':
         setError(t('auth:password.errorPhoneTaken'))
@@ -408,6 +420,19 @@ export default function RegisterPasswordPage() {
                     className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
                   >
                     {t('auth:password.fixName')}
+                  </button>
+                </div>
+              )}
+
+              {cityIssue && (
+                <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600">{t('auth:password.errorCity')}</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/register/profile')}
+                    className="mt-3 font-semibold text-primary-70 underline hover:text-primary-80"
+                  >
+                    {t('auth:password.fixCity')}
                   </button>
                 </div>
               )}
@@ -550,7 +575,7 @@ export default function RegisterPasswordPage() {
                     type="submit"
                     // Blocked while the carried-over name is invalid — the message
                     // above says why and links to the field.
-                    disabled={loading || nameIssue !== null}
+                    disabled={loading || nameIssue !== null || cityIssue}
                     className="flex items-center gap-2 min-h-[48px] bg-primary-50 text-primary-100 px-8 lg:px-10 py-3 rounded-lg hover:bg-primary-60 disabled:opacity-50"
                   >
                     <span className="text-base">{loading ? t('auth:password.creating') : t('auth:password.createAccount')}</span>

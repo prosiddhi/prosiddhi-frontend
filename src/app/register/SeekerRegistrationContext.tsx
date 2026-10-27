@@ -14,6 +14,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { SeekerWorkExperience } from '@/lib/api'
+import type { SelectedCity } from '@/components/location/StateCitySelect'
 
 const STORAGE_KEY = 'prosiddhi.register.seeker'
 
@@ -48,6 +49,11 @@ export interface SeekerRegistrationState {
   preferredSector: string
   preferredJobTitle: string
   workExperiences: SeekerWorkExperience[]
+  // Home city, required by the BE (`cityId`). `homeStateCode` is the state being browsed
+  // and is kept apart from the city so "state picked, no city yet" survives a step change
+  // or a refresh and stays distinguishable from "nothing picked". Both are non-secret.
+  homeStateCode: number | null
+  homeCity: SelectedCity | null
   profilePic?: File
   document?: File
   documentName: string
@@ -81,6 +87,8 @@ const defaultState: SeekerRegistrationState = {
   preferredSector: '',
   preferredJobTitle: '',
   workExperiences: [],
+  homeStateCode: null,
+  homeCity: null,
   documentName: '',
   password: '',
   whatsappConsent: false,
@@ -117,6 +125,8 @@ const PERSISTED_KEYS = [
   'preferredSector',
   'preferredJobTitle',
   'workExperiences',
+  'homeStateCode',
+  'homeCity',
   'documentName',
   'whatsappConsent',
 ] as const satisfies readonly (keyof SeekerRegistrationState)[]

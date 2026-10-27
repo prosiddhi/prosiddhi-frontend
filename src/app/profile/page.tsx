@@ -20,7 +20,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isAtLeast18, toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
-  locationAPI,
   resolveMediaUrl,
   type SeekerProfile,
   type SeekerProfileUpdate,
@@ -30,7 +29,7 @@ import {
   type TaxonomyTriple,
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
-import type { Coords } from '@/lib/cities'
+import { nearestCityNote, useNearestCity } from '@/hooks/useNearestCity'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import {
   StateCitySelect,
@@ -190,13 +189,27 @@ function SeekerProfileContent() {
   const [homeCityRemoved, setHomeCityRemoved] = useState(false)
   const [preferredCities, setPreferredCities] = useState<SelectedCity[]>([])
   const [savedPreferredIds, setSavedPreferredIds] = useState<string[]>([])
-  // "Use my location": the nearest-city lookup in flight, and what it said.
-  const [locating, setLocating] = useState(false)
-  const [locationNote, setLocationNote] = useState<{ ok: boolean; text: string } | null>(null)
-  // The lookup in flight. Aborted when a newer one starts, when the form is reloaded (Cancel, or
-  // a refetch after saving) and when the page unmounts, so a late answer can never put its city
-  // into a form it does not belong to.
-  const locateAbort = useRef<AbortController | null>(null)
+  // Every change of the home city that is not a plain picker pick, i.e. "Use my location" here.
+  // Any city picked replaces an earlier removal; an empty picker leaves it as it was.
+  //
+  // A useCallback with no dependencies (state setters only): `changeHomeCity` below is the
+  // picker's `onChange`, and a new function on each render would defeat its React.memo and
+  // rebuild the city list on every keystroke in the bio or name.
+  const applyHomeCity = useCallback((next: SelectedCity | null) => {
+    setHomeCity(next)
+    if (next) setHomeCityRemoved(false)
+  }, [])
+  // "Use my location": the nearest-city lookup in flight, and what it said. The hook aborts a
+  // lookup when a newer one starts, when the form is reloaded (Cancel, or a refetch after
+  // saving) and when the page unmounts, so a late answer can never put its city into a form it
+  // does not belong to.
+  const {
+    locate,
+    begin: beginLocate,
+    cancel: cancelLocate,
+    locating,
+    outcome: locateOutcome,
+  } = useNearestCity(applyHomeCity)
   // BR-1 — editable here (PUT /jobseekers/profile accepts both), same as at
   // registration. `dateOfBirth` is kept in <input type="date">'s own
   // yyyy-mm-dd format (via toDateInput) rather than the API's ISO timestamp,
@@ -245,9 +258,7 @@ function SeekerProfileContent() {
     setPreferredCities(preferred)
     setSavedPreferredIds(preferred.map((c) => c.id))
     // A lookup belongs to the edit session that started it, not to the record just loaded.
-    locateAbort.current?.abort()
-    setLocating(false)
-    setLocationNote(null)
+    cancelLocate()
     setTriple({
       category: js?.preferredCategory || undefined,
       sector: js?.preferredSector || undefined,
@@ -268,7 +279,7 @@ function SeekerProfileContent() {
         description: w.description ?? '',
       }))
     )
-  }, [])
+  }, [cancelLocate])
 
   useEffect(() => {
     let ignore = false
@@ -296,9 +307,6 @@ function SeekerProfileContent() {
     // deliberately left out.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrate])
-
-  // Leaving the page cancels a "Use my location" lookup that is still running.
-  useEffect(() => () => locateAbort.current?.abort(), [])
 
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -396,27 +404,19 @@ function SeekerProfileContent() {
     preferredCities.length !== savedPreferredIds.length ||
     preferredCities.some((c) => !savedPreferredIds.includes(c.id))
 
-  // Every change of the home city goes through here, from the picker or from "Use my location".
-  // A hand-made change ends any lookup still running (its answer would overwrite the choice) and
-  // drops the note about the last lookup, which no longer describes the form.
-  //
-  // Both are useCallbacks with no dependencies (a ref and state setters only): `changeHomeCity`
-  // is the picker's `onChange`, and a new function on each render would defeat its React.memo
-  // and rebuild the city list on every keystroke in the bio or name.
-  const applyHomeCity = useCallback((next: SelectedCity | null) => {
-    setHomeCity(next)
-    // Any city picked replaces an earlier removal; an empty picker leaves it as it was.
-    if (next) setHomeCityRemoved(false)
-  }, [])
+  // A hand-made change of the home city (the picker, or Remove) ends any lookup still running
+  // (its answer would overwrite the choice) and drops the note about the last lookup, which no
+  // longer describes the form. Stable between renders, for the picker's React.memo.
   const changeHomeCity = useCallback(
     (next: SelectedCity | null) => {
-      locateAbort.current?.abort()
-      setLocating(false)
-      setLocationNote(null)
+      cancelLocate()
       applyHomeCity(next)
     },
-    [applyHomeCity]
+    [cancelLocate, applyHomeCity]
   )
+
+  // What the last "Use my location" lookup says, if it has said anything.
+  const locationNote = nearestCityNote(locateOutcome, t, 'profile:seeker.locationPicked')
 
   // The line shown while a saved city sits behind an empty picker: kept, or about to be removed.
   const savedCityKey = homeCityRemoved ? 'profile:seeker.savedHomeCityRemoving' : 'profile:seeker.savedHomeCity'
@@ -425,34 +425,6 @@ function SeekerProfileContent() {
   const removeHomeCity = () => {
     changeHomeCity(null)
     setHomeCityRemoved(true)
-  }
-
-  // "Use my location": the browser point is only used to find the nearest city, and only that
-  // city is kept. The coordinate itself is never sent: with a `cityId` the BE would overwrite it.
-  const handleLocated = async ({ lat, lon }: Coords, accuracy?: number) => {
-    locateAbort.current?.abort()
-    const controller = new AbortController()
-    locateAbort.current = controller
-    setLocating(true)
-    setLocationNote(null)
-    try {
-      // `accuracy` lets the BE refuse a reading too coarse to name a city (worse than 2 km).
-      const { city } = await locationAPI.getNearestCity({ lat, lng: lon, accuracy }, { signal: controller.signal })
-      if (controller.signal.aborted) return
-      if (city) {
-        const picked = toSelectedCity(city)
-        applyHomeCity(picked)
-        setLocationNote({ ok: true, text: t('profile:seeker.locationPicked', { city: cityDisplayName(picked) }) })
-      } else {
-        setLocationNote({ ok: false, text: t('profile:seeker.locationNoCity') })
-      }
-    } catch {
-      // An abort rejects too; it is not a failure the seeker should be told about.
-      if (controller.signal.aborted) return
-      setLocationNote({ ok: false, text: t('profile:seeker.locationLookupFailed') })
-    } finally {
-      if (!controller.signal.aborted) setLocating(false)
-    }
   }
 
   const handleSave = async () => {
@@ -723,7 +695,7 @@ function SeekerProfileContent() {
                           labelClassName={fieldLabelCls}
                         />
                         <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <UseMyLocation onLocated={handleLocated} disabled={saving || locating} />
+                          <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={saving || locating} />
                           {/* The only way to clear a saved city: emptying the picker is not one,
                               because changing the State select empties it too. */}
                           {savedHomeCity && !homeCityRemoved && (

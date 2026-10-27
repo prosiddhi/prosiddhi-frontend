@@ -1667,6 +1667,13 @@ export type RegisterFailure =
    * when a verified account holds the number; the code is authoritative.
    */
   | { kind: 'phoneTaken' }
+  /**
+   * `CITY_REQUIRED` (no home city sent) or `INVALID_CITY` (an id that is not in the
+   * list). Either way the fix is on the profile step, where the city is chosen. Carries
+   * the BE message so a caller with no city step of its own (the employer screens, whose
+   * `default` branch reads it) shows exactly what it showed before.
+   */
+  | { kind: 'cityInvalid'; message: string }
   /** Zod field failures, keyed by field name; one field may carry several. */
   | { kind: 'fields'; fields: Record<string, string[]> }
   | { kind: 'unknown'; message: string }
@@ -1684,6 +1691,9 @@ export function classifyRegisterError(err: unknown): RegisterFailure {
       return { kind: 'emailUnverified' }
     case 'EMAIL_ALREADY_REGISTERED':
       return { kind: 'emailTaken' }
+    case 'CITY_REQUIRED':
+    case 'INVALID_CITY':
+      return { kind: 'cityInvalid', message: err instanceof Error ? err.message : '' }
   }
 
   // TEMPORARY legacy fallback for a BE without registration codes.
@@ -1740,6 +1750,13 @@ export interface SeekerRegisterData {
   latitude?: number
   longitude?: number
   location?: string
+  /**
+   * The home city, an id from GET /locations/cities. Required by the BE in practice:
+   * with neither this nor coordinates inside a known city it answers `CITY_REQUIRED`.
+   * The state is derived from it, so there is no state field. Typed optional only so
+   * older callers still compile; the registration UI always sends it.
+   */
+  cityId?: string
   /**
    * BR-1. `YYYY-MM-DD` — the value a native `<input type="date">` produces.
    *
@@ -1824,6 +1841,7 @@ export const jobSeekerAPI = {
     fd.append('preferredSector', data.preferredSector)
     fd.append('preferredJobTitle', data.preferredJobTitle)
     fd.append('preferredLanguage', data.preferredLanguage ?? 'en')
+    if (data.cityId) fd.append('cityId', data.cityId)
     if (data.latitude != null) fd.append('latitude', String(data.latitude))
     if (data.longitude != null) fd.append('longitude', String(data.longitude))
     if (data.location) fd.append('location', data.location)

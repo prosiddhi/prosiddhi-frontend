@@ -19,9 +19,16 @@ import type { Coords } from '@/lib/cities'
  */
 export function UseMyLocation({
   onLocated,
+  onRequest,
   disabled = false,
   className = '',
 }: {
+  /**
+   * Called the moment the button is pressed, before the browser has answered. A host that
+   * lets the user pick by hand while the browser is still thinking uses it to arm a lookup
+   * that a later hand-made pick can cancel (see useNearestCity.begin).
+   */
+  onRequest?: () => void
   /** Locks the button from outside, e.g. while the host form is saving. */
   disabled?: boolean
   /** `accuracy` is the browser's `coords.accuracy` in metres, for callers that look up a city. */
@@ -34,6 +41,7 @@ export function UseMyLocation({
 
   const ask = () => {
     setError('')
+    onRequest?.()
     if (!navigator.geolocation) {
       setError(t('location.failed'))
       return
