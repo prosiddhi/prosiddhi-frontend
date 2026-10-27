@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -380,7 +381,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                         {job.category && (
                           <div className="bg-[#efefef] px-[clamp(12px,9.33px_+_0.42vw,16px)] py-[clamp(6px,4.67px_+_0.21vw,8px)] rounded-full flex items-center gap-1.5">
                             <Briefcase className="w-[clamp(12px,9.33px_+_0.42vw,16px)] h-[clamp(12px,9.33px_+_0.42vw,16px)] text-[#3386a9]" />
-                            <span className="text-[clamp(12px,10.67px_+_0.21vw,14px)] text-black">{job.category}</span>
+                            <span className="text-[clamp(12px,10.67px_+_0.21vw,14px)] text-black">{categoryLabel(t, job.category)}</span>
                           </div>
                         )}
                         {job.sector && (
@@ -558,7 +559,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                       {openings != null && <InfoRow icon={Users}>{t('seeker:jobDetails.openings', { count: openings })}</InfoRow>}
                       {job.jobType && <InfoRow icon={Clock}>{humanizeJobType(job.jobType)}</InfoRow>}
                       {job.location && <InfoRow icon={MapPin}>{localizeLocation(job.location)}</InfoRow>}
-                      {job.category && <InfoRow icon={Briefcase}>{job.category}</InfoRow>}
+                      {job.category && <InfoRow icon={Briefcase}>{categoryLabel(t, job.category)}</InfoRow>}
                       {job.sector && <InfoRow icon={Layers}>{job.sector}</InfoRow>}
                       <InfoRow icon={IndianRupee}>{salaryLine}</InfoRow>
                       {applyByDate && <InfoRow icon={CalendarDays}>{t('seeker:jobDetails.applyBy', { date: applyByDate })}</InfoRow>}
@@ -628,7 +629,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                           {rel.category && (
                             <div className="bg-[#efefef] px-2.5 py-1 rounded-full flex items-center gap-1">
                               <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                              <span className="text-xs text-black">{rel.category}</span>
+                              <span className="text-xs text-black">{categoryLabel(t, rel.category)}</span>
                             </div>
                           )}
                           {jobPlaceTags(rel).map((p) => (

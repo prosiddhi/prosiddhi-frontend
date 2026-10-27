@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
@@ -157,7 +158,7 @@ function ApplicationDetailsContent() {
                         {job?.category && (
                           <div className="bg-[#efefef] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5">
                             <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-[#3386a9]" />
-                            <span className="text-xs sm:text-sm text-black">{job.category}</span>
+                            <span className="text-xs sm:text-sm text-black">{categoryLabel(t, job.category)}</span>
                           </div>
                         )}
                         {job?.location && (

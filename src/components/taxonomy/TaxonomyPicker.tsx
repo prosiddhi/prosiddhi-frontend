@@ -13,6 +13,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import { Search, X } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import type { TaxonomyCategory, TaxonomyTriple } from '@/lib/api'
@@ -415,7 +416,7 @@ export function TaxonomyPicker({
                       {/* The path, because three titles in the tree sit under
                           more than one parent — "Helper" alone is ambiguous. */}
                       <span className="block text-xs text-[#717182]">
-                        {hit.category} › {hit.sector}
+                        {categoryLabel(t, hit.category)} › {hit.sector}
                       </span>
                     </button>
                   </li>
@@ -458,7 +459,7 @@ export function TaxonomyPicker({
           </option>
           {categories.map((c) => (
             <option key={c.name} value={c.name}>
-              {c.name}
+              {categoryLabel(t, c.name)}
             </option>
           ))}
         </select>

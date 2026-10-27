@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { useCities, useStates } from '@/hooks/useLocations'
 import { jobLocationFilters, parseJobLocation } from '@/lib/jobLocationParams'
@@ -637,7 +638,7 @@ function JobFeedPageContent() {
                   {visibleDepartments.map((c) => (
                     <label key={c.name} className={radioRowCls}>
                       <FilterRadio name="department-filter" {...singleSelectRadioProps(filters.category, c.name, setDepartment)} />
-                      {c.name}
+                      {categoryLabel(t, c.name)}
                     </label>
                   ))}
                 </div>

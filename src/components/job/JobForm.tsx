@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import { useController, useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -501,7 +502,7 @@ export function JobForm(props: JobFormProps) {
                 {f.category && (
                   <div className="bg-[#efefef] px-3 py-1 rounded-full flex items-center gap-1">
                     <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                    <span className="text-xs text-black">{f.category}</span>
+                    <span className="text-xs text-black">{categoryLabel(t, f.category)}</span>
                   </div>
                 )}
                 {previewPlaces.map((p) => (

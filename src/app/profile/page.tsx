@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useState, useEffect, useRef, useCallback, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import Image from 'next/image'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
 import { Footer } from '@/components/home/Footer'
@@ -874,7 +875,7 @@ function SeekerProfileContent() {
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category} notProvided={t('profile:seeker.notProvided')} />
+                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category && categoryLabel(t, triple.category)} notProvided={t('profile:seeker.notProvided')} />
                       <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} notProvided={t('profile:seeker.notProvided')} />
                       <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} notProvided={t('profile:seeker.notProvided')} />
                       <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} notProvided={t('profile:seeker.notProvided')} />

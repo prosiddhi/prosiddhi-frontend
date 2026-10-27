@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { categoryLabel } from '@/lib/categoryLabel'
 import {
   humanizeJobType,
   formatSalaryLine,
@@ -83,7 +84,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             {job?.category && (
               <span className="inline-flex items-center gap-1 bg-[#efefef] px-3 py-1 rounded-full text-xs text-black">
                 <Briefcase className="w-3 h-3 text-[#3386a9]" />
-                {job.category}
+                {categoryLabel(t, job.category)}
               </span>
             )}
             {job?.location && (
