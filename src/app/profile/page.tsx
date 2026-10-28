@@ -23,12 +23,11 @@ import {
   seekerCityChipsCls,
 } from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
-import { isAtLeast18, toDateInput } from '@/lib/dateInput'
+import { toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
   resolveMediaUrl,
   type SeekerProfile,
-  type SeekerProfileUpdate,
   type ProfileWorkExperience,
   type JobSeekerSkillLink,
   type SkillCatalogItem,
@@ -70,7 +69,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { COMPANY_NAME_MAX_LENGTH, WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
-import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
+import { NAME_MAX_LENGTH } from '@/lib/nameValidation'
+import { aboutProblem, profileSavePatch, type AboutProblem } from '@/lib/profileCards'
 import { Field } from '@/components/form/Field'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 
@@ -136,6 +136,13 @@ function genderLabel(t: (key: string) => string, gender: string | null): string 
   if (!gender) return undefined
   const key = GENDER_LABEL_KEY[gender]
   return key ? t(key) : gender
+}
+
+// What aboutProblem found, as the copy this page has always shown for it.
+const ABOUT_PROBLEM_KEY: Record<AboutProblem, string> = {
+  nameTooShort: 'auth:profile.errorName',
+  nameNotAName: 'auth:profile.errorNameLetters',
+  dobUnder18: 'profile:seeker.errorDobAge',
 }
 
 // SUSPENDED is the only other state a seeker who can reach this page could
@@ -400,19 +407,6 @@ function SeekerProfileContent() {
     updateUser({ email: fresh.email, phoneNumber: fresh.phoneNumber })
   }
 
-  // What this save sends for the two location fields. Each goes out only when the seeker
-  // changed it, so an unrelated save (a new bio, a switched language) can neither rewrite the
-  // home city, wipe the legacy text, nor replace the preferred list with what happened to load.
-  //
-  // An EMPTY picker is not by itself a request to clear the city (see homeCityRemoved), so an
-  // empty home city counts as a change only after the explicit remove.
-  const homeCityChanged = homeCity
-    ? homeCity.id !== savedHomeCity?.id
-    : savedHomeCity !== null && homeCityRemoved
-  const preferredChanged =
-    preferredCities.length !== savedPreferredIds.length ||
-    preferredCities.some((c) => !savedPreferredIds.includes(c.id))
-
   // A hand-made change of the home city (the picker, or Remove) ends any lookup still running
   // (its answer would overwrite the choice) and drops the note about the last lookup, which no
   // longer describes the form. Stable between renders, for the picker's React.memo.
@@ -444,64 +438,30 @@ function SeekerProfileContent() {
     setSaveError('')
     setSaved(false)
 
-    // Registration rejects a numeric name (DEF-030); without the same guard here
-    // the rule is one edit away from being undone.
-    //
-    // Only on an EDIT. Validating the value the server sent would lock out any
-    // account whose stored name predates this rule — and those exist, since the
-    // backend mirror is still open, so "Test User 1" is creatable via the API
-    // today. Such a user could not save ANY profile change, not even their bio,
-    // and the error would point at a field they never touched.
-    const problem = fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
-    if (problem) {
-      setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
-      return
+    // The name and age rules, and why the name is only judged on an edit, are with aboutProblem.
+    const draft = {
+      fullName,
+      bio,
+      dateOfBirth,
+      gender,
+      homeCity,
+      savedHomeCity,
+      homeCityRemoved,
+      preferredCities,
+      savedPreferredIds,
+      triple,
+      language,
+      experiences,
     }
-    // The BE refuses an under-18 date with a bare "Validation failed" — catch it here.
-    // An empty field is skipped: it is sent as undefined, so accounts with no DOB can still save.
-    if (dateOfBirth && !isAtLeast18(dateOfBirth)) {
-      setSaveError(t('profile:seeker.errorDobAge'))
+    const problem = aboutProblem(draft, originalFullName.current)
+    if (problem) {
+      setSaveError(t(ABOUT_PROBLEM_KEY[problem]))
       return
     }
     setSaving(true)
     try {
-      // Only send rows with BOTH a position and a parseable startDate — the BE
-      // requires both. workExperiences (when present) FULL-REPLACES server-side.
-      const workExperiences = experiences
-        .filter((r) => r.position.trim() && r.startDate)
-        .map((r) => ({
-          position: r.position.trim(),
-          companyName: r.companyName?.trim() || undefined,
-          startDate: r.startDate as string,
-          endDate: r.currentlyWorking ? undefined : r.endDate || undefined,
-          currentlyWorking: !!r.currentlyWorking,
-          description: r.description?.trim() || undefined,
-        }))
-
-      // Each location field goes out only when the seeker changed it (see homeCityChanged).
-      // `location`, `latitude` and `longitude` are never sent from here: picking a city makes
-      // the BE write all three from it, and the legacy text must survive every other save.
-      const locationPatch: Pick<SeekerProfileUpdate, 'cityId' | 'preferredCityIds'> = {}
-      // `null` (the seeker cleared the city) drops the link and keeps the text.
-      if (homeCityChanged) locationPatch.cityId = homeCity?.id ?? null
-      // `[]` is sent only for a list the seeker emptied on purpose: the BE replaces the lot.
-      if (preferredChanged) locationPatch.preferredCityIds = preferredCities.map((c) => c.id)
-
-      await jobSeekerAPI.updateProfile({
-        fullName: fullName.trim() || undefined,
-        bio: bio.trim() || undefined,
-        ...locationPatch,
-        preferredCategory: triple.category || undefined,
-        preferredSector: triple.sector || undefined,
-        preferredJobTitle: triple.jobTitle || undefined,
-        preferredLanguage: language || undefined,
-        // Already yyyy-mm-dd (the <input type="date"> format), which is exactly
-        // what dateOfBirthSchema expects — sent as undefined, never '', so
-        // clearing the field doesn't 400 against a value the BE requires.
-        dateOfBirth: dateOfBirth || undefined,
-        gender: gender || undefined,
-        workExperiences,
-      })
+      // Each card's part of the body is built in lib/profileCards.ts; this is all five, joined.
+      await jobSeekerAPI.updateProfile(profileSavePatch(draft))
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
       const fresh = await jobSeekerAPI.getProfile()
       lastProfileRef.current = fresh
