@@ -2599,8 +2599,9 @@ export const employerAPI = {
   },
 
   // Profile (PJP-112). GET /api/employers/profile → full user + nested employer.
-  getProfile: async () => {
-    return apiRequest<EmployerProfile>('/employers/profile')
+  // `signal`/`timeoutMs` are opt-in (/login passes a signal for its session check).
+  getProfile: async (opts?: { signal?: AbortSignal; timeoutMs?: number }) => {
+    return apiRequest<EmployerProfile>('/employers/profile', opts)
   },
 
   // Update company profile. PUT /api/employers/profile (JSON). Changing

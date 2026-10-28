@@ -15,6 +15,7 @@ import {
   ACCOUNT_ENDED_REASONS,
   ApiError,
   authAPI,
+  employerAPI,
   otpAPI,
   type AccountEndedReason,
   type LoginResult,
@@ -23,6 +24,14 @@ import {
   type AuthUser,
 } from '@/lib/api'
 import { sessionUserFrom, shouldResumePhoneBind } from '@/lib/jobPreferences'
+import {
+  LOGIN_SESSION_CHECK_CAP_MS,
+  classifyEmployerProbeError,
+  loginEntryDecision,
+  settleOutcome,
+  type EmployerProbe,
+  type LoginOutcome,
+} from '@/lib/loginSession'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164, toMobileDigits } from '@/lib/identifier'
 import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
@@ -161,13 +170,33 @@ const LOGIN_REFUSALS = new Map<string, string>([
   ['ACCOUNT_SUSPENDED', 'auth:login.errorAccountSuspended'],
 ])
 
+function PageSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div
+        className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary-50"
+        role="status"
+        aria-label="Loading"
+      />
+    </div>
+  )
+}
+
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   // Set by ProtectedRoute when it bounces a logged-out user off a deep link.
   const returnUrl = searchParams.get('returnUrl')
   const { t } = useTranslation()
-  const { user: sessionUser, isLoading: sessionLoading, profileSync, login, updateUser, logout } = useAuth()
+  const {
+    user: sessionUser,
+    isAuthenticated,
+    isLoading: sessionLoading,
+    profileSync,
+    login,
+    updateUser,
+    logout,
+  } = useAuth()
 
   const [role, setRole] = useState<LoginRole>('seeker')
   // Set once the destination is known, unless the user has already picked. A
@@ -216,6 +245,73 @@ function LoginContent() {
     : null
   const mode: Mode = resumeBindUser || modeState === 'bindPhone' ? 'bindPhone' : 'login'
   const bindTarget = bindUser ?? resumeBindUser
+
+  // Someone who arrives here already signed in is sent on to their home once the server
+  // has confirmed the session (see loginEntryDecision); everyone else gets the form.
+  // Whether a session was stored is read once, the first time storage is known, so a
+  // sign-in done on this page is never mistaken for one that was already there.
+  const [hadSessionOnEntry, setHadSessionOnEntry] = useState<boolean | null>(null)
+  if (!sessionLoading && hadSessionOnEntry === null) setHadSessionOnEntry(isAuthenticated)
+  const [gaveUp, setGaveUp] = useState(false)
+  const [employerProbe, setEmployerProbe] = useState<EmployerProbe>('pending')
+  const [outcome, setOutcome] = useState<LoginOutcome>(null)
+  const shouldProbeEmployer =
+    !!hadSessionOnEntry && !!sessionUser && sessionUser.role !== 'JOB_SEEKER' && !sessionUser.mustChangePassword
+
+  const liveDecision = loginEntryDecision({
+    isLoading: sessionLoading,
+    hadSessionOnEntry,
+    gaveUp,
+    hasToken: isAuthenticated,
+    user: sessionUser,
+    profileSync,
+    resumeBindUser: resumeBindUser !== null,
+    employerProbe,
+  })
+  // The first answer sticks: once the form is up, a late result cannot redirect.
+  const decision = outcome ?? liveDecision
+  useEffect(() => {
+    setOutcome((prev) => settleOutcome(prev, liveDecision))
+  }, [liveDecision])
+
+  // Stop waiting after a while and keep the form (the outcome latches it).
+  useEffect(() => {
+    if (!hadSessionOnEntry || outcome !== null) return
+    const timer = setTimeout(() => setGaveUp(true), LOGIN_SESSION_CHECK_CAP_MS)
+    return () => clearTimeout(timer)
+  }, [hadSessionOnEntry, outcome])
+
+  // An employer has no profile read in AuthContext, so check the stored session with the
+  // same GET /employers/profile the profile page uses. Aborted (and so ignored) when the
+  // cap passes or the page goes away.
+  useEffect(() => {
+    if (!shouldProbeEmployer || gaveUp || outcome !== null) return
+    const controller = new AbortController()
+    employerAPI
+      .getProfile({ signal: controller.signal })
+      .then(() => {
+        if (!controller.signal.aborted) setEmployerProbe('ok')
+      })
+      .catch((err: unknown) => {
+        if (!controller.signal.aborted) setEmployerProbe(classifyEmployerProbeError(err))
+      })
+    return () => controller.abort()
+  }, [shouldProbeEmployer, gaveUp, outcome])
+
+  const redirectRole = sessionUser?.role
+  const redirected = useRef(false)
+  useEffect(() => {
+    if (outcome !== 'redirect' || redirected.current) return
+    // The session ended before the redirect ran (a 401 elsewhere): there is nowhere to
+    // send them, and the 401 handler leaves /login alone, so fall back to the form.
+    if (!redirectRole) {
+      setOutcome('show-form')
+      return
+    }
+    redirected.current = true
+    // replace, not push: Back must not land on /login and bounce forward again.
+    router.replace(destinationAfterAuth(redirectRole, returnUrl))
+  }, [outcome, redirectRole, returnUrl, router])
 
   // One RHF form per validation SHAPE, not per screen — the phone-OTP tab and
   // the Google phone-bind step both send-then-verify a phone number, so they
@@ -651,6 +747,9 @@ function LoginContent() {
 
   const sendOtpPhoneValue = phoneOtpSendForm.watch('phone')
   const bindPhoneValue = bindSendForm.watch('phone')
+
+  // Checking a stored session, or on the way home: not the form (it would flash).
+  if (decision !== 'show-form') return <PageSpinner />
 
   return (
     /* `items-start` + `my-auto` on the card, NOT `items-center`.
@@ -1194,17 +1293,7 @@ export default function LoginPage() {
   // and Next requires the component that reads it to be inside a Suspense boundary
   // — without one the static prerender of /login fails at build time.
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <div
-            className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary-50"
-            role="status"
-            aria-label="Loading"
-          />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSpinner />}>
       <LoginContent />
     </Suspense>
   )
