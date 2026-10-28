@@ -17,10 +17,12 @@ import {
   authAPI,
   otpAPI,
   type AccountEndedReason,
+  type LoginResult,
   type LoginRole,
   type UserRole,
   type AuthUser,
 } from '@/lib/api'
+import { sessionUserFrom, shouldResumePhoneBind } from '@/lib/jobPreferences'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { toIdentifier, toE164, toMobileDigits } from '@/lib/identifier'
 import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
@@ -165,7 +167,7 @@ function LoginContent() {
   // Set by ProtectedRoute when it bounces a logged-out user off a deep link.
   const returnUrl = searchParams.get('returnUrl')
   const { t } = useTranslation()
-  const { login, updateUser } = useAuth()
+  const { user: sessionUser, isLoading: sessionLoading, profileSync, login, updateUser, logout } = useAuth()
 
   const [role, setRole] = useState<LoginRole>('seeker')
   // Set once the destination is known, unless the user has already picked. A
@@ -202,8 +204,18 @@ function LoginContent() {
   const [employerSubtype, setEmployerSubtype] = useState<EmployerSubtype>('individual')
   // Phone-bind step shown after a new Google sign-up. Reuses the phone/otp forms
   // below; `bindUser` is the just-authenticated user, kept for the post-bind redirect.
-  const [mode, setMode] = useState<Mode>('login')
+  const [modeState, setMode] = useState<Mode>('login')
   const [bindUser, setBindUser] = useState<AuthUser | null>(null)
+  // A signed-in SEEKER who is still PENDING_OTP_VERIFICATION resumes the bind step here: a Google
+  // sign-up that left before binding a phone (the bind view above is otherwise reachable only
+  // from the Google click, so a refresh lost it), or one JobPreferencesGate sent here. Derived,
+  // not an effect, so there is no flash of the sign-in form. It waits for the profile read
+  // (`profileSync`) because a stored pending status can be stale. Employers are not resumed.
+  const resumeBindUser = shouldResumePhoneBind({ isLoading: sessionLoading, profileSync, user: sessionUser })
+    ? sessionUser
+    : null
+  const mode: Mode = resumeBindUser || modeState === 'bindPhone' ? 'bindPhone' : 'login'
+  const bindTarget = bindUser ?? resumeBindUser
 
   // One RHF form per validation SHAPE, not per screen — the phone-OTP tab and
   // the Google phone-bind step both send-then-verify a phone number, so they
@@ -253,8 +265,8 @@ function LoginContent() {
 
   const handleClose = () => router.push('/')
 
-  const onLoginSuccess = (result: { token: string; user: AuthUser }, method: 'password' | 'otp') => {
-    login(result.token, result.user)
+  const onLoginSuccess = (result: LoginResult, method: 'password' | 'otp') => {
+    login(result.token, sessionUserFrom(result))
     track('login', { method })
     // A temporary password: nowhere to go but the change screen, and AuthProvider
     // sends them there (carrying `returnUrl`). Pushing here too would race it.
@@ -529,7 +541,7 @@ function LoginContent() {
       setError('')
       const result = await authAPI.googleLogin(googleRole(), idToken)
       // Store the token first — the phone-bind call below is authenticated.
-      login(result.token, result.user)
+      login(result.token, sessionUserFrom(result))
       if (result.isNewUser) track('sign_up', { role: analyticsRole(result.user.role), method: 'google' })
       else track('login', { method: 'google' })
       if (result.needsPhoneVerification) {
@@ -568,9 +580,14 @@ function LoginContent() {
   // deliberately NOT patched here: the backend doesn't return it and AuthUser has
   // no such field.
   const completeBind = (e164: string) => {
-    updateUser({ phoneNumber: e164, ...(bindUser?.role === 'JOB_SEEKER' ? { accountStatus: 'ACTIVE' } : {}) })
-    if (bindUser) showToast(t('auth:login.welcomeBack', { name: displayName(bindUser) }), 'success')
-    router.push(bindUser ? homeRouteForRole(bindUser.role) : '/')
+    // Keep the bind view up until the route changes: once the status is ACTIVE a resumed seeker is
+    // no longer "pending", and the page would flash back to the sign-in form on its way to Home.
+    setMode('bindPhone')
+    updateUser({ phoneNumber: e164, ...(bindTarget?.role === 'JOB_SEEKER' ? { accountStatus: 'ACTIVE' } : {}) })
+    if (bindTarget) showToast(t('auth:login.welcomeBack', { name: displayName(bindTarget) }), 'success')
+    // Home is guarded by JobPreferencesGate, which sends a seeker with missing preferences on to
+    // Complete Profile: phone, then preferences, then Home. Not a bypass.
+    router.push(bindTarget ? homeRouteForRole(bindTarget.role) : '/')
   }
 
   // --- Phone-bind step 1: send OTP to the new phone ---
@@ -1100,6 +1117,23 @@ function LoginContent() {
                     {t('auth:bindPhone.changePhone')}
                   </button>
                 </form>
+              )}
+              {/* The way out for a seeker held here (they cannot reach any other page until the phone
+                  is bound). Seekers only: employers' bind view is unchanged. Clears the local bind
+                  state first so a signed-out visitor is not left looking at this step. */}
+              {bindTarget?.role === 'JOB_SEEKER' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login')
+                    setBindUser(null)
+                    setOtpSent(false)
+                    logout()
+                  }}
+                  className={`w-full min-h-[44px] ${TEXT_LINK_CLS}`}
+                >
+                  {t('nav.logout')}
+                </button>
               )}
             </div>
           )}

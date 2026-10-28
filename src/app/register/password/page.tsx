@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authAPI, classifyRegisterError, emailOtpAPI, jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
+import { sessionUserFrom } from '@/lib/jobPreferences'
 import { otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { knownUploadErrorMessage } from '@/lib/uploadFile'
@@ -226,9 +227,24 @@ export default function RegisterPasswordPage() {
       //
       // The fallback covers only the portal deploying ahead of the backend that
       // serves the session; delete it once that is out everywhere.
+      //
+      // `needsJobPreferences: false` is set ONLY on the register-reply branch, because that
+      // reply (unlike a login reply) carries no flag. It rests on the backend contract audited
+      // at prosiddhi-backend 0faacd3 (feat/seeker-location-gate, in main as c14b096):
+      //   - POST /jobseekers/register succeeds only with a home city (else 400 CITY_REQUIRED)
+      //     and a category, sector and job title that form a valid path (else 400), and
+      //   - the flag is true only when the city, sector or job title is missing
+      //     (auth.service.ts needsJobPreferences).
+      // So a successful register means the flag is false, and storing that avoids sending a
+      // brand-new user through a profile read, and possibly the recovery screen, at the first
+      // screen. It is a fact derived from that contract, not a server answer. REVISIT IT if
+      // registration requirements change, if the flag's meaning changes (a new thing that
+      // makes it true), or once the backend puts `needsJobPreferences` in the register
+      // reply, which is the real fix: then delete this line and read the reply's own value.
+      // The fallback login below carries the server's own flag, so it is never overridden.
       const session =
         created.token && created.user
-          ? { token: created.token, user: created.user }
+          ? { token: created.token, user: created.user, needsJobPreferences: false }
           : await authAPI.login('seeker', {
               identifier: data.email || data.phoneNumber,
               password: newPassword,
@@ -238,7 +254,7 @@ export default function RegisterPasswordPage() {
       // which is what drops the plaintext password out of memory. Latch first —
       // `reset()` empties the very fields the guards on this page read.
       setAccountCreated(true)
-      login(session.token, session.user)
+      login(session.token, sessionUserFrom(session))
       track('sign_up', { role: 'seeker', method: 'phone' })
       reset()
 

@@ -15,14 +15,19 @@ import { ReadOnlyField } from '@/components/profile/ReadOnlyField'
 import { EmailStatusField } from '@/components/profile/EmailStatusField'
 import { PhoneStatusField } from '@/components/profile/PhoneStatusField'
 import { AccountStatusIndicator } from '@/components/profile/AccountStatusIndicator'
-import { inputCls, fieldLabelCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/profile/profileStyles'
+import { ProfileCard } from '@/components/profile/ProfileCard'
+import {
+  seekerInputCls,
+  seekerLabelCls,
+  seekerSharedFieldsCls,
+  seekerCityChipsCls,
+} from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
-import { isAtLeast18, toDateInput } from '@/lib/dateInput'
+import { toDateInput } from '@/lib/dateInput'
 import {
   jobSeekerAPI,
   resolveMediaUrl,
   type SeekerProfile,
-  type SeekerProfileUpdate,
   type ProfileWorkExperience,
   type JobSeekerSkillLink,
   type SkillCatalogItem,
@@ -53,7 +58,10 @@ import {
   X,
   Search,
   User,
+  Home,
+  MapPin,
   Briefcase,
+  Building2,
   FileWarning,
   Phone,
   Mail,
@@ -61,7 +69,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { COMPANY_NAME_MAX_LENGTH, WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
-import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
+import { NAME_MAX_LENGTH } from '@/lib/nameValidation'
+import { aboutProblem, profileSavePatch, type AboutProblem } from '@/lib/profileCards'
 import { Field } from '@/components/form/Field'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
 
@@ -127,6 +136,13 @@ function genderLabel(t: (key: string) => string, gender: string | null): string 
   if (!gender) return undefined
   const key = GENDER_LABEL_KEY[gender]
   return key ? t(key) : gender
+}
+
+// What aboutProblem found, as the copy this page has always shown for it.
+const ABOUT_PROBLEM_KEY: Record<AboutProblem, string> = {
+  nameTooShort: 'auth:profile.errorName',
+  nameNotAName: 'auth:profile.errorNameLetters',
+  dobUnder18: 'profile:seeker.errorDobAge',
 }
 
 // SUSPENDED is the only other state a seeker who can reach this page could
@@ -391,19 +407,6 @@ function SeekerProfileContent() {
     updateUser({ email: fresh.email, phoneNumber: fresh.phoneNumber })
   }
 
-  // What this save sends for the two location fields. Each goes out only when the seeker
-  // changed it, so an unrelated save (a new bio, a switched language) can neither rewrite the
-  // home city, wipe the legacy text, nor replace the preferred list with what happened to load.
-  //
-  // An EMPTY picker is not by itself a request to clear the city (see homeCityRemoved), so an
-  // empty home city counts as a change only after the explicit remove.
-  const homeCityChanged = homeCity
-    ? homeCity.id !== savedHomeCity?.id
-    : savedHomeCity !== null && homeCityRemoved
-  const preferredChanged =
-    preferredCities.length !== savedPreferredIds.length ||
-    preferredCities.some((c) => !savedPreferredIds.includes(c.id))
-
   // A hand-made change of the home city (the picker, or Remove) ends any lookup still running
   // (its answer would overwrite the choice) and drops the note about the last lookup, which no
   // longer describes the form. Stable between renders, for the picker's React.memo.
@@ -435,64 +438,30 @@ function SeekerProfileContent() {
     setSaveError('')
     setSaved(false)
 
-    // Registration rejects a numeric name (DEF-030); without the same guard here
-    // the rule is one edit away from being undone.
-    //
-    // Only on an EDIT. Validating the value the server sent would lock out any
-    // account whose stored name predates this rule — and those exist, since the
-    // backend mirror is still open, so "Test User 1" is creatable via the API
-    // today. Such a user could not save ANY profile change, not even their bio,
-    // and the error would point at a field they never touched.
-    const problem = fullName.trim() !== originalFullName.current ? nameProblem(fullName) : null
-    if (problem) {
-      setSaveError(t(problem === 'tooShort' ? 'auth:profile.errorName' : 'auth:profile.errorNameLetters'))
-      return
+    // The name and age rules, and why the name is only judged on an edit, are with aboutProblem.
+    const draft = {
+      fullName,
+      bio,
+      dateOfBirth,
+      gender,
+      homeCity,
+      savedHomeCity,
+      homeCityRemoved,
+      preferredCities,
+      savedPreferredIds,
+      triple,
+      language,
+      experiences,
     }
-    // The BE refuses an under-18 date with a bare "Validation failed" — catch it here.
-    // An empty field is skipped: it is sent as undefined, so accounts with no DOB can still save.
-    if (dateOfBirth && !isAtLeast18(dateOfBirth)) {
-      setSaveError(t('profile:seeker.errorDobAge'))
+    const problem = aboutProblem(draft, originalFullName.current)
+    if (problem) {
+      setSaveError(t(ABOUT_PROBLEM_KEY[problem]))
       return
     }
     setSaving(true)
     try {
-      // Only send rows with BOTH a position and a parseable startDate — the BE
-      // requires both. workExperiences (when present) FULL-REPLACES server-side.
-      const workExperiences = experiences
-        .filter((r) => r.position.trim() && r.startDate)
-        .map((r) => ({
-          position: r.position.trim(),
-          companyName: r.companyName?.trim() || undefined,
-          startDate: r.startDate as string,
-          endDate: r.currentlyWorking ? undefined : r.endDate || undefined,
-          currentlyWorking: !!r.currentlyWorking,
-          description: r.description?.trim() || undefined,
-        }))
-
-      // Each location field goes out only when the seeker changed it (see homeCityChanged).
-      // `location`, `latitude` and `longitude` are never sent from here: picking a city makes
-      // the BE write all three from it, and the legacy text must survive every other save.
-      const locationPatch: Pick<SeekerProfileUpdate, 'cityId' | 'preferredCityIds'> = {}
-      // `null` (the seeker cleared the city) drops the link and keeps the text.
-      if (homeCityChanged) locationPatch.cityId = homeCity?.id ?? null
-      // `[]` is sent only for a list the seeker emptied on purpose: the BE replaces the lot.
-      if (preferredChanged) locationPatch.preferredCityIds = preferredCities.map((c) => c.id)
-
-      await jobSeekerAPI.updateProfile({
-        fullName: fullName.trim() || undefined,
-        bio: bio.trim() || undefined,
-        ...locationPatch,
-        preferredCategory: triple.category || undefined,
-        preferredSector: triple.sector || undefined,
-        preferredJobTitle: triple.jobTitle || undefined,
-        preferredLanguage: language || undefined,
-        // Already yyyy-mm-dd (the <input type="date"> format), which is exactly
-        // what dateOfBirthSchema expects — sent as undefined, never '', so
-        // clearing the field doesn't 400 against a value the BE requires.
-        dateOfBirth: dateOfBirth || undefined,
-        gender: gender || undefined,
-        workExperiences,
-      })
+      // Each card's part of the body is built in lib/profileCards.ts; this is all five, joined.
+      await jobSeekerAPI.updateProfile(profileSavePatch(draft))
       // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
       const fresh = await jobSeekerAPI.getProfile()
       lastProfileRef.current = fresh
@@ -524,10 +493,10 @@ function SeekerProfileContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[120px]">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-[clamp(16px,8px_+_1.25vw,28px)]">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold text-black">{t('profile:seeker.heading')}</h1>
-              <p className="text-sm text-[#717182] mt-1">{t('profile:seeker.subtitle')}</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-[40px] font-bold leading-snug text-black">{t('profile:seeker.heading')}</h1>
+              <p className="text-sm leading-relaxed text-[#717182] mt-2">{t('profile:seeker.subtitle')}</p>
               {profileUpdatedAt && (
-                <p className="text-xs text-[#a3a3a3] mt-1">
+                <p className="text-xs leading-relaxed text-[#a3a3a3] mt-1.5">
                   {t('profile:seeker.lastUpdated', { date: formatUpdatedAt(profileUpdatedAt) })}
                 </p>
               )}
@@ -559,30 +528,59 @@ function SeekerProfileContent() {
 
           {!loading && !loadError && (
             <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6 sm:gap-8 items-start">
-              {/* Profile summary sidebar — avatar, name, phone, email, document-verification status. */}
-              <aside className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6 flex flex-col items-center text-center">
-                <div className="relative w-32 h-32 flex-shrink-0">
-                  <div className="w-32 h-32 rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center">
-                    {photo ? (
-                      // unoptimized: the BE may return an absolute GCS/CDN photo URL outside images.remotePatterns.
-                      <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill unoptimized className="object-cover" />
-                    ) : (
-                      <span className="text-4xl font-semibold text-[#236987]">
-                        {(fullName || '?').charAt(0).toUpperCase()}
-                      </span>
-                    )}
+              {/* Profile summary sidebar — avatar, name, phone, email, document-verification status.
+                  A row on a phone (small photo beside the text) so it does not push every card
+                  a screen down; the tall centred column from `sm` up. */}
+              <aside className="bg-white border border-[#dddddd] rounded-xl p-4 sm:p-6 flex flex-col items-center text-center">
+                <div className="flex w-full items-center gap-4 sm:flex-col sm:gap-0">
+                  <div className="relative w-20 h-20 sm:w-32 sm:h-32 flex-shrink-0">
+                    <div className="w-full h-full rounded-full bg-[#a9e5ff] overflow-hidden flex items-center justify-center">
+                      {photo ? (
+                        // unoptimized: the BE may return an absolute GCS/CDN photo URL outside images.remotePatterns.
+                        <Image src={resolveMediaUrl(photo)} alt="Profile photo" fill unoptimized className="object-cover" />
+                      ) : (
+                        <span className="text-3xl sm:text-4xl font-semibold text-[#236987]">
+                          {(fullName || '?').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhoto} className="hidden" />
+                    <button
+                      type="button"
+                      onClick={() => photoRef.current?.click()}
+                      disabled={photoUploading}
+                      aria-label={t('profile:seeker.changePhoto')}
+                      title={t('profile:seeker.changePhoto')}
+                      className="absolute -bottom-2 -right-2 sm:bottom-0 sm:right-0 w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-white text-primary-50 flex items-center justify-center border border-[#dddddd] shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                      {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                    </button>
                   </div>
-                  <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhoto} className="hidden" />
-                  <button
-                    type="button"
-                    onClick={() => photoRef.current?.click()}
-                    disabled={photoUploading}
-                    aria-label={t('profile:seeker.changePhoto')}
-                    title={t('profile:seeker.changePhoto')}
-                    className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white text-primary-50 flex items-center justify-center border border-[#dddddd] shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-60"
-                  >
-                    {photoUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                  </button>
+                  <div className="min-w-0 flex-1 flex flex-col items-start text-left sm:items-center sm:text-center sm:flex-none sm:w-full">
+                    <p className="text-xl font-semibold text-black sm:mt-5 break-words">
+                      {fullName || t('profile:seeker.fullNamePlaceholder')}
+                    </p>
+                    <AccountStatusIndicator
+                      label={accountStatus ? (ACCOUNT_STATUS_LABEL_KEY[accountStatus] ? t(ACCOUNT_STATUS_LABEL_KEY[accountStatus]) : accountStatus) : null}
+                      dotClassName={accountStatus ? (ACCOUNT_STATUS_DOT[accountStatus] ?? 'bg-gray-400') : 'bg-gray-400'}
+                    />
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 sm:mt-2.5 sm:justify-center text-sm text-[#717182] max-w-full">
+                      {phoneNumber && (
+                        <span className="inline-flex items-center gap-1.5 flex-shrink-0">
+                          <Phone className="w-3.5 h-3.5" /> {phoneNumber}
+                        </span>
+                      )}
+                      {phoneNumber && email && <span className="hidden sm:inline text-[#dddddd]">|</span>}
+                      {email && (
+                        <Tooltip content={email}>
+                          <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+                            <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="truncate min-w-0">{email}</span>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 {photoError && photoError.lang === i18n.language && (
                   <p role="alert" className="mt-3 flex items-start gap-1.5 text-sm text-red-600 text-left">
@@ -590,35 +588,12 @@ function SeekerProfileContent() {
                     <span>{photoError.message}</span>
                   </p>
                 )}
-                <p className="text-xl font-semibold text-black mt-5 break-words">
-                  {fullName || t('profile:seeker.fullNamePlaceholder')}
-                </p>
-                <AccountStatusIndicator
-                  label={accountStatus ? (ACCOUNT_STATUS_LABEL_KEY[accountStatus] ? t(ACCOUNT_STATUS_LABEL_KEY[accountStatus]) : accountStatus) : null}
-                  dotClassName={accountStatus ? (ACCOUNT_STATUS_DOT[accountStatus] ?? 'bg-gray-400') : 'bg-gray-400'}
-                />
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2.5 text-sm text-[#717182] max-w-full">
-                  {phoneNumber && (
-                    <span className="inline-flex items-center gap-1.5 flex-shrink-0">
-                      <Phone className="w-3.5 h-3.5" /> {phoneNumber}
-                    </span>
-                  )}
-                  {phoneNumber && email && <span className="text-[#dddddd]">|</span>}
-                  {email && (
-                    <Tooltip content={email}>
-                      <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
-                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate min-w-0">{email}</span>
-                      </span>
-                    </Tooltip>
-                  )}
-                </div>
-                <div className="w-full mt-6 pt-5 border-t border-[#eee]">
+                <div className="w-full mt-4 pt-4 sm:mt-6 sm:pt-5 border-t border-[#eee] text-left sm:text-center">
                   <DocStatusBadge status={documentVerificationStatus} />
                 </div>
               </aside>
 
-              <div className="space-y-6 sm:space-y-8 min-w-0">
+              <div className="space-y-4 sm:space-y-6 min-w-0">
               <section className="bg-white border border-[#dddddd] rounded-[10px] px-5 sm:px-6">
                 <ToggleSwitch
                   label={t('profile:seeker.activelyLooking.title')}
@@ -629,18 +604,17 @@ function SeekerProfileContent() {
                 />
               </section>
 
-              {/* Basic details */}
-              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                {/* Personal Information */}
-                <div className="pb-6 mb-6 border-b border-[#eee]">
-                  <h2 className={sectionHeadingCls + ' mb-4'}>
-                    <User className={sectionHeadingIconCls} /> {t('profile:seeker.personalInformation')}
-                  </h2>
-                  {editing ? (
-                    <>
-                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <Field label={t('profile:seeker.fullName')} className={fieldLabelCls}>
-                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:seeker.fullNamePlaceholder')} className={inputCls} />
+              {/* About me */}
+              <ProfileCard
+                icon={User}
+                title={t('profile:seeker.cards.aboutMeTitle')}
+                help={t('profile:seeker.cards.aboutMeHelp')}
+              >
+                {editing ? (
+                  <>
+                    <div className={`grid sm:grid-cols-2 gap-x-6 gap-y-5 ${seekerSharedFieldsCls}`}>
+                      <Field label={t('profile:seeker.fullName')} className={seekerLabelCls}>
+                        <input value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:seeker.fullNamePlaceholder')} className={seekerInputCls} />
                       </Field>
                       <EmailStatusField
                         label={t('profile:seeker.emailAddress')}
@@ -665,92 +639,19 @@ function SeekerProfileContent() {
                         changeLabel={t('profile:seeker.changePhone')}
                         onChangeClick={() => setPhoneModalOpen(true)}
                       />
-                      {/* Home city: where the seeker LIVES. Not the same thing as the cities
-                          they want to work in, which is the next block. */}
-                      <div role="group" aria-labelledby="seeker-home-location" className="sm:col-span-2">
-                        <p id="seeker-home-location" className={fieldLabelCls}>
-                          {t('profile:seeker.location')}
-                        </p>
-                        {/* A seeker from before cities existed has only this text. It stays until
-                            they pick a city, and picking one replaces it on the server. */}
-                        {!homeCity && !savedHomeCity && location.trim() && (
-                          <p className="mb-2 text-sm text-[#717182]">
-                            {t('profile:seeker.locationLegacy', { text: location })}
-                          </p>
-                        )}
-                        {/* The saved city stays on screen while the picker is empty, which it is
-                            whenever the State select is changed. Saving then sends nothing,
-                            unless the seeker pressed Remove, and the second sentence says what
-                            that does not do: the BE keeps the old text and pin. */}
-                        {!homeCity && savedHomeCity && (
-                          <p className={`mb-2 text-sm ${savedCityTone}`} role="status">
-                            {t(savedCityKey, { city: cityDisplayName(savedHomeCity) })}
-                          </p>
-                        )}
-                        <StateCitySelect
-                          value={homeCity}
-                          onChange={changeHomeCity}
-                          disabled={saving}
-                          selectClassName={inputCls}
-                          labelClassName={fieldLabelCls}
-                        />
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={saving || locating} />
-                          {/* The only way to clear a saved city: emptying the picker is not one,
-                              because changing the State select empties it too. */}
-                          {savedHomeCity && !homeCityRemoved && (
-                            <button
-                              type="button"
-                              onClick={removeHomeCity}
-                              disabled={saving}
-                              className="min-h-[44px] px-2 text-sm text-red-600 underline disabled:opacity-50"
-                            >
-                              {t('profile:seeker.removeHomeCity')}
-                            </button>
-                          )}
-                        </div>
-                        {/* The point is invisible, so this line is the only feedback there is.
-                            It never calls an unsaved city saved: the city sits in the picker above
-                            and goes out with Save. */}
-                        <p
-                          className={`text-xs mt-1.5 ${locationNote ? (locationNote.ok ? 'text-green-700' : 'text-red-600') : 'text-[#717182]'}`}
-                          role="status"
-                        >
-                          {locating
-                            ? t('profile:seeker.locationLookingUp')
-                            : (locationNote?.text ?? t('profile:seeker.locationHint'))}
-                        </p>
-                      </div>
-                      {/* Preferred work cities: where the seeker WANTS to work. Employers see
-                          these, never the home city above. */}
-                      <div role="group" aria-labelledby="seeker-preferred-cities" className="sm:col-span-2">
-                        <p id="seeker-preferred-cities" className={fieldLabelCls}>
-                          {t('profile:seeker.preferredCities')}
-                        </p>
-                        <p className="mb-2 text-xs text-[#717182]">{t('profile:seeker.preferredCitiesHint')}</p>
-                        <StateCitySelect
-                          multiple
-                          max={3}
-                          value={preferredCities}
-                          onChange={setPreferredCities}
-                          disabled={saving}
-                          selectClassName={inputCls}
-                          labelClassName={fieldLabelCls}
-                        />
-                      </div>
-                      <Field label={t('profile:seeker.dateOfBirth')} className={fieldLabelCls}>
+                      <Field label={t('profile:seeker.dateOfBirth')} className={seekerLabelCls}>
                         <DatePicker
                           value={dateOfBirth}
                           defaultMonth={yearsAgoISO(18)}
                           onChange={setDateOfBirth}
-                          className={inputCls}
+                          className={seekerInputCls}
                         />
                       </Field>
-                      <Field label={t('profile:seeker.gender')} className={fieldLabelCls}>
+                      <Field label={t('profile:seeker.gender')} className={seekerLabelCls}>
                         <select
                           value={gender}
                           onChange={(e) => setGender(e.target.value as typeof gender)}
-                          className={inputCls}
+                          className={seekerInputCls}
                         >
                           <option value="">{t('auth:profile.genderSelect')}</option>
                           <option value="MALE">{t('auth:profile.genderMale')}</option>
@@ -761,15 +662,15 @@ function SeekerProfileContent() {
                     </div>
                     {/* About You gets its own full-width row, set off from the fields
                         above — it reads as a paragraph, not one more grid cell. */}
-                    <div className="mt-6 pt-6 border-t border-[#eee]">
-                      <Field label={t('profile:seeker.aboutYou')} className={fieldLabelCls}>
-                        <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
+                    <div className="mt-5 pt-5 border-t border-[#eee]">
+                      <Field label={t('profile:seeker.aboutYou')} className={seekerLabelCls}>
+                        <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={3} placeholder={t('profile:seeker.aboutYouPlaceholder')} className="w-full px-3 py-2 border border-[#b5b5b5] rounded-lg text-base sm:text-sm text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all resize-none" />
                       </Field>
                     </div>
-                    </>
-                  ) : (
-                    <>
-                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
+                  </>
+                ) : (
+                  <>
+                    <div className={`grid sm:grid-cols-2 gap-x-6 gap-y-5 ${seekerSharedFieldsCls}`}>
                       <ReadOnlyField label={t('profile:seeker.fullName')} value={fullName} notProvided={t('profile:seeker.notProvided')} />
                       <EmailStatusField
                         label={t('profile:seeker.emailAddress')}
@@ -794,120 +695,215 @@ function SeekerProfileContent() {
                         changeLabel={t('profile:seeker.changePhone')}
                         onChangeClick={() => setPhoneModalOpen(true)}
                       />
-                      {/* "City, State" once a city is picked; the legacy text until then. */}
-                      <ReadOnlyField
-                        label={t('profile:seeker.location')}
-                        value={homeCity ? cityDisplayName(homeCity) : location}
-                        notProvided={t('profile:seeker.notProvided')}
-                      />
-                      <ReadOnlyField
-                        label={t('profile:seeker.preferredCities')}
-                        value={preferredCities.map(cityDisplayName).join(' · ')}
-                        notProvided={t('profile:seeker.notProvided')}
-                      />
                       <ReadOnlyField label={t('profile:seeker.dateOfBirth')} value={formatDateOfBirth(dateOfBirth)} notProvided={t('profile:seeker.notProvided')} />
                       <ReadOnlyField label={t('profile:seeker.gender')} value={genderLabel(t, gender)} notProvided={t('profile:seeker.notProvided')} />
                     </div>
-                    <div className="mt-6 pt-6 border-t border-[#eee]">
+                    <div className={`mt-5 pt-5 border-t border-[#eee] ${seekerSharedFieldsCls}`}>
                       <ReadOnlyField label={t('profile:seeker.aboutYou')} value={bio} notProvided={t('profile:seeker.notProvided')} />
                     </div>
-                    </>
-                  )}
-                </div>
+                  </>
+                )}
+              </ProfileCard>
 
-                {/* Job Preferences */}
-                <div>
-                  <h2 className={sectionHeadingCls + ' mb-4'}>
-                    <Briefcase className={sectionHeadingIconCls} /> {t('profile:seeker.jobPreferences')}
-                  </h2>
-                  {editing ? (
-                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      {/* Preferred Category → Sector → JobTitle (PJP-112).
-                          `contents` drops the picker's own wrapper from layout so its
-                          three fields fall into THIS grid directly, alongside Preferred
-                          Language — Category/Sector on row one, JobTitle/Language on
-                          row two, instead of the picker claiming a full-width row of
-                          its own. The cascade logic inside TaxonomyPicker is untouched. */}
-                      <TaxonomyPicker
-                        value={triple}
-                        onChange={setTriple}
-                        className="contents"
-                        selectClassName={inputCls}
-                        labelClassName={fieldLabelCls}
-                      />
-                      <Field label={t('profile:seeker.preferredLanguage')} className={fieldLabelCls}>
-                        <select value={language} onChange={(e) => setLanguage(e.target.value)} className={inputCls}>
-                          {LANGUAGES.map((l) => (
-                            <option key={l.value} value={l.value}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
+              {/* Where I live. Home city: where the seeker LIVES. Not the same thing as the
+                  cities they want to work in, which is the next card. */}
+              <ProfileCard
+                icon={Home}
+                title={t('profile:seeker.cards.homeTitle')}
+                help={t('profile:seeker.cards.homeHelp')}
+              >
+                {editing ? (
+                  <div>
+                    {/* A seeker from before cities existed has only this text. It stays until
+                        they pick a city, and picking one replaces it on the server. */}
+                    {!homeCity && !savedHomeCity && location.trim() && (
+                      <p className="mb-2 text-sm text-[#717182]">
+                        {t('profile:seeker.locationLegacy', { text: location })}
+                      </p>
+                    )}
+                    {/* The saved city stays on screen while the picker is empty, which it is
+                        whenever the State select is changed. Saving then sends nothing,
+                        unless the seeker pressed Remove, and the second sentence says what
+                        that does not do: the BE keeps the old text and pin. */}
+                    {!homeCity && savedHomeCity && (
+                      <p className={`mb-2 text-sm ${savedCityTone}`} role="status">
+                        {t(savedCityKey, { city: cityDisplayName(savedHomeCity) })}
+                      </p>
+                    )}
+                    <StateCitySelect
+                      value={homeCity}
+                      onChange={changeHomeCity}
+                      disabled={saving}
+                      selectClassName={seekerInputCls}
+                      labelClassName={seekerLabelCls}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={saving || locating} />
+                      {/* The only way to clear a saved city: emptying the picker is not one,
+                          because changing the State select empties it too. */}
+                      {savedHomeCity && !homeCityRemoved && (
+                        <button
+                          type="button"
+                          onClick={removeHomeCity}
+                          disabled={saving}
+                          className="min-h-[44px] px-2 text-sm text-red-600 underline disabled:opacity-50"
+                        >
+                          {t('profile:seeker.removeHomeCity')}
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                      <ReadOnlyField label={t('taxonomy:category')} value={triple.category && categoryLabel(t, triple.category)} notProvided={t('profile:seeker.notProvided')} />
-                      <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} notProvided={t('profile:seeker.notProvided')} />
-                      <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} notProvided={t('profile:seeker.notProvided')} />
-                      <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} notProvided={t('profile:seeker.notProvided')} />
-                    </div>
-                  )}
-                </div>
-              </section>
+                    {/* The point is invisible, so this line is the only feedback there is.
+                        It never calls an unsaved city saved: the city sits in the picker above
+                        and goes out with Save. */}
+                    <p
+                      className={`text-sm mt-1.5 ${locationNote ? (locationNote.ok ? 'text-green-700' : 'text-red-600') : 'text-[#717182]'}`}
+                      role="status"
+                    >
+                      {locating
+                        ? t('profile:seeker.locationLookingUp')
+                        : (locationNote?.text ?? t('profile:seeker.locationHint'))}
+                    </p>
+                  </div>
+                ) : (
+                  // "City, State" once a city is picked; the legacy text until then.
+                  <p className="text-base font-medium text-black break-words">
+                    {(homeCity ? cityDisplayName(homeCity) : location) || t('profile:seeker.notProvided')}
+                  </p>
+                )}
+              </ProfileCard>
+
+              {/* Where I want to work. Preferred work cities: where the seeker WANTS to work.
+                  Employers see these, never the home city above. */}
+              <ProfileCard
+                icon={MapPin}
+                title={t('profile:seeker.preferredCities')}
+                help={editing ? t('profile:seeker.preferredCitiesHint') : undefined}
+              >
+                {editing ? (
+                  <StateCitySelect
+                    multiple
+                    max={3}
+                    value={preferredCities}
+                    onChange={setPreferredCities}
+                    disabled={saving}
+                    className={seekerCityChipsCls}
+                    selectClassName={seekerInputCls}
+                    labelClassName={seekerLabelCls}
+                  />
+                ) : preferredCities.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {preferredCities.map((city) => (
+                      <li
+                        key={city.id}
+                        className="inline-flex items-center min-h-11 rounded-full bg-[#eaf6fd] px-4 text-base text-black"
+                      >
+                        {cityDisplayName(city)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-base font-medium text-black">{t('profile:seeker.notProvided')}</p>
+                )}
+              </ProfileCard>
+
+              {/* The job I want. Category → Sector → JobTitle (PJP-112). */}
+              <ProfileCard
+                icon={Briefcase}
+                title={t('profile:seeker.cards.jobTitle')}
+                help={t('profile:seeker.cards.jobHelp')}
+              >
+                {editing ? (
+                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
+                    {/* `contents` drops the picker's own wrapper from layout so its
+                        three fields fall into THIS grid directly, alongside Preferred
+                        Language — Category/Sector on row one, JobTitle/Language on
+                        row two, instead of the picker claiming a full-width row of
+                        its own. The cascade logic inside TaxonomyPicker is untouched. */}
+                    <TaxonomyPicker
+                      value={triple}
+                      onChange={setTriple}
+                      className="contents"
+                      selectClassName={seekerInputCls}
+                      labelClassName={seekerLabelCls}
+                    />
+                    <Field label={t('profile:seeker.preferredLanguage')} className={seekerLabelCls}>
+                      <select value={language} onChange={(e) => setLanguage(e.target.value)} className={seekerInputCls}>
+                        {LANGUAGES.map((l) => (
+                          <option key={l.value} value={l.value}>
+                            {l.label}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                ) : (
+                  <div className={`grid sm:grid-cols-2 gap-x-6 gap-y-5 ${seekerSharedFieldsCls}`}>
+                    <ReadOnlyField label={t('taxonomy:category')} value={triple.category && categoryLabel(t, triple.category)} notProvided={t('profile:seeker.notProvided')} />
+                    <ReadOnlyField label={t('taxonomy:sector')} value={triple.sector} notProvided={t('profile:seeker.notProvided')} />
+                    <ReadOnlyField label={t('taxonomy:jobTitle')} value={triple.jobTitle} notProvided={t('profile:seeker.notProvided')} />
+                    <ReadOnlyField label={t('profile:seeker.preferredLanguage')} value={LANGUAGES.find((l) => l.value === language)?.label} notProvided={t('profile:seeker.notProvided')} />
+                  </div>
+                )}
+              </ProfileCard>
 
               {/* Work experience */}
-              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className={sectionHeadingCls}>
-                    <Briefcase className={sectionHeadingIconCls} /> {t('profile:seeker.workExperience')}
+              <ProfileCard
+                icon={Building2}
+                title={
+                  <>
+                    {t('profile:seeker.workExperience')}
                     <VoiceButton label={t('profile:seeker.workExperienceVoiceLabel')} iconClassName="w-4 h-4 text-gray-500" className="p-1" />
-                  </h2>
-                  {editing && (
-                    <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-50 hover:text-primary-60">
+                  </>
+                }
+                action={
+                  editing && (
+                    <button type="button" onClick={addExp} className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60">
                       <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
                     </button>
-                  )}
-                </div>
+                  )
+                }
+              >
                 {experiences.length === 0 ? (
                   <p className="text-sm text-[#717182]">{t('profile:seeker.noExperience')}</p>
                 ) : editing ? (
                   <div className="space-y-5">
                     {experiences.map((exp) => (
-                      <div key={exp.key} className="border border-[#eee] rounded-lg p-4 relative">
-                        <button
-                          type="button"
-                          onClick={() => removeExp(exp.key)}
-                          className="absolute top-3 right-3 text-gray-400 hover:text-red-500"
-                          aria-label={t('profile:seeker.removeExperience')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <div className="grid sm:grid-cols-2 gap-3">
-                          <Field label={t('profile:seeker.position')} className={fieldLabelCls}>
-                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} maxLength={WORK_POSITION_MAX_LENGTH} placeholder={t('profile:seeker.positionPlaceholder')} className={inputCls} />
+                      <div key={exp.key} className="border border-[#eee] rounded-lg p-4">
+                        <div className="flex justify-end -mt-2 -mr-2">
+                          <button
+                            type="button"
+                            onClick={() => removeExp(exp.key)}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-gray-400 hover:text-red-500"
+                            aria-label={t('profile:seeker.removeExperience')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-x-4 gap-y-4">
+                          <Field label={t('profile:seeker.position')} className={seekerLabelCls}>
+                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} maxLength={WORK_POSITION_MAX_LENGTH} placeholder={t('profile:seeker.positionPlaceholder')} className={seekerInputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.company')} className={fieldLabelCls}>
-                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={inputCls} />
+                          <Field label={t('profile:seeker.company')} className={seekerLabelCls}>
+                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={seekerInputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.startDate')} className={fieldLabelCls}>
-                            <DatePicker value={exp.startDate ?? ''} onChange={(v) => setExp(exp.key, 'startDate', v)} className={inputCls} />
+                          <Field label={t('profile:seeker.startDate')} className={seekerLabelCls}>
+                            <DatePicker value={exp.startDate ?? ''} onChange={(v) => setExp(exp.key, 'startDate', v)} className={seekerInputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.endDate')} className={fieldLabelCls}>
+                          <Field label={t('profile:seeker.endDate')} className={seekerLabelCls}>
                             <DatePicker
                               value={exp.endDate ?? ''}
                               disabled={exp.currentlyWorking}
                               onChange={(v) => setExp(exp.key, 'endDate', v)}
-                              className={`${inputCls} disabled:bg-gray-100`}
+                              className={`${seekerInputCls} disabled:bg-gray-100`}
                             />
                           </Field>
                         </div>
-                        <label className="flex items-center gap-2 mt-3 text-sm text-[#4d4d4d]">
+                        <label className="flex items-center gap-3 mt-3 min-h-11 text-sm text-[#4d4d4d]">
                           <input
                             type="checkbox"
                             checked={!!exp.currentlyWorking}
                             onChange={(e) => setExp(exp.key, 'currentlyWorking', e.target.checked)}
-                            className="w-4 h-4 accent-primary-50"
+                            className="w-5 h-5 accent-primary-50"
                           />
                           {t('profile:seeker.currentlyWorking')}
                         </label>
@@ -918,19 +914,19 @@ function SeekerProfileContent() {
                   <div className="space-y-3">
                     {experiences.map((exp) => (
                       <div key={exp.key} className="bg-[#eaf6fd] rounded-lg p-4">
-                        <p className="text-sm sm:text-base font-medium text-black">
+                        <p className="text-base font-medium text-black">
                           {exp.position}
                           {exp.companyName ? ` — ${exp.companyName}` : ''}
                         </p>
-                        <p className="text-xs text-[#3386a9] mt-0.5">
+                        <p className="text-sm text-[#2b6f8c] mt-0.5">
                           {monthYear(exp.startDate)} – {exp.currentlyWorking ? t('profile:seeker.present') : monthYear(exp.endDate) || t('profile:seeker.present')}
                         </p>
                       </div>
                     ))}
                   </div>
                 )}
-                {editing && <p className="text-xs text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>}
-              </section>
+                {editing && <p className="text-sm text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>}
+              </ProfileCard>
 
               {/* Save bar for profile + experience */}
               {editing && (
@@ -965,10 +961,7 @@ function SeekerProfileContent() {
               )}
 
               {/* Documents */}
-              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className={sectionHeadingCls + ' mb-4'}>
-                  <FileText className={sectionHeadingIconCls} /> {t('profile:seeker.documents')}
-                </h2>
+              <ProfileCard icon={FileText} title={t('profile:seeker.documents')}>
                 <DocumentsSection
                   allowedTypes={[...SEEKER_DOC_TYPES]}
                   accept=".pdf,.jpg,.jpeg,.png"
@@ -976,19 +969,16 @@ function SeekerProfileContent() {
                   upload={jobSeekerAPI.uploadDocument}
                   remove={jobSeekerAPI.deleteDocument}
                 />
-              </section>
+              </ProfileCard>
 
               {/* Skills */}
-              <section className="bg-white border border-[#dddddd] rounded-[10px] p-5 sm:p-6">
-                <h2 className={sectionHeadingCls + ' mb-4'}>
-                  <Sparkles className={sectionHeadingIconCls} /> {t('profile:seeker.skills')}
-                </h2>
+              <ProfileCard icon={Sparkles} title={t('profile:seeker.skills')}>
                 {jobSeekerId === null ? (
                   <p className="text-sm text-[#717182]">{t('profile:seeker.skillsLocked')}</p>
                 ) : (
                   <SkillsSection />
                 )}
-              </section>
+              </ProfileCard>
               </div>
             </div>
           )}

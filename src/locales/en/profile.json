@@ -3,6 +3,14 @@
     "heading": "My Profile",
     "subtitle": "Complete your profile for a better experience.",
     "editProfile": "Edit Profile",
+    "cards": {
+      "aboutMeTitle": "About me",
+      "aboutMeHelp": "Your name, contact details and a short introduction.",
+      "homeTitle": "Where I live",
+      "homeHelp": "The city where you live now. It helps us show jobs near you.",
+      "jobTitle": "The job I want",
+      "jobHelp": "Tell us what kind of work you are looking for."
+    },
     "cancel": "Cancel",
     "emailAddress": "Email Address",
     "phoneNumber": "Phone Number",
