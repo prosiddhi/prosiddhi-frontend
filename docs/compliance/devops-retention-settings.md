@@ -71,7 +71,9 @@ NPL, or to servers traceable to them. When we report an incident, our log times 
 ## 6. The nightly jobs
 
 The backend runs its nightly sweeps at **03:00 IST**: it erases accounts 30 days after deletion,
-deletes 180-day registration records when they expire, and once a quarter sends the rules reminder.
+deletes 180-day registration records when they expire, once a quarter sends the rules reminder,
+and saves the day's count of active users for the admin Analytics page (needs migration
+`2026-10-27_2_analytics_daily_active`).
 With 2 app VMs both start the job, and a database lock lets only one do the work — so nothing to
 set, but please **alert us if the job log shows `cron:sweep:…:failed`** for two nights in a row.
 The policy promises the 30-day erase; if the job stops, we break it.
@@ -94,6 +96,8 @@ The policy promises the 30-day erase; if the job stops, we break it.
 - [ ] VM clocks synced to NIC/NPL
 - [ ] Alert on `cron:sweep:…:failed`
 - [ ] 2-step verification for everyone with production access
+- [ ] Google Analytics: production only (web `NEXT_PUBLIC_GA_MEASUREMENT_ID`, app
+      `ANALYTICS_ENABLED=true`), nothing on staging; retention 14 months; Google signals off
 - [ ] Send Nazir the settings (screenshots are fine) — they go in our compliance folder
 
 ## Sources

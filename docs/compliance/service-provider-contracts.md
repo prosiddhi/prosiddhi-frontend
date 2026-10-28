@@ -15,7 +15,7 @@ them, and a PDF copy in the shared drive folder `Legal/Processors/`.
 
 ---
 
-## The six providers
+## The seven providers
 
 ### 1. Google Cloud — servers, database, files
 
@@ -48,6 +48,24 @@ them, and a PDF copy in the shared drive folder `Legal/Processors/`.
   settings (⚠️ search the settings for "data processing" or "privacy").
 - [ ] Data processing terms accepted — date: ____
 - [ ] Firebase project owned by the company Google account (the new one for Play), not a personal one
+
+### 3b. Google Analytics (Firebase) — how the website and app are used *(added 2026-10-27)*
+
+- **Gets:** page and screen names (IDs and tokens stripped from paths), the actions in
+  `docs/analytics-plan.md` §2, device type, browser or app version, language, approximate region
+  (from the IP address; Google does not store the IP). **Never** a name, phone, email, typed text,
+  exact location, document or any of our IDs; no user ID is sent.
+- **Where:** may be outside India — the policy says so (section "Information that leaves India").
+- **Switched on:** production only — web `NEXT_PUBLIC_GA_MEASUREMENT_ID`, app
+  `--dart-define=ANALYTICS_ENABLED=true`. Staging sends nothing.
+- **Contract:** the Google Ads / Analytics data processing terms, accepted in Google Analytics →
+  Admin → Account settings (⚠️ search for "data processing terms").
+- [ ] Data processing terms accepted — date: ____
+- [ ] Google signals **off**, ads personalisation **off** (Admin → Data collection)
+- [ ] Web data stream: **Enhanced measurement OFF** (its download, outbound-click and form events
+      would send raw links — document addresses, tokens)
+- [ ] Data retention set to **14 months** (Admin → Data retention) — the policy says 14 months
+- [ ] The Analytics property belongs to the company Google account
 
 ### 4. Razorpay — employer payments on the website
 

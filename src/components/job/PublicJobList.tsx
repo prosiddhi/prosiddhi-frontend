@@ -51,8 +51,8 @@ export function PublicJobList() {
   // /login brings them back to this job. While the stored session is still being
   // read nobody is known yet, and a signed-in employer has nothing to save — in
   // both cases it does nothing rather than send a signed-in person to /login.
-  const onToggleSave = (jobId: string) => {
-    if (canSave) toggleSave(jobId)
+  const onToggleSave = (jobId: string, category?: string) => {
+    if (canSave) toggleSave(jobId, category)
     else if (!authLoading && !user) router.push(loginForJobHref(jobId))
   }
 

@@ -30,9 +30,56 @@ const apiOrigin = (() => {
   }
 })()
 
+const isDev = process.env.NODE_ENV === 'development'
+
+// Google Analytics 4 (lib/analytics.ts). Production builds only: with no measurement
+// ID the portal loads no Google tag, so the CSP does not open these hosts either.
+// Same format check as lib/analytics.ts — a malformed ID counts as unset there too.
+const gaMeasurementId = (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '').trim()
+const gaEnabled = /^G-[A-Z0-9]+$/.test(gaMeasurementId)
+// Google's published GA4 CSP list: the tag script from googletagmanager.com, hits
+// to the (regional) google-analytics.com / analytics.google.com collectors.
+const ga = gaEnabled
+  ? {
+      script: ' https://www.googletagmanager.com',
+      img: ' https://*.google-analytics.com https://www.googletagmanager.com',
+      connect: ' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com',
+    }
+  : { script: '', img: '', connect: '' }
+
+// Content-Security-Policy (pen-test review WEB-2). The access token lives in
+// localStorage, so the point of this policy is to stop an injected script from
+// loading more code or sending the token anywhere but our own API.
+// Third parties, from their own published CSP lists:
+//   - Razorpay checkout (employer/plans): script + iframe + its two API hosts.
+//   - Google sign-in (@react-oauth/google): accounts.google.com/gsi/*.
+//   - storage.googleapis.com: profile photos, and the hop a signed document
+//     link redirects to (lib/api.ts#fetchSignedFile).
+//   - Google Analytics (`ga` above): only when the build sets a measurement ID.
+// blob: covers the document viewer iframe and object-URL downloads.
+// 'unsafe-inline' on script-src is required: the app router inlines its RSC
+// payload as <script> tags, and a nonce would force every page to render
+// dynamically. Dev also needs 'unsafe-eval' and a websocket for hot reload.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://accounts.google.com/gsi/client${ga.script}`,
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+  `img-src 'self' data: blob: ${apiOrigin.origin} https://storage.googleapis.com${ga.img}`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${apiOrigin.origin} https://storage.googleapis.com https://accounts.google.com/gsi/ https://api.razorpay.com https://lumberjack.razorpay.com${ga.connect}${isDev ? ' ws:' : ''}`,
+  "frame-src 'self' blob: https://api.razorpay.com https://checkout.razorpay.com https://accounts.google.com/gsi/",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+].join('; ')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Don't advertise the framework in an `x-powered-by` response header.
+  poweredByHeader: false,
 
   // Emit a self-contained server build (.next/standalone) for lean Docker images.
   // Required by the Dockerfile in this repo. Has no effect on `next start` / `next dev`.
@@ -127,6 +174,10 @@ const nextConfig = {
             // surface (and stops a browser prompt ever appearing).
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self)'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: contentSecurityPolicy
           }
         ],
       },

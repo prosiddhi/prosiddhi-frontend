@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LocateFixed, Loader2, AlertCircle } from 'lucide-react'
 import type { Coords } from '@/lib/cities'
+import { track } from '@/lib/analytics'
 
 /**
  * "Use my current location" — the PRECISE tier of the two-tier location design
@@ -63,6 +64,7 @@ export function UseMyLocation({
       },
       (err) => {
         setBusy(false)
+        if (err.code === err.PERMISSION_DENIED) track('use_my_location', { result: 'denied' })
         setError(err.code === err.PERMISSION_DENIED ? t('location.denied') : t('location.failed'))
       },
       // enableHighAccuracy deliberately OFF. It powers up the GPS radio, and

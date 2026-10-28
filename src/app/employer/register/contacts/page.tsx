@@ -14,6 +14,7 @@ import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { useResendCountdown } from '../useResendCountdown'
+import { track } from '@/lib/analytics'
 
 const OTP_LENGTH = 6
 
@@ -144,6 +145,7 @@ export default function EmployerContactsPage() {
     setError('')
     try {
       await otpAPI.verify(sent.to, otp.join(''))
+      track('sign_up_step', { role: 'employer', step: 'phone_verified' })
       // The pending number becomes the verified one only now. Its code is spent, so
       // the marker goes too.
       update({ phoneNumber: sent.to, phoneVerified: true, phoneOtpSent: null, devPhoneOtp: undefined })

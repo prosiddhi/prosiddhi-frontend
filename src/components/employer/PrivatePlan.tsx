@@ -123,6 +123,7 @@ export function PrivatePlan({ planCode, canBuy }: { planCode: string; canBuy: bo
       {selected && (
         <CheckoutModal
           plan={selected}
+          privatePlan
           onClose={(repriced) => {
             setSelected(null)
             // Checkout found a new price, so the card is out of date.

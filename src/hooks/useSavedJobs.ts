@@ -10,11 +10,13 @@
 import { useState, useEffect } from 'react'
 import { jobSeekerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { categoryParam, track } from '@/lib/analytics'
 
 export interface UseSavedJobsResult {
   savedIds: Set<string>
   savingIds: Set<string>
-  toggleSave: (jobId: string) => void
+  /** `category` is the job's taxonomy category name, for analytics only. */
+  toggleSave: (jobId: string, category?: string) => void
   /**
    * Whether this viewer can save at all — a signed-in seeker. Saved jobs are only
    * fetched for them: asked for without a seeker session, the endpoint answers
@@ -47,7 +49,7 @@ export function useSavedJobs(): UseSavedJobsResult {
     }
   }, [canSave])
 
-  const toggleSave = async (jobId: string) => {
+  const toggleSave = async (jobId: string, category?: string) => {
     if (savingIds.has(jobId)) return
     const wasSaved = savedIds.has(jobId)
     setSavingIds((prev) => new Set(prev).add(jobId))
@@ -60,7 +62,10 @@ export function useSavedJobs(): UseSavedJobsResult {
     })
     try {
       if (wasSaved) await jobSeekerAPI.unsaveJob(jobId)
-      else await jobSeekerAPI.saveJob(jobId)
+      else {
+        await jobSeekerAPI.saveJob(jobId)
+        track('job_saved', { category: categoryParam(category) })
+      }
     } catch {
       // Revert on failure.
       setSavedIds((prev) => {

@@ -39,6 +39,7 @@ import {
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
+import { track } from '@/lib/analytics'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { MAX_SEARCH_LENGTH, parseSearch } from '@/lib/myJobsNav'
 
@@ -477,6 +478,8 @@ function WorkersSearchContent() {
         ? { stateCode: stateDraft }
         : {}
     const params: WorkerFilters = { search, ...place }
+    // This search has no category filter; the param is kept so web and app match.
+    track('candidate_search', { has_category: false, has_city: !!params.cityId })
     setApplied(params)
     setPage(1)
     void runSearch(params, 1)

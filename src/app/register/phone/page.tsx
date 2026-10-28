@@ -14,6 +14,7 @@ import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { toE164, toMobileDigits, toMobileInputDigits } from '@/lib/identifier'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { track } from '@/lib/analytics'
 
 export default function RegisterPhonePage() {
   const router = useRouter()
@@ -22,6 +23,10 @@ export default function RegisterPhonePage() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    track('sign_up_started', { role: 'seeker' })
+  }, [])
 
   // Coming back to this step (Back from the OTP or profile screen, or a refresh),
   // show the number already entered instead of an empty field. The stored number

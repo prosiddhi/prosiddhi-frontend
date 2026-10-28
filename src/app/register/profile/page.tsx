@@ -13,6 +13,7 @@ import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { track } from '@/lib/analytics'
 import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { isAtLeast18 } from '@/lib/dateInput'
 import { checkEmail } from '@/lib/email'
@@ -232,6 +233,7 @@ export default function RegisterProfilePage() {
     advancingRef.current = true
     setShowEmailPrompt(false)
     update({ ...base, email: '', emailVerified: false })
+    track('sign_up_step', { role: 'seeker', step: 'details' })
     router.push('/register/categories')
   }
 
@@ -270,6 +272,7 @@ export default function RegisterProfilePage() {
     // make them retype one for no reason.
     if (data.emailVerified && data.email === trimmedEmail) {
       update({ ...base, email: trimmedEmail })
+      track('sign_up_step', { role: 'seeker', step: 'details' })
       router.push('/register/categories')
       return
     }
@@ -287,6 +290,7 @@ export default function RegisterProfilePage() {
         devEmailOtp: IS_DEV_BUILD ? res?.otp : undefined,
         emailOtpCooldownSeconds: readOtpSendTiming(res).cooldownSeconds,
       })
+      track('sign_up_step', { role: 'seeker', step: 'details' })
       router.push('/register/verify-email')
     } catch (err) {
       setError(otpErrorMessage(err, t, 'auth:profile.errorEmailSend'))

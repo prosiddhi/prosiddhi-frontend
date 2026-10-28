@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
+import { track } from '@/lib/analytics'
 
 function CandidateContent() {
   const { t } = useTranslation()
@@ -111,6 +112,7 @@ function CandidateContent() {
       const res = await candidateAPI.unlockCandidate(jobSeekerId)
       setProfile(res.profile)
       setUnlocked(true)
+      track('candidate_unlocked', {})
       setConfirmOpen(false)
       reloadWallet() // balance changed
     } catch (err) {

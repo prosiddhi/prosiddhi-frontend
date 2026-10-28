@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categoryLabel } from '@/lib/categoryLabel'
 import Link from 'next/link'
@@ -14,6 +14,7 @@ import { ReportJobModal } from '@/components/job/ReportJobModal'
 import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
 import { appliedCtaMeta } from '@/lib/applicationStatus'
 import { loginForJobHref } from '@/lib/publicJobs'
+import { categoryParam, track } from '@/lib/analytics'
 import {
   humanizeJobType,
   humanizePaymentType,
@@ -121,6 +122,9 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
   const [fullJobId, setFullJobId] = useState('')
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  // The job the last job_viewed was sent for. The load effect below also re-runs
+  // when the session finishes loading or the language changes; that is not a new view.
+  const viewedJobRef = useRef<string | null>(null)
 
   // Every seeker-only ACTION is hidden from an employer viewing their own post:
   // an employer must not apply to, save, or report a job — and the backend
@@ -154,6 +158,10 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
         const j = await jobSeekerAPI.getJobDetails(jobId)
         if (ignore) return
         setJob(j)
+        if (viewedJobRef.current !== jobId) {
+          viewedJobRef.current = jobId
+          track('job_viewed', { category: categoryParam(j.category) })
+        }
         setHasReported(!!j.hasReported)
         // Related Jobs is seeker-only UI; saved/applied are seeker-only and 403 for
         // an employer — none of the three are requested when the viewer isn't a seeker.
@@ -195,6 +203,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
       } else {
         await jobSeekerAPI.saveJob(jobId)
         setIsSaved(true)
+        track('job_saved', { category: categoryParam(job.category) })
       }
     } catch {
       setSaveError(t('seeker:savedJobs.removeError'))
@@ -435,7 +444,10 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
               {isSeeker && (
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <button
-                    onClick={() => setIsApplyModalOpen(true)}
+                    onClick={() => {
+                      track('apply_started', { category: categoryParam(job.category) })
+                      setIsApplyModalOpen(true)
+                    }}
                     disabled={hasApplied || applicationsClosed}
                     className={`inline-flex items-center justify-center min-h-[48px] px-[clamp(32px,26.67px_+_0.83vw,40px)] py-3 font-semibold rounded-lg transition-colors text-[clamp(14px,12.67px_+_0.21vw,16px)] disabled:cursor-not-allowed ${
                       appliedMeta
@@ -660,6 +672,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
           jobTitle={job.title}
           companyName={companyOf(job, t('seeker:jobCard.company'))}
           onApplied={() => {
+            track('apply_done', { category: categoryParam(job.category) })
             setHasApplied(true)
             setApplicationStatus('PENDING')
           }}

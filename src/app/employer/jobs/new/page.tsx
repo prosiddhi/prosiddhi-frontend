@@ -12,6 +12,7 @@ import { employerAPI, fieldErrorsByPath, teamAPI, type PostJobData } from '@/lib
 import { isJobAwaitingReview, isJobUnderReview } from '@/lib/applicationStatus'
 import { myJobsUrl } from '@/lib/myJobsNav'
 import { showToast } from '@/lib/toast'
+import { categoryParam, track } from '@/lib/analytics'
 import { ChevronLeft, Clock, Loader2 } from 'lucide-react'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 
@@ -41,6 +42,10 @@ function NewJobContent() {
   const [blockedNotActive, setBlockedNotActive] = useState(false)
 
   const { wallet, loading: walletLoading, reload: reloadWallet } = useCredits()
+
+  useEffect(() => {
+    track('job_post_started', { category: 'none' })
+  }, [])
 
   // After a top-up, drop the reactive block and re-read the wallet. The spinner
   // shows while it loads, and the fresh balance decides what appears: the form
@@ -87,6 +92,7 @@ function NewJobContent() {
     setFieldErrors(undefined)
     try {
       const job = await employerAPI.postJob(data)
+      track('job_post_done', { category: categoryParam(data.category) })
       // Pre-moderation: a new post is offline until an admin approves it. Say so,
       // or the employer wonders why it is not live. My Jobs keeps the row's
       // "Under Review" pill after this toast is gone. It lands on the Pending Review
