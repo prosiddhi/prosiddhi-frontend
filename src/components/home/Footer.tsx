@@ -140,8 +140,13 @@ export function Footer({
               same breakpoint, and below `lg` the block sits under a full-width
               logo (`w-full` there) rather than beside it, so `sm:w-full` gives it
               the same row to grow into as the `lg:flex-1` tier does above 1024.
-              Only below `sm` (a real phone, `grid-cols-2`) is this untouched. */}
-          <div className={`grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere] ${filtered ? 'sm:justify-between lg:contents' : ''}`}>
+              Only below `sm` (a real phone, `grid-cols-2`) is this untouched.
+
+              ⚠️ `lg:gap-12`, `xl:gap-[100px]`: from 1024 to 1279 `container` is only
+              1024px, so beside the logo the row is ~736px. Three 100px gaps left
+              ~436px for four columns that need ~500, and "Company" broke as
+              "Compan / y". */}
+          <div className={`grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-12 xl:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere] ${filtered ? 'sm:justify-between lg:contents' : ''}`}>
             {audience !== 'employer' && (
               <div className={colClass}>
                 <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
