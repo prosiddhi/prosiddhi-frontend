@@ -32,6 +32,27 @@ export default function HelpPage() {
 
   return (
     <LegalPage title={t('help.title')} intro={t('help.intro')} showLastUpdated={false}>
+      {/* English-only for now: no locale keys, so the default text shows in every language. */}
+      <LegalSection title={t('help.moreHelp.title', { defaultValue: 'Questions and guides' })}>
+        <p>
+          {t('help.moreHelp.body', {
+            defaultValue: 'Quick answers and step-by-step guides (English only for now):',
+          })}
+        </p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <Link href="/faq/employee" className={linkClass}>
+              {t('help.moreHelp.employee', { defaultValue: 'Job Seeker FAQ' })}
+            </Link>
+          </li>
+          <li>
+            <Link href="/faq/employer" className={linkClass}>
+              {t('help.moreHelp.employer', { defaultValue: 'Employer FAQ' })}
+            </Link>
+          </li>
+        </ul>
+      </LegalSection>
+
       {SECTIONS.map(({ key, faqs }) => (
         <LegalSection key={key} title={t(`help.${key}.title`)}>
           {faqs.map((faq) => (

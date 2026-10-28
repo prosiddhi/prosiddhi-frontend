@@ -155,6 +155,8 @@ export function Footer({
                   <li><Link href={isSeeker ? '/job-feed' : publicJobsHref()} className={linkClass}>{t('footer.browseJobs')}</Link></li>
                   <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
                   <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
+                  {/* English-only for now: no locale key, so the default text shows in every language. */}
+                  <li><Link href="/faq/employee" className={linkClass}>{t('footer.faqEmployee', { defaultValue: 'Job Seeker FAQ' })}</Link></li>
                 </ul>
               </div>
             )}
@@ -165,6 +167,7 @@ export function Footer({
                   <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
                   <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
                   {isEmployer && <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>}
+                  <li><Link href="/faq/employer" className={linkClass}>{t('footer.faqEmployer', { defaultValue: 'Employer FAQ' })}</Link></li>
                 </ul>
               </div>
             )}
