@@ -15,7 +15,7 @@ interface JobFeedCardProps {
   job: Job
   isSaved: boolean
   saving: boolean
-  onToggleSave: (jobId: string) => void
+  onToggleSave: (jobId: string, category?: string) => void
   /** Where this card is rendered — carried into the Job Details URL as `?from=`
       so its Back link can return here instead of a generic browser-back. */
   from?: JobListOrigin
@@ -61,7 +61,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
       <button
         onClick={(e) => {
           e.stopPropagation()
-          onToggleSave(job.id)
+          onToggleSave(job.id, job.category)
         }}
         disabled={saving}
         className="shrink-0 min-h-[44px] px-4 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"

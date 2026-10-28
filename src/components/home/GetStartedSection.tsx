@@ -6,6 +6,7 @@ import { ChevronDown, Briefcase, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLanguagePreference } from '@/hooks/useLanguagePreference'
 import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
+import { track } from '@/lib/analytics'
 
 /**
  * "I'm a job seeker / I'm an employer", on the front page (TD-29).
@@ -62,6 +63,7 @@ export function GetStartedSection() {
   const choose = (type: 'employee' | 'employer') => {
     // The language is already applied by setLanguage; only the role needs
     // remembering here.
+    track('role_selected', { role: type === 'employee' ? 'seeker' : 'employer' })
     localStorage.setItem('userType', type)
     router.push(type === 'employee' ? '/employee' : '/employer/welcome')
   }

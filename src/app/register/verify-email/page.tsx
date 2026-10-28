@@ -13,6 +13,7 @@ import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { DEFAULT_RESEND_COOLDOWN_SECONDS, readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { track } from '@/lib/analytics'
 
 const OTP_LENGTH = 6
 
@@ -80,6 +81,7 @@ export default function RegisterVerifyEmailPage() {
       // of the flow consumes. The mark does not expire, so the rest of the form
       // can take as long as it needs.
       await emailOtpAPI.verify(data.email, code, 'REGISTRATION')
+      track('sign_up_step', { role: 'seeker', step: 'email_verified' })
 
       update({ emailVerified: true })
       router.push('/register/categories')

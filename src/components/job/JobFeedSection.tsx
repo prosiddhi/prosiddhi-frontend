@@ -65,7 +65,7 @@ export interface JobFeedSectionProps {
   onRetry: () => void
   savedIds: Set<string>
   savingIds: Set<string>
-  onToggleSave: (jobId: string) => void
+  onToggleSave: (jobId: string, category?: string) => void
   /** Where this section is rendered — passed through to each JobFeedCard so
       its Job Details link carries `?from=` for the Back link. */
   from?: Exclude<JobListOrigin, 'saved-jobs'>

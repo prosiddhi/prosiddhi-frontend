@@ -16,6 +16,7 @@ import { readOtpSendTiming } from '@/lib/otpSend'
 import { knownUploadErrorMessage } from '@/lib/uploadFile'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { track } from '@/lib/analytics'
 import { nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
 import {
@@ -238,6 +239,7 @@ export default function RegisterPasswordPage() {
       // `reset()` empties the very fields the guards on this page read.
       setAccountCreated(true)
       login(session.token, session.user)
+      track('sign_up', { role: 'seeker', method: 'phone' })
       reset()
 
       router.push('/register/success')

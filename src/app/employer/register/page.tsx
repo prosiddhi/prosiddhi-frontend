@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X, User, Building2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEmployerRegistration } from './EmployerRegistrationContext'
+import { track } from '@/lib/analytics'
 
 export default function EmployerRegistrationPage() {
   const router = useRouter()
@@ -14,6 +15,10 @@ export default function EmployerRegistrationPage() {
   const [selectedType, setSelectedType] = useState<'individual' | 'corporate' | null>(
     data.companyType || null
   )
+
+  useEffect(() => {
+    track('sign_up_started', { role: 'employer' })
+  }, [])
 
   const handleNext = () => {
     if (selectedType) {

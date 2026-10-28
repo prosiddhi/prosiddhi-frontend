@@ -14,6 +14,7 @@ import { jobSeekerAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { DEFAULT_RESEND_COOLDOWN_SECONDS, readOtpSendTiming } from '@/lib/otpSend'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
+import { track } from '@/lib/analytics'
 
 const OTP_LENGTH = 6
 
@@ -82,6 +83,7 @@ export default function RegisterOTPPage() {
 
       // Verify the phone OTP (POST /api/otp/verify).
       await jobSeekerAPI.verifyOTP({ phoneNumber, otp: otpCode })
+      track('sign_up_step', { role: 'seeker', step: 'phone_verified' })
 
       advancingRef.current = true
       update({ phoneVerified: true })

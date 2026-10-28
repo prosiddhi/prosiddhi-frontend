@@ -60,12 +60,14 @@ All on the deployed backend's environment. This is where most go-live work is.
 
 ## 2. Web (portal) — `prosiddhi-frontend`
 
-The app reads only **two** browser env vars:
+The app's browser env vars (all baked in at build time; the chat and recruiter-contact switches are in the Dockerfile):
 
 | Env | Value for prod | Status |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | the prod backend API base (e.g. `https://api.prosiddhi.com/api/v1`) | ⏳ |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | the Google OAuth client ID (same as backend's `GOOGLE_CLIENT_ID`) | ⏳ value in `.env.example`; confirm it's the production client |
+| `NEXT_PUBLIC_SHOW_TEST_OTP` | **leave unset in production.** Staging only: `true` (any casing) shows the test-OTP pop-up, so testers need no SMS. Needs the API's `EXPOSE_OTP_IN_RESPONSE=true` too. Build arg — baked in at build time. | added 2026-10-26 |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | **production only:** the `G-…` measurement ID of the web data stream in Firebase project `prosiddhi-prod-510106`. **Leave unset on staging** and local dev — unset or empty loads no Google tag and sends nothing (the CSP opens the Google Analytics hosts only when it is set). Build arg — baked in at build time, passed with `--build-arg` (the Dockerfile has the `ARG`/`ENV` pair). Before switching it on: the Privacy Policy update (`docs/analytics-plan.md` §4), and in the GA4 web data stream turn **Enhanced measurement OFF completely** (the portal sends its own cleaned page views and events; Enhanced measurement's page-change, site-search, file-download, outbound-click and form events read raw addresses — a candidate's document link, an invite token in `?returnUrl=`). | added 2026-10-27 |
 
 Also: the landing page is live at `https://prosiddhi.com` ✅. Everything else the portal needs is the **backend config in §1** (email, Razorpay, etc.).
 *(The repo's `.env.example` is stale — it lists AWS/Redis/NextAuth/Maps/Sentry that the code does not read. Ignore those.)*

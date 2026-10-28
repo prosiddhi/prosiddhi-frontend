@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { checkEmail } from '@/lib/email'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
+import { track } from '@/lib/analytics'
 import { DatePicker } from '@/components/form/DatePicker'
 import { AcceptTermsCheckbox } from '@/components/legal/AcceptTermsCheckbox'
 
@@ -202,6 +203,7 @@ export default function CompanyDetailsPage() {
         })
         login(result.token, result.user)
       }
+      track('sign_up', { role: 'employer', method: 'phone' })
       // Set alongside reset() — see the note on `accountCreated` above.
       setAccountCreated(true)
       reset()

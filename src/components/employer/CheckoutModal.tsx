@@ -43,6 +43,7 @@ import {
 import { GSTIN_REGEX, INDIAN_STATES } from '@/lib/gst'
 import { loadRazorpay } from '@/lib/razorpay'
 import { formatInr, listPrice, planName } from '@/lib/pricing'
+import { track } from '@/lib/analytics'
 
 // What the price breakdown shows, in one shape for both moments:
 //   • before checkout, from the plan — one GST line (the state split is not
@@ -184,8 +185,14 @@ export function CheckoutModal({
   plan,
   onClose,
   onSuccess,
+  privatePlan = false,
 }: {
   plan: Plan
+  /**
+   * A hidden plan from a private link (PrivatePlan). Its code is chosen per customer
+   * and can name them, so analytics gets 'private' instead of the code.
+   */
+  privatePlan?: boolean
   /** `repriced` = checkout found a price different from the plan's (refresh it). */
   onClose: (repriced: boolean) => void
   onSuccess?: (granted: { post: number; download: number }) => void
@@ -284,6 +291,8 @@ export function CheckoutModal({
   // Closing reports whether checkout found a new price, so the caller can refresh.
   const close = () => onClose(repriced !== null || priceShown !== null)
 
+  const analyticsPlanCode = privatePlan ? 'private' : plan.code
+
   // Back to the form from the repriced screen. The form fields live in this
   // component's state, so they are still filled in. No order is created; the
   // abandoned one is simply never paid. Not while a payment is in progress.
@@ -311,6 +320,9 @@ export function CheckoutModal({
         // never route back to a re-payable state from here.
         if (settledRef.current) return
         settledRef.current = true
+        // Counted here, not after verify: the money is taken now, and a verify that
+        // times out (the webhook still grants the credits) must not lose the sale.
+        track('purchase', { plan_code: analyticsPlanCode, value: order.amountInr, currency: 'INR' })
         let timer: ReturnType<typeof setTimeout> | undefined
         try {
           // Race the verify against a timeout so a lost response can't hang the
@@ -408,6 +420,7 @@ export function CheckoutModal({
     const token = acquireLock()
     if (!token) return
 
+    track('begin_checkout', { plan_code: analyticsPlanCode, value: earlier.totalInr, currency: 'INR' })
     setSubmitting(true)
     try {
       const order = await subscriptionAPI.checkout({

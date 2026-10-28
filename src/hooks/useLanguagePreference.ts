@@ -10,6 +10,7 @@ import {
   SUPPORTED_LANGUAGES,
 } from '@/i18n/config'
 import { ensureLocale } from '@/i18n/loadLocale'
+import { track } from '@/lib/analytics'
 
 /**
  * Derived from SUPPORTED_LANGUAGES rather than hand-written, so adding a locale to
@@ -46,6 +47,7 @@ export function useLanguagePreference() {
   const setLanguage = useCallback(
     (lng: SupportedLanguage) => {
       if (lng === (i18n.language || 'en').split('-')[0]) return
+      track('language_selected', { language: lng })
 
       // Only English is bundled; fetch the chosen locale before switching, or the UI
       // would briefly render raw translation keys. ensureLocale resolves immediately

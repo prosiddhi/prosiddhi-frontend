@@ -11,6 +11,7 @@ import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
+import { track } from '@/lib/analytics'
 import { DESIGNATION_MAX_LENGTH } from '@/lib/businessIdentifiers'
 import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { isStrongPassword } from '@/lib/validation/passwordPolicy'
@@ -182,6 +183,7 @@ export default function AccountSetupPage() {
     // lock is held on purpose: the page unmounts on navigation, and `loading` is
     // not set on this path, so the lock is what stops a double click.
     if (!isIndividual) {
+      track('sign_up_step', { role: 'employer', step: 'details' })
       router.push('/employer/register/company-details')
       return
     }
@@ -222,6 +224,8 @@ export default function AccountSetupPage() {
       // reads. React 18 batches both into one commit, so the order is not
       // load-bearing today; keep them adjacent so it stays that way if an await
       // is ever introduced between them.
+      track('sign_up_step', { role: 'employer', step: 'details' })
+      track('sign_up', { role: 'employer', method: 'phone' })
       setAccountCreated(true)
       reset()
 

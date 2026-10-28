@@ -12,6 +12,7 @@ import { Footer } from '@/components/home/Footer'
 import { jobSeekerAPI, type Job, type JobFeedFilters } from '@/lib/api'
 import { useCategories, hasJobTitles } from '@/hooks/useCategories'
 import { useSavedJobs } from '@/hooks/useSavedJobs'
+import { categoryParam, track } from '@/lib/analytics'
 import type { TaxonomyCategory } from '@/lib/api'
 import { JobFeedSection } from '@/components/job/JobFeedSection'
 import { AlertCircle, Search, ChevronDown, ChevronUp } from 'lucide-react'
@@ -422,6 +423,11 @@ function JobFeedPageContent() {
         })
         setHasMore(!!res.pagination?.hasNextPage)
         setTotal(res.pagination?.total ?? 0)
+        // A search or filter the seeker applied: page 1 of anything but the
+        // untouched first load (applyFilters always makes a new object).
+        if (page === 1 && filters !== EMPTY_FILTERS) {
+          track('job_search', { category: categoryParam(filters.category), has_city: !!filters.city })
+        }
       } catch (err) {
         // A key, not translated text, so the effect does not depend on `t`
         // (a language switch would re-fetch the current page). Translated at render.

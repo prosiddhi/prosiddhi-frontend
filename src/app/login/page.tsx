@@ -42,6 +42,7 @@ import { PhoneNumberField } from '@/components/auth/PhoneNumberField'
 import { OtpInput, type OtpInputHandle } from '@/components/auth/OtpInput'
 import { ResendOtpButton } from '@/components/auth/ResendOtpButton'
 import { readOtpSendTiming } from '@/lib/otpSend'
+import { analyticsRole, track } from '@/lib/analytics'
 
 // `phoneOtp` and `phonePassword` differ only in the credential. `phonePassword`
 // is misnamed by history: since TD-37 its field takes a phone number OR an
@@ -252,8 +253,9 @@ function LoginContent() {
 
   const handleClose = () => router.push('/')
 
-  const onLoginSuccess = (result: { token: string; user: AuthUser }) => {
+  const onLoginSuccess = (result: { token: string; user: AuthUser }, method: 'password' | 'otp') => {
     login(result.token, result.user)
+    track('login', { method })
     // A temporary password: nowhere to go but the change screen, and AuthProvider
     // sends them there (carrying `returnUrl`). Pushing here too would race it.
     if (result.user.mustChangePassword) return
@@ -382,7 +384,7 @@ function LoginContent() {
       const identifier = toIdentifier(raw)
       if (!identifier) return
       const result = await authAPI.loginAnyRole({ identifier, password }, role)
-      onLoginSuccess(result)
+      onLoginSuccess(result, 'password')
     } catch (err) {
       // Still routed through handleLoginError: loginAnyRole deliberately does
       // NOT swallow an ADMIN ROLE_MISMATCH (an admin fails both gates), and this
@@ -481,7 +483,7 @@ function LoginContent() {
       // `{identifier, otp}` on /auth/login, so nothing here needs to know or
       // guess which kind of account this is.
       const result = await authAPI.loginAnyRole({ identifier: e164, otp: code }, role)
-      onLoginSuccess(result)
+      onLoginSuccess(result, 'otp')
     } catch (err) {
       // On a role mismatch the OTP has already been verified AND consumed
       // server-side, so this code is spent whatever happens next. Drop back to
@@ -528,6 +530,8 @@ function LoginContent() {
       const result = await authAPI.googleLogin(googleRole(), idToken)
       // Store the token first — the phone-bind call below is authenticated.
       login(result.token, result.user)
+      if (result.isNewUser) track('sign_up', { role: analyticsRole(result.user.role), method: 'google' })
+      else track('login', { method: 'google' })
       if (result.needsPhoneVerification) {
         setBindUser(result.user)
         setMode('bindPhone')

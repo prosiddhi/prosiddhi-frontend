@@ -7,7 +7,7 @@
 // quick single-pack top-up shortcut via <TopUpModal />.
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -18,10 +18,16 @@ import { TopUpModal } from '@/components/employer/TopUpModal'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
 import { useCredits } from '@/hooks/useCredits'
+import { track } from '@/lib/analytics'
 
 function PlansContent() {
   const { t } = useTranslation()
   const [topUp, setTopUp] = useState(false)
+
+  useEffect(() => {
+    track('plans_viewed', {})
+  }, [])
+
   // Buying is owner-only on the backend, so only an OWNER is shown the quick
   // top-up. Unknown role (still loading, or the wallet failed) → no button.
   const { wallet } = useCredits()

@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { locationAPI } from '@/lib/api'
 import type { Coords } from '@/lib/cities'
+import { track } from '@/lib/analytics'
 import type { TFunction } from 'i18next'
 import { cityDisplayName, toSelectedCity, type SelectedCity } from '@/components/location/StateCitySelect'
 
@@ -109,6 +110,7 @@ export function useNearestCity(onFound: (city: SelectedCity) => void): UseNeares
       // `accuracy` lets the BE refuse a reading too coarse to name a city (worse than 2 km).
       const { city } = await locationAPI.getNearestCity({ lat, lng: lon, accuracy }, { signal: controller.signal })
       if (controller.signal.aborted) return
+      track('use_my_location', { result: city ? 'ok' : 'no_city' })
       if (city) {
         const picked = toSelectedCity(city)
         onFoundRef.current(picked)

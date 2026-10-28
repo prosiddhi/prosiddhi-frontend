@@ -7,6 +7,8 @@ import { Search } from 'lucide-react'
 import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { VoiceButton } from '@/components/feedback/VoiceButton'
 import { parsePublicJobQuery, publicJobsHref } from '@/lib/publicJobs'
+import { categoryParam, track } from '@/lib/analytics'
+import { useCategories } from '@/hooks/useCategories'
 
 /**
  * The search bar on /employee. It filters the public job list just below
@@ -25,6 +27,7 @@ export function PublicJobSearch() {
   const { t } = useTranslation()
   const router = useRouter()
   const { search, category, location } = parsePublicJobQuery(useSearchParams())
+  const { categories } = useCategories()
 
   const [draft, setDraft] = useState(search)
   // The location, as a draft until Search. A state with no city is a filter on its
@@ -53,6 +56,10 @@ export function PublicJobSearch() {
   }
 
   const runSearch = () => {
+    // `category` comes from the address bar: send it only if it is a real category,
+    // never text someone typed into a link.
+    const known = categories.some((c) => c.name === category)
+    track('job_search', { category: categoryParam(known ? category : null), has_city: !!city })
     router.push(
       publicJobsHref({
         search: draft.trim(),

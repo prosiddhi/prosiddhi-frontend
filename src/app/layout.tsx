@@ -7,6 +7,7 @@ import { I18nProvider } from '@/i18n/I18nProvider'
 import { OfflineBanner } from '@/components/feedback/OfflineBanner'
 import { ToastViewport } from '@/components/feedback/ToastViewport'
 import { TestOtpPopup } from '@/components/feedback/TestOtpPopup'
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 
 // Public Google OAuth client ID — inlined into the browser bundle (safe to
 // expose; it carries no secret). The "Continue with Google" button on /login
@@ -44,6 +45,8 @@ export default function RootLayout({
               {children}
               <ToastViewport />
               <TestOtpPopup />
+              {/* Off unless NEXT_PUBLIC_GA_MEASUREMENT_ID is set (production only). */}
+              <GoogleAnalytics />
             </AuthProvider>
           </I18nProvider>
         </GoogleOAuthProvider>

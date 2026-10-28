@@ -14,6 +14,7 @@ import { readOtpSendTiming } from '@/lib/otpSend'
 import { EMPTY_OTP } from '@/lib/validation/authSchemas'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { useResendCountdown } from '../useResendCountdown'
+import { track } from '@/lib/analytics'
 
 const OTP_LENGTH = 6
 
@@ -126,6 +127,7 @@ export default function EmployerVerifyPage() {
     setError('')
     try {
       await emailOtpAPI.verify(sent.to, otp.join(''), 'REGISTRATION')
+      track('sign_up_step', { role: 'employer', step: 'email_verified' })
       // The pending address becomes the verified one only now. Its code is spent, so
       // the marker goes too.
       update({ email: sent.to, emailVerified: true, emailOtpSent: null, devEmailOtp: undefined })
