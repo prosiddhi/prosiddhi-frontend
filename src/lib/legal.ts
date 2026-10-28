@@ -63,7 +63,7 @@ export const GRIEVANCE_OFFICER = {
 // Keep each equal to the matching version in prosiddhi-backend src/config/legal.ts:
 // that is the version people are asked to accept.
 export const TERMS_LAST_UPDATED = '2026-10-17'
-export const PRIVACY_LAST_UPDATED = '2026-10-17'
+export const PRIVACY_LAST_UPDATED = '2026-10-27'
 export const REFUND_LAST_UPDATED = '2026-10-16'
 export const DELIVERY_LAST_UPDATED = '2026-10-16'
 

@@ -200,7 +200,8 @@
               "<strong>Device and connection:</strong> your IP address, browser or app version and device type, recorded in our server logs to keep the service working and secure; and a notification token if you allow push notifications.",
               "<strong>Sign-in records:</strong> when you last signed in and were last active, and a record for each device you are signed in on.",
               "<strong>Google sign-in:</strong> if you choose to sign in with Google, Google gives us your name, email address and a Google account ID.",
-              "We do not use advertising or analytics trackers, and we do not follow you on other websites."
+              "<strong>How you use ProSiddhi:</strong> the pages and screens you open and what you do there (for example, that you searched for jobs, opened a job or applied), with your device type, browser or app version, language and approximate region (not your exact location). We collect this with Google Analytics to understand how ProSiddhi is used and to make it better. It is not linked to your name, phone number or email, and we never send Google what you type, your exact location or your documents.",
+              "We do not use advertising trackers, and we do not follow you on other websites."
             ]
           }
         ]
@@ -216,6 +217,7 @@
               "To let you apply, schedule interviews and get updates — in the app, by push notification, SMS and email, and on WhatsApp only if you agreed.",
               "To verify employers and documents, check job posts for fraud, and act on reports, so that job seekers are protected from fake jobs.",
               "To take payments, issue GST invoices and keep the records tax law requires.",
+              "To understand how ProSiddhi is used, such as which pages people visit and where they stop during sign-up, so that we can fix problems and make it better. For this we look at counts and patterns, not at your name or contact details.",
               "To answer your questions and complaints, to protect ProSiddhi and its users from misuse, and to meet our legal duties."
             ]
           },
@@ -264,6 +266,7 @@
               "<strong>Google Cloud</strong> — hosts our servers, database and files, in India.",
               "<strong>MSG91</strong> (Walkover Web Solutions, India) — sends one-time codes and messages by SMS and email, and WhatsApp messages through Meta if you agreed to them.",
               "<strong>Google Firebase Cloud Messaging</strong> — delivers push notifications to your phone. A notification may show a short preview, such as the first words of a message.",
+              "<strong>Google Analytics</strong> (Google Firebase) — tells us how the website and the app are used: pages and screens opened, actions such as a search or an application, device type, language and approximate region. It does not receive your name, phone number, email, what you type or your documents. We have switched off its advertising features, and it keeps the detailed records for up to 14 months.",
               "<strong>Razorpay</strong> — takes employer payments on our website.",
               "<strong>Google Sign-In</strong> — only if you choose to sign in with Google.",
               "<strong>OpenAI</strong> — when our staff check a job post for scams, the text of that job post is sent to OpenAI's moderation service. No job seeker information is sent."
@@ -285,7 +288,7 @@
         "title": "Information that leaves India",
         "blocks": [
           {
-            "p": "Your information is stored and processed in India. Push notifications (Google Firebase) and job post checks (OpenAI) may be handled on servers outside India. We use only providers that protect the information, and we follow any restrictions the Government of India sets on sending data abroad."
+            "p": "Your information is stored and processed in India. Push notifications (Google Firebase), usage information (Google Analytics) and job post checks (OpenAI) may be handled on servers outside India. We use only providers that protect the information, and we follow any restrictions the Government of India sets on sending data abroad."
           }
         ]
       },
@@ -362,7 +365,7 @@
         "title": "Cookies and storage on your device",
         "blocks": [
           {
-            "p": "The website keeps a few things in your browser so that it works: your sign-in (including a secure sign-in cookie), your language, and any form you are part-way through. The app keeps your sign-in securely on your phone. We do not use advertising or tracking cookies. If you clear this storage, you may need to sign in again."
+            "p": "The website keeps a few things in your browser so that it works: your sign-in (including a secure sign-in cookie), your language, and any form you are part-way through. The app keeps your sign-in securely on your phone. The website also uses Google Analytics cookies to count visits and see how pages are used, and the app uses Google Analytics in the same way. We do not use advertising cookies. If you clear this storage, you may need to sign in again."
           }
         ]
       },
