@@ -30,7 +30,7 @@ import {
   type ProfileSync,
   type ProfileSyncRecord,
 } from '@/lib/jobPreferences'
-import { CHANGE_PASSWORD_ROUTE } from '@/lib/routes'
+import { CHANGE_PASSWORD_ROUTE, shouldPushLogin } from '@/lib/routes'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { ConsentGate } from '@/components/legal/ConsentGate'
 import { JobPreferencesGate } from '@/components/auth/JobPreferencesGate'
@@ -281,7 +281,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Storage was already cleared by lib/api.ts; sync state + redirect.
       setToken(null)
       setUser(null)
-      router.push(to)
+      // Already on /login with no ended-account reason: the form is showing, and a bare
+      // push would drop the page's `?returnUrl=`.
+      if (shouldPushLogin(reason, window.location.pathname)) router.push(to)
       // Cache purge is handled by the identity effect, same as logout().
     }
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized)

@@ -35,6 +35,15 @@ export function loginHref(returnPath: string): string {
   return `/login?returnUrl=${encodeURIComponent(returnPath)}`
 }
 
+/**
+ * Whether a session-ended event should push to /login. Already on /login without an
+ * ended-account `reason`, the form is showing: a bare push would only drop `?returnUrl=`.
+ * A `reason` always pushes, since the banner comes from the URL.
+ */
+export function shouldPushLogin(reason: string | null | undefined, pathname: string): boolean {
+  return !!reason || pathname !== '/login'
+}
+
 /** Home route for a backend role: seeker → /home, either employer type → /employer. */
 export function homeRouteForRole(role: UserRole | undefined): string {
   return role === 'JOB_SEEKER' ? SEEKER_HOME_ROUTE : '/employer'
