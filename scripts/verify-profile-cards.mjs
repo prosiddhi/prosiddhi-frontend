@@ -129,10 +129,12 @@ const PROBLEM_KEY = {
   nameNotAName: 'auth:profile.errorNameLetters',
   dobUnder18: 'profile:seeker.errorDobAge',
 }
+/** The page's one saved snapshot, as profileSavePatch takes it: only the city ids matter. */
+const savedOf = (d) => ({ homeCity: d.savedHomeCity, preferredCities: d.savedPreferredIds.map((id) => ({ id })) })
 /** The new Save path as the page runs it: problem first, otherwise the joined body. */
 function newSave(d, originalFullName) {
   const problem = aboutProblem(d, originalFullName)
-  return problem ? { error: PROBLEM_KEY[problem] } : { body: profileSavePatch(d) }
+  return problem ? { error: PROBLEM_KEY[problem] } : { body: profileSavePatch(d, savedOf(d)) }
 }
 
 // ------------------------------------------------------------------------ test data
@@ -207,7 +209,7 @@ expect('no key belongs to two cards', flat.length, new Set(flat).size)
 expect('the five cards together are the keys the body has always had', flat.sort(), keys(legacySave(full, ORIGINAL).body))
 
 const NEVER = ['location', 'latitude', 'longitude', 'email', 'phoneNumber', 'password', 'profilePhoto', 'isActivelyLooking']
-expect('the joined body never carries a field another endpoint owns', NEVER.filter((k) => k in profileSavePatch(full)), [])
+expect('the joined body never carries a field another endpoint owns', NEVER.filter((k) => k in profileSavePatch(full, savedOf(full))), [])
 
 // ------------------------------------------------------------------------ 2. home city: cityId
 expect('picked a new city, none saved', homePatch(draft({ homeCity: A })), { cityId: A.id })
@@ -247,7 +249,7 @@ const blank = draft({
 })
 expect(
   'every emptied field is dropped from the wire (it cannot clear anything)',
-  wire(profileSavePatch(blank)),
+  wire(profileSavePatch(blank, savedOf(blank))),
   { workExperiences: [] }
 )
 expect('a blank bio is dropped', wire(aboutPatch(draft({ bio: '   ' }))).bio, undefined)
@@ -400,16 +402,19 @@ expect('the random drafts hit both the error path and the body path', randomErro
 // Source-text tripwires, not proof of behaviour: they catch the page drifting back to its own copy.
 const page = fs.readFileSync(path.join(ROOT, 'src', 'app', 'profile', 'page.tsx'), 'utf8')
 expect('page imports the helpers', /from '@\/lib\/profileCards'/.test(page), true)
-expect('page sends profileSavePatch(draft)', page.includes('jobSeekerAPI.updateProfile(profileSavePatch(draft))'), true)
+expect('page sends profileSavePatch(draft)', page.includes('jobSeekerAPI.updateProfile(profileSavePatch(draft, savedValues))'), true)
 expect('page asks aboutProblem before saving', page.includes('aboutProblem(draft, originalFullName.current)'), true)
 for (const [code, key] of Object.entries(PROBLEM_KEY)) {
   expect(`page maps ${code} to ${key}`, new RegExp(`${code}:\\s*'${key}'`).test(page), true)
 }
 expect('page no longer keeps its own copy of the body', /preferredCategory:\s*triple\.category/.test(page), false)
 expect('page no longer keeps its own changed-flags', /const (homeCityChanged|preferredChanged)\b/.test(page), false)
-// The only other body the page sends is the one-key "actively looking" switch.
-expect('the page has exactly two updateProfile calls', page.split('jobSeekerAPI.updateProfile(').length - 1, 2)
-expect('…one of them is the switch', page.includes('jobSeekerAPI.updateProfile({ isActivelyLooking: next })'), true)
+// The other bodies the page sends are the one-key "actively looking" switch and, since Phase B2,
+// one card's part of the body (saveCard, behind PER_CARD_EDITING; its body is built by cardPatch).
+expect('the page has exactly three updateProfile calls', page.split('jobSeekerAPI.updateProfile(').length - 1, 3)
+// (Both now also pass a time limit, so the call is matched up to its first argument.)
+expect('…one of them is the switch', /jobSeekerAPI\.updateProfile\(\s*\{ isActivelyLooking: next \}/.test(page), true)
+expect('…one of them is a single card', /jobSeekerAPI\.updateProfile\(body[,)]/.test(page), true)
 
 if (failures.length) {
   console.error(`\n✗ ${failures.length} of ${checks} profile-card checks failed:\n`)
