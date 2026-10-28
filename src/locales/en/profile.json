@@ -138,6 +138,13 @@
     "saving": "Saving…",
     "saved": "Saved",
     "saveError": "Failed to save your profile.",
+    "saveUnknown": "We couldn't confirm the save result. We won't automatically submit it again. Select Check again to see what was saved.",
+    "checkAgain": "Check again",
+    "checking": "Checking…",
+    "edit": "Edit",
+    "editSection": "Edit {{section}}",
+    "saveNotApplied": "Your changes were not saved. They are still here, so you can try again.",
+    "homeCityKept": "Your saved city is kept. To remove it, use “Remove my saved city”.",
     "activelyLooking": {
       "title": "Actively Looking for Work",
       "description": "Turn this on to show employers that you are looking for a job right now."
