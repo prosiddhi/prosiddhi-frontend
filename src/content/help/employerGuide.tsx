@@ -2,7 +2,7 @@ import type { GuideStepData } from '@/components/legal/GuideParts'
 import { BulletList, guideImage, HelpLink } from '@/components/legal/GuideParts'
 
 /**
- * Employer User Guide — English only for now.
+ * Employer Guidelines — English only for now.
  *
  * The screenshots are real captures of the portal showing SAMPLE data (made-up names, numbers and
  * dates). The Plans page stays a placeholder until an authorised owner confirms whether the Launch

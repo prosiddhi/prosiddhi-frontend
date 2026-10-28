@@ -43,8 +43,9 @@ const FOOTER_BOX: Record<FooterWidth, string> = {
  * to its own side. The default shows both, which is what every other page and
  * the main landing page want. Company and Legal always show.
  *
- * A signed-in job seeker never sees the employer column, whatever `audience` the
- * page passed — the footer is shared by public pages a seeker also visits.
+ * A signed-in job seeker never sees the employer column, and a signed-in employer
+ * never sees the candidates column, whatever `audience` the page passed — the
+ * footer is shared by pages (Help, the legal pages, the FAQs) both roles visit.
  */
 export function Footer({
   audience = 'all',
@@ -59,13 +60,16 @@ export function Footer({
   // Product rule (Nazir, 20 Oct 2026): no pricing on public pages — plans are
   // shown only to a signed-in employer.
   const isEmployer = !!user?.role?.startsWith('EMPLOYER')
-  const showEmployers = audience !== 'seeker' && !isSeeker
+  // A signed-in person only ever sees their own side's column, whatever `audience` the
+  // page passed. Everyone else gets what the page asked for.
+  const layoutAudience = isSeeker ? 'seeker' : isEmployer ? 'employer' : audience
+  const showCandidates = layoutAudience !== 'employer'
+  const showEmployers = layoutAudience !== 'seeker'
   // The role is unknown until the stored session has been read, so a seeker could
-  // otherwise see the employer column for a moment. While waiting, the column
-  // keeps its space but is invisible: a seeker never sees it, and an employer or
-  // visitor sees no layout shift when it appears.
-  const employersPending = showEmployers && isLoading
-  const layoutAudience = audience === 'all' && isSeeker ? 'seeker' : audience
+  // otherwise see the employer column (and an employer the candidates column) for a
+  // moment. While `isLoading`, the product columns keep their space but are invisible
+  // (and unfocusable): nobody sees the wrong one, and nothing shifts when the right one
+  // appears. This is also why the FAQ links below need no `isLoading` check of their own.
 
   // inline-flex + min-h-[44px]: these were 18px-tall lines of text, the worst
   // tap targets in the app (TD-20). The footer gets taller; that is the trade.
@@ -147,27 +151,28 @@ export function Footer({
               ~436px for four columns that need ~500, and "Company" broke as
               "Compan / y". */}
           <div className={`grid grid-cols-2 sm:grid-cols-4 sm:flex sm:flex-row sm:w-full gap-x-6 gap-y-8 sm:gap-8 lg:gap-12 xl:gap-[100px] flex-1 [&>div]:min-w-0 [&_a]:[overflow-wrap:anywhere] [&_h3]:[overflow-wrap:anywhere] ${filtered ? 'sm:justify-between lg:contents' : ''}`}>
-            {audience !== 'employer' && (
-              <div className={colClass}>
+            {showCandidates && (
+              <div className={isLoading ? `${colClass} invisible` : colClass} aria-hidden={isLoading || undefined}>
                 <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.candidates')}</h3>
                 <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                   {/* The Job Feed is behind sign-in; everyone else browses the public list. */}
                   <li><Link href={isSeeker ? '/job-feed' : publicJobsHref()} className={linkClass}>{t('footer.browseJobs')}</Link></li>
                   <li><Link href="/saved-jobs" className={linkClass}>{t('footer.savedJobs')}</Link></li>
                   <li><Link href="/my-applications" className={linkClass}>{t('footer.myApplications')}</Link></li>
-                  {/* English-only for now: no locale key, so the default text shows in every language. */}
-                  <li><Link href="/faq/employee" className={linkClass}>{t('footer.faqEmployee', { defaultValue: 'Job Seeker FAQ' })}</Link></li>
+                  {isSeeker && <li><Link href="/faq/employee" className={linkClass}>{t('footer.faqEmployee')}</Link></li>}
+                  {isSeeker && <li><Link href="/guides/employee" className={linkClass}>{t('footer.guidelinesEmployee')}</Link></li>}
                 </ul>
               </div>
             )}
             {showEmployers && (
-              <div className={employersPending ? `${colClass} invisible` : colClass} aria-hidden={employersPending || undefined}>
+              <div className={isLoading ? `${colClass} invisible` : colClass} aria-hidden={isLoading || undefined}>
                 <h3 className="text-base sm:text-[18px] mb-2 sm:mb-3">{t('footer.employers')}</h3>
                 <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                   <li><Link href="/employer/jobs/new" className={linkClass}>{t('footer.postJob')}</Link></li>
                   <li><Link href="/employer/workers" className={linkClass}>{t('footer.findWorkers')}</Link></li>
                   {isEmployer && <li><Link href="/employer/plans" className={linkClass}>{t('footer.pricing')}</Link></li>}
-                  <li><Link href="/faq/employer" className={linkClass}>{t('footer.faqEmployer', { defaultValue: 'Employer FAQ' })}</Link></li>
+                  {isEmployer && <li><Link href="/faq/employer" className={linkClass}>{t('footer.faqEmployer')}</Link></li>}
+                  {isEmployer && <li><Link href="/guides/employer" className={linkClass}>{t('footer.guidelinesEmployer')}</Link></li>}
                 </ul>
               </div>
             )}
@@ -184,15 +189,16 @@ export function Footer({
               <ul className="space-y-0.5 text-sm text-[rgba(255,255,255,0.7)]">
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
-                {/* Hidden for a known seeker and on the seeker landing page (they pay nothing).
-                    Same pending rule as the employer column: invisible, not removed, until the role is known. */}
+                {/* Shown with the employer column: hidden from a signed-in seeker (they pay nothing) and
+                    wherever the page asks for the seeker side to a visitor who is not signed in as an employer.
+                    Same pending rule as the product columns: invisible, not removed, until the role is known. */}
                 {showEmployers && (
-                  <li className={employersPending ? 'invisible' : undefined} aria-hidden={employersPending || undefined}>
+                  <li className={isLoading ? 'invisible' : undefined} aria-hidden={isLoading || undefined}>
                     <Link href="/refund-policy" className={linkClass}>{t('footer.refund')}</Link>
                   </li>
                 )}
                 {showEmployers && (
-                  <li className={employersPending ? 'invisible' : undefined} aria-hidden={employersPending || undefined}>
+                  <li className={isLoading ? 'invisible' : undefined} aria-hidden={isLoading || undefined}>
                     <Link href="/delivery-policy" className={linkClass}>{t('footer.delivery')}</Link>
                   </li>
                 )}

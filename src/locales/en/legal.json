@@ -129,7 +129,11 @@
     "refund": "Refund & Cancellation",
     "delivery": "Delivery Policy",
     "copyright": "© {{year}} {{company}}. All rights reserved.",
-    "help": "Help"
+    "help": "Help",
+    "faqEmployee": "Job Seeker FAQ",
+    "faqEmployer": "Employer FAQ",
+    "guidelinesEmployee": "Job Seeker Guidelines",
+    "guidelinesEmployer": "Employer Guidelines"
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -692,6 +696,10 @@
   "help": {
     "title": "Help",
     "intro": "Quick answers to common questions about using ProSiddhi.",
+    "moreHelp": {
+      "title": "FAQs and guidelines",
+      "body": "Quick answers and step-by-step guidelines (English only for now):"
+    },
     "general": {
       "title": "General",
       "forgotPassword": {

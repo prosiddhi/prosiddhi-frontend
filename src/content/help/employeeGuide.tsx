@@ -2,7 +2,7 @@ import type { GuideStepData } from '@/components/legal/GuideParts'
 import { BulletList, guideImage, HelpLink } from '@/components/legal/GuideParts'
 
 /**
- * Employee (job seeker) User Guide — English only for now.
+ * Employee (job seeker) Guidelines — English only for now.
  *
  * The screenshots are real captures of the portal showing SAMPLE data (made-up names, numbers and
  * dates). The Withdraw confirmation is a native browser dialog, which cannot be captured, so Step 9
