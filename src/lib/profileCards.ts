@@ -1,9 +1,10 @@
 /**
  * What each card of the seeker profile sends to PUT /jobseekers/profile.
  *
- * The profile page saves with one button, but every field belongs to exactly one card and the
- * endpoint takes a partial body, so each card's part of the request is built here, on its own,
- * from plain values. `profileSavePatch` joins the five parts: the same body the page has always sent.
+ * Each card of the profile page is edited, saved and cancelled on its own, and every field belongs
+ * to exactly one card. The endpoint takes a partial body, so each card's part of the request is
+ * built here, on its own, from plain values. The page-wide Save that joined the five parts is gone;
+ * scripts/verify-profile-cards.mjs joins them again, in the test, to compare them with the old body.
  *
  * Pure on purpose (no React, no network): scripts/verify-profile-cards.mjs runs this real source.
  *
@@ -170,9 +171,9 @@ export interface ProfileDraft extends AboutDraft, HomeDraft {
   experiences: ProfileWorkExperience[]
 }
 
-// ---- Per-card editing: the pure logic (Phase B1) ----------------------------------------------
-// Nothing here reads or writes the page. It is what the page will ask when each card can be
-// edited, saved and cancelled on its own.
+// ---- Per-card editing: the pure logic ---------------------------------------------------------
+// Nothing here reads or writes the page. It is what the page asks when each card is edited,
+// saved and cancelled on its own.
 
 export const CARD_IDS = ['about', 'home', 'workCities', 'job', 'experience'] as const
 export type CardId = (typeof CARD_IDS)[number]
@@ -218,17 +219,7 @@ export function cardPatch(card: CardId, draft: DraftValues, saved: SavedBaseline
   }
 }
 
-/**
- * The body of the page-wide Save: the five cards' parts, joined, in card order, each judged
- * against the page's one saved snapshot (`saved`).
- */
-export function profileSavePatch(draft: DraftValues, saved: SavedBaseline): SeekerProfileUpdate {
-  const patch: SeekerProfileUpdate = {}
-  for (const card of CARD_IDS) Object.assign(patch, cardPatch(card, draft, saved))
-  return patch
-}
-
-// ---- Per-card editing: what the page tracks for each card (Phase B2, scaffolding) -------------
+// ---- Per-card editing: what the page tracks for each card -------------------------------------
 
 /**
  * - saving: the write is in flight.
@@ -557,7 +548,7 @@ export function sameCardDraft(card: CardId, a: DraftValues, b: DraftValues): boo
   }
 }
 
-// ---- Per-card editing: where keyboard focus goes (Phase B3) -----------------------------------
+// ---- Per-card editing: where keyboard focus goes -----------------------------------------------
 // Pure, so the table can be tested without a page. The page turns an outcome into a target with
 // this and moves focus once, after the render (see the layout effect in the profile page).
 

@@ -18,9 +18,3 @@ export const EMPLOYER_CONTACT_VISIBLE = process.env.NEXT_PUBLIC_EMPLOYER_CONTACT
 // Any casing turns it on ("true", "TRUE", "True") — a staging build arg typed in
 // capitals must not silently leave the pop-up off.
 export const SHOW_TEST_OTP = process.env.NEXT_PUBLIC_SHOW_TEST_OTP?.trim().toLowerCase() === 'true'
-
-// Seeker profile: each card is edited, saved and cancelled on its own (app/profile/page.tsx),
-// instead of one Edit / Save / Cancel for the whole page. Off unless set to exactly "true"
-// (any casing). Built ON only for the staging build, so QA can test it; a production build
-// leaves it off and the page keeps its single Edit / Save. Rebuild to change it.
-export const PER_CARD_EDITING = process.env.NEXT_PUBLIC_PER_CARD_EDITING?.trim().toLowerCase() === 'true'

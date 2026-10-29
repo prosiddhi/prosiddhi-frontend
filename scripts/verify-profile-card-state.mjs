@@ -79,7 +79,6 @@ const {
   workCitiesPatch,
   jobPatch,
   experiencePatch,
-  profileSavePatch,
   savedIdsOf,
   idleCardUi,
   cardActivity,
@@ -141,8 +140,8 @@ const FULL = profile(
 )
 
 // ------------------------------------------------------------------------ 2. cardPatch
-// cardPatch is the Phase A builders, judged against the saved baseline it is handed; the page-wide
-// Save is the five of them joined, and sends the same body it always did.
+// cardPatch builds one card's part of the body, judged against the saved baseline it is handed. The
+// five of them joined (below, in the test) are the body the old page-wide Save sent.
 let seed = 424242
 const rnd = () => {
   seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
@@ -179,9 +178,16 @@ const randomDraft = () => ({
   language: pick(['', 'en', 'hi']),
   experiences: Array.from({ length: Math.floor(rnd() * 4) }, randomRow),
 })
-// The page's own saved copies as the baseline: what the page-wide Save has always sent against.
+// The page's own saved copies as the baseline the old page-wide Save was judged against.
 const pageBaseline = (d) => ({ homeCity: d.savedHomeCity, preferredCities: d.savedPreferredIds.map((id) => ({ id })) })
-// profileSavePatch as it was before it was built from cardPatch: the five Phase A builders, spread.
+// The five cards' bodies joined in card order. The page sends each card on its own now; this join is
+// kept here so the cards are still compared with the body the old page-wide Save sent.
+const joinedCardPatches = (d, baseline) => {
+  const patch = {}
+  for (const card of CARD_IDS) Object.assign(patch, cardPatch(card, d, baseline))
+  return patch
+}
+// The old body as it was built before cardPatch existed: the five Phase A builders, spread.
 const legacyProfileSavePatch = (d) => ({
   ...aboutPatch(d),
   ...homePatch(d),
@@ -202,11 +208,11 @@ for (let i = 0; i < 2000; i++) {
     expect(`cardPatch(${card}) against the page's saved copies is its Phase A builder #${i}`, wire(cardPatch(card, d, pageBaseline(d))), wire(builders[card]))
   }
 }
-// The page-wide Save is unchanged: the same request body, byte for byte (key order included), not
+// The joined card bodies are the old body: the same request, byte for byte (key order included), not
 // just the same fields.
 for (let i = 0; i < 3000; i++) {
   const d = randomDraft()
-  expect(`profileSavePatch is the old body, byte for byte #${i}`, JSON.stringify(profileSavePatch(d, pageBaseline(d))), JSON.stringify(legacyProfileSavePatch(d)))
+  expect(`the joined card bodies are the old body, byte for byte #${i}`, JSON.stringify(joinedCardPatches(d, pageBaseline(d))), JSON.stringify(legacyProfileSavePatch(d)))
 }
 const sample = randomDraft()
 expect('about patch has only about keys', sorted(Object.keys(cardPatch('about', sample, pageBaseline(sample)))), ['bio', 'dateOfBirth', 'fullName', 'gender'])
@@ -341,7 +347,7 @@ if (hydrateSrc && toSelectedSrc) {
 
   const toSelectedCity = new Function(`${strip(toSelectedSrc.replace(/^export /, ''))}\nreturn toSelectedCity`)()
   const legacyHydrate = makeLegacyHydrate(toSelectedCity)
-  const scopeNames = [...setterNames, 'useCallback', 'newKey', 'CARD_IDS', 'commitSaved', 'PER_CARD_EDITING', 'resetCards', 'draftFromProfile', 'originalFullName', 'cancelLocate', 'lookingBusyRef']
+  const scopeNames = [...setterNames, 'useCallback', 'newKey', 'CARD_IDS', 'commitSaved', 'resetCards', 'draftFromProfile', 'originalFullName', 'cancelLocate', 'lookingBusyRef']
   const makeParts_ = new Function(
     `${strip(`function make({ ${scopeNames.join(', ')} }) {\n${hydrateSrc}\nreturn { hydrate, hydrateShell, applyCardValues }\n}`)}\nreturn make`
   )()
@@ -359,7 +365,6 @@ if (hydrateSrc && toSelectedSrc) {
       originalFullName,
       cancelLocate: () => { cancelled++ },
       commitSaved: (v) => { calls.setSavedValues = v },
-      PER_CARD_EDITING: false,
       resetCards: () => {},
       lookingBusyRef: { current: switchSaving },
     })
@@ -478,24 +483,16 @@ if (hydrateSrc && toSelectedSrc) {
   checkIsolation('full profile', FULL)
   for (let i = 0; i < 500; i++) checkIsolation(`random profile #${i}`, randomProfile())
 
-  // ---- 3b. The snapshot, as the page runs it: load, edit, Save (page-wide, PER_CARD_EDITING off) ----
-  // The REAL hydrate() and the REAL handleSave() are cut out of the page and run against a small
-  // stand-in for React state. What each Save sends is compared with request bodies written out BY
-  // HAND below (not computed with profileCards.ts), so this does not lean on the code it checks.
-  const handleSaveSrc = cut(page, '  const handleSave = async () => {', '\n  }\n', 'handleSave()')
-  if (handleSaveSrc) {
-    const saveNames = [
-      'setSaveError', 'setSaved', 't', 'ABOUT_PROBLEM_KEY', 'aboutProblem', 'setSaving', 'jobSeekerAPI', 'profileSavePatch',
-      'savedValues', 'draft', 'originalFullName', 'lastProfileRef', 'hydrate', 'PER_CARD_EDITING', 'acquireWrite', 'releaseWrite', 'anyCardLocked', 'updateUser', 'user', 'setEditing', 'window',
-    ]
-    const makeSave = new Function(
-      `${strip(`function make({ ${saveNames.join(', ')} }) {\n${handleSaveSrc}\nreturn handleSave\n}`)}\nreturn make`
-    )()
-
+  // ---- 3b. The snapshot, as the page runs it: load, edit, then every card's part of the body ----------
+  // The REAL hydrate() is cut out of the page and run against a small stand-in for React state. The
+  // page-wide Save no longer exists, so `sim.save` joins the five cards' bodies with joinedCardPatches
+  // (the same cardPatch the cards' saves are built from) and compares them with request bodies
+  // written out BY HAND below, so this does not lean on the code it checks.
+  {
     // One page: `state` holds what React would hold; `server` is what GET /jobseekers/profile says.
     const newPage = (serverProfile) => {
       const sim = {
-        state: {}, server: serverProfile, bodies: [], failPut: false, originalFullName: { current: '' }, lastProfileRef: { current: null },
+        state: {}, server: serverProfile, bodies: [], failPut: false, originalFullName: { current: '' },
         savedRef: { current: null }, ui: { current: idleCardUi() }, lock: { current: false }, gen: { current: 0 }, looking: { current: false }, unknown: { current: {} },
       }
       sim.commit = (v) => { sim.savedRef.current = v; sim.state.setSavedValues = v }
@@ -508,50 +505,30 @@ if (hydrateSrc && toSelectedSrc) {
         originalFullName: sim.originalFullName,
         cancelLocate: () => {},
         commitSaved: (v) => sim.commit(v),
-        PER_CARD_EDITING: false,
         resetCards: () => {},
         lookingBusyRef: { current: false },
       })
       sim.hydrate = make(scope)
       sim.load = () => sim.hydrate(sim.server)
-      // The page re-reads these on every render; here they are read at Save time.
+      // Joins the five cards' bodies the way the removed page-wide Save did, then re-reads the server.
       sim.save = async () => {
         const s = sim.state
-        const jobSeekerAPI = {
-          updateProfile: async (b) => {
-            if (sim.failPut) throw new Error('boom')
-            sim.bodies.push(JSON.stringify(b))
-          },
-          getProfile: async () => sim.server,
-        }
         const errors = []
-        await makeSave({
-          setSaveError: (v) => { if (v) errors.push(v) },
-          setSaved: () => {},
-          t: (k) => k,
-          ABOUT_PROBLEM_KEY: { nameTooShort: 'tooShort', nameNotAName: 'notAName', dobUnder18: 'under18' },
-          aboutProblem,
-          setSaving: () => {},
-          jobSeekerAPI,
-          profileSavePatch,
-          savedValues: s.setSavedValues ?? null,
-          draft: {
-            fullName: s.setFullName, bio: s.setBio, dateOfBirth: s.setDateOfBirth, gender: s.setGender,
-            homeCity: s.setHomeCity, homeCityRemoved: s.setHomeCityRemoved, preferredCities: s.setPreferredCities,
-            triple: s.setTriple, language: s.setLanguage, experiences: s.setExperiences,
-          },
-          originalFullName: sim.originalFullName,
-          lastProfileRef: sim.lastProfileRef,
-          hydrate: sim.hydrate,
-          PER_CARD_EDITING: sim.flagOn ?? false,
-          acquireWrite: () => { if (sim.lock.current) return false; sim.lock.current = true; return true },
-          releaseWrite: () => { sim.lock.current = false; sim.gen.current++ },
-          anyCardLocked: () => CARD_IDS.some((c) => isCardLocked(sim.ui.current[c].status)),
-          updateUser: () => {},
-          user: {},
-          setEditing: () => {},
-          window: { setTimeout: () => 0 },
-        })()
+        const savedValues = s.setSavedValues ?? null
+        if (!savedValues) return errors
+        const draft = {
+          fullName: s.setFullName, bio: s.setBio, dateOfBirth: s.setDateOfBirth, gender: s.setGender,
+          homeCity: s.setHomeCity, homeCityRemoved: s.setHomeCityRemoved, preferredCities: s.setPreferredCities,
+          triple: s.setTriple, language: s.setLanguage, experiences: s.setExperiences,
+        }
+        const problem = aboutProblem(draft, sim.originalFullName.current)
+        if (problem) {
+          errors.push({ nameTooShort: 'tooShort', nameNotAName: 'notAName', dobUnder18: 'under18' }[problem])
+          return errors
+        }
+        if (sim.failPut) return errors
+        sim.bodies.push(JSON.stringify(joinedCardPatches(draft, savedValues)))
+        sim.hydrate(sim.server)
         return errors
       }
       return sim
@@ -660,7 +637,7 @@ if (hydrateSrc && toSelectedSrc) {
       expect('no snapshot yet: Save sends nothing', sim.bodies, [])
     }
 
-    // ---- 3d. A refreshed profile while cards are being edited (PER_CARD_EDITING) ---------------------
+    // ---- 3d. A refreshed profile while cards are being edited -------------------------------------
     // The REAL refreshProfile() / refreshCards() / hydrateShell() / applyCardValues() are cut out of the
     // page and run against the same stand-in for React state. Every expected value is written out by
     // hand. What this cannot show: that the page's draftRef (refreshed in an effect after each commit)
@@ -671,7 +648,7 @@ if (hydrateSrc && toSelectedSrc) {
     if (refreshSrc && refreshProfileSrc) {
       const refreshNames = [
         'draftRef', 'savedRef', 'cardUiRef', 'commitSaved', 'draftFromProfile', 'slicesToApply', 'cardActivity', 'rebaseCards', 'hydrate', 'hydrateShell', 'applyCardValues',
-        'PER_CARD_EDITING', 'jobSeekerAPI', 'lastProfileRef', 'writeGenRef',
+        'jobSeekerAPI', 'writeGenRef',
       ]
       const makeRefresh = new Function(
         `${strip(`function make({ ${refreshNames.join(', ')} }) {\n${refreshSrc}\n${refreshProfileSrc}\nreturn refreshProfile\n}`)}\nreturn make`
@@ -686,22 +663,35 @@ if (hydrateSrc && toSelectedSrc) {
           originalFullName: sim.originalFullName,
           cancelLocate: () => { sim.cancelled++; if (sim.lookup) sim.lookup.cancelled = true },
           commitSaved: (v) => sim.commit(v),
-          PER_CARD_EDITING: sim.hydrateFlag ?? false,
           resetCards: () => { sim.ui.current = idleCardUi(); sim.unknown.current = {} },
           lookingBusyRef: sim.looking,
         })
         return makeParts_(scope)
       }
+      const SHELL = ['setJobSeekerId', 'setEmail', 'setEmailVerified', 'setPhoneNumber', 'setPhoneVerified', 'setDocumentVerificationStatus', 'setPhoto', 'setProfileUpdatedAt', 'setAccountStatus']
       const draftOf = (s) => ({
         fullName: s.setFullName, bio: s.setBio, dateOfBirth: s.setDateOfBirth, gender: s.setGender,
         homeCity: s.setHomeCity, homeCityRemoved: s.setHomeCityRemoved, preferredCities: s.setPreferredCities,
         triple: s.setTriple, language: s.setLanguage, experiences: s.setExperiences,
       })
-      // flag: PER_CARD_EDITING. ui: per-card { editing, status } (default idle). duringFetch: what the
+      // The page-wide fields (everything hydrateShell sets except the switch, which is checked on its own),
+      // as the page holds them, and as a profile should set them (written out by hand, not taken from the page).
+      const shellOf = (sim) => Object.fromEntries(SHELL.map((k) => [k, sim.state[k]]))
+      const shellFrom = (p) => ({
+        setJobSeekerId: p.jobSeeker?.id ?? null,
+        setEmail: p.email ?? '',
+        setEmailVerified: p.emailVerified ?? false,
+        setPhoneNumber: p.phoneNumber ?? '',
+        setPhoneVerified: p.phoneVerified ?? false,
+        setDocumentVerificationStatus: p.jobSeeker?.documentVerificationStatus ?? null,
+        setPhoto: p.jobSeeker?.profilePhoto ?? null,
+        setProfileUpdatedAt: p.jobSeeker?.updatedAt ?? null,
+        setAccountStatus: p.accountStatus ?? null,
+      })
+      // ui: per-card { editing, status } (default idle). duringFetch: what the
       // seeker does while the request is in flight.
-      const refresh = async (sim, newer, { flag = true, ui = {}, uiRef = null, duringFetch = () => {}, reads = null } = {}) => {
+      const refresh = async (sim, newer, { ui = {}, uiRef = null, duringFetch = () => {}, reads = null } = {}) => {
         const parts = partsOf(sim)
-        sim.lastProfileRef = { current: null }
         sim.reads = 0
         const jobSeekerAPI = { getProfile: async () => { sim.reads++; duringFetch(sim.state); return reads ? reads[Math.min(sim.reads, reads.length) - 1] : newer } }
         // Read when the page reads it, i.e. after the fetch, from what the form holds then. The card
@@ -715,7 +705,7 @@ if (hydrateSrc && toSelectedSrc) {
         const run = makeRefresh({
           draftRef, savedRef: sim.savedRef, cardUiRef, commitSaved: sim.commit,
           draftFromProfile, slicesToApply, cardActivity, rebaseCards, ...parts,
-          PER_CARD_EDITING: flag, jobSeekerAPI, lastProfileRef: sim.lastProfileRef, writeGenRef: sim.gen,
+          jobSeekerAPI, writeGenRef: sim.gen,
         })
         const got = await run()
         sim.fetched = got
@@ -810,7 +800,8 @@ if (hydrateSrc && toSelectedSrc) {
         expect('refresh, all idle: every card shows the new values', gotForm(sim), wantForm(CARD_IDS))
         expect('refresh, all idle: the snapshot is the new values', gotSaved(sim), wantSaved(CARD_IDS))
         expect('refresh, all idle: the page-wide fields are replaced', sim.state.setEmail, 'new@example.com')
-        expect('refresh remembers the fetched profile for Cancel', sim.lastProfileRef.current === got, true)
+        expect('refresh, all idle: every page-wide field follows the fetched profile', shellOf(sim), shellFrom(NEWER))
+        expect('refresh returns the profile it read (a contact change uses it)', got.email, 'new@example.com')
         expect('refresh, all idle: the location lookup was ended once (home applied)', sim.cancelled, 1)
       }
 
@@ -972,18 +963,6 @@ if (hydrateSrc && toSelectedSrc) {
         expect('refresh before the first load: loads everything', [gotForm(sim), gotSaved(sim)], [wantForm(CARD_IDS), wantSaved(CARD_IDS)])
       }
 
-      // 11. Flag off: the refreshed profile replaces the whole form, edits and all, as it always did.
-      {
-        const sim = loaded()
-        await refresh(sim, clone(NEWER), {
-          flag: false,
-          duringFetch: (s) => { s.setBio = 'my own bio' },
-          ui: { job: { editing: true, status: 'saving' } },
-        })
-        expect('flag off: a refresh replaces every card, even one with changes', gotForm(sim), wantForm(CARD_IDS))
-        expect('flag off: the snapshot is the new profile', gotSaved(sim), wantSaved(CARD_IDS))
-      }
-
       // ---- 3e. One card's Save and Cancel, the shared write lock, and the actively-looking switch ----
       // The REAL acquireWrite / releaseWrite / setCardState / cancelCard / saveCard and
       // toggleActivelyLooking are cut out of the page. setCardUi (the render) is a recorder that never
@@ -996,13 +975,13 @@ if (hydrateSrc && toSelectedSrc) {
         const cardNames = [
           'writeLockRef', 'cardUiRef', 'setCardUi', 'savedRef', 'applyCardValues', 'hydrateShell', 'commitSaved', 'aboutProblem', 'draft',
           'originalFullName', 'ABOUT_PROBLEM_KEY', 't', 'cardPatch', 'patchIsEmpty', 'rebaseCards', 'draftFromProfile', 'saveFailureKind', 'writeGenRef',
-          'jobSeekerAPI', 'lastProfileRef', 'updateUser', 'user', 'lookingBusyRef', 'saving', 'activelyLooking', 'setLookingBusy',
+          'jobSeekerAPI', 'updateUser', 'user', 'lookingBusyRef', 'activelyLooking', 'setLookingBusy',
           'setActivelyLooking', 'showToast', 'PROFILE_READ_TIMEOUT_MS', 'PROFILE_WRITE_TIMEOUT_MS', 'bodyLanded', 'cardDirty', 'isCardLocked',
-          'setWriteBusy', 'unknownBodyRef', 'PER_CARD_EDITING', 'cardUi', 'writeBusy', 'CARD_IDS', 'cancelLocate', 'draftRef', 'sameCardDraft',
+          'setWriteBusy', 'unknownBodyRef', 'cardUi', 'writeBusy', 'CARD_IDS', 'cancelLocate', 'draftRef', 'sameCardDraft',
           'focusIntentRef', 'focusTokenRef', 'focusTargetAfter',
         ]
         const makeCard = new Function(
-          `${strip(`function make({ ${cardNames.join(', ')} }) {\n${cardSrc}\n${toggleSrc}\nreturn { acquireWrite, releaseWrite, setCardState, cardBusy, anyCardLocked, pageSaveBlocked, cancelCard, holdUnknown, settleCard, syncCard, checkCard, saveCard, toggleActivelyLooking }\n}`)}\nreturn make`
+          `${strip(`function make({ ${cardNames.join(', ')} }) {\n${cardSrc}\n${toggleSrc}\nreturn { acquireWrite, releaseWrite, setCardState, cardBusy, cancelCard, holdUnknown, settleCard, syncCard, checkCard, saveCard, toggleActivelyLooking }\n}`)}\nreturn make`
         )()
         const deferred = () => {
           let resolve
@@ -1010,7 +989,7 @@ if (hydrateSrc && toSelectedSrc) {
           return { promise, resolve }
         }
         // The page as it is at the moment of a click: the draft is the render's, the refs are live.
-        const cardsOf = (sim, api, { flag = true, updateUserThrows = false } = {}) => {
+        const cardsOf = (sim, api, { updateUserThrows = false } = {}) => {
           const parts = partsOf(sim)
           sim.puts = sim.puts ?? []
           sim.toasts = sim.toasts ?? []
@@ -1021,12 +1000,12 @@ if (hydrateSrc && toSelectedSrc) {
             aboutProblem, draft: draftOf(sim.state), originalFullName: sim.originalFullName,
             ABOUT_PROBLEM_KEY: { nameTooShort: 'tooShort', nameNotAName: 'notAName', dobUnder18: 'under18' },
             t: (k) => k, cardPatch, patchIsEmpty, rebaseCards, draftFromProfile, saveFailureKind, writeGenRef: sim.gen,
-            jobSeekerAPI: api, lastProfileRef: sim.lastProfileRef, updateUser: (u) => { if (updateUserThrows) throw new Error('header update failed'); sim.userUpdates.push(u) }, user: { profile: {} },
-            lookingBusyRef: sim.looking, saving: false, activelyLooking: sim.state.setActivelyLooking ?? false,
+            jobSeekerAPI: api, updateUser: (u) => { if (updateUserThrows) throw new Error('header update failed'); sim.userUpdates.push(u) }, user: { profile: {} },
+            lookingBusyRef: sim.looking, activelyLooking: sim.state.setActivelyLooking ?? false,
             setLookingBusy: () => {}, setActivelyLooking: (v) => { sim.state.setActivelyLooking = v },
             showToast: (_m, kind) => sim.toasts.push(kind),
             PROFILE_READ_TIMEOUT_MS, PROFILE_WRITE_TIMEOUT_MS, bodyLanded, cardDirty, isCardLocked,
-            setWriteBusy: () => {}, unknownBodyRef: sim.unknown, PER_CARD_EDITING: flag, cardUi: sim.ui.current,
+            setWriteBusy: () => {}, unknownBodyRef: sim.unknown, cardUi: sim.ui.current,
             writeBusy: sim.lock.current, CARD_IDS, sameCardDraft,
             cancelLocate: () => { sim.cancelled = (sim.cancelled ?? 0) + 1; if (sim.lookup) sim.lookup.cancelled = true },
             draftRef: { get current() { return draftOf(sim.state) } },
@@ -1114,12 +1093,13 @@ if (hydrateSrc && toSelectedSrc) {
           expect('card Cancel, experience: rows are back, a current job has no end date', gotForm(sim).experience, OLD_VALUES.experience)
           expect('card Cancel, experience: the job language is still kn', sim.state.setLanguage, 'kn')
           expect('card Cancel: no request was made', sim.puts ?? [], [])
-          // The other server profile has nothing to do with it: Cancel reads the snapshot, not lastProfileRef.
+          // The server has moved on, but Cancel reads the card's own snapshot: it asks the server nothing.
           const sim2 = loaded()
-          sim2.lastProfileRef.current = clone(NEWER)
+          sim2.server = clone(NEWER)
           sim2.state.setBio = 'x'
           cardsOf(sim2, fakeApi(sim2)).cancelCard('about')
-          expect('card Cancel does not use lastProfileRef', sim2.state.setBio, 'I cook.')
+          expect('card Cancel goes back to the snapshot, not to what the server holds now', sim2.state.setBio, 'I cook.')
+          expect('card Cancel reads nothing and writes nothing', [sim2.gets, sim2.puts], [[], []])
           // A card whose save is in flight is not cancelled.
           const sim3 = loaded()
           sim3.state.setBio = 'x'
@@ -1150,7 +1130,7 @@ if (hydrateSrc && toSelectedSrc) {
           expect('card Save ok: the write lock is released', sim.lock.current, false)
           expect('card Save ok: the page-wide "updated at" follows', sim.state.setProfileUpdatedAt, '2026-10-30T10:00:00.000Z')
           expect('card Save ok: the header user is updated for the About card', sim.userUpdates.map((u) => u.profile.fullName), ['Asha Rao'])
-          expect('card Save ok: lastProfileRef holds the fetched profile', sim.lastProfileRef.current === afterPut, true)
+          expect('card Save ok: every page-wide field follows the read the save made', shellOf(sim), shellFrom(afterPut))
           // The saved card is clean now; the others are still dirty against their own baselines.
           const live = stateOf(sim)
           expect('card Save ok: the saved card compares clean, the two edited ones stay dirty',
@@ -1167,14 +1147,11 @@ if (hydrateSrc && toSelectedSrc) {
           const stale = clone(FULL) // what the server said before the save landed
           const current = clone(NEWER)
           await refresh(sim, current, { reads: [stale, current], duringFetch: () => { if (sim.reads === 1) sim.gen.current++ } })
-          expect('refresh over a finished write: read twice, the second read is used', [sim.reads, sim.lastProfileRef.current === current], [2, true])
+          expect('refresh over a finished write: read twice, the second read is used', [sim.reads, shellOf(sim)], [2, shellFrom(current)])
           expect('refresh over a finished write: the form shows the second read', gotForm(sim), wantForm(CARD_IDS))
           const sim2 = loaded()
           await refresh(sim2, clone(NEWER))
           expect('refresh with no write in between: read once', sim2.reads, 1)
-          const sim3 = loaded()
-          await refresh(sim3, clone(NEWER), { flag: false, reads: [clone(NEWER), clone(FULL)], duringFetch: () => { sim3.gen.current++ } })
-          expect('flag off: never read twice', sim3.reads, 1)
           // A card save and the switch each count as a finished write, successful or not.
           const sim4 = loaded()
           sim4.state.setBio = 'mine'
@@ -1233,7 +1210,7 @@ if (hydrateSrc && toSelectedSrc) {
           expect('failed save: the card shows the error', sim.ui.current.about, { editing: false, status: 'error', error: 'boom', note: '' })
           expect('failed save: the lock is released', sim.lock.current, false)
           expect('failed save: draft and baseline are as they were', stateOf(sim), before)
-          expect('failed save: no profile was re-read, so lastProfileRef is as it was', sim.lastProfileRef.current === null || sim.lastProfileRef.current === undefined, true)
+          expect('failed save: no profile was re-read', sim.gets, [])
           const afterPut = clone(FULL)
           afterPut.jobSeeker.bio = 'mine'
           await cardsOf(sim, fakeApi(sim, { afterPut })).saveCard('about')
@@ -1255,7 +1232,7 @@ if (hydrateSrc && toSelectedSrc) {
           const api = fakeApi(sim, { putError: consent, afterPut: Object.assign(clone(FULL), {}) })
           await cardsOf(sim, api).saveCard('about')
           expect('consent required: not "saved", no error shown (ConsentGate takes over)', sim.ui.current.about, { editing: false, status: 'idle', error: '', note: '' })
-          expect('consent required: draft and baseline unchanged, nothing re-read', [stateOf(sim), sim.lastProfileRef.current == null], [before, true])
+          expect('consent required: draft and baseline unchanged, nothing re-read', [stateOf(sim), sim.gets], [before, []])
           expect('consent required: the lock is released', sim.lock.current, false)
           // …and the same card saves once it is accepted.
           const afterPut = clone(FULL)
@@ -1554,12 +1531,6 @@ if (hydrateSrc && toSelectedSrc) {
           sim = bioDraft()
           await cardsOf(sim, fakeApi(sim, { afterPut: serverWithBio('mine') })).saveCard('home')
           expect('focus: another card\'s save names that card', intentOf(sim), { card: 'home', target: 'edit' })
-
-          // Flag off: nothing is ever asked for.
-          sim = bioDraft()
-          await cardsOf(sim, fakeApi(sim, { afterPut: serverWithBio('mine') }), { flag: false }).saveCard('about')
-          cardsOf(sim, fakeApi(sim), { flag: false }).cancelCard('about')
-          expect('focus: with the feature off nothing is asked for', intentOf(sim), null)
         }
 
         // 11. Time limits, and the lock around the other writers.
@@ -1570,85 +1541,23 @@ if (hydrateSrc && toSelectedSrc) {
           const on = loaded()
           on.state.setActivelyLooking = false
           await cardsOf(on, fakeApi(on)).toggleActivelyLooking(true)
-          expect('the switch has a time limit when cards are edited one by one', on.putOpts, [{ timeoutMs: PROFILE_WRITE_TIMEOUT_MS }])
-          const off = loaded()
-          off.state.setActivelyLooking = false
-          await cardsOf(off, fakeApi(off), { flag: false }).toggleActivelyLooking(true)
-          expect('…and none with the feature off, as before', off.putOpts, [undefined])
+          expect('the switch has the write time limit', on.putOpts, [{ timeoutMs: PROFILE_WRITE_TIMEOUT_MS }])
+          // A switch that times out (or fails any way) is sent once: nothing repeats it.
+          const slow = loaded()
+          slow.state.setActivelyLooking = false
+          await cardsOf(slow, fakeApi(slow, { putError: new ApiError('Request timed out', 0) })).toggleActivelyLooking(true)
+          expect('the switch is never sent again after a timeout: one PUT, the switch goes back, error toast', [slow.puts, slow.putOpts, slow.state.setActivelyLooking, slow.toasts], [['{"isActivelyLooking":true}'], [{ timeoutMs: PROFILE_WRITE_TIMEOUT_MS }], false, ['error']])
         }
         {
-          // A card's inputs are off while it is saving, being read back, or not confirmed; never with the feature off.
+          // A card's inputs are off while it is saving, being read back, or not confirmed.
           const statuses = { idle: false, saved: false, error: false, saving: true, checking: true, unknown: true }
           for (const [status, locked] of Object.entries(statuses)) {
             const sim = loaded()
             sim.ui.current = { ...sim.ui.current, job: { editing: true, status, error: '', note: '' } }
             const on = cardsOf(sim, fakeApi(sim))
-            const off = cardsOf(sim, fakeApi(sim), { flag: false })
             expect(`inputs of a card in "${status}" are ${locked ? 'disabled' : 'enabled'}`, [on.cardBusy('job'), on.cardBusy('about')], [locked, false])
-            expect(`with the feature off the card is never busy ("${status}")`, off.cardBusy('job'), undefined)
           }
         }
-        {
-          // The page-wide Save is one more writer once cards are edited one by one; with the feature off it is as it was.
-          const held = loaded()
-          held.flagOn = true
-          held.lock.current = true // a card save is in flight
-          held.state.setBio = 'x'
-          await held.save()
-          expect('page-wide Save, feature on, lock held: sends nothing', held.bodies, [])
-          held.lock.current = false
-          await held.save()
-          expect('page-wide Save, feature on: runs when free, and releases the lock and counts the write', [held.bodies.length, held.lock.current, held.gen.current], [1, false, 1])
-          const legacy = loaded()
-          legacy.lock.current = true
-          legacy.state.setBio = 'x'
-          await legacy.save()
-          expect('page-wide Save, feature off: ignores the lock, as before', [legacy.bodies.length, legacy.lock.current, legacy.gen.current], [1, true, 0])
-        }
-
-        // 12. The page-wide Save and Cancel leave a card that is being saved, read or held alone.
-        {
-          for (const status of ['saving', 'checking', 'unknown']) {
-            const sim = loaded()
-            sim.flagOn = true
-            sim.ui.current = { ...sim.ui.current, job: { editing: false, status, error: '', note: '' } }
-            sim.state.setBio = 'x'
-            await sim.save()
-            expect(`page-wide Save, a card is "${status}": refused, the lock stays free`, [sim.bodies, sim.lock.current, sim.gen.current], [[], false, 0])
-          }
-          const off = loaded()
-          off.ui.current = { ...off.ui.current, job: { editing: false, status: 'unknown', error: '', note: '' } }
-          off.state.setBio = 'x'
-          await off.save()
-          expect('page-wide Save, feature off: not affected by card states', off.bodies.length, 1)
-          // …and the button follows the same rule.
-          const sim = loaded()
-          sim.ui.current = { ...sim.ui.current, job: { editing: true, status: 'unknown', error: '', note: '' } }
-          expect('page-wide Save is shown disabled while a card is held', [cardsOf(sim, fakeApi(sim)).pageSaveBlocked, cardsOf(sim, fakeApi(sim), { flag: false }).pageSaveBlocked], [true, false])
-          const idle = loaded()
-          expect('…and enabled when nothing is held', cardsOf(idle, fakeApi(idle)).pageSaveBlocked, false)
-        }
-        {
-          const cancelSrc = cut(page, '  const handleCancel = () => {', '\n  }\n', 'handleCancel()')
-          if (cancelSrc) {
-            const makeCancel = new Function(
-              `${strip(`function make({ PER_CARD_EDITING, anyCardLocked, lastProfileRef, hydrate, setEditing, setSaveError, setSaved }) {\n${cancelSrc}\nreturn handleCancel\n}`)}\nreturn make`
-            )()
-            const run = (flag, locked) => {
-              const calls = []
-              makeCancel({
-                PER_CARD_EDITING: flag, anyCardLocked: () => locked, lastProfileRef: { current: 'profile' },
-                hydrate: (p) => calls.push(['hydrate', p]), setEditing: (v) => calls.push(['editing', v]),
-                setSaveError: () => {}, setSaved: () => {},
-              })()
-              return calls
-            }
-            expect('page-wide Cancel, feature on, a card is held: does nothing', run(true, true), [])
-            expect('page-wide Cancel, feature on, no card held: reverts as before', run(true, false), [['hydrate', 'profile'], ['editing', false]])
-            expect('page-wide Cancel, feature off: reverts as before, whatever the card states say', run(false, true), [['hydrate', 'profile'], ['editing', false]])
-          }
-        }
-
         // 13. A read taken while another write is in flight must not move the page-wide state.
         {
           const sim = bioDraft()
@@ -1657,16 +1566,16 @@ if (hydrateSrc && toSelectedSrc) {
           stale.email = 'stale@example.com'
           const before = sim.state.setEmail
           sim.lock.current = true // another card's PUT is out
-          const lastBefore = sim.lastProfileRef.current
+          const shellBefore = shellOf(sim)
           await cardsOf(sim, fakeApi(sim, { afterPut: stale })).checkCard('about')
           expect('Check again while another write is out: the card settles', [sim.ui.current.about.status, gotSaved(sim).about.bio], ['saved', 'mine'])
-          expect('…but the page-wide fields and lastProfileRef are left alone', [sim.state.setEmail, sim.lastProfileRef.current === lastBefore], [before, true])
+          expect('…but the page-wide fields are left alone', [sim.state.setEmail, shellOf(sim)], [before, shellBefore])
           const sim2 = bioDraft()
           await cardsOf(sim2, fakeApi(sim2, { putError: new ApiError('Unavailable', 503) })).saveCard('about')
           const fresh2 = serverWithBio('mine')
           fresh2.email = 'new@example.com'
           await cardsOf(sim2, fakeApi(sim2, { afterPut: fresh2 })).checkCard('about')
-          expect('Check again with no write out: the page-wide fields follow', [sim2.state.setEmail, sim2.lastProfileRef.current === fresh2], ['new@example.com', true])
+          expect('Check again with no write out: the page-wide fields follow', [sim2.state.setEmail, shellOf(sim2)], ['new@example.com', shellFrom(fresh2)])
           // The card save that just finished owns the lock and does update them.
           const sim3 = bioDraft()
           const fresh3 = serverWithBio('mine')
@@ -1681,32 +1590,30 @@ if (hydrateSrc && toSelectedSrc) {
           expect('an unchanged card read while another write is out: card synced, page-wide fields not', [gotForm(sim4).job, sim4.state.setEmail], [NEW_VALUES.job, ''])
         }
 
-        // 14. A full load (hydrate) puts every card back to view mode once cards are edited one by one,
-        //     and leaves the card state alone when the feature is off.
+        // 14. A full load (hydrate) puts every card back to view mode.
         {
-          for (const flag of [true, false]) {
+          {
             const sim = loaded()
-            sim.hydrateFlag = flag
             sim.ui.current = { ...sim.ui.current, job: { editing: true, status: 'error', error: 'old', note: 'n' }, about: { editing: false, status: 'unknown', error: 'u', note: '' } }
             sim.unknown.current = { about: { bio: 'x' } }
             partsOf(sim).hydrate(clone(FULL))
-            expect(`full load, feature ${flag ? 'on' : 'off'}: card state ${flag ? 'reset' : 'untouched'}`,
+            expect('full load: card state reset',
               [sim.ui.current.job.status, sim.ui.current.about.status, Object.keys(sim.unknown.current)],
-              flag ? ['idle', 'idle', []] : ['error', 'unknown', ['about']])
+              ['idle', 'idle', []])
           }
         }
 
-        // 15. The switch takes the shared lock only when cards are edited one by one.
+        // 15. The switch takes the shared write lock, like a card save.
         {
           const sim = loaded()
           sim.state.setActivelyLooking = false
-          await cardsOf(sim, fakeApi(sim), { flag: false }).toggleActivelyLooking(true)
-          expect('switch, feature off: no lock taken or counted, the write goes out as before', [sim.puts, sim.lock.current, sim.gen.current], [['{"isActivelyLooking":true}'], false, 0])
+          await cardsOf(sim, fakeApi(sim)).toggleActivelyLooking(true)
+          expect('switch: the write goes out, the lock is released and the write counted', [sim.puts, sim.lock.current, sim.gen.current], [['{"isActivelyLooking":true}'], false, 1])
           const held = loaded()
           held.state.setActivelyLooking = false
           held.lock.current = true
-          await cardsOf(held, fakeApi(held), { flag: false }).toggleActivelyLooking(true)
-          expect('switch, feature off: a held lock is ignored (nothing else takes it)', [held.puts.length, held.lock.current], [1, true])
+          await cardsOf(held, fakeApi(held)).toggleActivelyLooking(true)
+          expect('switch: a held lock refuses it, nothing is sent and the lock stays held', [held.puts ?? [], held.lock.current, held.state.setActivelyLooking], [[], true, false])
         }
 
         // ---- Fixes after the Step 3B audit (F1, F2, F3) ----------------------------------------------
@@ -1829,22 +1736,21 @@ if (hydrateSrc && toSelectedSrc) {
           const lookupSrc = cut(page, '  const onLookupFound = useCallback(', '    [applyHomeCity]\n  )\n', 'onLookupFound()')
           if (lookupSrc) {
             const makeLookup = new Function(
-              `${strip(`function make({ useCallback, PER_CARD_EDITING, isCardLocked, cardUiRef, applyHomeCity }) {\n${lookupSrc}\nreturn onLookupFound\n}`)}\nreturn make`
+              `${strip(`function make({ useCallback, isCardLocked, cardUiRef, applyHomeCity }) {\n${lookupSrc}\nreturn onLookupFound\n}`)}\nreturn make`
             )()
-            const heard = (flag, status) => {
+            const heard = (status) => {
               const got = []
               makeLookup({
-                useCallback: (fn) => fn, PER_CARD_EDITING: flag, isCardLocked,
+                useCallback: (fn) => fn, isCardLocked,
                 cardUiRef: { current: { ...idleCardUi(), home: { editing: true, status, error: '', note: '' } } },
                 applyHomeCity: (c) => got.push(c.id),
               })({ id: 'c-z' })
               return got
             }
             for (const status of ['saving', 'checking', 'unknown']) {
-              expect(`F2 lookup answer, home card "${status}", feature on: ignored`, heard(true, status), [])
-              expect(`F2 lookup answer, home card "${status}", feature off: delivered as before`, heard(false, status), ['c-z'])
+              expect(`F2 lookup answer, home card "${status}": ignored`, heard(status), [])
             }
-            for (const status of ['idle', 'saved', 'error']) expect(`F2 lookup answer, home card "${status}": delivered`, heard(true, status), ['c-z'])
+            for (const status of ['idle', 'saved', 'error']) expect(`F2 lookup answer, home card "${status}": delivered`, heard(status), ['c-z'])
           }
         }
 
@@ -1853,6 +1759,7 @@ if (hydrateSrc && toSelectedSrc) {
           const sim = loaded()
           sim.state.setActivelyLooking = false
           sim.ui.current = { ...sim.ui.current, job: { editing: true, status: 'idle', error: '', note: '' } }
+          const shellBefore = shellOf(sim)
           const getGate = deferred()
           const stale = clone(NEWER)
           stale.email = 'stale@example.com'
@@ -1861,13 +1768,14 @@ if (hydrateSrc && toSelectedSrc) {
           getGate.resolve()
           await syncing
           expect('F3 sync: the card takes the server values (valid for it)', gotForm(sim).job, NEW_VALUES.job)
-          expect('F3 sync: the stale page-wide fields, the switch and lastProfileRef are not applied', [sim.state.setEmail, sim.state.setActivelyLooking, sim.lastProfileRef.current], ['', true, null])
+          expect('F3 sync: the stale page-wide fields and the switch are not applied', [sim.state.setEmail, sim.state.setActivelyLooking, shellOf(sim)], ['', true, shellBefore])
           expect('F3 sync: the other cards keep their drafts', { ...gotForm(sim), job: 0 }, { ...wantForm(['job']), job: 0 })
         }
         {
           const sim = bioDraft()
           await cardsOf(sim, fakeApi(sim, { putError: new ApiError('Unavailable', 503) })).saveCard('about')
           sim.state.setActivelyLooking = false
+          const shellBefore = shellOf(sim)
           const getGate = deferred()
           const stale = serverWithBio('mine')
           stale.email = 'stale@example.com'
@@ -1876,7 +1784,7 @@ if (hydrateSrc && toSelectedSrc) {
           getGate.resolve()
           await checking
           expect('F3 Check again: the card is settled from the read', [sim.ui.current.about.status, gotSaved(sim).about.bio], ['saved', 'mine'])
-          expect('F3 Check again: the stale page-wide fields and lastProfileRef are not applied', [sim.state.setEmail, sim.state.setActivelyLooking, sim.lastProfileRef.current], ['', true, null])
+          expect('F3 Check again: the stale page-wide fields and the switch are not applied', [sim.state.setEmail, sim.state.setActivelyLooking, shellOf(sim)], ['', true, shellBefore])
         }
       }
     }
@@ -1887,33 +1795,22 @@ if (hydrateSrc && toSelectedSrc) {
     expect('the snapshot state is written in one place, commitSaved', (page.match(/\bsetSavedValues\(/g) ?? []).length, 1)
     expect('commitSaved has three callers: a full load, a card-aware refresh, one card\'s successful save', (page.match(/\bcommitSaved\(/g) ?? []).length, 3)
     expect('the snapshot is set by hydrate()', hydrateSrc.includes('commitSaved(saved)'), true)
-    expect('page-wide Save passes the snapshot to profileSavePatch', handleSaveSrc.includes('profileSavePatch(draft, savedValues)'), true)
     expect('the draft carries no saved copies', /savedHomeCity|savedPreferredIds/.test(cut(page, '  const draft: DraftValues = {', '\n  }\n', 'draft') ?? ''), false)
   }
 
-  // ---- 3c. Step 1B scaffolding: the flag is off and the card state starts idle -----------------------
-  // The flag is no longer a constant in the page: it is the build-time NEXT_PUBLIC_PER_CARD_EDITING (off unless "true").
-  expect('PER_CARD_EDITING comes from lib/features, not from a constant in the page', [/import \{ PER_CARD_EDITING \} from '@\/lib\/features'/.test(page), /\bconst PER_CARD_EDITING\b/.test(page)], [true, false])
+  // ---- 3c. Per-card editing is the only way the page works: the feature flag is gone ------------------
   {
-    const flagFor = (value) => {
-      const before = process.env.NEXT_PUBLIC_PER_CARD_EDITING
-      if (value === undefined) delete process.env.NEXT_PUBLIC_PER_CARD_EDITING
-      else process.env.NEXT_PUBLIC_PER_CARD_EDITING = value
-      srcCache.delete('lib/features.ts')
-      try {
-        return loadSrc('lib/features.ts').PER_CARD_EDITING
-      } finally {
-        if (before === undefined) delete process.env.NEXT_PUBLIC_PER_CARD_EDITING
-        else process.env.NEXT_PUBLIC_PER_CARD_EDITING = before
-        srcCache.delete('lib/features.ts')
-      }
-    }
-    expect('the flag is off when unset, empty or anything but true', [undefined, '', 'false', '0', '1', 'yes', 'truee'].map(flagFor), [false, false, false, false, false, false, false])
-    expect('the flag is on for "true" in any casing, trimmed', ['true', 'TRUE', 'True', ' true '].map(flagFor), [true, true, true, true])
-    const dockerfile = fs.readFileSync(path.join(ROOT, 'Dockerfile'), 'utf8').replace(/\r\n/g, '\n')
-    expect('the Dockerfile builds with the flag off unless a build arg turns it on', [dockerfile.includes('ARG NEXT_PUBLIC_PER_CARD_EDITING=false\n'), dockerfile.includes('ENV NEXT_PUBLIC_PER_CARD_EDITING=$NEXT_PUBLIC_PER_CARD_EDITING\n')], [true, true])
-    const cloudbuild = fs.readFileSync(path.join(ROOT, 'cloudbuild.ci.yaml'), 'utf8')
-    expect('the shared Cloud Build file does not turn the flag on', cloudbuild.includes('PER_CARD_EDITING'), false)
+    const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8')
+    const features = read('src', 'lib', 'features.ts')
+    expect('the flag is gone from lib/features, the page, the Dockerfile, .env.example and the shared Cloud Build file',
+      [features, page, read('Dockerfile'), read('.env.example'), read('cloudbuild.ci.yaml')].map((text) => /PER_CARD_EDITING/.test(text)), [false, false, false, false, false])
+    expect('the page has no page-wide Edit, Save or Cancel left',
+      [/\bhandleSave\b/, /\bhandleCancel\b/, /\bsetEditing\b/, /\bpageSaveBlocked\b/, /\banyCardLocked\b/, /\bsetSaveError\b/, /\blastProfileRef\b/].map((re) => re.test(page)), [false, false, false, false, false, false, false])
+    expect('the page-wide body builder is gone from the lib', features.includes('profileSavePatch') || read('src', 'lib', 'profileCards.ts').includes('profileSavePatch'), false)
+    const profileJson = (lang) => JSON.parse(read('src', 'locales', lang, 'profile.json'))
+    expect('the seeker "Edit Profile" button text is gone from every language; the employer page keeps its own',
+      ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn'].map((lang) => [profileJson(lang).seeker.editProfile === undefined, typeof profileJson(lang).employer.editProfile === 'string']).flat(),
+      Array(20).fill(true))
   }
   expect('card UI starts with every card in view mode, idle', idleCardUi(), {
     about: { editing: false, status: 'idle', error: '', note: '' },
@@ -1936,8 +1833,8 @@ if (hydrateSrc && toSelectedSrc) {
 //    stale instead of refreshed. This is the caller's order; nothing below pins it.
 //
 // One that is now built in: cardPatch and cardDirty take the SAME saved snapshot (section 4c). The
-// draft's own `savedHomeCity` / `savedPreferredIds` copies are read only by the page-wide Save,
-// through profileSavePatch.
+// draft's own `savedHomeCity` / `savedPreferredIds` copies are read only by this file's
+// joinedCardPatches helper (they were the old page-wide Save's baseline).
 const saved = draftFromProfile(FULL)
 const dirtyCards = (draft, baseline = saved) => CARD_IDS.filter((c) => cardDirty(c, draft, baseline))
 const fresh = () => clone(saved)
@@ -2546,11 +2443,11 @@ expect('everything busy: nothing refreshes', slicesToApply(Object.fromEntries(CA
   const handlers = noComments.slice(noComments.indexOf('  const settleCard = ('), noComments.indexOf('  useEffect(() => {\n    let ignore = false'))
   expect('focus: no handler (save, check, sync, hold, settle, cancel) calls .focus()', [handlers.length > 1000, handlers.includes('.focus(')], [true, false])
   expect('focus: Experience\'s Edit and Add are distinct keyed elements', [code.includes('key="edit"'), code.includes('key="add"')], [true, true])
-  expect('focus: the card marker, the field markers and the date id exist only behind the flag', [
-    (code.match(/cardId=\{PER_CARD_EDITING \? '/g) ?? []).length,
-    code.includes("data-focus={PER_CARD_EDITING ? 'name' : undefined}"),
-    code.includes("id={PER_CARD_EDITING ? 'profile-about-dob' : undefined}"),
-    code.includes("data-focus={PER_CARD_EDITING ? 'add' : undefined}"),
+  expect('focus: the card marker, the field markers and the date id are always there', [
+    (code.match(/cardId="(about|home|workCities|job|experience)"/g) ?? []).length,
+    code.includes('data-focus="name"'),
+    code.includes('id="profile-about-dob"'),
+    code.includes('data-focus="add"'),
   ], [5, true, true, true])
   expect('focus: the intent is dropped when focus is on another card', code.includes('if (!section.contains(active)) return'), true)
 }

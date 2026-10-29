@@ -37,7 +37,6 @@ import {
 } from '@/lib/api'
 import { LANGUAGES } from '@/lib/jobCategories'
 import { saveFailureKind } from '@/lib/jobPreferences'
-import { PER_CARD_EDITING } from '@/lib/features'
 import { nearestCityNote, useNearestCity } from '@/hooks/useNearestCity'
 import { UseMyLocation } from '@/components/location/UseMyLocation'
 import {
@@ -85,7 +84,6 @@ import {
   idleCardUi,
   isCardLocked,
   patchIsEmpty,
-  profileSavePatch,
   rebaseCards,
   sameCardDraft,
   slicesToApply,
@@ -170,7 +168,6 @@ const ABOUT_PROBLEM_KEY: Record<AboutProblem, string> = {
   nameNotAName: 'auth:profile.errorNameLetters',
   dobUnder18: 'profile:seeker.errorDobAge',
 }
-
 // SUSPENDED is the only other state a seeker who can reach this page could
 // realistically be in — every PENDING_* status blocks login before this point.
 // A value outside both is shown verbatim rather than guessed at.
@@ -217,31 +214,23 @@ function SeekerProfileContent() {
   const { user, updateUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState('')
-  const [saved, setSaved] = useState(false)
 
-  // View/edit mode. Only Basic Details + Work Experience are gated by this — they
-  // already share one Save action (see handleSave). Photo, Documents and Skills
-  // persist immediately per-action and stay interactive in both modes.
-  const [editing, setEditing] = useState(false)
-  // Phase B2: each card's own edit mode and save status. `cardUiRef` is the truth and setCardState
-  // writes it synchronously, so code that runs after an await (a refresh, a save) reads the value
-  // as of now, not as of the last render. `cardUi` is the same value for rendering; the card
-  // controls render it when PER_CARD_EDITING is on.
+  // Each card's own edit mode and save status. Photo, Documents and Skills persist immediately
+  // per-action and stay interactive. `cardUiRef` is the truth and setCardState writes it
+  // synchronously, so code that runs after an await (a refresh, a save) reads the value as of now,
+  // not as of the last render. `cardUi` is the same value for rendering.
   const cardUiRef = useRef(idleCardUi())
   const [cardUi, setCardUi] = useState(idleCardUi)
-  // One write at a time: a card save, the page-wide Save (when cards are edited one by one) or the
-  // actively-looking switch. Taken synchronously before the request starts and released in a
-  // finally. The card saves and the switch have time limits, so a stalled request cannot hold it for
-  // good; the page-wide Save does not, because it is not meant to be offered next to the cards.
+  // One write at a time: a card save or the actively-looking switch. Taken synchronously before the
+  // request starts and released in a finally. Both have time limits, so a stalled request cannot
+  // hold it for good.
   const writeLockRef = useRef(false)
   // The same fact for rendering (a Save that cannot start is shown disabled).
   const [writeBusy, setWriteBusy] = useState(false)
   // What was sent for a card whose write has an unconfirmed outcome, kept so that "Check again" can
   // compare it with what the server holds. The write itself is never repeated.
   const unknownBodyRef = useRef<Partial<Record<CardId, SeekerProfileUpdate>>>({})
-  // Keyboard focus (PER_CARD_EDITING). A handler never calls .focus(): when an action ends it leaves
+  // Keyboard focus. A handler never calls .focus(): when an action ends it leaves
   // the card and the target here, and a layout effect moves focus once the render has committed.
   // The counter is bumped when a card's action starts; an end that carries an older number is stale
   // (a newer action took over) and leaves nothing.
@@ -250,10 +239,6 @@ function SeekerProfileContent() {
   // Counts the writes that have finished. A profile read that started before one finished may
   // predate it, so refreshProfile looks at this around its request.
   const writeGenRef = useRef(0)
-  // The latest profile fetched from the server. Only the page-wide Cancel reverts to it, because
-  // that replaces every card. One card is cancelled to `savedValues`, which keeps the baseline of
-  // a card the seeker still has changes in when a newer profile arrives.
-  const lastProfileRef = useRef<SeekerProfile | null>(null)
 
   // Profile fields
   const [jobSeekerId, setJobSeekerId] = useState<string | null>(null)
@@ -267,8 +252,8 @@ function SeekerProfileContent() {
   const [documentVerificationStatus, setDocumentVerificationStatus] = useState<string | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
-  // Why the last photo was refused. Its own message under the avatar: the save bar's
-  // `saveError` is only on screen while editing, and the camera button works any time.
+  // Why the last photo was refused. Its own message under the avatar: a card's
+  // save error sits in that card, and the camera button works any time.
   // Kept with the language it was written in: the text is translated when the error happens, so
   // it is hidden once the user switches language (they get a fresh one in the new language).
   const [photoError, setPhotoError] = useState<{ message: string; lang: string } | null>(null)
@@ -308,7 +293,7 @@ function SeekerProfileContent() {
   // held, its draft is what a request is judging, so a late answer is not put into it.
   const onLookupFound = useCallback(
     (city: SelectedCity) => {
-      if (PER_CARD_EDITING && isCardLocked(cardUiRef.current.home.status)) return
+      if (isCardLocked(cardUiRef.current.home.status)) return
       applyHomeCity(city)
     },
     [applyHomeCity]
@@ -343,7 +328,7 @@ function SeekerProfileContent() {
   const lookingBusyRef = useRef(false)
   const photoRef = useRef<HTMLInputElement>(null)
   // Original name — the DEF-030 rule fires only on an edit, never on a legacy
-  // value the server sent us. See the note in handleSave.
+  // value the server sent us. See aboutProblem.
   const originalFullName = useRef('')
 
   // What the seeker is editing, as the card functions take it. Rebuilt every render.
@@ -429,7 +414,7 @@ function SeekerProfileContent() {
     [cancelLocate]
   )
 
-  // The whole form from a profile: load, Cancel, and a Save that has just succeeded.
+  // The whole form from a profile: the first load, and a refresh before anything has loaded.
   const hydrate = useCallback(
     (p: SeekerProfile) => {
       // The server's values as the form's fields: one mapping, shared with the per-card code.
@@ -437,12 +422,12 @@ function SeekerProfileContent() {
       hydrateShell(p)
       commitSaved(saved)
       for (const card of CARD_IDS) applyCardValues(card, saved)
-      if (PER_CARD_EDITING) resetCards()
+      resetCards()
     },
     [hydrateShell, applyCardValues, commitSaved, resetCards]
   )
 
-  // A profile fetched while the seeker may be editing (PER_CARD_EDITING). The page-wide fields are
+  // A profile fetched while the seeker may be editing. The page-wide fields are
   // always replaced. A card takes the new values only if it is not in edit mode, has no changes and
   // is not saving; the others keep their draft and the snapshot they are judged against.
   const refreshCards = (p: SeekerProfile) => {
@@ -461,7 +446,7 @@ function SeekerProfileContent() {
     commitSaved(rebaseCards(saved, fresh, apply))
   }
 
-  // ---- One card's Edit, Save and Cancel (PER_CARD_EDITING). ----
+  // ---- One card's Edit, Save and Cancel. ----
   const acquireWrite = () => {
     if (writeLockRef.current) return false
     writeLockRef.current = true
@@ -479,15 +464,10 @@ function SeekerProfileContent() {
   }
   const beginFocusAction = (card: CardId) => ++focusTokenRef.current[card]
   const focusAfter = (card: CardId, token: number, outcome: FocusOutcome) => {
-    if (!PER_CARD_EDITING || focusTokenRef.current[card] !== token) return
+    if (focusTokenRef.current[card] !== token) return
     focusIntentRef.current = { card, target: focusTargetAfter(outcome) }
   }
-  // With the feature off nothing is ever busy and the card is rendered as it always was.
-  const cardBusy = (card: CardId) => (PER_CARD_EDITING ? isCardLocked(cardUi[card].status) : undefined)
-  // The page-wide Save and Cancel replace every card, so they wait while any card is being saved,
-  // read back or held: they would send its draft again, or wipe the draft a read-back is judging.
-  const anyCardLocked = () => CARD_IDS.some((card) => isCardLocked(cardUiRef.current[card].status))
-  const pageSaveBlocked = PER_CARD_EDITING && (writeBusy || CARD_IDS.some((card) => isCardLocked(cardUi[card].status)))
+  const cardBusy = (card: CardId) => isCardLocked(cardUi[card].status)
 
   // Back to the card's saved values. The other cards' drafts are not touched. A card whose write is
   // in flight, being read back, or not confirmed is left alone: the write may still land.
@@ -529,11 +509,10 @@ function SeekerProfileContent() {
     const base = savedRef.current
     if (!base) return 'none'
     const values = draftFromProfile(fresh)
-    // The page-wide fields and lastProfileRef follow this read only if no write is in flight and none
+    // The page-wide fields follow this read only if no write is in flight and none
     // finished while it was out (the card save that just finished holds the lock, and says so with
     // `shell`).
     if (done.shell ?? (!writeLockRef.current && (done.readGen === undefined || done.readGen === writeGenRef.current))) {
-      lastProfileRef.current = fresh
       hydrateShell(fresh)
     }
     commitSaved(rebaseCards(base, values, [card]))
@@ -601,7 +580,7 @@ function SeekerProfileContent() {
     }
   }
 
-  // Sends this card's part of the body, judged against the snapshot like the page-wide Save, and on
+  // Sends this card's part of the body, judged against the saved snapshot, and on
   // success moves only this card's baseline. A definite refusal leaves the draft and the baseline as
   // they were. A write whose outcome is unknown (a timeout, no answer, a gateway error, or an
   // accepted write that cannot be read back) is not repeated: the card waits for checkCard.
@@ -677,7 +656,6 @@ function SeekerProfileContent() {
       try {
         const p = await jobSeekerAPI.getProfile()
         if (!ignore) {
-          lastProfileRef.current = p
           hydrate(p)
         }
       } catch (err) {
@@ -733,21 +711,13 @@ function SeekerProfileContent() {
 
   // Only the one key goes out. On failure the switch goes back to what it was.
   const toggleActivelyLooking = async (next: boolean) => {
-    if (lookingBusyRef.current || saving || (PER_CARD_EDITING && !acquireWrite())) return
+    if (lookingBusyRef.current || !acquireWrite()) return
     const previous = activelyLooking
     lookingBusyRef.current = true
     setLookingBusy(true)
     setActivelyLooking(next)
     try {
-      await jobSeekerAPI.updateProfile(
-        { isActivelyLooking: next },
-        PER_CARD_EDITING ? { timeoutMs: PROFILE_WRITE_TIMEOUT_MS } : undefined
-      )
-      // Keep Cancel's snapshot in step, or it would flip the switch back.
-      const snapshot = lastProfileRef.current
-      if (snapshot?.jobSeeker) {
-        lastProfileRef.current = { ...snapshot, jobSeeker: { ...snapshot.jobSeeker, isActivelyLooking: next } }
-      }
+      await jobSeekerAPI.updateProfile({ isActivelyLooking: next }, { timeoutMs: PROFILE_WRITE_TIMEOUT_MS })
       showToast(t('profile:seeker.saved'), 'success')
     } catch {
       setActivelyLooking(previous)
@@ -755,30 +725,20 @@ function SeekerProfileContent() {
     } finally {
       lookingBusyRef.current = false
       setLookingBusy(false)
-      if (PER_CARD_EDITING) releaseWrite()
+      releaseWrite()
     }
-  }
-
-  const handleCancel = () => {
-    if (PER_CARD_EDITING && anyCardLocked()) return
-    if (lastProfileRef.current) hydrate(lastProfileRef.current)
-    setEditing(false)
-    setSaveError('')
-    setSaved(false)
   }
 
   // Called by EmailVerifyModal / PhoneVerifyModal after a successful change. The
   // BE call that got us here does not return the full profile shape, so refetch
-  // rather than patch local state — same pattern handleSave already uses.
+  // rather than patch local state.
   const refreshProfile = async () => {
     const gen = writeGenRef.current
     let fresh = await jobSeekerAPI.getProfile()
-    // With per-card editing a card save or the switch can finish while this request is out, and
-    // what it read may predate that write. That write is done now, so one more read is current.
-    if (PER_CARD_EDITING && writeGenRef.current !== gen) fresh = await jobSeekerAPI.getProfile()
-    lastProfileRef.current = fresh
-    if (PER_CARD_EDITING) refreshCards(fresh)
-    else hydrate(fresh)
+    // A card save or the switch can finish while this request is out, and what it read may
+    // predate that write. That write is done now, so one more read is current.
+    if (writeGenRef.current !== gen) fresh = await jobSeekerAPI.getProfile()
+    refreshCards(fresh)
     return fresh
   }
 
@@ -812,8 +772,7 @@ function SeekerProfileContent() {
     setHomeCityRemoved(true)
   }
 
-  // The card's own edit mode when cards are edited one by one; the page-wide one otherwise.
-  const cardEditing = (card: CardId) => (PER_CARD_EDITING ? cardUi[card].editing : editing)
+  const cardEditing = (card: CardId) => cardUi[card].editing
 
   // Opens one card for editing. This is the "next edit" that clears a lingering Saved or note.
   const startEdit = (card: CardId) => {
@@ -849,9 +808,9 @@ function SeekerProfileContent() {
     }
   }, [cardUi])
 
-  // The header button that opens a card (view mode only). Nothing when the feature is off.
+  // The header button that opens a card (view mode only).
   const editAction = (card: CardId) =>
-    PER_CARD_EDITING && !cardUi[card].editing ? (
+    !cardUi[card].editing ? (
       <button
         key="edit"
         type="button"
@@ -867,7 +826,6 @@ function SeekerProfileContent() {
 
   // Save, Cancel, Check again and the status line, below the card's fields (outside its fieldset).
   const cardFooter = (card: CardId) => {
-    if (!PER_CARD_EDITING) return undefined
     const ui = cardUi[card]
     return (
       <CardControls
@@ -893,53 +851,6 @@ function SeekerProfileContent() {
     )
   }
 
-  const handleSave = async () => {
-    // Edit mode only opens on a loaded profile, so the snapshot is there.
-    if (!savedValues) return
-
-    // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
-    // a few seconds, so a guard that returns early without clearing it leaves the
-    // green tick sitting next to the new red error — the screen says the save both
-    // worked and failed.
-    setSaveError('')
-    setSaved(false)
-
-    // The name and age rules, and why the name is only judged on an edit, are with aboutProblem.
-    const problem = aboutProblem(draft, originalFullName.current)
-    if (problem) {
-      setSaveError(t(ABOUT_PROBLEM_KEY[problem]))
-      return
-    }
-    // With cards edited one by one the page-wide Save is one more writer, and takes the same lock.
-    if (PER_CARD_EDITING && (anyCardLocked() || !acquireWrite())) return
-    setSaving(true)
-    try {
-      // Each card's part of the body is built in lib/profileCards.ts; this is all five, joined.
-      await jobSeekerAPI.updateProfile(profileSavePatch(draft, savedValues))
-      // PUT returns the bare record; re-fetch the wrapped profile to refresh state.
-      const fresh = await jobSeekerAPI.getProfile()
-      lastProfileRef.current = fresh
-      hydrate(fresh)
-      // The header reads the name from the session user, so a rename here has to
-      // land there too — otherwise the old name sticks until the next login.
-      updateUser({
-        profile: {
-          ...user?.profile,
-          fullName: fresh.jobSeeker?.fullName,
-          profilePhoto: fresh.jobSeeker?.profilePhoto,
-        },
-      })
-      setEditing(false)
-      setSaved(true)
-      window.setTimeout(() => setSaved(false), 3000)
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : t('profile:seeker.saveError'))
-    } finally {
-      setSaving(false)
-      if (PER_CARD_EDITING) releaseWrite()
-    }
-  }
-
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <EmployeeHeader />
@@ -956,15 +867,6 @@ function SeekerProfileContent() {
                 </p>
               )}
             </div>
-            {!PER_CARD_EDITING && !loading && !loadError && !editing && (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors"
-              >
-                <Pencil className="w-4 h-4" /> {t('profile:seeker.editProfile')}
-              </button>
-            )}
           </div>
 
           {loading && (
@@ -1054,7 +956,7 @@ function SeekerProfileContent() {
                   label={t('profile:seeker.activelyLooking.title')}
                   description={t('profile:seeker.activelyLooking.description')}
                   checked={activelyLooking}
-                  busy={lookingBusy || saving || writeBusy}
+                  busy={lookingBusy || writeBusy}
                   onChange={toggleActivelyLooking}
                 />
               </section>
@@ -1065,7 +967,7 @@ function SeekerProfileContent() {
                 title={t('profile:seeker.cards.aboutMeTitle')}
                 help={t('profile:seeker.cards.aboutMeHelp')}
                 busy={cardBusy('about')}
-                cardId={PER_CARD_EDITING ? 'about' : undefined}
+                cardId="about"
                 legend={t('profile:seeker.cards.aboutMeTitle')}
                 footer={cardFooter('about')}
                 action={editAction('about')}
@@ -1074,7 +976,7 @@ function SeekerProfileContent() {
                   <>
                     <div className={`grid sm:grid-cols-2 gap-x-6 gap-y-5 ${seekerSharedFieldsCls}`}>
                       <Field label={t('profile:seeker.fullName')} className={seekerLabelCls}>
-                        <input value={fullName} data-focus={PER_CARD_EDITING ? 'name' : undefined} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:seeker.fullNamePlaceholder')} className={seekerInputCls} />
+                        <input value={fullName} data-focus="name" onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:seeker.fullNamePlaceholder')} className={seekerInputCls} />
                       </Field>
                       <EmailStatusField
                         label={t('profile:seeker.emailAddress')}
@@ -1101,7 +1003,7 @@ function SeekerProfileContent() {
                       />
                       <Field label={t('profile:seeker.dateOfBirth')} className={seekerLabelCls}>
                         <DatePicker
-                          id={PER_CARD_EDITING ? 'profile-about-dob' : undefined}
+                          id="profile-about-dob"
                           value={dateOfBirth}
                           defaultMonth={yearsAgoISO(18)}
                           disabled={cardBusy('about')}
@@ -1174,7 +1076,7 @@ function SeekerProfileContent() {
                 title={t('profile:seeker.cards.homeTitle')}
                 help={t('profile:seeker.cards.homeHelp')}
                 busy={cardBusy('home')}
-                cardId={PER_CARD_EDITING ? 'home' : undefined}
+                cardId="home"
                 legend={t('profile:seeker.cards.homeTitle')}
                 footer={cardFooter('home')}
                 action={editAction('home')}
@@ -1200,19 +1102,17 @@ function SeekerProfileContent() {
                     <StateCitySelect
                       value={homeCity}
                       onChange={changeHomeCity}
-                      disabled={saving}
                       selectClassName={seekerInputCls}
                       labelClassName={seekerLabelCls}
                     />
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={saving || locating} />
+                      <UseMyLocation onLocated={locate} onRequest={beginLocate} disabled={locating} />
                       {/* The only way to clear a saved city: emptying the picker is not one,
                           because changing the State select empties it too. */}
                       {savedHomeCity && !homeCityRemoved && (
                         <button
                           type="button"
                           onClick={removeHomeCity}
-                          disabled={saving}
                           className="min-h-[44px] px-2 text-sm text-red-600 underline disabled:opacity-50"
                         >
                           {t('profile:seeker.removeHomeCity')}
@@ -1246,7 +1146,7 @@ function SeekerProfileContent() {
                 title={t('profile:seeker.preferredCities')}
                 help={cardEditing('workCities') ? t('profile:seeker.preferredCitiesHint') : undefined}
                 busy={cardBusy('workCities')}
-                cardId={PER_CARD_EDITING ? 'workCities' : undefined}
+                cardId="workCities"
                 legend={t('profile:seeker.preferredCities')}
                 footer={cardFooter('workCities')}
                 action={editAction('workCities')}
@@ -1257,7 +1157,6 @@ function SeekerProfileContent() {
                     max={3}
                     value={preferredCities}
                     onChange={setPreferredCities}
-                    disabled={saving}
                     className={seekerCityChipsCls}
                     selectClassName={seekerInputCls}
                     labelClassName={seekerLabelCls}
@@ -1284,7 +1183,7 @@ function SeekerProfileContent() {
                 title={t('profile:seeker.cards.jobTitle')}
                 help={t('profile:seeker.cards.jobHelp')}
                 busy={cardBusy('job')}
-                cardId={PER_CARD_EDITING ? 'job' : undefined}
+                cardId="job"
                 legend={t('profile:seeker.cards.jobTitle')}
                 footer={cardFooter('job')}
                 action={editAction('job')}
@@ -1334,7 +1233,7 @@ function SeekerProfileContent() {
                 }
                 action={
                   cardEditing('experience') ? (
-                    <button key="add" type="button" data-focus={PER_CARD_EDITING ? 'add' : undefined} onClick={addExp} disabled={cardBusy('experience')} className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60 disabled:opacity-60">
+                    <button key="add" type="button" data-focus="add" onClick={addExp} disabled={cardBusy('experience')} className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60 disabled:opacity-60">
                       <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
                     </button>
                   ) : (
@@ -1342,7 +1241,7 @@ function SeekerProfileContent() {
                   )
                 }
                 busy={cardBusy('experience')}
-                cardId={PER_CARD_EDITING ? 'experience' : undefined}
+                cardId="experience"
                 legend={t('profile:seeker.workExperience')}
                 footer={cardFooter('experience')}
               >
@@ -1410,38 +1309,6 @@ function SeekerProfileContent() {
                 )}
                 {cardEditing('experience') && <p className="text-sm text-[#717182] mt-3">{t('profile:seeker.experienceHint')}</p>}
               </ProfileCard>
-
-              {/* Save bar for profile + experience */}
-              {!PER_CARD_EDITING && editing && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || lookingBusy || pageSaveBlocked}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
-                  >
-                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {saving ? t('profile:seeker.saving') : t('buttons.saveChanges')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={saving || lookingBusy}
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
-                  >
-                    {t('profile:seeker.cancel')}
-                  </button>
-                  {saved && (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-                      <CheckCircle2 className="w-4 h-4" /> {t('profile:seeker.saved')}
-                    </span>
-                  )}
-                  {saveError && (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
-                      <AlertCircle className="w-4 h-4" /> {saveError}
-                    </span>
-                  )}
-                </div>
-              )}
 
               {/* Documents */}
               <ProfileCard icon={FileText} title={t('profile:seeker.documents')}>
