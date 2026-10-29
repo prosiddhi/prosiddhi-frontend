@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck, ClipboardList, CalendarClock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { resolveMediaUrl, teamAPI } from '@/lib/api'
+import { resolveMediaUrl } from '@/lib/api'
+import { useEmployerOwner } from '@/hooks/useEmployerOwner'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
 import { Tooltip } from '@/components/ui/Tooltip'
 
@@ -38,41 +39,10 @@ export function UserDropdown() {
   const workLabel = isEmployer ? t('nav.myJobs') : t('nav.myApplications')
   const settingsHref = isEmployer ? '/employer/settings' : '/settings'
 
-  // Ledger is owner-only on the backend (a MEMBER seat gets a 403 NOT_OWNER —
-  // see employer/ledger/page.tsx). AuthUser carries no seat role (nor does
-  // EmployerProfile). The credits Wallet does carry `role`, but reading it here
-  // would mean a second fetch of the whole wallet on every employer page, and
-  // useCredits() is uncached, so there's no existing cache to read it from:
-  // react-query is a listed dependency but has no QueryClientProvider anywhere
-  // in the app. `getEntitlements()` (any
-  // seat may read it, same as `getTeam()`) answers this with no roster —
-  // no member names/emails, no invite tokens — unlike `employer/team/page.tsx`,
-  // which genuinely needs the full `getTeam()` roster for its own listing.
-  // Starts false and stays false on any failure — the menu item must never
-  // show for a MEMBER or while ownership is still unknown, only once an
-  // OWNER response actually confirms it.
-  // Known cost: there is no shared layout.tsx under src/app/employer/, so
-  // every employer page imports EmployerHeader (→ this component) itself —
-  // this effect re-fires on every employer-page navigation, not once per
-  // session. Not deduped here; a shared cache is bigger than this fix, and
-  // "any seat may read it" plus the lighter entitlements payload keeps each
-  // individual call cheap.
-  const [isOwner, setIsOwner] = useState(false)
-  useEffect(() => {
-    if (!isEmployer) return
-    let ignore = false
-    teamAPI
-      .getEntitlements()
-      .then((entitlements) => {
-        if (!ignore) setIsOwner(entitlements.role === 'OWNER')
-      })
-      .catch(() => {
-        // Leave isOwner false — fail closed, not open.
-      })
-    return () => {
-      ignore = true
-    }
-  }, [isEmployer])
+  // Ledger is owner-only on the backend (a MEMBER seat gets a 403 NOT_OWNER — see
+  // employer/ledger/page.tsx). The shared hook answers it once per user for this menu and
+  // the employer bottom bar's More sheet, and stays false on any failure.
+  const isOwner = useEmployerOwner()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -253,7 +223,9 @@ export function UserDropdown() {
           {/* Dropdown Content */}
           <div
             role="menu"
-            className="absolute right-0 mt-2 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
+            // The employer menu has up to 12 rows (~530px) under a sticky header, so on a
+            // short screen the last rows (Settings, Log out) were out of reach.
+            className="absolute right-0 mt-2 w-[200px] max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden overscroll-contain bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn"
           >
             {/* Dashboard (employer only) — always sends the employer back to
                 /employer, regardless of which page the dropdown was opened from. */}

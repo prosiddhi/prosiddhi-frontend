@@ -3,7 +3,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Footer } from '@/components/home/Footer'
+import { EmployerBottomNav } from '@/components/navigation/EmployerBottomNav'
 import { inSameSection, rememberEmployerPage } from '@/lib/employerBackNav'
+import { isFocusedEmployerRoute } from '@/lib/employerNav'
 
 /**
  * Every signed-in employer page gets the site footer, so About, Contact (with the
@@ -13,13 +15,12 @@ import { inSameSection, rememberEmployerPage } from '@/lib/employerBackNav'
  *
  * Not on: /employer/welcome (the public landing page renders its own footer), the
  * sign-up steps under /employer/register, and the invite-accept screen — each is a
- * focused single-task screen.
+ * focused single-task screen (see isFocusedEmployerRoute). The mobile bottom bar follows
+ * the same rule, and also waits for a signed-in employer.
  */
-const WITHOUT_FOOTER = ['/employer/welcome', '/employer/register', '/employer/team/accept']
-
 export default function EmployerLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const showFooter = !WITHOUT_FOOTER.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const showFooter = !isFocusedEmployerRoute(pathname)
 
   // Note the page being left, for pages with a Back link (see employerBackNav). Only a
   // change of path counts: My Jobs' tab / search / page changes stay on one path.
@@ -42,6 +43,7 @@ export default function EmployerLayout({ children }: { children: ReactNode }) {
     <>
       {children}
       {showFooter && <Footer audience="employer" width="wide" />}
+      <EmployerBottomNav />
     </>
   )
 }

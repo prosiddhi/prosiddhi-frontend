@@ -26,7 +26,14 @@ const POLL_MS = 60_000
  * /employer/messages, this component sits inside both EmployeeHeader and
  * EmployerHeader), and the bell is a real notifications dropdown (PJP-111).
  */
-export function HeaderActions() {
+export function HeaderActions({ compact = false }: {
+  /**
+   * Tighter gaps at every width. The employer header sets it: it also carries
+   * Post a Job and two nav links, so it has less room than the seeker header.
+   * The class names are written out in full on purpose (Tailwind scans source text).
+   */
+  compact?: boolean
+}) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const messagesHref = user?.role === 'JOB_SEEKER' ? '/messages' : '/employer/messages'
@@ -86,7 +93,7 @@ export function HeaderActions() {
     //     max-width − gaps), which depends only on the viewport, never on
     //     what name is loaded. See UserDropdown.tsx for the username's own
     //     fixed-width, 2-line-clamped box that makes this possible.
-    <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+    <div className={compact ? 'flex items-center gap-2 sm:gap-4 lg:gap-6' : 'flex items-center gap-4 sm:gap-6 lg:gap-8'}>
       <div aria-hidden="true" className="flex-1 min-w-0" />
 
       {CHAT_ENABLED && (

@@ -46,11 +46,12 @@ function StatTile({
   action?: React.ReactNode
 }) {
   const shell =
-    'bg-white border border-[#dddddd] rounded-[10px] p-4 sm:p-5 flex items-center justify-between gap-3'
+    'bg-white border border-[#dddddd] rounded-[10px] p-3 sm:p-5 flex items-center justify-between gap-2 sm:gap-3'
+  // Tighter below `sm` so two tiles fit across a 320px phone (~140px each).
   const body = (
     <>
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-11 h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-[#e3f5ff] flex items-center justify-center flex-shrink-0 text-[#236987]">
           {icon}
         </div>
         <div className="min-w-0">
@@ -203,6 +204,9 @@ function PanelBody<T>({
 function EmployerDashboardContent() {
   const { t } = useTranslation()
   const [statsPanel, reloadStats] = usePanel(fetchStats)
+  // The Application overview sits below Your Jobs, outside the stats PanelBody, so it reads
+  // the same loaded data; while loading or failed, the Job overview slot shows that state.
+  const stats = statsPanel.status === 'ready' ? statsPanel.data : null
   const [jobsPanel, reloadJobs] = usePanel(fetchJobs)
   const [recentPanel, reloadRecent] = usePanel(fetchRecent)
   const [unlockedCount, setUnlockedCount] = useState<number | null>(null)
@@ -263,54 +267,34 @@ function EmployerDashboardContent() {
             </div>
           )}
 
+          {/* Phone order = markup order: Job overview, Your Jobs, Application overview, Recent
+              Applications. From `lg` each block is placed by row and column (both overviews full
+              width, then Your Jobs | Recent Applications). One fetch (`statsPanel`) feeds both
+              overviews; its spinner / error / Retry show once, in the Job overview slot. */}
+          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-x-8">
+          <div className="lg:col-span-2 lg:row-start-1">
+          {/* Job Overview — job-level counts, kept separate from the
+              application-lifecycle metrics below so the two don't read as
+              one flat, undifferentiated row of six unrelated numbers.
+              Capped to sm:max-w-md so two cards don't stretch across the
+              full dashboard width. */}
           <PanelBody state={statsPanel} errorMessage={t('employer:dashboard.errors.stats')} onRetry={reloadStats}>
-            {(stats) => (
-              <>
-                {/* Job Overview — job-level counts, kept separate from the
-                    application-lifecycle metrics below so the two don't read as
-                    one flat, undifferentiated row of six unrelated numbers.
-                    Capped to sm:max-w-md so two cards don't stretch across the
-                    full dashboard width. */}
+            {(loaded) => (
                 <section className="mb-6 sm:mb-8">
                   <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
                     {t('employer:dashboard.jobOverviewTitle')}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 sm:max-w-md">
-                    <StatTile label={t('employer:dashboard.stats.totalJobs')} value={stats.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
-                    <StatTile label={t('employer:dashboard.stats.activeJobs')} value={stats.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:max-w-md">
+                    <StatTile label={t('employer:dashboard.stats.totalJobs')} value={loaded.totalJobPosts} icon={<Briefcase className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.activeJobs')} value={loaded.activeJobs} icon={<CheckCircle2 className="w-5 h-5" />} />
                   </div>
                 </section>
-
-                {/* Application Overview — every application-lifecycle metric in
-                    one group, in pipeline order. The BE computes
-                    reviewedApplications = accepted + rejected + shortlisted
-                    (employer.controller.ts): it is a decided-vs-pending count,
-                    not a funnel stage before Shortlisted, so it is shown as a
-                    plain metric alongside the others rather than as an arrow
-                    chain that would imply a sequential workflow. */}
-                <section className="mb-6 sm:mb-8">
-                  <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
-                    {t('employer:dashboard.overviewTitle')}
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
-                    <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
-                    <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} href={candidatesUrl({ tab: 'pending' })} />
-                    <StatTile label={t('employer:dashboard.stats.reviewed')} value={stats.reviewedApplications} icon={<Eye className="w-5 h-5" />} />
-                    <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
-                    <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
-                    <StatTile label={t('employer:candidates.tabs.rejected')} value={stats.rejectedApplications} icon={<XCircle className="w-5 h-5" />} />
-                    {typeof stats.withdrawnApplications === 'number' && (
-                      <StatTile label={t('employer:candidates.tabs.withdrawn')} value={stats.withdrawnApplications} icon={<Undo2 className="w-5 h-5" />} />
-                    )}
-                  </div>
-                </section>
-              </>
             )}
           </PanelBody>
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Your Jobs */}
-            <section>
+            <section className="mb-6 sm:mb-8 lg:col-start-1 lg:row-start-3 lg:mb-0">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl sm:text-2xl font-semibold text-black">{t('employer:dashboard.yourJobs')}</h2>
                 <Link href="/employer/jobs" className="text-sm text-primary-50 hover:underline">{t('employer:dashboard.manageAll')}</Link>
@@ -377,8 +361,34 @@ function EmployerDashboardContent() {
               </PanelBody>
             </section>
 
+                {/* Application Overview — every application-lifecycle metric in
+                    one group, in pipeline order. The BE computes
+                    reviewedApplications = accepted + rejected + shortlisted
+                    (employer.controller.ts): it is a decided-vs-pending count,
+                    not a funnel stage before Shortlisted, so it is shown as a
+                    plain metric alongside the others rather than as an arrow
+                    chain that would imply a sequential workflow. */}
+            {stats && (
+                <section className="mb-6 sm:mb-8 lg:col-span-2 lg:row-start-2">
+                  <h2 className="text-xs sm:text-sm font-semibold text-[#717182] uppercase tracking-wide mb-2 sm:mb-3">
+                    {t('employer:dashboard.overviewTitle')}
+                  </h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+                    <StatTile label={t('employer:dashboard.stats.applications')} value={stats.totalApplications} icon={<Users className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.pending')} value={stats.pendingApplications} icon={<Clock className="w-5 h-5" />} href={candidatesUrl({ tab: 'pending' })} />
+                    <StatTile label={t('employer:dashboard.stats.reviewed')} value={stats.reviewedApplications} icon={<Eye className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.shortlisted')} value={stats.shortlistedApplications} icon={<Star className="w-5 h-5" />} />
+                    <StatTile label={t('employer:dashboard.stats.accepted')} value={stats.acceptedApplications} icon={<CheckCircle2 className="w-5 h-5" />} />
+                    <StatTile label={t('employer:candidates.tabs.rejected')} value={stats.rejectedApplications} icon={<XCircle className="w-5 h-5" />} />
+                    {typeof stats.withdrawnApplications === 'number' && (
+                      <StatTile label={t('employer:candidates.tabs.withdrawn')} value={stats.withdrawnApplications} icon={<Undo2 className="w-5 h-5" />} />
+                    )}
+                  </div>
+                </section>
+            )}
+
             {/* Recent Applications */}
-            <section>
+            <section className="lg:col-start-2 lg:row-start-3">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl sm:text-2xl font-semibold text-black">{t('employer:dashboard.recentApplications')}</h2>
                 <Link href="/employer/candidates" className="text-sm text-primary-50 hover:underline">{t('employer:dashboard.manageAll')}</Link>
