@@ -267,7 +267,9 @@ expect('a real returnUrl survives', routes.destinationAfterAuth('JOB_SEEKER', '/
 delete globalThis.window
 // Every seeker-only page is either gated or deliberately not
 const APP = path.join(ROOT, 'src', 'app')
-const EXEMPT_SEEKER_PAGES = new Set(['complete-profile', 'settings'])
+// faq and guides are help pages: they stay open to a signed-in seeker who has not finished job
+// preferences, so they must not join SEEKER_GATED_PREFIXES.
+const EXEMPT_SEEKER_PAGES = new Set(['complete-profile', 'settings', 'faq', 'guides'])
 const seekerSegments = new Set()
 const walk = (dir) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
