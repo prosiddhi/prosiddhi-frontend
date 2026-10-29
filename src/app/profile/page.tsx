@@ -75,6 +75,7 @@ import { NAME_MAX_LENGTH } from '@/lib/nameValidation'
 import {
   CARD_IDS,
   aboutProblem,
+  experienceProblem,
   bodyLanded,
   cardActivity,
   cardDirty,
@@ -88,6 +89,7 @@ import {
   sameCardDraft,
   slicesToApply,
   type AboutProblem,
+  type ExperienceProblem,
   type CardId,
   type CardUi,
   type DraftValues,
@@ -168,6 +170,13 @@ const ABOUT_PROBLEM_KEY: Record<AboutProblem, string> = {
   nameNotAName: 'auth:profile.errorNameLetters',
   dobUnder18: 'profile:seeker.errorDobAge',
 }
+// What experienceProblem found, as the copy for it (the row number goes into the text).
+const EXPERIENCE_PROBLEM_KEY: Record<ExperienceProblem, string> = {
+  position: 'profile:seeker.experienceProblem.position',
+  startDate: 'profile:seeker.experienceProblem.startDate',
+  endDate: 'profile:seeker.experienceProblem.endDate',
+}
+
 // SUSPENDED is the only other state a seeker who can reach this page could
 // realistically be in — every PENDING_* status blocks login before this point.
 // A value outside both is shown verbatim rather than guessed at.
@@ -602,6 +611,17 @@ function SeekerProfileContent() {
         return
       }
     }
+    if (card === 'experience') {
+      // A row that is filled in only in part would be dropped from the body, and the list replaces the saved
+      // one, so it is refused here instead. The draft stays for the seeker to finish. A saved row left alone
+      // is not asked for an end date it never had.
+      const found = experienceProblem(draft.experiences, saved.experiences)
+      if (found) {
+        setCardState(card, { status: 'error', error: t(EXPERIENCE_PROBLEM_KEY[found.problem], { row: found.row }) })
+        focusAfter(card, token, { kind: 'save', outcome: 'invalid' })
+        return
+      }
+    }
     const body = cardPatch(card, draft, saved)
     if (patchIsEmpty(body)) {
       // Changed, but nothing the server accepts (a cleared category, say): the saved value stands.
@@ -702,11 +722,8 @@ function SeekerProfileContent() {
       rows.map((r) => (r.key === key ? { ...r, [field]: value } : r))
     )
   }
-  const addExp = () =>
-    setExperiences((rows) => [
-      ...rows,
-      { key: newKey(), position: '', companyName: '', startDate: '', endDate: '', currentlyWorking: false, description: '' },
-    ])
+  const blankExp = (): ExpRow => ({ key: newKey(), position: '', companyName: '', startDate: '', endDate: '', currentlyWorking: false, description: '' })
+  const addExp = () => setExperiences((rows) => [...rows, blankExp()])
   const removeExp = (key: string) => setExperiences((rows) => rows.filter((r) => r.key !== key))
 
   // Only the one key goes out. On failure the switch goes back to what it was.
@@ -778,6 +795,9 @@ function SeekerProfileContent() {
   const startEdit = (card: CardId) => {
     if (!savedRef.current || isCardLocked(cardUiRef.current[card].status)) return
     const token = beginFocusAction(card)
+    // An empty Work Experience card opens on one blank row, so its fields are there to fill in. The row
+    // is not a change until something is typed in it, and Cancel drops it with the rest of the draft.
+    if (card === 'experience' && experiences.length === 0) setExperiences([blankExp()])
     setCardState(card, { editing: true, status: 'idle', error: '', note: '' })
     focusAfter(card, token, { kind: 'edit' })
   }
@@ -808,8 +828,9 @@ function SeekerProfileContent() {
     }
   }, [cardUi])
 
-  // The header button that opens a card (view mode only).
-  const editAction = (card: CardId) =>
+  // The header button that opens a card (view mode only). A card with nothing in it yet offers
+  // "+ Add" instead of "Edit"; both open the same edit mode.
+  const editAction = (card: CardId, empty = false) =>
     !cardUi[card].editing ? (
       <button
         key="edit"
@@ -817,10 +838,10 @@ function SeekerProfileContent() {
         data-focus="edit"
         onClick={() => startEdit(card)}
         disabled={!savedValues || isCardLocked(cardUi[card].status)}
-        aria-label={t('profile:seeker.editSection', { section: t(CARD_TITLE[card]) })}
+        aria-label={t(empty ? 'profile:seeker.addSection' : 'profile:seeker.editSection', { section: t(CARD_TITLE[card]) })}
         className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-medium text-primary-50 hover:text-primary-60 disabled:opacity-60"
       >
-        <Pencil className="w-4 h-4" /> {t('profile:seeker.edit')}
+        {empty ? <Plus className="w-4 h-4" /> : <Pencil className="w-4 h-4" />} {t(empty ? 'profile:seeker.add' : 'profile:seeker.edit')}
       </button>
     ) : undefined
 
@@ -1149,7 +1170,7 @@ function SeekerProfileContent() {
                 cardId="workCities"
                 legend={t('profile:seeker.preferredCities')}
                 footer={cardFooter('workCities')}
-                action={editAction('workCities')}
+                action={editAction('workCities', preferredCities.length === 0)}
               >
                 {cardEditing('workCities') ? (
                   <StateCitySelect
@@ -1237,7 +1258,7 @@ function SeekerProfileContent() {
                       <Plus className="w-4 h-4" /> {t('profile:seeker.add')}
                     </button>
                   ) : (
-                    editAction('experience')
+                    editAction('experience', experiences.length === 0)
                   )
                 }
                 busy={cardBusy('experience')}

@@ -133,7 +133,12 @@
     "startDate": "Start Date",
     "endDate": "End Date",
     "currentlyWorking": "I currently work here",
-    "experienceHint": "We only save an entry if it has a position and a start date.",
+    "experienceHint": "Empty work experience details will not be saved. If you want to remove an existing entry, use the delete option.",
+    "experienceProblem": {
+      "position": "Work experience {{row}}: add a position.",
+      "startDate": "Work experience {{row}}: add a start date.",
+      "endDate": "Work experience {{row}}: add an end date, or tick \"I currently work here\"."
+    },
     "saving": "Saving…",
     "saved": "Saved",
     "saveError": "Failed to save your profile.",
@@ -142,6 +147,7 @@
     "checking": "Checking…",
     "edit": "Edit",
     "editSection": "Edit {{section}}",
+    "addSection": "Add {{section}}",
     "saveNotApplied": "Your changes were not saved. They are still here, so you can try again.",
     "homeCityKept": "Your saved city is kept. To remove it, use “Remove my saved city”.",
     "activelyLooking": {
