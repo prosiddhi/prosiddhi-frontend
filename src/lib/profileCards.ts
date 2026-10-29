@@ -1,9 +1,10 @@
 /**
  * What each card of the seeker profile sends to PUT /jobseekers/profile.
  *
- * The profile page saves with one button, but every field belongs to exactly one card and the
- * endpoint takes a partial body, so each card's part of the request is built here, on its own,
- * from plain values. `profileSavePatch` joins the five parts: the same body the page has always sent.
+ * Each card of the profile page is edited, saved and cancelled on its own, and every field belongs
+ * to exactly one card. The endpoint takes a partial body, so each card's part of the request is
+ * built here, on its own, from plain values. The page-wide Save that joined the five parts is gone;
+ * scripts/verify-profile-cards.mjs joins them again, in the test, to compare them with the old body.
  *
  * Pure on purpose (no React, no network): scripts/verify-profile-cards.mjs runs this real source.
  *
@@ -159,6 +160,41 @@ export function experiencePatch(rows: ProfileWorkExperience[]): Pick<SeekerProfi
   return { workExperiences }
 }
 
+export type ExperienceProblem = 'position' | 'startDate' | 'endDate'
+
+/**
+ * The first rule a filled-in row breaks, with its 1-based place in the list, or null. Every row the
+ * seeker has typed anything into needs a position, a start date, and an end date unless "currently
+ * working" is ticked. A row left completely empty is not judged: it is not a change and is never sent.
+ *
+ * `saved` is the list the server holds. A row that is exactly one of those (each saved row matches at
+ * most one draft row) is untouched, and only the end-date rule is waived for it: the BE has never
+ * required an end date, so an older row may lack one, and the seeker must not have to invent history to
+ * save something else. A new or changed row gets every rule.
+ *
+ * experiencePatch drops a row without a position or a start date, and the list FULL-REPLACES the
+ * server's, so without these two rules for EVERY row a save would quietly send a shorter list (an empty
+ * one when it is the only row) and delete saved experience. The end-date rule is the portal's own.
+ */
+export function experienceProblem(
+  rows: ProfileWorkExperience[],
+  saved: ProfileWorkExperience[] = []
+): { row: number; problem: ExperienceProblem } | null {
+  const unmatched = filledRows(saved)
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i]
+    const v = rowView(r)
+    if (!hasContent(v)) continue
+    const at = unmatched.findIndex((q) => sameRowView(v, q))
+    const untouched = at >= 0
+    if (untouched) unmatched.splice(at, 1)
+    if (!v.position) return { row: i + 1, problem: 'position' }
+    if (!v.startDate) return { row: i + 1, problem: 'startDate' }
+    if (!untouched && !v.currentlyWorking && !v.endDate) return { row: i + 1, problem: 'endDate' }
+  }
+  return null
+}
+
 // ---- The whole page ---------------------------------------------------------------------------
 
 export interface ProfileDraft extends AboutDraft, HomeDraft {
@@ -170,9 +206,9 @@ export interface ProfileDraft extends AboutDraft, HomeDraft {
   experiences: ProfileWorkExperience[]
 }
 
-// ---- Per-card editing: the pure logic (Phase B1) ----------------------------------------------
-// Nothing here reads or writes the page. It is what the page will ask when each card can be
-// edited, saved and cancelled on its own.
+// ---- Per-card editing: the pure logic ---------------------------------------------------------
+// Nothing here reads or writes the page. It is what the page asks when each card is edited,
+// saved and cancelled on its own.
 
 export const CARD_IDS = ['about', 'home', 'workCities', 'job', 'experience'] as const
 export type CardId = (typeof CARD_IDS)[number]
@@ -218,17 +254,7 @@ export function cardPatch(card: CardId, draft: DraftValues, saved: SavedBaseline
   }
 }
 
-/**
- * The body of the page-wide Save: the five cards' parts, joined, in card order, each judged
- * against the page's one saved snapshot (`saved`).
- */
-export function profileSavePatch(draft: DraftValues, saved: SavedBaseline): SeekerProfileUpdate {
-  const patch: SeekerProfileUpdate = {}
-  for (const card of CARD_IDS) Object.assign(patch, cardPatch(card, draft, saved))
-  return patch
-}
-
-// ---- Per-card editing: what the page tracks for each card (Phase B2, scaffolding) -------------
+// ---- Per-card editing: what the page tracks for each card -------------------------------------
 
 /**
  * - saving: the write is in flight.
@@ -342,19 +368,38 @@ interface RowView {
   description: string
 }
 
+/** One row as it is compared: text trimmed, and no end date on a current job. */
+function rowView(r: ProfileWorkExperience): RowView {
+  return {
+    position: r.position.trim(),
+    companyName: (r.companyName ?? '').trim(),
+    startDate: r.startDate ?? '',
+    endDate: endDateOf(r),
+    currentlyWorking: !!r.currentlyWorking,
+    description: (r.description ?? '').trim(),
+  }
+}
+
+const hasContent = (v: RowView): boolean =>
+  !!(v.position || v.companyName || v.startDate || v.endDate || v.currentlyWorking || v.description)
+
+function sameRowView(p: RowView, q: RowView): boolean {
+  return (
+    p.position === q.position &&
+    p.companyName === q.companyName &&
+    p.startDate === q.startDate &&
+    p.endDate === q.endDate &&
+    p.currentlyWorking === q.currentlyWorking &&
+    p.description === q.description
+  )
+}
+
 /** The rows the seeker has actually filled in. A row just added and left empty is not a change. */
 function filledRows(rows: ProfileWorkExperience[]): RowView[] {
   const out: RowView[] = []
   for (const r of rows) {
-    const v: RowView = {
-      position: r.position.trim(),
-      companyName: (r.companyName ?? '').trim(),
-      startDate: r.startDate ?? '',
-      endDate: endDateOf(r),
-      currentlyWorking: !!r.currentlyWorking,
-      description: (r.description ?? '').trim(),
-    }
-    if (v.position || v.companyName || v.startDate || v.endDate || v.currentlyWorking || v.description) out.push(v)
+    const v = rowView(r)
+    if (hasContent(v)) out.push(v)
   }
   return out
 }
@@ -364,18 +409,7 @@ function sameRows(a: ProfileWorkExperience[], b: ProfileWorkExperience[]): boole
   const y = filledRows(b)
   if (x.length !== y.length) return false
   for (let i = 0; i < x.length; i++) {
-    const p = x[i]
-    const q = y[i]
-    if (
-      p.position !== q.position ||
-      p.companyName !== q.companyName ||
-      p.startDate !== q.startDate ||
-      p.endDate !== q.endDate ||
-      p.currentlyWorking !== q.currentlyWorking ||
-      p.description !== q.description
-    ) {
-      return false
-    }
+    if (!sameRowView(x[i], y[i])) return false
   }
   return true
 }
@@ -557,7 +591,7 @@ export function sameCardDraft(card: CardId, a: DraftValues, b: DraftValues): boo
   }
 }
 
-// ---- Per-card editing: where keyboard focus goes (Phase B3) -----------------------------------
+// ---- Per-card editing: where keyboard focus goes -----------------------------------------------
 // Pure, so the table can be tested without a page. The page turns an outcome into a target with
 // this and moves focus once, after the render (see the layout effect in the profile page).
 

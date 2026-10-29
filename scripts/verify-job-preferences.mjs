@@ -577,11 +577,9 @@ expect('only a confirmed false ends the page (stored flag false + ready)', gate(
 const pageNow = read('src', 'app', 'complete-profile', 'page.tsx')
 const apiNow = read('src', 'lib', 'api.ts')
 expect('updateProfile takes an opt-in timeout', /updateProfile: async \(data: SeekerProfileUpdate, opts\?: \{ timeoutMs\?: number \}\)/.test(apiNow) && apiNow.includes('timeoutMs: opts?.timeoutMs'), true)
-// The profile page passes time limits only for the per-card saves and the switch (Phase B2, behind
-// PER_CARD_EDITING); its page-wide Save and the switch with the feature off are unchanged.
+// The profile page passes time limits only for the per-card saves and the switch.
 const profilePageNow = read('src', 'app', 'profile', 'page.tsx')
-expect('the profile page-wide Save passes no timeout to updateProfile', /updateProfile\(\s*profileSavePatch\([^)]*\)\s*,/.test(profilePageNow), false)
-expect('the profile page passes a timeout only behind the per-card flag or inside a card save', profilePageNow.split('\n').filter((l) => l.includes('timeoutMs')).every((l) => /PER_CARD_EDITING|PROFILE_(READ|WRITE)_TIMEOUT_MS/.test(l)), true)
+expect('the profile page passes a timeout only inside a card save or the switch', profilePageNow.split('\n').filter((l) => l.includes('timeoutMs')).every((l) => /PROFILE_(READ|WRITE)_TIMEOUT_MS/.test(l)), true)
 expect('the page passes the write timeout', pageNow.includes('{ timeoutMs: PROFILE_WRITE_TIMEOUT_MS }'), true)
 expect('the PUT appears exactly once in the page', pageNow.split('updateProfile(').length - 1, 1)
 const saveFn = pageNow.slice(pageNow.indexOf('const handleSave'), pageNow.indexOf('// Reads the profile back'))

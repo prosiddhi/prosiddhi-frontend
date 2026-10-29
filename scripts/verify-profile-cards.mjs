@@ -54,7 +54,8 @@ const {
   workCitiesPatch,
   jobPatch,
   experiencePatch,
-  profileSavePatch,
+  cardPatch,
+  CARD_IDS,
 } = loadLib('profileCards')
 // Only the rules the oracle needs; they are not what is under test here.
 const { nameProblem } = loadLib('nameValidation')
@@ -129,12 +130,22 @@ const PROBLEM_KEY = {
   nameNotAName: 'auth:profile.errorNameLetters',
   dobUnder18: 'profile:seeker.errorDobAge',
 }
-/** The page's one saved snapshot, as profileSavePatch takes it: only the city ids matter. */
+/** The page's one saved snapshot, as cardPatch takes it: only the city ids matter. */
 const savedOf = (d) => ({ homeCity: d.savedHomeCity, preferredCities: d.savedPreferredIds.map((id) => ({ id })) })
-/** The new Save path as the page runs it: problem first, otherwise the joined body. */
+/**
+ * The five cards' bodies joined in card order: what the old page-wide Save sent. The page saves each
+ * card on its own now (cardPatch is what it calls), so the join lives here, to keep comparing the cards
+ * with that old body.
+ */
+function joinedCardPatches(d, saved) {
+  const patch = {}
+  for (const card of CARD_IDS) Object.assign(patch, cardPatch(card, d, saved))
+  return patch
+}
+/** The old Save path, rebuilt from the cards: the About problem first, otherwise the joined body. */
 function newSave(d, originalFullName) {
   const problem = aboutProblem(d, originalFullName)
-  return problem ? { error: PROBLEM_KEY[problem] } : { body: profileSavePatch(d, savedOf(d)) }
+  return problem ? { error: PROBLEM_KEY[problem] } : { body: joinedCardPatches(d, savedOf(d)) }
 }
 
 // ------------------------------------------------------------------------ test data
@@ -209,7 +220,7 @@ expect('no key belongs to two cards', flat.length, new Set(flat).size)
 expect('the five cards together are the keys the body has always had', flat.sort(), keys(legacySave(full, ORIGINAL).body))
 
 const NEVER = ['location', 'latitude', 'longitude', 'email', 'phoneNumber', 'password', 'profilePhoto', 'isActivelyLooking']
-expect('the joined body never carries a field another endpoint owns', NEVER.filter((k) => k in profileSavePatch(full, savedOf(full))), [])
+expect('the joined body never carries a field another endpoint owns', NEVER.filter((k) => k in joinedCardPatches(full, savedOf(full))), [])
 
 // ------------------------------------------------------------------------ 2. home city: cityId
 expect('picked a new city, none saved', homePatch(draft({ homeCity: A })), { cityId: A.id })
@@ -249,7 +260,7 @@ const blank = draft({
 })
 expect(
   'every emptied field is dropped from the wire (it cannot clear anything)',
-  wire(profileSavePatch(blank, savedOf(blank))),
+  wire(joinedCardPatches(blank, savedOf(blank))),
   { workExperiences: [] }
 )
 expect('a blank bio is dropped', wire(aboutPatch(draft({ bio: '   ' }))).bio, undefined)
@@ -402,7 +413,7 @@ expect('the random drafts hit both the error path and the body path', randomErro
 // Source-text tripwires, not proof of behaviour: they catch the page drifting back to its own copy.
 const page = fs.readFileSync(path.join(ROOT, 'src', 'app', 'profile', 'page.tsx'), 'utf8')
 expect('page imports the helpers', /from '@\/lib\/profileCards'/.test(page), true)
-expect('page sends profileSavePatch(draft)', page.includes('jobSeekerAPI.updateProfile(profileSavePatch(draft, savedValues))'), true)
+expect('the page no longer sends the page-wide body', page.includes('profileSavePatch'), false)
 expect('page asks aboutProblem before saving', page.includes('aboutProblem(draft, originalFullName.current)'), true)
 for (const [code, key] of Object.entries(PROBLEM_KEY)) {
   expect(`page maps ${code} to ${key}`, new RegExp(`${code}:\\s*'${key}'`).test(page), true)
@@ -410,8 +421,8 @@ for (const [code, key] of Object.entries(PROBLEM_KEY)) {
 expect('page no longer keeps its own copy of the body', /preferredCategory:\s*triple\.category/.test(page), false)
 expect('page no longer keeps its own changed-flags', /const (homeCityChanged|preferredChanged)\b/.test(page), false)
 // The other bodies the page sends are the one-key "actively looking" switch and, since Phase B2,
-// one card's part of the body (saveCard, behind PER_CARD_EDITING; its body is built by cardPatch).
-expect('the page has exactly three updateProfile calls', page.split('jobSeekerAPI.updateProfile(').length - 1, 3)
+// one card's part of the body (saveCard; its body is built by cardPatch).
+expect('the page has exactly two updateProfile calls', page.split('jobSeekerAPI.updateProfile(').length - 1, 2)
 // (Both now also pass a time limit, so the call is matched up to its first argument.)
 expect('…one of them is the switch', /jobSeekerAPI\.updateProfile\(\s*\{ isActivelyLooking: next \}/.test(page), true)
 expect('…one of them is a single card', /jobSeekerAPI\.updateProfile\(body[,)]/.test(page), true)
