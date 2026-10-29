@@ -16,7 +16,7 @@ function EmployerJobDetailsContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <EmployerHeader logoHref="/employer/jobs" />
+      <EmployerHeader />
       <JobDetailsView
         backLabel={t('employer:jobEdit.backToMyJobs')}
         onBack={() => router.push(backUrl)}

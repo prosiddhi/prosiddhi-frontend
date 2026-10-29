@@ -250,7 +250,10 @@ export function NotificationBell() {
             // screen. `top-full` (100% of the wrapper's own height) pins the
             // panel's top edge to the wrapper's bottom edge, which is what
             // "mt-2" alone was silently relying on and not getting.
-            className="absolute right-0 top-full mt-2 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn overflow-hidden"
+            // Below `sm` the panel is pinned to the screen (16px each side, under the
+            // 65px header) instead of hanging off the bell: the bell sits mid-row, so a
+            // panel right-aligned to it ran off the left edge of a 320-375px phone.
+            className="fixed inset-x-4 top-[73px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] sm:max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <p className="text-sm font-semibold text-black">{t('notifications.title')}</p>
@@ -266,7 +269,7 @@ export function NotificationBell() {
               )}
             </div>
 
-            <div className="max-h-[380px] overflow-y-auto">
+            <div className="max-h-[min(380px,calc(100dvh-10rem))] overflow-y-auto">
               {loading && (
                 <div className="flex items-center justify-center py-8 text-[#717182]">
                   <Loader2 className="w-5 h-5 animate-spin" />

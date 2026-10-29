@@ -90,7 +90,9 @@ expect('more NOT lit with undefined pathname', nav.isMoreActive(undefined, undef
 expect('job-details without from: nothing lit', nav.isMoreActive(undefined, '/job-details/9'), false)
 
 // ── 2. WIRING ───────────────────────────────────────────────────────────────
-const bar = read('components/navigation/SeekerBottomNav.tsx')
+// The bar and the More sheet live in two files (the sheet is shared with the employer bar),
+// so the wiring checks read both as one.
+const bar = read('components/navigation/SeekerBottomNav.tsx') + read('components/navigation/BottomNavShared.tsx')
 const header = read('components/navigation/EmployeeHeader.tsx')
 const dropdown = read('components/navigation/UserDropdown.tsx')
 const css = read('styles/globals.css')
@@ -98,7 +100,7 @@ const popup = read('components/feedback/TestOtpPopup.tsx')
 const layout = read('app/layout.tsx')
 
 // Responsive visibility.
-ok('bar is hidden from lg up', /<nav[\s\S]*?className="lg:hidden fixed bottom-0 inset-x-0/.test(bar))
+ok('bar is hidden from lg up', /<nav[\s\S]*?className=\{BOTTOM_NAV_BAR_CLS\}/.test(bar) && bar.includes("'lg:hidden fixed bottom-0 inset-x-0"))
 ok('desktop nav still hidden below lg, flex at lg', header.includes('<nav className={`hidden lg:flex items-center'))
 ok('header grid: 2 columns below lg, 3 at lg', header.includes('grid-cols-[1fr_auto] lg:grid-cols-[1fr_auto_1fr]'))
 

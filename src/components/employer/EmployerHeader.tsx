@@ -43,21 +43,13 @@ import { PAGE_BOX } from '@/lib/layout'
  * shipped without them. Same TD-28 failure mode, one level down: the fix is the
  * same one, stop letting each page opt in to shared chrome.
  */
-export function EmployerHeader({
-  logoHref = '/employer',
-}: {
-  /**
-   * Where the logo goes. Defaults to the dashboard; the post- and edit-job
-   * screens point back at the job list instead, because from there the
-   * dashboard is two steps away rather than one.
-   */
-  logoHref?: string
-}) {
+export function EmployerHeader() {
   const { t } = useTranslation()
   return (
     <header className="bg-white border-b-2 border-primary-90 sticky top-0 z-50">
       <div className={`${PAGE_BOX} h-[65px] sm:h-[75px] flex items-center justify-between`}>
-        <Link href={logoHref} className="flex items-center min-h-[44px]">
+        {/* The logo always goes to the dashboard, on every employer page. */}
+        <Link href="/employer" className="flex items-center min-h-[44px] shrink-0">
           <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
             <Image
               src="/assets/prosiddhi-logo-horizontal.png"
@@ -68,22 +60,35 @@ export function EmployerHeader({
             />
           </div>
         </Link>
-        <div className="flex items-center gap-3 sm:gap-5">
-          {/* `hidden sm:`/`hidden md:`: three actions plus the account controls
-              do not fit a phone width. */}
-          <Link href="/employer/workers" className={`hidden sm:inline-flex ${employerHeaderLinkCls}`}>
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-5">
+          {/* Below `lg` the bottom bar (EmployerBottomNav) carries Find workers, Post a Job
+              and — in its More sheet — Team, so the header keeps only the logo and
+              HeaderActions there. From `lg`, Find workers and Team are icon-only until `xl`,
+              where all three show their label; an icon-only link's text is `hidden`, so it
+              carries an aria-label. */}
+          <Link
+            href="/employer/workers"
+            aria-label={t('employer:dashboard.findWorkers')}
+            title={t('employer:dashboard.findWorkers')}
+            className={`hidden lg:inline-flex ${employerHeaderLinkCls}`}
+          >
             <Search className="w-4 h-4" />
-            {t('employer:dashboard.findWorkers')}
+            <span className="hidden xl:inline">{t('employer:dashboard.findWorkers')}</span>
           </Link>
-          <Link href="/employer/team" className={`hidden md:inline-flex ${employerHeaderLinkCls}`}>
+          <Link
+            href="/employer/team"
+            aria-label={t('employer:dashboard.team')}
+            title={t('employer:dashboard.team')}
+            className={`hidden lg:inline-flex ${employerHeaderLinkCls}`}
+          >
             <Users className="w-4 h-4" />
-            {t('employer:dashboard.team')}
+            <span className="hidden xl:inline">{t('employer:dashboard.team')}</span>
           </Link>
-          <Link href="/employer/jobs/new" className={employerHeaderCtaCls}>
+          <Link href="/employer/jobs/new" className={`hidden lg:inline-flex ${employerHeaderCtaCls}`}>
             <Plus className="w-4 h-4" />
             {t('employer:dashboard.postJob')}
           </Link>
-          <HeaderActions />
+          <HeaderActions compact />
         </div>
       </div>
     </header>
@@ -96,23 +101,25 @@ export function EmployerHeader({
  * Exported so the two pages that add their own actions cannot reinvent the
  * styling and drift from it, which is the whole failure mode TD-28 is about.
  *
- * ⚠️ **No display utility here.** Both callers need a different responsive
- * visibility (`hidden sm:inline-flex`, `hidden md:inline-flex`), and Tailwind
- * generates a class only when it can SEE the literal name while scanning source.
- * A composed `` `hidden sm:${cls}` `` puts `sm:inline-flex` together at runtime,
- * so the utility is never generated and the link stays hidden at every width.
- * Callers write the display classes literally and prepend them.
+ * ⚠️ **No display utility here.** Callers need their own responsive visibility
+ * (`hidden lg:inline-flex`), and Tailwind generates a class only when it can SEE
+ * the literal name while scanning source. A composed `` `hidden lg:${cls}` `` puts
+ * `lg:inline-flex` together at runtime, so the utility is never generated and the
+ * link stays hidden at every width. Callers write the display classes literally
+ * and prepend them.
  */
 export const employerHeaderLinkCls =
-  'items-center gap-2 px-4 py-2 min-h-[44px] border border-primary-90 text-primary-90 rounded-lg hover:bg-primary-90/5 transition-colors text-sm sm:text-base'
+  'items-center justify-center gap-2 px-3 xl:px-4 py-2 min-h-[44px] min-w-[44px] shrink-0 whitespace-nowrap border border-primary-90 text-primary-90 rounded-lg hover:bg-primary-90/5 transition-colors text-sm sm:text-base'
 
 /**
  * The one primary action. Sky fill, `primary-100` text — 6.62:1 (TD-48).
  *
  * ⚠️ Do not "restore" `text-white` here. It reads as the obvious pairing for a
  * coloured button and it is 2.02:1, which is what shipped for months.
+ *
+ * Same rule as above: no display utility. The caller adds `hidden lg:inline-flex`.
  */
 export const employerHeaderCtaCls =
-  'inline-flex items-center gap-2 px-4 py-2 min-h-[44px] bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base'
+  'items-center justify-center gap-2 px-4 py-2 min-h-[44px] shrink-0 whitespace-nowrap bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-base'
 
 export default EmployerHeader
