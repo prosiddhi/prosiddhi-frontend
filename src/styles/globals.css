@@ -428,3 +428,19 @@
     display: none !important;
   }
 }
+
+/* Seeker bottom nav (SeekerBottomNav.tsx). The bar is `fixed` and only exists below `lg`
+   (1024px). While it is mounted it sets a body class; this keeps the page — footer
+   included — clear of it. 64px must match SEEKER_BOTTOM_NAV_HEIGHT in lib/seekerNav.ts.
+   --bottom-nav-h is also read by the test-OTP popup so it floats above the bar. */
+@media (max-width: 1023.98px) {
+  body.has-seeker-bottom-nav {
+    --bottom-nav-h: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: var(--bottom-nav-h);
+  }
+  /* Pages are `min-h-screen`; the padding above would make every short page scroll by the
+     bar's height, so those page roots give that height back. */
+  body.has-seeker-bottom-nav .min-h-screen {
+    min-height: calc(100vh - var(--bottom-nav-h));
+  }
+}

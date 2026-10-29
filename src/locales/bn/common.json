@@ -33,7 +33,9 @@
     "logout": "লগ আউট",
     "register": "রেজিস্টার করুন",
     "login": "লগইন",
-    "accountMenu": "অ্যাকাউন্ট মেনু"
+    "accountMenu": "অ্যাকাউন্ট মেনু",
+    "more": "আরও",
+    "mainNavigation": "প্রধান নেভিগেশন"
   },
   "settings": {
     "title": "সেটিংস",

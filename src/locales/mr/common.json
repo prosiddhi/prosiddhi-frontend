@@ -33,7 +33,9 @@
     "logout": "लॉग आउट",
     "register": "रजिस्टर करा",
     "login": "लॉगिन",
-    "accountMenu": "खाते मेनू"
+    "accountMenu": "खाते मेनू",
+    "more": "अधिक",
+    "mainNavigation": "मुख्य नेव्हिगेशन"
   },
   "settings": {
     "title": "सेटिंग्ज",

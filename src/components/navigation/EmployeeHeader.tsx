@@ -6,9 +6,11 @@ import { useTranslation } from 'react-i18next'
 import { Home, Briefcase, Bookmark } from 'lucide-react'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { HeaderActions } from './HeaderActions'
+import { SeekerBottomNav } from './SeekerBottomNav'
 import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import type { SeekerNavTab } from '@/lib/seekerNav'
 
-export type EmployeeHeaderActiveTab = 'home' | 'jobFeed' | 'savedJobs'
+export type EmployeeHeaderActiveTab = SeekerNavTab
 
 interface EmployeeHeaderProps {
   /** Which nav item to highlight. Omit on pages that aren't one of the three. */
@@ -100,6 +102,7 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
   const LANG_ROW_GAP_CLS = isLongScript ? 'gap-2' : 'gap-1'
 
   return (
+    <>
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       {/* `grid grid-cols-[1fr_auto_1fr]` — the same 3-zone pattern already
           proven on the Employer Landing Page header
@@ -151,7 +154,7 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
           right-side content renders at its full un-wrapped width and
           physically overlaps the nav at tighter widths. The nav has to stay
           a real grid item between two properly-constrained columns. */}
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-[119px] h-[65px] sm:h-[75px] grid grid-cols-[1fr_auto] lg:grid-cols-[1fr_auto_1fr] items-center gap-3">
         <Link href={SEEKER_HOME_ROUTE} className="flex items-center min-h-[44px] justify-self-start min-w-0">
           <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
             <Image
@@ -274,6 +277,11 @@ export function EmployeeHeader({ active }: EmployeeHeaderProps) {
         </div>
       </div>
     </header>
+    {/* Outside the header on purpose: the header is `sticky z-50`, which would trap
+        the bar's z-index inside its own stacking context. Below `lg` the nav above
+        is `hidden` and this bar replaces it. */}
+    <SeekerBottomNav active={active} />
+    </>
   )
 }
 

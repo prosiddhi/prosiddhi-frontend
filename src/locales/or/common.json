@@ -33,7 +33,9 @@
     "logout": "ଲଗ୍ ଆଉଟ୍",
     "register": "ରେଜିଷ୍ଟର କରନ୍ତୁ",
     "login": "ଲଗଇନ୍",
-    "accountMenu": "ଖାତା ମେନୁ"
+    "accountMenu": "ଖାତା ମେନୁ",
+    "more": "ଅଧିକ",
+    "mainNavigation": "ମୁଖ୍ୟ ନେଭିଗେସନ୍"
   },
   "settings": {
     "title": "ସେଟିଂସ୍",

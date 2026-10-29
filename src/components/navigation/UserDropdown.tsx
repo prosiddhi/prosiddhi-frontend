@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck, ClipboardList } from 'lucide-react'
+import { User, Briefcase, Receipt, Settings, LogOut, ChevronDown, LayoutDashboard, Users, CreditCard, FileText, Search, UserCheck, ClipboardList, CalendarClock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveMediaUrl, teamAPI } from '@/lib/api'
 import { displayName, profilePhoto } from '@/lib/userDisplay'
@@ -220,22 +220,24 @@ export function UserDropdown() {
               below the clamp's floor on a truly narrow viewport rather than
               forcing an overflow. No native `title` here — the Tooltip above
               is the only hover/focus tooltip, so the two never stack. */}
-          {name && (
-            // Wrapping row for name + chevron; the fixed-width truncating span
-            // inside is unchanged from before, so it still contributes the same
-            // constant width to this button regardless of viewport (see the
-            // width comment above) — the chevron just adds its own fixed 14-16px
-            // on top, so HeaderActions' "cluster never moves" math still holds.
-            <span className="hidden sm:flex items-center gap-1 min-w-0">
-              <span className="truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base">
+          {/* Wrapping row for name + chevron. The chevron shows at EVERY width (below
+              `sm` it used to be hidden along with the name, so on a phone nothing said
+              the avatar opens a menu); only the name is `sm:`-and-up. The
+              fixed-width truncating span is unchanged, so it still contributes the same
+              constant width to this button at `sm`+ (see the width comment above) —
+              the chevron just adds its own fixed 14-16px on top, so HeaderActions'
+              "cluster never moves" math still holds. */}
+          <span className="flex items-center gap-1 min-w-0">
+            {name && (
+              <span className="hidden sm:block truncate min-w-0 w-[clamp(4.5rem,5vw,9rem)] text-left text-sm lg:text-base">
                 {name}
               </span>
-              <ChevronDown
-                aria-hidden="true"
-                className={`w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
-              />
-            </span>
-          )}
+            )}
+            <ChevronDown
+              aria-hidden="true"
+              className={`w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </span>
         </button>
       </Tooltip>
 
@@ -287,6 +289,19 @@ export function UserDropdown() {
               <Briefcase className="w-4 h-4 text-gray-700" />
               <span className="text-sm text-gray-900">{workLabel}</span>
             </Link>
+
+            {/* My Interviews (seeker only) — same route and label as the mobile More sheet. */}
+            {!isEmployer && (
+              <Link
+                href="/my-interviews"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <CalendarClock className="w-4 h-4 text-gray-700" />
+                <span className="text-sm text-gray-900">{t('nav.myInterviews')}</span>
+              </Link>
+            )}
 
             {/* Find Workers / Candidates / Team / Plans / Invoices (employer
                 only, any seat — none of these five are owner-gated on the

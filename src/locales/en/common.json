@@ -33,7 +33,9 @@
     "logout": "Logout",
     "register": "Register",
     "login": "Login",
-    "accountMenu": "Account menu"
+    "accountMenu": "Account menu",
+    "more": "More",
+    "mainNavigation": "Main navigation"
   },
   "settings": {
     "title": "Settings",

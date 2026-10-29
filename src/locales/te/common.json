@@ -33,7 +33,9 @@
     "logout": "లాగ్ అవుట్",
     "register": "రిజిస్టర్ చేయండి",
     "login": "లాగిన్",
-    "accountMenu": "ఖాతా మెనూ"
+    "accountMenu": "ఖాతా మెనూ",
+    "more": "మరిన్ని",
+    "mainNavigation": "ప్రధాన నావిగేషన్"
   },
   "settings": {
     "title": "సెట్టింగ్‌లు",

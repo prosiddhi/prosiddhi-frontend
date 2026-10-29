@@ -33,7 +33,9 @@
     "logout": "ಲಾಗ್ ಔಟ್",
     "register": "ನೋಂದಣಿ",
     "login": "ಲಾಗಿನ್",
-    "accountMenu": "ಖಾತೆ ಮೆನು"
+    "accountMenu": "ಖಾತೆ ಮೆನು",
+    "more": "ಇನ್ನಷ್ಟು",
+    "mainNavigation": "ಮುಖ್ಯ ನ್ಯಾವಿಗೇಶನ್"
   },
   "settings": {
     "title": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",

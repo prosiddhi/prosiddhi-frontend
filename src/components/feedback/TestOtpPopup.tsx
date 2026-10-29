@@ -44,7 +44,7 @@ function TestOtpPopupInner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed z-[100] bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm rounded-xl border-2 border-amber-400 bg-amber-50 shadow-xl p-4"
+      className="fixed z-[100] bottom-[calc(1rem+var(--bottom-nav-h,0px))] left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm rounded-xl border-2 border-amber-400 bg-amber-50 shadow-xl p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
