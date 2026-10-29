@@ -33,7 +33,9 @@
     "logout": "സൈൻ ഔട്ട്",
     "register": "രജിസ്റ്റർ ചെയ്യുക",
     "login": "സൈൻ ഇൻ",
-    "accountMenu": "അക്കൗണ്ട് മെനു"
+    "accountMenu": "അക്കൗണ്ട് മെനു",
+    "more": "കൂടുതൽ",
+    "mainNavigation": "പ്രധാന നാവിഗേഷൻ"
   },
   "settings": {
     "title": "സെറ്റിങ്സ്",

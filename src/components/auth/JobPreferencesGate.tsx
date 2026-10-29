@@ -59,7 +59,7 @@ export function JobPreferencesGate() {
     return (
       <div
         role="status"
-        className="fixed inset-x-4 bottom-4 z-30 mx-auto flex max-w-[480px] items-center justify-between gap-3 rounded-[10px] border border-[#dedede] bg-white px-4 py-3 shadow-xl"
+        className="fixed inset-x-4 bottom-[calc(1rem+var(--bottom-nav-h,0px))] z-30 mx-auto flex max-w-[480px] items-center justify-between gap-3 rounded-[10px] border border-[#dedede] bg-white px-4 py-3 shadow-xl"
       >
         <p className="text-sm text-[#4d4d4d]">{t('auth:completeProfile.recoverTitle')}</p>
         <button

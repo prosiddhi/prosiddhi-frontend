@@ -33,7 +33,9 @@
     "logout": "લોગ આઉટ",
     "register": "રજિસ્ટર કરો",
     "login": "લોગિન",
-    "accountMenu": "ખાતા મેનુ"
+    "accountMenu": "ખાતા મેનુ",
+    "more": "વધુ",
+    "mainNavigation": "મુખ્ય નેવિગેશન"
   },
   "settings": {
     "title": "સેટિંગ્સ",
