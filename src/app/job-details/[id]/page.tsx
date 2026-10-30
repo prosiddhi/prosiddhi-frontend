@@ -6,9 +6,9 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { EmployeeHeader } from '@/components/navigation/EmployeeHeader'
-import { PublicSeekerHeader } from '@/components/navigation/PublicSeekerHeader'
+import { PublicHeader } from '@/components/navigation/PublicHeader'
 import { JobDetailsView } from '@/components/job/JobDetailsView'
-import { publicJobsHref } from '@/lib/publicJobs'
+import { publicJobPath, publicJobsHref } from '@/lib/publicJobs'
 
 // Employer traffic used to share this exact route before the /employer/jobs/
 // [id] split — the "My Jobs > View" link pointed here (DEF-023). An employer
@@ -85,12 +85,15 @@ function SeekerJobDetailsGate() {
 function PublicJobDetails() {
   const { t } = useTranslation()
   const router = useRouter()
+  const params = useParams()
+  const jobId = String(params?.id ?? '')
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <PublicSeekerHeader />
-      {/* PublicSeekerHeader is `fixed` and 75px tall. */}
-      <div className="pt-[75px] flex-1 flex flex-col">
+      {/* Register and Login (bar and Menu) come back to this job — the same path Apply uses. */}
+      <PublicHeader variant="seeker" returnTo={jobId ? publicJobPath(jobId) : undefined} />
+      {/* The header is `sticky`, so it takes its own height — no top padding to match. */}
+      <div className="flex-1 flex flex-col">
         <JobDetailsView
           backLabel={t('seeker:jobDetails.back')}
           onBack={() => router.push(publicJobsHref())}

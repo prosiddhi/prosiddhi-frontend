@@ -7,8 +7,8 @@ import { useTranslation } from 'react-i18next'
  * swallow-tail ends, gold edges, a gold seal and white stars that twinkle
  * slowly. One shape, two orientations:
  *
- * - Below `md` (phones): horizontal, above the hero heading.
- * - From `md` up: standing upright on the left of the page, tails top and
+ * - Below `lg` (phones and tablets): horizontal, above the hero heading.
+ * - From `lg` up: standing upright on the left of the page, tails top and
  *   bottom, text upright. The page keeps the content centred: <main> reserves
  *   the SAME width on both sides (app/page.tsx), so the content narrows when
  *   the screen is tight but never shifts off-centre, and the banner sits in
@@ -70,13 +70,13 @@ function Seal({ className }: { className: string }) {
   )
 }
 
-/** Horizontal ribbon, in the hero flow, on phones (below `md`). */
+/** Horizontal ribbon, in the hero flow, on phones and tablets (below `lg`). */
 export function LaunchRibbon() {
   const { t } = useTranslation('common')
 
   return (
     // px-5 leaves room for the tails, which hang 14px outside the band.
-    <div className="flex justify-center mb-4 sm:mb-5 px-5 md:hidden">
+    <div className="flex justify-center mb-4 sm:mb-5 px-5 lg:hidden">
       <div className="relative inline-flex max-w-full">
         {/* Swallow-tail ends: darker red, dropped 6px behind the band so the
             ribbon reads as folded. Stretch with the band when the text wraps. */}
@@ -102,7 +102,7 @@ export function LaunchRibbon() {
 }
 
 /**
- * The ribbon standing upright on the left, `md` and up. Positioned against
+ * The ribbon standing upright on the left, `lg` and up. Positioned against
  * <main>, which must be `relative` and pad both sides by --lb-pad.
  *
  * --lb-m (the left space) and --lb-w (the banner width) come from <main>
@@ -118,10 +118,11 @@ export function LaunchBanner() {
   const [launched, app] = t('home.launchBadge').split(' · ')
 
   return (
-    // Held between the fixed 75px header (Header.tsx) and the footer — top
+    // Held between the sticky 75px header (PublicHeader.tsx — <main> now starts below it,
+    // so `top-7` is the 28px that used to be `top-[103px]` from the page top) and the footer — top
     // and bottom leave room for the 20px tails — and centred in that space, so
     // it can never run into the footer on a short page or a tall screen.
-    <div className="hidden md:flex flex-col justify-center absolute top-[103px] bottom-[36px] w-[var(--lb-w)] left-[calc((var(--lb-m)-var(--lb-w))/2)]">
+    <div className="hidden lg:flex flex-col justify-center absolute top-7 bottom-[36px] w-[var(--lb-w)] left-[calc((var(--lb-m)-var(--lb-w))/2)]">
       {/* Length in proportion to width (~3.4×), 400–580px: a narrow banner at full
           height was mostly empty red. */}
       <div className="relative h-full max-h-[clamp(400px,calc(var(--lb-w)*3.4),580px)]">

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Eye, EyeOff } from 'lucide-react'
-import Link from 'next/link'
+import { SignInPrompt } from '../SignInPrompt'
 import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
@@ -513,12 +513,7 @@ export default function AccountSetupPage() {
             </div>
           </form>
 
-          <div className="text-center mt-6">
-            <p className="text-sm sm:text-base">
-              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
-              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">{t('employerRegister:signInLink')}</Link>
-            </p>
-          </div>
+          <SignInPrompt />
         </div>
       </div>
     </div>

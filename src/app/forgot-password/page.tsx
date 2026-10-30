@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AuthLanguageRow } from '@/components/auth/AuthLanguageRow'
 import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -366,6 +367,8 @@ export default function ForgotPasswordPage() {
         </button>
 
         <div className="w-full">
+          {/* No site header on this screen, so the language control lives here. */}
+          <AuthLanguageRow />
           {/* Logo. Its absence here was an oversight, not a decision: 23 pages
               render this mark, including /login and every register/* screen, and
               this is the ONLY auth page that was missing it — the DEF-003

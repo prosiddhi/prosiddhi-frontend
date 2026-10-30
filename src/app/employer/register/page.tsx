@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X, User, Building2, ChevronRight } from 'lucide-react'
-import Link from 'next/link'
 import { useEmployerRegistration } from './EmployerRegistrationContext'
+import { SignInPrompt } from './SignInPrompt'
 import { track } from '@/lib/analytics'
 
 export default function EmployerRegistrationPage() {
@@ -170,17 +170,7 @@ export default function EmployerRegistrationPage() {
           </div>
 
           {/* Sign In Link */}
-          <div className="text-center mt-6">
-            <p className="text-sm sm:text-base">
-              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
-              <Link
-                href="/login"
-                className="font-semibold text-primary-50 hover:text-primary-60 transition-colors"
-              >
-                {t('employerRegister:signInLink')}
-              </Link>
-            </p>
-          </div>
+          <SignInPrompt />
         </div>
       </div>
     </div>

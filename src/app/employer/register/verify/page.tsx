@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { X, CheckCircle2 } from 'lucide-react'
-import Link from 'next/link'
+import { SignInPrompt } from '../SignInPrompt'
 import { emailOtpAPI } from '@/lib/api'
 import { IS_DEV_BUILD } from '@/lib/devBuild'
 import { checkEmail } from '@/lib/email'
@@ -270,14 +270,7 @@ export default function EmployerVerifyPage() {
             )}
           </div>
 
-          <div className="text-center mt-6">
-            <p className="text-sm sm:text-base">
-              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
-              <Link href="/login?role=employer" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">
-                {t('employerRegister:signInLink')}
-              </Link>
-            </p>
-          </div>
+          <SignInPrompt />
         </div>
       </div>
     </div>

@@ -31,11 +31,13 @@ export function SeekerCtaSection() {
                 buttons, pushing the column out of line with the illustration
                 beside it. The heading's 77px was the same story. */}
             <div className="flex flex-wrap items-center gap-4">
-              <Link href="/register" className="px-3 py-2 bg-primary-50 text-primary-100 rounded-lg text-base flex items-center gap-2 hover:bg-primary-60 transition-colors">
+              {/* "Register", the word the header and Menu use — it said "Sign Up Today",
+                  a third name for the same action. min-h-[44px]: both were ~36px tall. */}
+              <Link href="/register" className="min-h-[44px] px-3 py-2 bg-primary-50 text-primary-100 rounded-lg text-base flex items-center gap-2 hover:bg-primary-60 transition-colors">
                 <LogIn className="w-5 h-5" />
-                {t('seeker:landing.signUpToday')}
+                {t('seeker:nav.register')}
               </Link>
-              <Link href="/contact" className="px-3 py-2 border border-secondary-70 rounded-lg text-base text-black flex items-center gap-2 hover:bg-secondary-10 transition-colors">
+              <Link href="/contact" className="min-h-[44px] px-3 py-2 border border-secondary-70 rounded-lg text-base text-black flex items-center gap-2 hover:bg-secondary-10 transition-colors">
                 <Phone className="w-4 h-4" />
                 {t('seeker:landing.contactUs')}
               </Link>

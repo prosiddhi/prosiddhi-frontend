@@ -41,15 +41,20 @@ export { LANGUAGE_OPTIONS }
  *
  * ⚠️ That gloss is the single widest thing in the header, and it is not free.
  * Measured in a real Edge, it costs ~71px in Tamil, which is more than a whole
- * step of nav type (~44px). The header's breakpoint ladder is sized around it —
- * see `components/home/Header.tsx`, whose thresholds were re-derived when this
- * was restored. Do not "tidy" the gloss away again to win header width without
- * re-measuring that ladder; and do not truncate or hide it at high zoom, which
- * is what this decision explicitly rules out.
+ * step of nav type (~44px). The old logged-out header's breakpoint ladder (since
+ * replaced by `PublicHeader.tsx`) was sized around it. Do not "tidy" the gloss away
+ * to win header width without re-measuring; and do not truncate or hide it at high
+ * zoom, which is what this decision explicitly rules out.
+ *
+ * Two things shorten the trigger WITHOUT dropping the gloss, so the decision above holds:
+ * `display="value"` prints "தமிழ் (Tamil)" with no "Language:" word (`PublicHeader`'s phone
+ * control, under 430px, with `wrapLabel`), and `prefixClassName` lets a caller hide just
+ * that word at chosen widths (`PublicHeader` does, from 1024 to 1535px). There is no mode
+ * that drops the gloss.
  *
  * By default the trigger is one unbreakable unit on one line, and the caller's
  * ladder is expected to guarantee a tier where it fits — that's still true
- * for this file's own Header.tsx. `wrapLabel` opts OUT of that contract for
+ * for the `display="label"` callers. `wrapLabel` opts OUT of that contract for
  * callers that would rather wrap the label onto a second line than keep
  * shrinking type to force one line (see EmployeeHeader.tsx, which wraps every
  * nav item's label the same way and needs this control to match). It swaps
@@ -63,15 +68,34 @@ export function LanguageSwitcher({
   wrapLabel = false,
   iconWrapClassName = 'flex h-[27px] items-center justify-center shrink-0',
   rowGapClassName = 'gap-1',
+  display = 'label',
+  prefixClassName = '',
+  menuClassName = 'right-0',
+  triggerClassName = '',
 }: {
   className?: string
   labelClassName?: string
+  /** Where the open list sits under the trigger: `right-0` (default, grows leftwards) or
+   *  `left-0` (grows rightwards, for a trigger at the left edge). Responsive forms work. */
+  menuClassName?: string
+  /** Extra classes for the trigger button, e.g. a border to make it read as a control. */
+  triggerClassName?: string
+  /** `label` (default): "Language: தமிழ் (Tamil)". `value`: the same without the
+   *  "Language:" word — "தமிழ் (Tamil)", the English gloss kept — for a phone header
+   *  where the prefix does not fit. The globe and chevron stay in both cases. */
+  display?: 'label' | 'value'
+  /** `display="label"` only: classes for the "Language:" word, which is its own span so a
+   *  caller can hide it at some widths and keep the native name and English gloss
+   *  (e.g. `lg:max-[1535px]:hidden`). The button's aria-label ("Select language") is the
+   *  same either way. */
+  prefixClassName?: string
   /** Wrap the label onto up to 2 lines instead of forcing one. Default false
    *  preserves every existing caller's one-line contract. */
   wrapLabel?: boolean
   /** `wrapLabel` only: sizes the box the icon/chevron centre inside — must
-   *  match `labelClassName`'s actual rendered line-height (see EmployeeHeader.tsx,
-   *  the only current `wrapLabel` caller, for why that can vary by language).
+   *  match `labelClassName`'s actual rendered line-height (see EmployeeHeader.tsx, the
+   *  first `wrapLabel` caller, for why that can vary by language; `PublicHeader`'s phone
+   *  control is the second, with a fixed `text-sm` and so a fixed `h-5` box).
    *  Default matches `text-[18px] leading-normal`'s 27px for any future
    *  caller that doesn't pass one. */
   iconWrapClassName?: string
@@ -87,6 +111,16 @@ export function LanguageSwitcher({
 
   const currentLabel =
     LANGUAGE_OPTIONS.find((o) => o.value === current)?.label ?? current
+  // Option labels read "தமிழ் (Tamil)": the native name, then an English gloss.
+  const triggerText =
+    display === 'value' ? (
+      currentLabel
+    ) : (
+      <>
+        <span className={prefixClassName}>{t('language.label')}: </span>
+        {currentLabel}
+      </>
+    )
 
 
   useEffect(() => {
@@ -138,11 +172,11 @@ export function LanguageSwitcher({
         // it). `items-center` on the outer button fixes that regardless of
         // whether the inner row is 1 or 2 lines tall, since it centres
         // whatever height that row turns out to be within the fixed 44px.
-        className={
+        className={`${
           wrapLabel
             ? 'flex items-center min-w-0 text-black text-[18px] hover:text-primary-50 transition-colors min-h-[44px]'
             : 'flex items-center gap-1 whitespace-nowrap text-black text-[18px] hover:text-primary-50 transition-colors min-h-[44px]'
-        }
+        } ${triggerClassName}`}
       >
         {/* One unbreakable unit. Deliberately NO `min-w-0` on the button: a flex
             item's default `min-width:auto` floors it at min-content, which is
@@ -185,7 +219,7 @@ export function LanguageSwitcher({
               <Languages className="w-4 h-4" strokeWidth={1.5} />
             </span>
             <span className={`${labelClassName} line-clamp-2 min-w-0`}>
-              {t('language.label')}: {currentLabel}
+              {triggerText}
             </span>
             <span className={iconWrapClassName}>
               <ChevronDown
@@ -196,9 +230,7 @@ export function LanguageSwitcher({
         ) : (
           <>
             <Languages className="w-4 h-4 shrink-0" strokeWidth={1.5} />
-            <span className={labelClassName}>
-              {t('language.label')}: {currentLabel}
-            </span>
+            <span className={labelClassName}>{triggerText}</span>
             <ChevronDown
               className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
             />
@@ -224,7 +256,7 @@ export function LanguageSwitcher({
         // of the list from chaining on to the page behind it.
         <ul
           role="listbox"
-          className="absolute right-0 mt-2 w-[180px] max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+          className={`absolute ${menuClassName} mt-2 w-[180px] max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50`}
         >
           {LANGUAGE_OPTIONS.map((opt) => {
             const selected = opt.value === current

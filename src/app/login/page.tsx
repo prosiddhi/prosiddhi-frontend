@@ -33,6 +33,9 @@ import {
   type LoginOutcome,
 } from '@/lib/loginSession'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { clearPendingReturn } from '@/lib/pendingReturn'
+import { publicRegisterHref } from '@/lib/publicNav'
+import { AuthLanguageRow } from '@/components/auth/AuthLanguageRow'
 import { toIdentifier, toE164, toMobileDigits } from '@/lib/identifier'
 import { destinationAfterAuth, homeRouteForRole } from '@/lib/routes'
 import { showToast } from '@/lib/toast'
@@ -368,6 +371,8 @@ function LoginContent() {
     // sends them there (carrying `returnUrl`). Pushing here too would race it.
     if (result.user.mustChangePassword) return
     showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
+    // They signed in, so a job remembered for a registration they did not finish is moot.
+    clearPendingReturn()
     router.push(destinationAfterAuth(result.user.role, returnUrl))
   }
 
@@ -649,6 +654,7 @@ function LoginContent() {
       } else if (!result.user.mustChangePassword) {
         // (Flagged → AuthProvider routes to the change screen; see onLoginSuccess.)
         showToast(t('auth:login.welcomeBack', { name: displayName(result.user) }), 'success')
+        clearPendingReturn()
         router.push(destinationAfterAuth(result.user.role, returnUrl))
       }
     } catch (err) {
@@ -777,6 +783,9 @@ function LoginContent() {
         </button>
 
         <div className="w-full">
+          {/* Language: this screen had no header, so a visitor sent here by an Apply tap
+              or a deep link could not change language at all. */}
+          <AuthLanguageRow />
           {/* Logo — this was a bare modal asking for credentials with nothing
               identifying the site. Matches the registration screens. */}
           <div className="flex justify-center mb-4">
@@ -1266,8 +1275,13 @@ function LoginContent() {
                 brand colour. Recorded here so it is not silently "fixed" later —
                 reopen it with the brand owner, not in a styling pass. */}
             <div className="flex flex-col sm:flex-row items-center justify-center sm:gap-3 mt-1">
+              {/* Carries the job they were heading to through the registration steps:
+                  /register stores `returnUrl` (lib/pendingReturn.ts, validated) and the
+                  success screen returns there. Without it they finished signing up and
+                  landed on /home with the job gone. In the href, not an onClick, so a
+                  new-tab click carries it too. */}
               <Link
-                href="/register"
+                href={publicRegisterHref('seeker', returnUrl ?? undefined)}
                 className="inline-flex items-center min-h-[44px] font-medium text-secondary-50 hover:text-secondary-60 transition-colors"
               >
                 {t('auth:login.signUpSeeker')}

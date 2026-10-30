@@ -5,7 +5,7 @@ import { CheckCircle, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { SEEKER_HOME_ROUTE } from '@/lib/routes'
+import { destinationAfterSeekerRegistration } from '@/lib/pendingReturn'
 
 export default function RegisterSuccessPage() {
   const router = useRouter()
@@ -13,8 +13,10 @@ export default function RegisterSuccessPage() {
 
   const handleStartExplore = () => {
     // The seeker is authenticated by now — the password step registered the
-    // account and logged straight in. Land on the seeker home.
-    router.push(SEEKER_HOME_ROUTE)
+    // account and logged straight in. Back to the job they came to apply for, if
+    // they were sent here from one (and it is still a safe place to land them);
+    // otherwise the seeker home.
+    router.push(destinationAfterSeekerRegistration())
   }
 
   return (

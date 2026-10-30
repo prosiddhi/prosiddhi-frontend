@@ -64,7 +64,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
           onToggleSave(job.id, job.category)
         }}
         disabled={saving}
-        className="shrink-0 min-h-[44px] px-4 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
+        className="max-w-full min-h-[44px] px-4 py-2 bg-[#eeeeee] rounded-lg flex items-center justify-center gap-2 text-center hover:bg-gray-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
       >
         {saving ? (
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -78,7 +78,7 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
       <Link
         href={detailsHref}
         onClick={(e) => e.stopPropagation()}
-        className="min-h-[44px] px-6 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base flex items-center justify-center whitespace-nowrap"
+        className="max-w-full min-h-[44px] px-6 py-2 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors text-sm sm:text-base flex items-center justify-center text-center"
       >
         {t('seeker:jobCard.viewJob')}
       </Link>
@@ -176,7 +176,10 @@ export function JobFeedCard({ job, isSaved, saving, onToggleSave, from }: JobFee
           with skills or tucked beside the content, and not full-width; more
           room above it than the compact metadata/classification/skills
           cluster gets between themselves, so it reads as visually separate. */}
-      <div className="flex items-center justify-end gap-2 mt-4">{actions}</div>
+      {/* `flex-wrap`, and buttons that may wrap their own label: a long translation
+          ("வேலையைச் சேமியுங்கள்") used to push Save out past the card's left edge on a
+          phone, because both buttons were `nowrap` in a row that could not wrap. */}
+      <div className="flex flex-wrap items-center justify-end gap-2 mt-4">{actions}</div>
     </div>
   )
 }

@@ -13,9 +13,9 @@ export function HeroSection() {
   const { t } = useTranslation('common')
 
   return (
-    // pt-[91px], not pt-16: Header.tsx is `fixed` and `h-[75px]` at every
-    // breakpoint, so 64px of padding put the first line underneath it — it was
-    // half-hidden behind the logo bar on a phone. 75 + 16 of breathing room.
+    // pt-4 / sm:pt-5: the public header is `sticky` and takes its own height in the
+    // page, so this is only breathing room. (It used to be pt-[91px] — the 75px of a
+    // `fixed` header plus 16 — and had to change whenever the header's height did.)
     //
     // The bottom padding is deliberately much smaller than the top: the hero and
     // "What are you looking for?" are one thought, not two sections, and the gap
@@ -28,7 +28,7 @@ export function HeroSection() {
     // with it (different elements, so no utility override) for 48px a side on a
     // phone, plus another 16 from the `px-4` the heading used to carry — 64 a
     // side, leaving a 390px screen a 262px text column.
-    <section className="pt-[91px] sm:pt-24 pb-4 sm:pb-5 lg:pb-5">
+    <section className="pt-4 sm:pt-5 pb-4 sm:pb-5 lg:pb-5">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <LaunchRibbon />
 
