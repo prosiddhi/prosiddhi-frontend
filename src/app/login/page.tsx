@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { hasUnmappedCode, isOtpRejection, otpCooldownSeconds, otpErrorMessage } from '@/lib/otpError'
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft, Building2, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -809,6 +809,27 @@ function LoginContent() {
               {t('auth:login.subtitle')}
             </p>
           </div>
+
+          {/* DEF-012: someone sent here from an employer page (the footer's "Post a Job" /
+              "Find Workers", or any /employer deep link) is told which side they are
+              signing in as. The role toggle only exists on the Google arm (TD-37), so on
+              the default password screen the Employer role was selected but nowhere to be
+              seen. This is a note, not a control: the role state, the toggle and the
+              password sign-in are unchanged. It is gated on the URL as well as on `role`,
+              so a plain /login looks exactly as before even if someone picks Employer on
+              the Google arm, and it goes away if they switch to Job Seeker there. */}
+          {mode === 'login' && role === 'employer' && initialRoleFor(returnUrl) === 'employer' && (
+            <p
+              data-login-context="employer"
+              className="flex items-center justify-center gap-2 mb-5 px-3 py-2 rounded-lg border border-secondary-70 text-sm sm:text-base font-medium text-black"
+            >
+              <Building2 className="w-4 h-4 shrink-0 text-secondary-80" aria-hidden="true" />
+              {/* One sentence with the role as a value ("Signing in as {{role}}"), not a fixed lead-in
+                  plus a role word: most of our languages put "as" AFTER the noun, so each locale
+                  writes the whole sentence around {{role}}. */}
+              <span>{t('auth:login.signingInAs', { role: t('auth:login.roleEmployer') })}</span>
+            </p>
+          )}
 
           {/* Back navigation — ABOVE the role choice, not between it and the
               Google content.

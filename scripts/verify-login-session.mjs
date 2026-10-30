@@ -152,6 +152,17 @@ expect('off-site returnUrl falls back', destinationAfterAuth('JOB_SEEKER', '//ev
 expect('seeker on an employer returnUrl falls back', destinationAfterAuth('JOB_SEEKER', '/employer/jobs'), '/home')
 expect('/login as returnUrl falls back', destinationAfterAuth('EMPLOYER_BUSINESS', '/login'), '/employer')
 
+// DEF-012: the two routes the footer's "Post a Job" / "Find Workers" lead to. A logged-out visitor is
+// bounced to /login?returnUrl=<that route>; after signing in, an employer must land back on it, with
+// its query intact, and a job seeker must not be sent into the employer area.
+for (const role of ['EMPLOYER_BUSINESS', 'EMPLOYER_INDIVIDUAL']) {
+  expect(`${role}: back to /employer/jobs/new`, destinationAfterAuth(role, '/employer/jobs/new'), '/employer/jobs/new')
+  expect(`${role}: back to /employer/workers`, destinationAfterAuth(role, '/employer/workers'), '/employer/workers')
+  expect(`${role}: /employer/workers keeps its query`, destinationAfterAuth(role, '/employer/workers?q=welder'), '/employer/workers?q=welder')
+}
+expect('seeker on /employer/jobs/new falls back', destinationAfterAuth('JOB_SEEKER', '/employer/jobs/new'), '/home')
+expect('seeker on /employer/workers falls back', destinationAfterAuth('JOB_SEEKER', '/employer/workers'), '/home')
+
 // --- source: the wiring this logic depends on ---
 const read = (...p) => fs.readFileSync(path.join(ROOT, ...p), 'utf8')
 const page = read('src', 'app', 'login', 'page.tsx')
@@ -163,6 +174,45 @@ expect('page: the form is not rendered while checking', page.includes("if (decis
 expect('page: the check goes through employerAPI.getProfile, not a raw fetch', /employerAPI\s*\.getProfile\(\{ signal/.test(page) && !/\bfetch\(/.test(page), true)
 expect('page: the employer check is aborted on cleanup', page.includes('return () => controller.abort()'), true)
 expect('AuthContext: the 401 handler guards its push with shouldPushLogin', auth.includes('shouldPushLogin(reason, window.location.pathname)'), true)
+
+// DEF-012 login context: the note that says "Signing in as Employer" on the default password screen.
+// Source-level guards for what must NOT change (the browser smoke checks what is rendered).
+const protectedRoute = read('src', 'components', 'auth', 'ProtectedRoute.tsx')
+expect('login page: the employer note exists', page.includes('data-login-context="employer"'), true)
+expect('login page: the note is gated on the role AND on the employer returnUrl', page.includes("role === 'employer' && initialRoleFor(returnUrl) === 'employer'"), true)
+expect('login page: the note is one sentence with the existing Employer term as {{role}}', page.includes("t('auth:login.signingInAs', { role: t('auth:login.roleEmployer') })"), true)
+expect('login page: no second role toggle (exactly the two Google-arm buttons)', (page.match(/aria-pressed=\{role ===/g) || []).length, 2)
+expect('login page: the role toggle is still drawn only on the Google arm', /\{mode === 'login' && tab === 'google' && \(\s*<>\s*<p[^>]*>\{t\('auth:login\.roleQuestion'\)\}/.test(page), true)
+expect('login page: the role still comes from the returnUrl via initialRoleFor', page.includes('setRole(initialRoleFor(returnUrl))'), true)
+expect('login page: password sign-in still passes the role', page.includes('authAPI.loginAnyRole({ identifier, password }, role)'), true)
+expect('ProtectedRoute: the returnUrl is the full path + query, via loginHref', protectedRoute.includes('window.location.pathname + window.location.search') && protectedRoute.includes('loginHref(returnUrl)'), true)
+
+// --- the sentence itself: every locale writes the WHOLE sentence around {{role}} ---
+// Rendered with i18next and the portal's own interpolation setting (src/i18n/config.ts: escapeValue
+// false), with login.roleEmployer as the value, exactly as the login page calls it. This proves the
+// placeholder is wired and the Employer term is reused once; it cannot prove the grammar. The 9
+// non-English sentences are PENDING NATIVE REVIEW.
+const i18next = createRequire(import.meta.url)('i18next')
+for (const lng of ['en', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'or', 'te', 'bn']) {
+  const login = JSON.parse(read('src', 'locales', lng, 'auth.json')).login
+  const tpl = login.signingInAs
+  expect(`${lng}: signingInAs has exactly one {{role}}`, (tpl.match(/\{\{\s*role\s*\}\}/g) || []).length, 1)
+  expect(`${lng}: signingInAs has no other placeholder`, (tpl.match(/\{\{[^}]*\}\}/g) || []).length, 1)
+  const inst = i18next.createInstance()
+  await inst.init({
+    lng,
+    ns: ['auth'],
+    defaultNS: 'auth',
+    resources: { [lng]: { auth: { login: { signingInAs: tpl, roleEmployer: login.roleEmployer } } } },
+    interpolation: { escapeValue: false },
+    returnNull: false,
+  })
+  const text = inst.t('auth:login.signingInAs', { role: inst.t('auth:login.roleEmployer') })
+  expect(`${lng}: the language's own Employer term appears once`, text.split(login.roleEmployer).length - 1, 1)
+  expect(`${lng}: nothing is left unreplaced`, /\{\{|\}\}/.test(text), false)
+  expect(`${lng}: the sentence is more than the bare role word`, text.length > login.roleEmployer.length + 3, true)
+  if (lng === 'en') expect('en: renders exactly "Signing in as Employer"', text, 'Signing in as Employer')
+}
 
 if (failures.length) {
   console.error(`\n✗ ${failures.length} of ${checks} login-session checks failed:\n`)

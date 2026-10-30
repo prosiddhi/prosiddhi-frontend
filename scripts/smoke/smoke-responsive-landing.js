@@ -410,10 +410,76 @@ async function footerLoginChecks(page, route, lang, vp) {
     await page.waitForTimeout(1500)
     const url = await page.evaluate(() => location.pathname + location.search)
     if (url !== `/login?returnUrl=${encodeURIComponent(target)}`) fail(route, lang, vp, `footer link to ${target} ended on ${url}`)
+    // The default (password) screen must SAY it is the Employer side, without a role toggle.
+    const note = await loginNote(page)
+    if (note.count !== 1 || !note.visible || note.text !== 'Signing in as Employer') fail(route, lang, vp, `footer link to ${target}: the default login screen shows ${JSON.stringify(note)}, expected one visible "Signing in as Employer"`)
+    if (note.toggles) fail(route, lang, vp, `footer link to ${target}: ${note.toggles} role toggle(s) on the password screen, expected none`)
     await page.getByText(/Continue with Google/i).first().click({ timeout: 15000 })
     await page.waitForTimeout(600)
     const pressed = await page.evaluate(() => [...document.querySelectorAll('button[aria-pressed="true"]')].map((b) => (b.textContent || '').trim()))
     if (pressed.join() !== 'Employer') fail(route, lang, vp, `footer link to ${target}: login role selected is "${pressed.join()}", expected "Employer"`)
+  }
+}
+
+// What the login card shows about the role, read from the page: the DEF-012 note and any role toggle.
+const loginNote = (page) =>
+  page.evaluate(() => {
+    const n = document.querySelector('[data-login-context="employer"]')
+    const r = n && n.getBoundingClientRect()
+    return {
+      count: document.querySelectorAll('[data-login-context]').length,
+      visible: !!r && r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= document.documentElement.clientWidth + 1,
+      text: n ? (n.textContent || '').trim().replace(/\s+/g, ' ') : null,
+      toggles: document.querySelectorAll('button[aria-pressed]').length,
+      hOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }
+  })
+
+// DEF-012 login context, logged out. (1) Opening an employer route lands on /login with the EXACT
+// returnUrl (path and query), and the default password screen says "Signing in as Employer" with no
+// role toggle. (2) A plain /login and a job-seeker returnUrl look exactly as before: no note. (3) On the
+// Google arm the toggle still works, and the note follows it. In other languages only the note's
+// presence and fit are checked (the lead-in is a new string; a missing key would print the key).
+async function loginContextChecks(page, route, lang, vp) {
+  if (lang === 'en') {
+    for (const target of ['/employer/jobs/new', '/employer/workers', '/employer/workers?q=a%20b']) {
+      await page.goto(FE + target, { waitUntil: 'load', timeout: 60000 })
+      await page.waitForURL((u) => u.pathname === '/login', { timeout: 30000 })
+      await page.waitForTimeout(1500)
+      const url = await page.evaluate(() => location.pathname + location.search)
+      if (url !== `/login?returnUrl=${encodeURIComponent(target)}`) fail(route, lang, vp, `${target} redirected to ${url}, expected the exact returnUrl`)
+      const note = await loginNote(page)
+      if (note.count !== 1 || !note.visible || note.text !== 'Signing in as Employer') fail(route, lang, vp, `${target}: login shows ${JSON.stringify(note)}, expected one visible "Signing in as Employer"`)
+      if (note.toggles) fail(route, lang, vp, `${target}: ${note.toggles} role toggle(s) on the password screen, expected none`)
+      if (note.hOverflow) fail(route, lang, vp, `${target}: the login page scrolls sideways`)
+    }
+    // Unchanged for everyone else.
+    for (const quiet of ['/login', '/login?returnUrl=' + encodeURIComponent('/job-details/abc?from=employee'), '/login?returnUrl=' + encodeURIComponent('/saved-jobs')]) {
+      await page.goto(FE + quiet, { waitUntil: 'load', timeout: 60000 })
+      await page.waitForTimeout(1500)
+      const note = await loginNote(page)
+      if (note.count !== 0 || note.toggles) fail(route, lang, vp, `${quiet}: expected the usual login screen, got ${JSON.stringify(note)}`)
+    }
+    // Google arm: the toggle is there, preselected, and the note follows the choice.
+    await page.goto(FE + '/login?returnUrl=' + encodeURIComponent('/employer/jobs/new'), { waitUntil: 'load', timeout: 60000 })
+    await page.waitForTimeout(1500)
+    await page.getByText(/Continue with Google/i).first().click({ timeout: 15000 })
+    await page.waitForTimeout(600)
+    const pressed = () => page.evaluate(() => [...document.querySelectorAll('button[aria-pressed="true"]')].map((b) => (b.textContent || '').trim()).join())
+    if ((await pressed()) !== 'Employer') fail(route, lang, vp, 'Google arm: Employer is not preselected')
+    await page.locator('button[aria-pressed]', { hasText: 'Job Seeker' }).click()
+    await page.waitForTimeout(400)
+    if ((await loginNote(page)).count !== 0) fail(route, lang, vp, 'Google arm: the note stays after switching to Job Seeker')
+    await page.locator('button[aria-pressed]', { hasText: 'Employer' }).click()
+    await page.waitForTimeout(400)
+    if ((await loginNote(page)).count !== 1) fail(route, lang, vp, 'Google arm: the note does not come back after switching to Employer')
+  } else {
+    await page.goto(FE + '/employer/jobs/new', { waitUntil: 'load', timeout: 60000 })
+    await page.waitForURL((u) => u.pathname === '/login', { timeout: 30000 })
+    await page.waitForTimeout(1500)
+    const note = await loginNote(page)
+    if (note.count !== 1 || !note.visible || !note.text || /signingInAs|\{\{|\}\}/.test(note.text)) fail(route, lang, vp, `/employer/jobs/new: login shows ${JSON.stringify(note)}, expected one visible, translated note`)
+    if (note.hOverflow) fail(route, lang, vp, 'the login page scrolls sideways with the note')
   }
 }
 
@@ -633,6 +699,11 @@ async function backgroundReadability(page, route, lang, vp) {
           // Last: these navigate away from the page.
           if ((route === '/' || route === '/employer/welcome') && lang === 'en' && (w === 390 || w === 1280)) {
             await footerLoginChecks(page, route, lang, vp)
+          }
+          // DEF-012 login context, once per language (the route is only a place to start from): English
+          // at both widths, the other languages at the phone width.
+          if (route === '/' && ((lang === 'en' && (w === 390 || w === 1280)) || (lang !== 'en' && w === 390))) {
+            await loginContextChecks(page, route, lang, vp)
           }
           if (route === '/job-details' && lang === 'en' && (w === 390 || w === 1280 || w === 768)) {
             await jobReturnChecks(page, jobPath, route, lang, vp, w < 1024)
