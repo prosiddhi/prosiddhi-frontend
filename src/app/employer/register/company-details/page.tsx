@@ -4,7 +4,7 @@ import { useState, useEffect, useId, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
-import Link from 'next/link'
+import { SignInPrompt } from '../SignInPrompt'
 import { authAPI, classifyRegisterError, employerAPI, type CompanySize } from '@/lib/api'
 import { COMPANY_ADDRESS_MAX_LENGTH, COMPANY_NAME_MAX_LENGTH, GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
 import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
@@ -368,12 +368,7 @@ export default function CompanyDetailsPage() {
             </button>
           </div>
 
-          <div className="text-center mt-6">
-            <p className="text-sm sm:text-base">
-              <span className="text-gray-600">{t('employerRegister:signInPrompt')}</span>
-              <Link href="/login" className="font-semibold text-primary-50 hover:text-primary-60 transition-colors">{t('employerRegister:signInLink')}</Link>
-            </p>
-          </div>
+          <SignInPrompt />
         </div>
       </div>
     </div>
