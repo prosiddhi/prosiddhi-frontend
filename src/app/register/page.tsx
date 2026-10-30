@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronRight, X, Briefcase, Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { RegistrationProgress } from '@/components/auth/RegistrationProgress'
@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSeekerRegistration } from './SeekerRegistrationContext'
 import { LANGUAGE_OPTIONS } from '@/lib/jobCategories'
+import { rememberPendingReturn } from '@/lib/pendingReturn'
 import {
   useLanguagePreference,
   type SupportedLanguage,
@@ -46,6 +47,18 @@ export default function RegisterPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(data.language)
   const [role, setRole] = useState<SignupRole | null>(null)
   const [error, setError] = useState('')
+
+  // A logged-out job page, and the login card's "Sign up", link here as
+  // `/register?returnUrl=<job>`. Remember it for the success screen; rememberPendingReturn
+  // drops anything that is not a safe same-site path. With NO returnUrl nothing is touched:
+  // the wizard's own Back buttons return to a plain /register mid-sign-up. (An abandoned
+  // attempt's job is cleared when the visitor reaches a public landing page — PublicHeader.)
+  // Read from the address bar, not useSearchParams, which would need a Suspense boundary
+  // around this whole screen.
+  useEffect(() => {
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl')
+    if (returnUrl) rememberPendingReturn(returnUrl)
+  }, [])
 
   const handleLanguageSelect = (value: SupportedLanguage) => {
     setSelectedLanguage(value)
