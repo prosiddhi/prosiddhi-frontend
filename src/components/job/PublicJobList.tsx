@@ -64,8 +64,9 @@ export function PublicJobList() {
   if (location.stateCode !== null) chips.push({ label: t('seeker:jobFeed.filters.location'), Icon: MapPin })
 
   return (
-    // `scroll-mt` clears the fixed 75px PublicSeekerHeader when a link jumps to #jobs.
-    <section id={PUBLIC_JOBS_ANCHOR} className="scroll-mt-24 py-10 sm:py-12 bg-white">
+    // `scroll-mt` clears the sticky PublicHeader when a link jumps to #jobs: ~104px on a
+    // phone (two rows), 75px from 640.
+    <section id={PUBLIC_JOBS_ANCHOR} className="scroll-mt-28 sm:scroll-mt-24 py-10 sm:py-12 bg-white">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-8">
         {chips.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-4">

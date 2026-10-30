@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@/components/home/Footer'
+import { PublicHeader } from '@/components/navigation/PublicHeader'
 import { BackToLandingLink } from '@/components/navigation/BackToLandingLink'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-  Phone,
   ArrowRight,
   PhoneCall,
   MessageCircle
@@ -46,11 +46,14 @@ function EmployerLandingPageContent() {
     <div className="min-h-screen bg-white relative">
       {/* Background Pattern - Dimmed and Responsive */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Overlay to dim the background */}
-        <div className="absolute inset-0 bg-white/70"></div>
-        
-        {/* Background Images - Responsive */}
-        <div className="absolute top-[200px] sm:top-[300px] lg:top-[380px] left-0 w-[400px] sm:w-[600px] lg:w-[740px] h-[300px] sm:h-[450px] lg:h-[555px] opacity-8 lg:opacity-12">
+        {/* Background Images - Responsive.
+            `opacity-[0.25]` / `[0.35]`: the original `opacity-8` / `opacity-12` are not in
+            Tailwind's default scale, so they generated nothing and the images rendered at
+            full opacity. The white overlay at the end of this layer is 50%, so what shows
+            is about 12% / 17% of the image. Change the two together: hero text contrast
+            over it is measured by `backgroundReadability` in
+            scripts/smoke/smoke-responsive-landing.js. */}
+        <div className="absolute top-[200px] sm:top-[300px] lg:top-[380px] left-0 w-[400px] sm:w-[600px] lg:w-[740px] h-[300px] sm:h-[450px] lg:h-[555px] opacity-[0.25] lg:opacity-[0.35]">
           <Image
             src="/assets/group_2.png"
             alt=""
@@ -58,7 +61,7 @@ function EmployerLandingPageContent() {
             className="object-contain"
           />
         </div>
-        <div className="hidden lg:block absolute top-[380px] left-[58.333%] w-[740px] h-[555px] opacity-12">
+        <div className="hidden lg:block absolute top-[380px] left-[58.333%] w-[740px] h-[555px] opacity-[0.35]">
           <Image
             src="/assets/group_2.png"
             alt=""
@@ -66,7 +69,7 @@ function EmployerLandingPageContent() {
             className="object-contain"
           />
         </div>
-        <div className="hidden md:block absolute top-[250px] sm:top-[320px] lg:top-[380px] left-[20%] sm:left-[25%] w-[400px] sm:w-[600px] lg:w-[740px] h-[300px] sm:h-[450px] lg:h-[555px] opacity-8 lg:opacity-12">
+        <div className="hidden md:block absolute top-[250px] sm:top-[320px] lg:top-[380px] left-[20%] sm:left-[25%] w-[400px] sm:w-[600px] lg:w-[740px] h-[300px] sm:h-[450px] lg:h-[555px] opacity-[0.25] lg:opacity-[0.35]">
           <Image
             src="/assets/group_2.png"
             alt=""
@@ -74,89 +77,26 @@ function EmployerLandingPageContent() {
             className="object-contain"
           />
         </div>
+
+        {/* Overlay to dim the background. LAST, so it paints over the images — it
+            used to be first and sat underneath them, so it dimmed nothing. */}
+        <div className="absolute inset-0 bg-white/50"></div>
       </div>
 
-      {/* Header */}
-      <header className="bg-white shadow-[10px_10px_50px_0px_rgba(0,0,0,0.05)] h-[65px] sm:h-[75px] fixed top-0 left-0 right-0 z-40">
-        {/* `grid grid-cols-[1fr_auto_1fr]`, not the old `flex justify-between`
-            with logo+nav sharing one flex group. That grouping made the nav
-            trail right behind the logo, since the two of them competed
-            against Help+Sign Up as a SINGLE unit — every px of slack the row
-            had collected in the one gap between "logo+nav" and "Help+Sign
-            Up", never between the logo and the nav itself. Flanking the nav
-            with two equal `1fr` columns puts it at the row's true visual
-            centre regardless of how wide the logo or the Help+Sign Up group
-            are, without needing to know either width up front. */}
-        <div className="max-w-[1920px] mx-auto h-full px-4 sm:px-6 lg:px-12 xl:px-[120px] grid grid-cols-[1fr_auto_1fr] items-center">
-          <Link href="/" className="flex items-center min-h-[44px] justify-self-start">
-            <div className="relative w-[100px] sm:w-[120px] lg:w-[142px] h-[28px] sm:h-[33px] lg:h-[39px]">
-              <Image
-                src="/assets/prosiddhi-logo-horizontal.png"
-                alt={t('app.name')}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-          </Link>
+      {/* Header: the shared public header. Its page links, language control, Login and
+          Register come from lib/publicNav.ts; the in-page anchors below (#offer, #hero)
+          are what its "What We Offer" / "Find Workers" links point at. */}
+      <PublicHeader variant="employer" />
 
-          {/* Navigation. All three are in-page anchors — `html { scroll-behavior:
-                smooth }` (globals.css) already makes a plain `<a href="#id">`
-                scroll smoothly, no JS handler needed. "What We Offer" reuses
-                `offers.heading` (the section's own heading string) rather than
-                a new nav.* key, so it can't drift from the heading it points
-                at and needs no new translation. "Find Workers" now points at
-                `#hero` (the "Find Workers for Your Business..." section) —
-                it used to point at `#offer`, which is what "Post Job" (now
-                removed) sat next to.
-
-                ⚠️ `hidden min-[460px]:flex`, not `hidden md:flex` (768px).
-                Measured this header's real min-content width (logo + 3 labels
-                + gaps + Sign Up, at their smallest existing sizes): ~460px is
-                the genuine floor before the nav would start overlapping Sign
-                Up — 768px was hiding the labels ~300px earlier than the
-                layout actually required. `text-[11px]` + `gap-2` is a new,
-                extra-compressed floor tier (nothing this small existed
-                before) so the newly-visible 460–639px band doesn't render at
-                the same 14px/16px size a 1024px+ screen gets — `min-[640px]:`
-                and up reuse the sizes that were already here. */}
-          <nav className="hidden min-[460px]:flex items-center justify-self-center gap-2 min-[640px]:gap-4 lg:gap-8 xl:gap-11">
-            <a href="#offer" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
-              {t('employer:landing.offers.heading')}
-            </a>
-
-            <a href="#hero" className="inline-flex items-center min-h-[44px] text-black text-[11px] min-[640px]:text-sm lg:text-base xl:text-[18px] hover:text-primary-50 transition-colors whitespace-nowrap">
-              {t('employer:landing.nav.findWorkers')}
-            </a>
-          </nav>
-
-          {/* Right Side */}
-          <div className="flex items-center justify-self-end gap-3 sm:gap-4 lg:gap-8">
-            <Link href="/contact" className="hidden sm:flex items-center gap-1 text-sm lg:text-base text-black hover:text-primary-50 transition-colors">
-              <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
-              {/* One label at both breakpoints. The long/short pair existed only
-                  because the desktop string was "Help/Support"; that slash was
-                  ambiguous to translate, and now that both read "Help" a responsive
-                  split buys nothing. `landing.helpShort` is retired. */}
-              <span>{t('employer:landing.help')}</span>
-            </Link>
-
-            <Link href="/employer/register" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-primary-100 rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
-              {t('employer:landing.signUp')}
-            </Link>
-
-            <Link href="/login" className="px-2 sm:px-3 py-1.5 sm:py-2 bg-primary-50 text-primary-100 rounded-lg text-xs sm:text-sm lg:text-base hover:bg-primary-60 transition-colors whitespace-nowrap">
-              {t('employer:landing.signIn')}
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section. `id="hero"` + `scroll-mt-20`, matching the
+      <main>
+      {/* Hero Section. `id="hero"` + `scroll-mt-28 sm:scroll-mt-24`, matching the
           `#offer` section below, so "Find Workers" in the header
           nav can anchor here — `scroll-margin-top` only affects where an
-          anchor jump lands, it doesn't add visible padding or move anything. */}
-      <section id="hero" className="relative z-10 pt-[77px] sm:pt-[87px] lg:pt-[91px] xl:pt-[107px] pb-12 sm:pb-16 lg:pb-20 xl:pb-[72px] scroll-mt-20">
+          anchor jump lands (it clears the sticky header: ~104px on a phone, 75px from
+          640), it doesn't add visible padding or move anything.
+          The top padding is only breathing room: the header is `sticky`, in the page's
+          flow, so it no longer has to clear a `fixed` bar (it was 77 / 87 / 91 / 107px). */}
+      <section id="hero" className="relative z-10 pt-3 lg:pt-4 xl:pt-8 pb-12 sm:pb-16 lg:pb-20 xl:pb-[72px] scroll-mt-28 sm:scroll-mt-24">
         {/* `xl:` (1280), matching the Header's own container exactly — the
             Header is the fixed alignment reference and must not move, so
             this boundary has to switch at the identical width or the Hero's
@@ -209,13 +149,13 @@ function EmployerLandingPageContent() {
                     sign-up, which is the actual conversion path. */}
                 <Link
                   href={postJobHref}
-                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-primary-100 rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors"
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-primary-50 text-primary-100 rounded-lg text-sm sm:text-base hover:bg-primary-60 transition-colors"
                 >
                   {t('employer:landing.postAJob')}
                 </Link>
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 border border-[#3a7a96] rounded-lg text-sm sm:text-base text-black hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 border border-[#3a7a96] rounded-lg text-sm sm:text-base text-black hover:bg-gray-50 transition-colors"
                 >
                   {t('employer:landing.contactUs')}
                 </Link>
@@ -226,7 +166,7 @@ function EmployerLandingPageContent() {
       </section>
 
       {/* What We Offer Section */}
-      <section id="offer" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-20">
+      <section id="offer" className="relative z-10 py-12 sm:py-16 lg:py-20 bg-white scroll-mt-28 sm:scroll-mt-24">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-[120px]">
           <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-[40px] font-medium mb-2 sm:mb-3">{t('employer:landing.offers.heading')}</h2>
@@ -335,7 +275,7 @@ function EmployerLandingPageContent() {
           <div className="text-center">
             <Link
               href="/contact"
-              className="inline-block px-4 sm:px-6 py-2 sm:py-2.5 border border-[#1e5166] rounded-lg text-base sm:text-lg lg:text-xl text-black hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 border border-[#1e5166] rounded-lg text-base sm:text-lg lg:text-xl text-black hover:bg-gray-50 transition-colors"
             >
               {t('employer:landing.offers.callForHelp')}
             </Link>
@@ -389,6 +329,7 @@ function EmployerLandingPageContent() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* `relative z-10`, matching every section above — the page-wide
           decorative background (`fixed inset-0 z-0` near the top of this

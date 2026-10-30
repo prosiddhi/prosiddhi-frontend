@@ -3,7 +3,7 @@
 import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Footer } from '@/components/home/Footer'
-import { PublicSeekerHeader } from '@/components/navigation/PublicSeekerHeader'
+import { PublicHeader } from '@/components/navigation/PublicHeader'
 import { BackToLandingLink } from '@/components/navigation/BackToLandingLink'
 import { PublicJobList } from '@/components/job/PublicJobList'
 import { PublicJobSearch } from '@/components/job/PublicJobSearch'
@@ -22,13 +22,15 @@ export default function EmployeeLandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <PublicSeekerHeader />
+      <PublicHeader variant="seeker" />
 
+      <main>
       {/* Hero Section */}
       {/* Little bottom padding: the job list it filters follows straight on. The
-          top padding is the old 115 / 150 / 170 less the Back row, so the
-          headline sits where it did. */}
-      <section className="pt-[87px] sm:pt-[91px] lg:pt-[107px] pb-4 lg:pb-6 text-center">
+          top padding is the breathing room under the sticky header, less the Back
+          row (it was 87 / 91 / 107px when the header was `fixed` and the page had
+          to clear its 75px). */}
+      <section className="pt-3 sm:pt-4 lg:pt-8 pb-4 lg:pb-6 text-center">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-8">
           <div className="text-left mb-2 sm:mb-4">
             <BackToLandingLink />
@@ -69,6 +71,7 @@ export default function EmployeeLandingPage() {
       <HowItWorksSection />
       <WhyChooseSection />
       <SeekerCtaSection />
+      </main>
       <Footer audience="seeker" />
     </div>
   )
