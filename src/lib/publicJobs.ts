@@ -53,10 +53,18 @@ export function parsePublicJobQuery(params: Pick<URLSearchParams, 'get'>): Publi
 }
 
 /**
+ * A job as a logged-out visitor opens it from the public list. `from=employee` is part
+ * of it, so the job's Back link still returns to the public list once they are signed
+ * in. Apply, the header's Login and the header's Register all return to this path.
+ */
+export function publicJobPath(jobId: string): string {
+  return `/job-details/${jobId}?from=employee`
+}
+
+/**
  * Where a logged-out visitor goes when they press Apply or Save on a job: the
- * login page, which then opens that job. `from=employee` comes along, so the
- * job's Back link still returns to the public list once they are signed in.
+ * login page, which then opens that job.
  */
 export function loginForJobHref(jobId: string): string {
-  return loginHref(`/job-details/${jobId}?from=employee`)
+  return loginHref(publicJobPath(jobId))
 }
