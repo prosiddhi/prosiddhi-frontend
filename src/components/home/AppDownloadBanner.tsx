@@ -16,6 +16,11 @@ import { useTranslation } from 'react-i18next'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.prosiddhi.app'
 
+// The QR tile is the code plus 12px padding on each side; the scan caption under
+// it takes the same width, so it follows if the code size changes.
+const QR_SIZE = 112
+const QR_TILE_WIDTH = QR_SIZE + 24
+
 // ⚠️ The ONE place to swap the phone image. A trimmed PNG with a transparent
 // background (two phones). Keep width / height true to the file — the browser
 // uses them to keep the aspect ratio and reserve the space.
@@ -75,7 +80,7 @@ export function AppDownloadBanner() {
                   aria-hidden="true"
                   className="hidden md:block shrink-0 rounded-xl bg-white p-3 shadow-md ring-1 ring-primary-30"
                 >
-                  <QRCodeSVG value={PLAY_STORE_URL} size={112} level="M" />
+                  <QRCodeSVG value={PLAY_STORE_URL} size={QR_SIZE} level="M" />
                 </div>
 
                 {/* Store buttons. A plain button, not a lookalike of Google's badge:
@@ -99,7 +104,8 @@ export function AppDownloadBanner() {
               </div>
               <p
                 aria-hidden="true"
-                className="hidden md:block mt-2 w-[136px] text-center text-xs font-medium text-primary-90"
+                style={{ width: QR_TILE_WIDTH }}
+                className="hidden md:block mt-2 text-center text-xs font-medium text-primary-90"
               >
                 {t('home.appBanner.scan')}
               </p>
@@ -115,6 +121,7 @@ export function AppDownloadBanner() {
               width={APP_PREVIEW_IMAGE.width}
               height={APP_PREVIEW_IMAGE.height}
               alt=""
+              sizes="(min-width: 1024px) 440px, (min-width: 768px) 340px, (min-width: 640px) 320px, 280px"
               className="h-auto w-[280px] sm:w-[320px] md:w-[340px] lg:w-[440px] drop-shadow-xl"
             />
           </div>
