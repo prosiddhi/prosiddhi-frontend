@@ -109,13 +109,10 @@ export function LaunchRibbon() {
  * (app/page.tsx), so the reserve and the banner can never disagree. The banner
  * is centred in that space: left = (space - width) / 2.
  *
- * The one sentence is split at its " · " into two blocks with a gold rule
- * between, so the ten translations need no second key; a translation without
- * the separator just shows as one block.
+ * Content is the seal and one line of text, centred in the band.
  */
 export function LaunchBanner() {
   const { t } = useTranslation('common')
-  const [launched, app] = t('home.launchBadge').split(' · ')
 
   return (
     // Held between the sticky 75px header (PublicHeader.tsx — <main> now starts below it,
@@ -123,9 +120,9 @@ export function LaunchBanner() {
     // and bottom leave room for the 20px tails — and centred in that space, so
     // it can never run into the footer on a short page or a tall screen.
     <div className="hidden lg:flex flex-col justify-center absolute top-7 bottom-[36px] w-[var(--lb-w)] left-[calc((var(--lb-m)-var(--lb-w))/2)]">
-      {/* Length in proportion to width (~3.4×), 400–580px: a narrow banner at full
-          height was mostly empty red. */}
-      <div className="relative h-full max-h-[clamp(400px,calc(var(--lb-w)*3.4),580px)]">
+      {/* Length in proportion to width (~2.4×), 320–440px: it holds only the seal and
+          one line, and a longer band was mostly empty red. */}
+      <div className="relative h-full max-h-[clamp(320px,calc(var(--lb-w)*2.4),440px)]">
         {/* Swallow-tail ends: darker red, shifted 8px sideways behind the band
             so the ribbon reads as folded — the horizontal tails, turned. */}
         <span
@@ -150,21 +147,8 @@ export function LaunchBanner() {
           <Seal className="relative w-[clamp(44px,calc(var(--lb-w)*0.36),80px)] h-[clamp(44px,calc(var(--lb-w)*0.36),80px)] text-[clamp(20px,calc(var(--lb-w)*0.15),34px)]" />
 
           <p className="relative text-[clamp(13px,calc(var(--lb-w)*0.11),22px)] font-bold leading-snug text-white">
-            {launched}
+            {t('home.launchBadge')}
           </p>
-
-          {app && (
-            <>
-              <div aria-hidden="true" className="relative flex items-center gap-2 text-amber-300">
-                <span className="h-px w-[clamp(18px,calc(var(--lb-w)*0.16),40px)] bg-amber-300/80" />
-                <span className="text-[clamp(10px,calc(var(--lb-w)*0.06),14px)] leading-none">✦</span>
-                <span className="h-px w-[clamp(18px,calc(var(--lb-w)*0.16),40px)] bg-amber-300/80" />
-              </div>
-              <p className="relative text-[clamp(12px,calc(var(--lb-w)*0.1),20px)] font-semibold leading-snug text-amber-100">
-                {app}
-              </p>
-            </>
-          )}
 
           <Stars stars={BANNER_STARS} />
         </div>
