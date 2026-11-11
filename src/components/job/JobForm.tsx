@@ -15,6 +15,7 @@ import {
 import { StateCitySelect, type SelectedCity } from '@/components/location/StateCitySelect'
 import { TaxonomyPicker } from '@/components/taxonomy/TaxonomyPicker'
 import { Field } from '@/components/form/Field'
+import { NAME_TEXT_KEY, hasInvalidSkill, isValidNameText } from '@/lib/nameText'
 import { INVALID_CLS } from '@/components/form/FieldError'
 import { humanizeJobType, formatSalary, initials, jobPlaceTags } from '@/lib/jobFormat'
 import {
@@ -199,12 +200,28 @@ export function JobForm(props: JobFormProps) {
   const { field: citiesField } = useController({ control, name: 'cities' })
 
   // A schema message is an i18n key; a server message is the BE's own text.
+  // The title, company name and skills take letters, numbers and basic punctuation only. That is
+  // worked out from what is typed, so the message shows (and Submit goes off) the moment a bad
+  // character is in the box, not only after the box loses focus.
+  const nameTextLabels: Partial<Record<keyof JobFormValues, string>> = {
+    title: t('employer:jobForm.jobTitleLabel'),
+    companyName: t('employer:jobForm.companyNameLabel'),
+    skills: t('employer:jobForm.skillsLabel'),
+  }
+  const nameTextInvalid: Partial<Record<keyof JobFormValues, boolean>> = {
+    title: !isValidNameText(f.title),
+    companyName: !isValidNameText(f.companyName),
+    skills: hasInvalidSkill(f.skills),
+  }
+  const hasNameTextError = Object.values(nameTextInvalid).some(Boolean)
   const errorText = (name: keyof JobFormValues) => {
+    if (nameTextInvalid[name]) return t(NAME_TEXT_KEY, { field: nameTextLabels[name] })
     const e = errors[name]
     if (!e?.message) return undefined
     return e.type === 'server' ? e.message : t(e.message)
   }
-  const fieldCls = (name: keyof JobFormValues) => (errors[name] ? `${inputCls} ${INVALID_CLS}` : inputCls)
+  const fieldCls = (name: keyof JobFormValues) =>
+    errors[name] || nameTextInvalid[name] ? `${inputCls} ${INVALID_CLS}` : inputCls
   const optionalLabel = `(${t('status.optional')})`
 
   // The cascading picker emits the full triple; mirror it into the flat form
@@ -465,7 +482,7 @@ export function JobForm(props: JobFormProps) {
 
         <button
           onClick={validateAndSubmit(onValid, onInvalid)}
-          disabled={submitting}
+          disabled={submitting || hasNameTextError}
           className="w-full px-6 py-3 bg-primary-50 text-primary-100 rounded-lg text-base font-medium hover:bg-primary-60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="w-5 h-5 animate-spin" />}

@@ -22,6 +22,7 @@ import {
   type EmployerProfile,
   type EmployerProfileUpdate,
   type CompanySize,
+  fieldErrorsByPath,
 } from '@/lib/api'
 import { COMPANY_ADDRESS_MAX_LENGTH, COMPANY_NAME_MAX_LENGTH, DESIGNATION_MAX_LENGTH, GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
 import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
@@ -43,9 +44,14 @@ import {
 } from 'lucide-react'
 import { NAME_MAX_LENGTH, nameProblem } from '@/lib/nameValidation'
 import { checkEmail } from '@/lib/email'
+import { NAME_TEXT_KEY, isValidNameText, splitServerFieldErrors } from '@/lib/nameText'
+import { INVALID_CLS } from '@/components/form/FieldError'
 import { Field } from '@/components/form/Field'
 import { DatePicker } from '@/components/form/DatePicker'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
+
+/** The BE field names this screen has an input for. */
+const SERVER_FIELDS = ['fullName', 'designation', 'companyName', 'companyEmail', 'companyAddress']
 
 const EMPLOYER_DOC_TYPES = [
   { value: 'GST_CERTIFICATE', label: 'GST Certificate' },
@@ -118,6 +124,8 @@ function EmployerProfileContent() {
   const [loadError, setLoadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  // The BE's per-field messages from the last failed save, keyed by its field name.
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
   // GST / registration number problems, shown under their own input.
   const identifiers = useIdentifierErrors()
   const [saved, setSaved] = useState(false)
@@ -292,6 +300,7 @@ function EmployerProfileContent() {
     if (lastProfileRef.current) hydrate(lastProfileRef.current)
     setEditing(false)
     setSaveError('')
+    setServerErrors({})
     identifiers.reset()
     setSaved(false)
   }
@@ -304,6 +313,26 @@ function EmployerProfileContent() {
   const registrationChanged =
     !!registrationNumber.trim() && normaliseIdentifier(registrationNumber) !== originalReg.current
   const gstCinChanged = gstChanged || registrationChanged
+
+  // Designation and company name take letters, numbers and basic punctuation only. The message
+  // shows as soon as the value is wrong, and Save stays off until it is fixed. A server message
+  // for the same input shows until that input is edited.
+  const nameTextMessage = (value: string, label: string) =>
+    isValidNameText(value) ? undefined : t(NAME_TEXT_KEY, { field: label })
+  const designationError = nameTextMessage(designation, t('profile:employer.designation')) ?? serverErrors.designation
+  const companyNameError = nameTextMessage(companyName, t('profile:employer.companyName')) ?? serverErrors.companyName
+  const fullNameError = serverErrors.fullName
+  const companyEmailError = serverErrors.companyEmail
+  const companyAddressError = serverErrors.companyAddress
+  const hasNameTextError = !isValidNameText(designation) || !isValidNameText(companyName)
+  const clearServerError = (field: string) =>
+    setServerErrors((prev) => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  const invalidCls = (message?: string) => (message ? `${inputCls} ${INVALID_CLS}` : inputCls)
 
   const handleSave = async () => {
     // Clear BOTH banners before validating. The "Saved ✓" confirmation lingers for
@@ -396,7 +425,15 @@ function EmployerProfileContent() {
       // Another employer already holds this number: show it under the field the
       // BE names, and stay in edit mode so it can be corrected.
       if (!identifiers.fromError(err)) {
-        setSaveError(err instanceof Error ? err.message : t('profile:employer.saveError'))
+        // A 400 names the field that failed: outline that input and put the message under it.
+        // Only what has no input here goes to the general box.
+        const { shown, rest } = splitServerFieldErrors(fieldErrorsByPath(err), (path) => SERVER_FIELDS.includes(path))
+        setServerErrors(shown)
+        if (Object.keys(shown).length === 0) {
+          setSaveError(err instanceof Error ? err.message : t('profile:employer.saveError'))
+        } else if (rest.length > 0) {
+          setSaveError(rest.join(' '))
+        }
       }
     } finally {
       setSaving(false)
@@ -564,11 +601,11 @@ function EmployerProfileContent() {
                     </h2>
                     {editing ? (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                        <Field label={t('profile:employer.fullName')} className={fieldLabelCls}>
-                          <input value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:employer.fullNamePlaceholder')} className={inputCls} />
+                        <Field label={t('profile:employer.fullName')} className={fieldLabelCls} error={fullNameError}>
+                          <input value={fullName} onChange={(e) => { setFullName(e.target.value); clearServerError('fullName') }} maxLength={NAME_MAX_LENGTH} placeholder={t('profile:employer.fullNamePlaceholder')} className={invalidCls(fullNameError)} />
                         </Field>
-                        <Field label={t('profile:employer.designation')} className={fieldLabelCls}>
-                          <input value={designation} onChange={(e) => setDesignation(e.target.value)} maxLength={DESIGNATION_MAX_LENGTH} placeholder={t('profile:employer.designationPlaceholder')} className={inputCls} />
+                        <Field label={t('profile:employer.designation')} className={fieldLabelCls} error={designationError}>
+                          <input value={designation} onChange={(e) => { setDesignation(e.target.value); clearServerError('designation') }} maxLength={DESIGNATION_MAX_LENGTH} placeholder={t('profile:employer.designationPlaceholder')} className={invalidCls(designationError)} />
                         </Field>
                       </div>
                     ) : (
@@ -585,14 +622,14 @@ function EmployerProfileContent() {
                     </h2>
                     {editing ? (
                       <div className="grid sm:grid-cols-2 gap-x-6 gap-y-6">
-                        <Field label={t('profile:employer.companyName')} className={fieldLabelCls}>
-                          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:employer.companyNamePlaceholder')} className={inputCls} />
+                        <Field label={t('profile:employer.companyName')} className={fieldLabelCls} error={companyNameError}>
+                          <input value={companyName} onChange={(e) => { setCompanyName(e.target.value); clearServerError('companyName') }} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:employer.companyNamePlaceholder')} className={invalidCls(companyNameError)} />
                         </Field>
-                        <Field label={t('profile:employer.companyEmail')} className={fieldLabelCls}>
-                          <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder={t('profile:employer.companyEmailPlaceholder')} className={inputCls} />
+                        <Field label={t('profile:employer.companyEmail')} className={fieldLabelCls} error={companyEmailError}>
+                          <input type="email" value={companyEmail} onChange={(e) => { setCompanyEmail(e.target.value); clearServerError('companyEmail') }} placeholder={t('profile:employer.companyEmailPlaceholder')} className={invalidCls(companyEmailError)} />
                         </Field>
-                        <Field label={t('profile:employer.companyAddress')} className={fieldLabelCls} full>
-                          <input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} maxLength={COMPANY_ADDRESS_MAX_LENGTH} placeholder={t('profile:employer.companyAddressPlaceholder')} className={inputCls} />
+                        <Field label={t('profile:employer.companyAddress')} className={fieldLabelCls} full error={companyAddressError}>
+                          <input value={companyAddress} onChange={(e) => { setCompanyAddress(e.target.value); clearServerError('companyAddress') }} maxLength={COMPANY_ADDRESS_MAX_LENGTH} placeholder={t('profile:employer.companyAddressPlaceholder')} className={invalidCls(companyAddressError)} />
                         </Field>
                         <Field label={t('profile:employer.foundedDate')} className={fieldLabelCls}>
                           <DatePicker value={companyFoundedDate} onChange={setCompanyFoundedDate} minYear={1800} className={inputCls} />
@@ -650,7 +687,7 @@ function EmployerProfileContent() {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || hasNameTextError}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-60"
                     >
                       {saving && <Loader2 className="w-4 h-4 animate-spin" />}
