@@ -10,8 +10,12 @@ import { reportServerOtp } from '@/lib/serverOtp'
 // utils/response.ts). `apiRequest` UNWRAPS `.data` and returns the typed
 // payload, so callers consume the real object directly.
 //
-// Auth: when an auth token is present in localStorage, `apiRequest` attaches
-// `Authorization: Bearer <token>`. On a 401 it clears auth storage and
+// Auth: the access token lives in this tab's MEMORY only (`accessToken` below) —
+// never in localStorage or sessionStorage, so a script that gets onto a page finds
+// no token to carry off. When one is held, `apiRequest` attaches
+// `Authorization: Bearer <token>`. A reload starts with none: AuthContext calls
+// `restoreSession()`, which trades the HttpOnly refresh cookie for a new token and
+// the signed-in user. On a 401 it drops the in-memory session and
 // dispatches a `auth:unauthorized` window event — AuthContext listens for this
 // and performs logout + redirect, keeping this module framework-free. The event
 // carries the response's `code` in `detail` so the listener can tell a suspended
@@ -26,9 +30,10 @@ import { reportServerOtp } from '@/lib/serverOtp'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
 
-// localStorage keys — single source of truth, shared with AuthContext.
-export const AUTH_TOKEN_KEY = 'auth_token'
-export const AUTH_USER_KEY = 'auth_user'
+// Where older builds saved the session. Nothing writes these any more; AuthContext
+// removes them once on load, so a token saved before this change does not sit in
+// the browser until it expires.
+export const LEGACY_SESSION_KEYS = ['auth_token', 'auth_user'] as const
 
 // The two 401 codes the BE sends when an admin suspends or rejects an account
 // that is already signed in. Value = the `?reason=` the login page accepts.
@@ -51,10 +56,30 @@ export function accountEndedReason(code: string | undefined): AccountEndedReason
 // the pair to show AND auto-clear the "can't reach the server" state.
 let hadNetworkError = false
 
-/** Window-guarded read of the stored auth token (null on server / when absent). */
+// The access token, in memory. Written by AuthContext (sign-in, restore, sign-out)
+// and by a refresh below; read by every request.
+let accessToken: string | null = null
+
+/** The current access token, or null when signed out (and always on the server). */
 export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+  return accessToken
+}
+
+/** Set or clear the in-memory access token. AuthContext is the only caller. */
+export function setAuthToken(token: string | null): void {
+  accessToken = token
+}
+
+// The signed-in role, mirrored from AuthContext for code outside React (analytics)
+// that must see a sign-in in the same tick it happens. Memory only.
+let sessionRole: UserRole | null = null
+
+export function getSessionRole(): UserRole | null {
+  return sessionRole
+}
+
+export function setSessionRole(role: UserRole | null): void {
+  sessionRole = role
 }
 
 // The bare origin behind API_BASE_URL (protocol+host+port, no path) — computed
@@ -328,7 +353,7 @@ type RefreshOutcome =
   // Another tab signed out while the refresh was in flight.
   | { kind: 'signed-out' }
   // The BE issued a token for a different user than the one that asked (see runRefresh),
-  // or storage now holds a different user's session. Nothing is replayed, stored or cleared.
+  // or memory now holds a different user's session. Nothing is replayed, stored or cleared.
   | { kind: 'identity-changed' }
   // 403: the BE refused this site (origin not allowed). A configuration fault, not a
   // verdict on the session, so the session is kept.
@@ -371,18 +396,18 @@ async function runRefresh(staleToken: string): Promise<RefreshOutcome> {
     const expectedUserId = tokenUserId(staleToken)
     if (expectedUserId === null || tokenUserId(token) !== expectedUserId) return { kind: 'identity-changed' }
 
-    // Write only if storage still holds the token we replaced. A different value
-    // means another tab got there first (a newer refresh, or a new sign-in) and
+    // Write only if memory still holds the token we replaced. A different value
+    // means this tab moved on while the refresh was in flight (a new sign-in) and
     // must not be overwritten by this response; null means a sign-out.
     const current = getAuthToken()
     if (current === null) return { kind: 'signed-out' }
     if (current === staleToken) {
-      window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+      accessToken = token
       window.dispatchEvent(new CustomEvent(AUTH_TOKEN_REFRESHED_EVENT, { detail: { token } }))
     }
     return { kind: 'ok' }
   } catch {
-    // Network error, abort/timeout, or storage refused the write.
+    // Network error or abort/timeout.
     return { kind: 'unavailable' }
   } finally {
     clearTimeout(timer)
@@ -407,8 +432,8 @@ type ExpiryRecovery = Exclude<RefreshOutcome, { kind: 'ok' }> | { kind: 'retry';
  * Identity matching ONLY. The payload is decoded without verifying the signature, so
  * it proves nothing about the token; the server still authorises every request. It is
  * used to keep a request, its refreshed token and its replay on one user, reading the
- * identity from the token itself rather than from a second storage key that another
- * tab may be mid-way through writing.
+ * identity from the token itself rather than from a separate user record that a sign-in
+ * may be mid-way through replacing.
  */
 function tokenUserId(token: string | null): string | null {
   if (!token) return null
@@ -427,15 +452,15 @@ function tokenUserId(token: string | null): string | null {
 
 /**
  * A request sent with `sentToken` came back `401 TOKEN_EXPIRED`. Get a usable token
- * into storage if one can be had, and say which exact token to replay with. Does not
+ * into memory if one can be had, and say which exact token to replay with. Does not
  * touch the session itself: the caller decides what `ended` means.
  */
 async function recoverExpiredToken(sentToken: string): Promise<ExpiryRecovery> {
   const sentUserId = tokenUserId(sentToken)
-  // Storage may have moved on since the request left (this or another tab already
+  // Memory may have moved on since the request left (this tab already
   // refreshed, or signed in again). Then there is nothing to refresh.
   //
-  // A different token is replayed only for the SAME user. Another tab can sign in as
+  // A different token is replayed only for the SAME user. This tab can sign in as
   // someone else while this request is in flight; replaying it with that token would
   // run the first user's action under the second user's account. A token whose user
   // cannot be read is treated as a change too.
@@ -451,9 +476,9 @@ async function recoverExpiredToken(sentToken: string): Promise<ExpiryRecovery> {
   if (before) return before
 
   const outcome = await refreshAccessToken(sentToken)
-  // Re-check storage: a failed refresh must not end a session another tab has renewed,
-  // and after a success storage holds the new token (ours, or a same-user one from
-  // another tab). Still holding the old token after a success means nothing was stored.
+  // Re-check memory: a failed refresh must not end a session that has been renewed,
+  // and after a success memory holds the new token (ours, or a same-user one from a
+  // sign-in in between). Still holding the old token after a success means nothing was stored.
   const after = settled()
   if (after) return after
   if (outcome.kind === 'ok') return { kind: 'unavailable' }
@@ -461,16 +486,86 @@ async function recoverExpiredToken(sentToken: string): Promise<ExpiryRecovery> {
 }
 
 /**
- * Drop the local session and tell AuthContext (which redirects) — but only if storage
+ * Drop the local session and tell AuthContext (which redirects) — but only if memory
  * still holds `sentToken`, the token the failed request carried. Anything else is a
- * newer session from another tab, which must survive. Returns whether it ended.
+ * newer session (a sign-in since the request left), which must survive. Returns
+ * whether it ended.
  */
 function endSessionLocally(code: string | undefined, sentToken: string | null): boolean {
   if (getAuthToken() !== sentToken) return false
-  window.localStorage.removeItem(AUTH_TOKEN_KEY)
-  window.localStorage.removeItem(AUTH_USER_KEY)
+  accessToken = null
+  sessionRole = null
   window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT, { detail: { code } }))
   return true
+}
+
+// ---------------------------------------------------------------------------
+// Restoring the session on page load.
+//
+// Memory starts empty on every load, a new tab and a reopened browser. The refresh
+// cookie survives all three, so AuthContext trades it here for a new access token
+// AND the signed-in user (the BE returns both from /auth/refresh, in the login
+// reply's shape). Nothing about the session is read from storage.
+// ---------------------------------------------------------------------------
+export type RestoreOutcome =
+  | { kind: 'ok'; token: string; user: AuthUser }
+  // No session: no cookie, revoked, or the account was closed (`code` says which).
+  | { kind: 'ended'; code?: string }
+  // The BE could not be reached or failed; nothing is known about the session.
+  | { kind: 'unavailable' }
+
+let restoreInFlight: Promise<RestoreOutcome> | null = null
+
+/** Never rejects. One at a time: React's dev double-effect and a second tab share it. */
+export function restoreSession(): Promise<RestoreOutcome> {
+  if (!restoreInFlight) {
+    restoreInFlight = runRestore().finally(() => {
+      restoreInFlight = null
+    })
+  }
+  return restoreInFlight
+}
+
+async function runRestore(): Promise<RestoreOutcome> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS)
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    const body: unknown = await res.json().catch(() => null)
+    if (res.status === 401) {
+      const code = (body as { code?: unknown } | null)?.code
+      return { kind: 'ended', code: typeof code === 'string' ? code : undefined }
+    }
+    if (!res.ok) return { kind: 'unavailable' }
+
+    const data = (body as { data?: { token?: unknown; user?: unknown; needsJobPreferences?: unknown } } | null)?.data
+    const token = data?.token
+    const user = data?.user as AuthUser | undefined
+    if (typeof token !== 'string' || token.split('.').length !== 3) return { kind: 'unavailable' }
+    // A BE older than the one that returns `user` from refresh: there is a token but
+    // no person to show, and no stored copy to fall back on. Read as signed out.
+    if (!user || typeof user.id !== 'string' || typeof user.role !== 'string') return { kind: 'ended' }
+    // The token must belong to the user it came with.
+    if (tokenUserId(token) !== user.id) return { kind: 'unavailable' }
+
+    accessToken = token
+    sessionRole = user.role
+    const needsJobPreferences = data?.needsJobPreferences
+    return {
+      kind: 'ok',
+      token,
+      // Same as sessionUserFrom() does for a login reply: the flag rides beside `user`.
+      user: typeof needsJobPreferences === 'boolean' ? { ...user, needsJobPreferences } : user,
+    }
+  } catch {
+    return { kind: 'unavailable' }
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /**
@@ -499,7 +594,7 @@ export async function endServerSession(): Promise<void> {
 // The request itself: auth header, error classification, central 401 handling.
 // Returns the unwrapped `.data` payload. Callers use `apiRequest` below.
 // `replayToken` is internal: set only on the single replay after a token refresh, to
-// the exact token that replay was approved to use (it is not read from storage again).
+// the exact token that replay was approved to use (it is not read from memory again).
 async function performRequest<T>(
   endpoint: string,
   {
@@ -509,7 +604,7 @@ async function performRequest<T>(
     ...options
   }: RequestInit & {
     /**
-     * A 401 whose body `code` equals this keeps the session (no clear-storage,
+     * A 401 whose body `code` equals this keeps the session (nothing cleared,
      * no logout). Any OTHER 401 from the call — an expired or invalid token —
      * still logs out. For a 401 that means "wrong re-auth proof", not "session
      * expired": REAUTH_FAILED on self-delete and on set-first-password.
@@ -517,7 +612,7 @@ async function performRequest<T>(
     preserveSessionOnCode?: string
     /**
      * A sign-in attempt: its 401 means "wrong credentials", not "session expired",
-     * so it never clears storage or fires `auth:unauthorized` (which would drop the
+     * so it never clears the session or fires `auth:unauthorized` (which would drop the
      * login page's `?returnUrl=`).
      */
     isCredentialCheck?: boolean
@@ -607,7 +702,7 @@ async function performRequest<T>(
     // it is plain data (not a serialised Error), which is what carries the
     // metadata belonging to `code`.
     const code = typeof body?.code === 'string' ? body.code : undefined
-    // Centralized auth-expiry handling. Clear storage and let AuthContext react.
+    // Centralized auth-expiry handling. Drop the in-memory session and let AuthContext react.
     const keepSession = preserveSessionOnCode !== undefined && code === preserveSessionOnCode
     // The code AuthContext is told about. Normally this response's; after a refused
     // refresh it is the refresh's, which is what says "suspended" or "rejected".

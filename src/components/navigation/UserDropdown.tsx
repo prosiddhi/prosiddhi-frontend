@@ -78,7 +78,7 @@ export function UserDropdown() {
 
   const handleLogout = () => {
     setIsOpen(false)
-    // Clears the token + user from storage/state and redirects to /login.
+    // Clears the in-memory token + user, tells other tabs, and redirects to /login.
     logout()
   }
 
