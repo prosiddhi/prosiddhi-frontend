@@ -1,8 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
 import { useTranslation } from 'react-i18next'
+import { AppPhonePreview } from './AppPhonePreview'
 
 /**
  * "Get the app" band on the landing page, between the role cards and the footer.
@@ -16,19 +16,10 @@ import { useTranslation } from 'react-i18next'
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.prosiddhi.app'
 
-// The QR tile is the code plus 12px padding on each side; the scan caption under
-// it takes the same width, so it follows if the code size changes.
+// The QR code's size in px. The scan caption sits in the same column, centred
+// under the tile, so it follows if this changes.
 const QR_SIZE = 112
-const QR_TILE_WIDTH = QR_SIZE + 24
 
-// ⚠️ The ONE place to swap the phone image. A trimmed PNG with a transparent
-// background (two phones). Keep width / height true to the file — the browser
-// uses them to keep the aspect ratio and reserve the space.
-const APP_PREVIEW_IMAGE = {
-  src: '/assets/app-banner/app-preview.png',
-  width: 964,
-  height: 1010,
-}
 
 export function AppDownloadBanner() {
   const { t } = useTranslation('common')
@@ -59,28 +50,34 @@ export function AppDownloadBanner() {
       </div>
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-20">
-        <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-10 md:gap-8 lg:gap-16">
-          <div className="min-w-0 md:max-w-[620px] text-center md:text-left">
+        {/* Side by side only from `lg`: below that the two phones and the text do not
+            both fit, so the phones go under the text, centred. */}
+        <div className="max-w-[1280px] mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-10 lg:gap-12 xl:gap-16">
+          <div className="min-w-0 lg:max-w-[560px] xl:max-w-[620px] text-center lg:text-left">
             <h2
               id="app-banner-title"
-              className="text-3xl sm:text-[40px] lg:text-5xl font-bold text-primary-100 leading-tight tracking-tight"
+              className="text-3xl sm:text-[40px] xl:text-5xl font-bold text-primary-100 leading-tight tracking-tight"
             >
               {t('home.appBanner.title')}
             </h2>
-            <p className="mt-4 lg:mt-5 text-base lg:text-xl text-gray-600 leading-relaxed max-w-[540px] mx-auto md:mx-0">
+            <p className="mt-4 lg:mt-5 text-base lg:text-xl text-gray-600 leading-relaxed max-w-[540px] mx-auto lg:mx-0">
               {t('home.appBanner.subtitle')}
             </p>
 
             <div className="mt-7 lg:mt-9">
-              {/* One block: the QR tile on the left, the store buttons stacked on the
-                  right and centred on the QR. The QR is decorative for a screen reader — the Play
-                  button beside it is the same link, with real text. */}
-              <div className="flex flex-col md:flex-row md:items-center gap-5">
-                <div
-                  aria-hidden="true"
-                  className="hidden md:block shrink-0 rounded-xl bg-white p-3 shadow-md ring-1 ring-primary-30"
-                >
-                  <QRCodeSVG value={PLAY_STORE_URL} size={QR_SIZE} level="M" />
+              {/* One block: the QR tile (with its caption under it) on the left, the
+                  store button on the right, centred on the QR. Centred as a whole below
+                  `lg`, left-aligned beside the phones from `lg`. The QR is decorative
+                  for a screen reader — the Play button beside it is the same link,
+                  with real text. */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-center lg:justify-start gap-5">
+                <div aria-hidden="true" className="hidden md:flex shrink-0 flex-col items-center gap-2">
+                  <div className="rounded-xl bg-white p-3 shadow-md ring-1 ring-primary-30">
+                    <QRCodeSVG value={PLAY_STORE_URL} size={QR_SIZE} level="M" />
+                  </div>
+                  <p className="text-center text-xs font-medium text-primary-90">
+                    {t('home.appBanner.scan')}
+                  </p>
                 </div>
 
                 {/* Store buttons. A plain button, not a lookalike of Google's badge:
@@ -102,28 +99,13 @@ export function AppDownloadBanner() {
                   </a>
                 </div>
               </div>
-              <p
-                aria-hidden="true"
-                style={{ width: QR_TILE_WIDTH }}
-                className="hidden md:block mt-2 text-center text-xs font-medium text-primary-90"
-              >
-                {t('home.appBanner.scan')}
-              </p>
             </div>
           </div>
 
-          {/* Transparent PNG, so no frame or shadow box: the phones sit straight on the
-              gradient. The height follows the width, so the ratio holds. Decorative;
-              the heading beside it says what it is. */}
-          <div className="shrink-0 mx-auto md:mx-0">
-            <Image
-              src={APP_PREVIEW_IMAGE.src}
-              width={APP_PREVIEW_IMAGE.width}
-              height={APP_PREVIEW_IMAGE.height}
-              alt=""
-              sizes="(min-width: 1024px) 440px, (min-width: 768px) 340px, (min-width: 640px) 320px, 280px"
-              className="h-auto w-[280px] sm:w-[320px] md:w-[340px] lg:w-[440px] drop-shadow-xl"
-            />
+          {/* Two phones drawn in code with real live jobs (AppPhonePreview.tsx — the
+              one place to change what they show). Decorative. */}
+          <div className="shrink-0 mx-auto lg:mx-0">
+            <AppPhonePreview />
           </div>
         </div>
       </div>
