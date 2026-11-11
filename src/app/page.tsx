@@ -4,6 +4,7 @@ import { PublicHeader } from '@/components/navigation/PublicHeader'
 import { HeroSection } from '@/components/home/HeroSection'
 import { LaunchBanner } from '@/components/home/LaunchRibbon'
 import { GetStartedSection } from '@/components/home/GetStartedSection'
+import { AppDownloadBanner } from '@/components/home/AppDownloadBanner'
 import { Footer } from '@/components/home/Footer'
 
 export default function HomePage() {
@@ -31,6 +32,9 @@ export default function HomePage() {
         <HeroSection />
         <GetStartedSection />
       </main>
+      {/* Outside <main> on purpose: <main> pads both sides for the launch banner at
+          `lg`, and this band is full width. */}
+      <AppDownloadBanner />
       <Footer />
     </div>
   )
