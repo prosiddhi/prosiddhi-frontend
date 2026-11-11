@@ -33,6 +33,11 @@ ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 # Never set it for production. Needs the API's EXPOSE_OTP_IN_RESPONSE=true too.
 ARG NEXT_PUBLIC_SHOW_TEST_OTP=false
 ENV NEXT_PUBLIC_SHOW_TEST_OTP=$NEXT_PUBLIC_SHOW_TEST_OTP
+# Optional. --build-arg CSP_REPORT_ONLY=true sends the Content-Security-Policy as
+# report-only (nothing blocked, violations shown in the browser console), for the
+# first staging deploy. Leave it out and the policy is enforced.
+ARG CSP_REPORT_ONLY
+ENV CSP_REPORT_ONLY=$CSP_REPORT_ONLY
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
