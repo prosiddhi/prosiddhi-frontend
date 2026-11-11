@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   PROFILE_READ_TIMEOUT_MS,
   PROFILE_WRITE_TIMEOUT_MS,
+  fieldErrorsByPath,
   jobSeekerAPI,
   resolveMediaUrl,
   type SeekerProfile,
@@ -72,6 +73,8 @@ import {
 } from 'lucide-react'
 import { COMPANY_NAME_MAX_LENGTH, WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
 import { NAME_MAX_LENGTH } from '@/lib/nameValidation'
+import { NAME_TEXT_KEY, isValidNameText, splitServerFieldErrors } from '@/lib/nameText'
+import { INVALID_CLS } from '@/components/form/FieldError'
 import {
   CARD_IDS,
   aboutProblem,
@@ -329,6 +332,8 @@ function SeekerProfileContent() {
   const [triple, setTriple] = useState<TaxonomyTriple>({})
   const [language, setLanguage] = useState('en')
   const [experiences, setExperiences] = useState<ExpRow[]>([])
+  // The BE's messages for a work-experience row, keyed `<row key>.<field>`.
+  const [expServerErrors, setExpServerErrors] = useState<Record<string, string>>({})
   // "Actively looking" saves on its own the moment it is flipped, outside the Save button.
   // The ref is the synchronous guard (a double tap can land before the next render); the
   // state only drives the busy look.
@@ -629,6 +634,9 @@ function SeekerProfileContent() {
       return
     }
     if (!acquireWrite()) return
+    // The rows being sent, as they are now: the BE numbers them, and the seeker can edit while it answers.
+    const sentRows = card === 'experience' ? experiences.filter((r) => r.position.trim() && r.startDate) : []
+    if (card === 'experience') setExpServerErrors({})
     setCardState(card, { status: 'saving', error: '', note: '' })
     if (card === 'home') cancelLocate()
     try {
@@ -640,7 +648,13 @@ function SeekerProfileContent() {
           // Nothing was written. ConsentGate asks the person to accept; the draft stays for a retry.
           setCardState(card, { status: 'idle', error: '' })
         } else if (kind === 'definite') {
-          setCardState(card, { status: 'error', error: err instanceof Error ? err.message : t('profile:seeker.saveError') })
+          // A 400 on a work-experience row goes under that row's input; only what has no input is shown on the card.
+          const atFields = card === 'experience' ? showExperienceServerErrors(err, sentRows) : null
+          const general = err instanceof Error ? err.message : t('profile:seeker.saveError')
+          setCardState(card, {
+            status: 'error',
+            error: !atFields ? general : atFields.allShown ? '' : atFields.rest.join(' ') || general,
+          })
           focusAfter(card, token, { kind: 'save', outcome: 'error' })
         } else {
           holdUnknown(card, body, token)
@@ -721,6 +735,37 @@ function SeekerProfileContent() {
     setExperiences((rows) =>
       rows.map((r) => (r.key === key ? { ...r, [field]: value } : r))
     )
+    // Editing a field drops the server's message for it.
+    setExpServerErrors((prev) => {
+      const id = `${key}.${field}`
+      if (!(id in prev)) return prev
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }
+  // A position or company takes letters, numbers and basic punctuation only. The message shows as
+  // soon as the value is wrong, and Save on the card stays off until it is fixed. A server message
+  // for the same input shows until that input is edited.
+  const expFieldError = (exp: ExpRow, field: 'position' | 'companyName', label: string) =>
+    isValidNameText(exp[field] ?? '')
+      ? expServerErrors[`${exp.key}.${field}`]
+      : t(NAME_TEXT_KEY, { field: label })
+  const hasExpNameTextError = experiences.some((r) => !isValidNameText(r.position) || !isValidNameText(r.companyName ?? ''))
+  // The BE numbers the rows it was sent, and only a row with a position and a start date is sent.
+  // Returns the messages that have no input to sit under.
+  const showExperienceServerErrors = (err: unknown, sent: ExpRow[]): { rest: string[]; allShown: boolean } => {
+    const shown: Record<string, string> = {}
+    const { shown: byPath, rest } = splitServerFieldErrors(fieldErrorsByPath(err), (path) => {
+      const [root, index, field] = path.split('.')
+      return root === 'workExperiences' && (field === 'position' || field === 'companyName') && !!sent[Number(index)]
+    })
+    for (const [path, message] of Object.entries(byPath)) {
+      const [, index, field] = path.split('.')
+      shown[`${sent[Number(index)].key}.${field}`] = message
+    }
+    setExpServerErrors(shown)
+    return { rest, allShown: Object.keys(shown).length > 0 && rest.length === 0 }
   }
   const blankExp = (): ExpRow => ({ key: newKey(), position: '', companyName: '', startDate: '', endDate: '', currentlyWorking: false, description: '' })
   const addExp = () => setExperiences((rows) => [...rows, blankExp()])
@@ -856,7 +901,7 @@ function SeekerProfileContent() {
         error={ui.error}
         note={ui.note}
         canCheck={ui.held === true}
-        saveDisabled={writeBusy || lookingBusy}
+        saveDisabled={writeBusy || lookingBusy || (card === 'experience' && hasExpNameTextError)}
         labels={{
           save: t('buttons.saveChanges'),
           saving: t('profile:seeker.saving'),
@@ -1283,11 +1328,11 @@ function SeekerProfileContent() {
                           </button>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-x-4 gap-y-4">
-                          <Field label={t('profile:seeker.position')} className={seekerLabelCls}>
-                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} maxLength={WORK_POSITION_MAX_LENGTH} placeholder={t('profile:seeker.positionPlaceholder')} className={seekerInputCls} />
+                          <Field label={t('profile:seeker.position')} className={seekerLabelCls} error={expFieldError(exp, 'position', t('profile:seeker.position'))}>
+                            <input value={exp.position} onChange={(e) => setExp(exp.key, 'position', e.target.value)} maxLength={WORK_POSITION_MAX_LENGTH} placeholder={t('profile:seeker.positionPlaceholder')} className={expFieldError(exp, 'position', t('profile:seeker.position')) ? `${seekerInputCls} ${INVALID_CLS}` : seekerInputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.company')} className={seekerLabelCls}>
-                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={seekerInputCls} />
+                          <Field label={t('profile:seeker.company')} className={seekerLabelCls} error={expFieldError(exp, 'companyName', t('profile:seeker.company'))}>
+                            <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={expFieldError(exp, 'companyName', t('profile:seeker.company')) ? `${seekerInputCls} ${INVALID_CLS}` : seekerInputCls} />
                           </Field>
                           <Field label={t('profile:seeker.startDate')} className={seekerLabelCls}>
                             <DatePicker value={exp.startDate ?? ''} disabled={cardBusy('experience')} onChange={(v) => setExp(exp.key, 'startDate', v)} className={seekerInputCls} />
