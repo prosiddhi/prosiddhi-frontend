@@ -9,6 +9,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { WORK_POSITION_MAX_LENGTH } from '@/lib/businessIdentifiers'
+import { NAME_TEXT_KEY, isValidNameText } from '@/lib/nameText'
+import { FieldError, INVALID_CLS } from '@/components/form/FieldError'
 import { MAX_DOCUMENT_BYTES } from '@/lib/uploadFile'
 import { useSeekerRegistration } from '../SeekerRegistrationContext'
 
@@ -113,6 +115,14 @@ export default function RegisterExperiencePage() {
   const handleDocumentClick = () => {
     fileInputRef.current?.click()
   }
+
+  // A designation takes letters, numbers and basic punctuation only. The message shows as soon as
+  // the value is wrong, and Next stays off until every row is fixed.
+  const designationError = (exp: Experience) =>
+    isValidNameText(exp.designation)
+      ? undefined
+      : t(NAME_TEXT_KEY, { field: t('auth:experience.designationLabel') })
+  const hasDesignationError = experiences.some((exp) => !isValidNameText(exp.designation))
 
   const handleNext = () => {
     // Experience is optional — keep only rows with a designation (BE stores
@@ -239,8 +249,11 @@ export default function RegisterExperiencePage() {
                           maxLength={WORK_POSITION_MAX_LENGTH}
                           onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                           placeholder={t('auth:experience.designationPlaceholder')}
-                          className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                          aria-invalid={designationError(exp) ? true : undefined}
+                          aria-describedby={designationError(exp) ? `designation-error-${exp.id}` : undefined}
+                          className={`w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all ${designationError(exp) ? INVALID_CLS : ''}`}
                         />
+                        <FieldError id={`designation-error-${exp.id}`} message={designationError(exp)} />
                       </div>
 
                       {/* From Year */}
@@ -349,7 +362,8 @@ export default function RegisterExperiencePage() {
                 {/* Next Button */}
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-10 py-3 rounded-lg transition-colors"
+                  disabled={hasDesignationError}
+                  className="flex items-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-10 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-base">{t('buttons.next')}</span>
                   <ChevronRight className="w-6 h-6" />
@@ -448,8 +462,11 @@ export default function RegisterExperiencePage() {
                       maxLength={WORK_POSITION_MAX_LENGTH}
                       onChange={(e) => handleExperienceChange(exp.id, 'designation', e.target.value)}
                       placeholder={t('auth:experience.designationPlaceholder')}
-                      className="w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all"
+                      aria-invalid={designationError(exp) ? true : undefined}
+                      aria-describedby={designationError(exp) ? `designation-error-m-${exp.id}` : undefined}
+                      className={`w-full h-12 px-3 border border-[#b5b5b5] rounded-[10px] text-base text-black placeholder:text-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all ${designationError(exp) ? INVALID_CLS : ''}`}
                     />
+                    <FieldError id={`designation-error-m-${exp.id}`} message={designationError(exp)} />
                   </div>
 
                   {/* Year Inputs */}
@@ -539,7 +556,8 @@ export default function RegisterExperiencePage() {
             {/* Next Button */}
             <button
               onClick={handleNext}
-              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-6 py-3 rounded-lg transition-colors"
+              disabled={hasDesignationError}
+              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-60 text-primary-100 px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="text-base">{t('buttons.next')}</span>
               <ChevronRight className="w-5 h-5" />

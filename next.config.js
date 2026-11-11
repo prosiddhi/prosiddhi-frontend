@@ -30,49 +30,22 @@ const apiOrigin = (() => {
   }
 })()
 
-const isDev = process.env.NODE_ENV === 'development'
+// The Content-Security-Policy itself is set per request in src/proxy.ts, because it
+// carries a fresh nonce each time (pen-test Report 01: script-src no longer allows
+// 'unsafe-inline'). Only its build-time inputs are fixed here.
 
 // Google Analytics 4 (lib/analytics.ts). Production builds only: with no measurement
-// ID the portal loads no Google tag, so the CSP does not open these hosts either.
+// ID the portal loads no Google tag, so the CSP does not open its hosts either.
 // Same format check as lib/analytics.ts — a malformed ID counts as unset there too.
 const gaMeasurementId = (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '').trim()
 const gaEnabled = /^G-[A-Z0-9]+$/.test(gaMeasurementId)
-// Google's published GA4 CSP list: the tag script from googletagmanager.com, hits
-// to the (regional) google-analytics.com / analytics.google.com collectors.
-const ga = gaEnabled
-  ? {
-      script: ' https://www.googletagmanager.com',
-      img: ' https://*.google-analytics.com https://www.googletagmanager.com',
-      connect: ' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com',
-    }
-  : { script: '', img: '', connect: '' }
 
-// Content-Security-Policy (pen-test review WEB-2). The access token lives in
-// localStorage, so the point of this policy is to stop an injected script from
-// loading more code or sending the token anywhere but our own API.
-// Third parties, from their own published CSP lists:
-//   - Razorpay checkout (employer/plans): script + iframe + its two API hosts.
-//   - Google sign-in (@react-oauth/google): accounts.google.com/gsi/*.
-//   - storage.googleapis.com: profile photos, and the hop a signed document
-//     link redirects to (lib/api.ts#fetchSignedFile).
-//   - Google Analytics (`ga` above): only when the build sets a measurement ID.
-// blob: covers the document viewer iframe and object-URL downloads.
-// 'unsafe-inline' on script-src is required: the app router inlines its RSC
-// payload as <script> tags, and a nonce would force every page to render
-// dynamically. Dev also needs 'unsafe-eval' and a websocket for hot reload.
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://accounts.google.com/gsi/client${ga.script}`,
-  "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
-  `img-src 'self' data: blob: ${apiOrigin.origin} https://storage.googleapis.com${ga.img}`,
-  "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin.origin} https://storage.googleapis.com https://accounts.google.com/gsi/ https://api.razorpay.com https://lumberjack.razorpay.com${ga.connect}${isDev ? ' ws:' : ''}`,
-  "frame-src 'self' blob: https://api.razorpay.com https://checkout.razorpay.com https://accounts.google.com/gsi/",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'self'",
-].join('; ')
+// CSP_REPORT_ONLY=true (a BUILD-time value, like NEXT_PUBLIC_API_URL) sends the
+// policy as Content-Security-Policy-Report-Only: the browser blocks nothing and
+// lists what it WOULD have blocked in its console. Use it for the first staging
+// deploy, click through every screen, and drop it once the console is clean.
+// Unset or anything else = enforced, so a forgotten value fails safe.
+const cspReportOnly = process.env.CSP_REPORT_ONLY === 'true'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -136,6 +109,10 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_APP_NAME: 'Job Portal',
+    // Read by src/proxy.ts to build the Content-Security-Policy.
+    CSP_API_ORIGIN: apiOrigin.origin,
+    CSP_GA: gaEnabled ? 'true' : 'false',
+    CSP_REPORT_ONLY: cspReportOnly ? 'true' : 'false',
   },
   
   // Headers for security
@@ -175,10 +152,7 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self)'
           },
-          {
-            key: 'Content-Security-Policy',
-            value: contentSecurityPolicy
-          }
+          // Content-Security-Policy: set per request, with a nonce, in src/proxy.ts.
         ],
       },
     ]

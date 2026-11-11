@@ -8,6 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Eye, EyeOff } from 'lucide-react'
 import { SignInPrompt } from '../SignInPrompt'
 import { authAPI, classifyRegisterError, employerAPI } from '@/lib/api'
+import { NAME_TEXT_KEY, isValidNameText, splitServerFieldErrors } from '@/lib/nameText'
+import { FieldError, INVALID_CLS } from '@/components/form/FieldError'
 import { useAuth } from '@/contexts/AuthContext'
 import { invitePath, readInviteToken } from '@/lib/inviteToken'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
@@ -77,6 +79,14 @@ export default function AccountSetupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
+  // The BE's own message for the designation, from the last failed Create account.
+  const [designationServerError, setDesignationServerError] = useState('')
+  // The designation takes letters, numbers and basic punctuation only. The message shows as soon
+  // as the value is wrong and Create account stays off until it is fixed.
+  const designationRuleError = !isValidNameText(designation)
+    ? t(NAME_TEXT_KEY, { field: t('employerRegister:account.designation') })
+    : ''
+  const designationError = designationRuleError || designationServerError
   // Which contact the backend said is not verified, so Re-verify clears only that one.
   const [needsReverify, setNeedsReverify] = useState<'phone' | 'email' | null>(null)
   // EMAIL_ALREADY_REGISTERED: another account owns this address; offers a way back to change it.
@@ -191,6 +201,7 @@ export default function AccountSetupPage() {
     try {
       setLoading(true)
       setFieldErrors([])
+      setDesignationServerError('')
       setNeedsReverify(null)
 
       // Creates the account waiting for admin approval (PENDING_ADMIN_APPROVAL).
@@ -240,9 +251,10 @@ export default function AccountSetupPage() {
       switch (failure.kind) {
         case 'fields':
           setFieldErrors(failure.fields.password ?? [])
-          setError(
-            failure.fields.password ? '' : Object.values(failure.fields).flat().join(' ')
-          )
+          // A message for the designation goes under that input; the rest keep the banner.
+          const { shown, rest } = splitServerFieldErrors(failure.fields, (path) => path === 'designation')
+          setDesignationServerError(shown.designation ?? '')
+          setError(failure.fields.password ? '' : rest.join(' '))
           break
         case 'phoneUnverified':
           // One message, three possible causes — never verified, mark already
@@ -371,11 +383,14 @@ export default function AccountSetupPage() {
                       type="text"
                       value={designation}
                       maxLength={DESIGNATION_MAX_LENGTH}
-                      onChange={(e) => setDesignation(e.target.value)}
+                      onChange={(e) => { setDesignation(e.target.value); setDesignationServerError('') }}
                       placeholder={t('employerRegister:account.designationPlaceholder')}
                       disabled={loading}
-                      className="w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50"
+                      aria-invalid={designationError ? true : undefined}
+                      aria-describedby={designationError ? 'designation-error' : undefined}
+                      className={`w-full h-12 sm:h-14 px-4 border border-gray-300 rounded-lg text-base text-black focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent transition-all disabled:opacity-50 ${designationError ? INVALID_CLS : ''}`}
                     />
+                    <FieldError id="designation-error" message={designationError} />
                   </div>
                 </>
               )}
@@ -505,7 +520,7 @@ export default function AccountSetupPage() {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !!designationRuleError}
                 className="px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
               >
                 {loading ? t('employerRegister:account.creating') : isIndividual ? t('employerRegister:account.createAccount') : t('buttons.next')}

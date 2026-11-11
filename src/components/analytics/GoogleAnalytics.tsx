@@ -11,8 +11,10 @@ import { GA_MEASUREMENT_ID, trackPageView } from '@/lib/analytics'
  *
  * Only the pathname is watched: the query string is never sent, so a change to it
  * alone is not a new page.
+ *
+ * `nonce` is this request's CSP nonce (src/proxy.ts), passed down by the root layout.
  */
-export function GoogleAnalytics() {
+export function GoogleAnalytics({ nonce }: { nonce?: string }) {
   const pathname = usePathname()
 
   useEffect(() => {
@@ -24,6 +26,7 @@ export function GoogleAnalytics() {
     <Script
       src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
       strategy="afterInteractive"
+      nonce={nonce}
     />
   )
 }

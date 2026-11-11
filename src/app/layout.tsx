@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { connection } from 'next/server'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { dmSans, fontVariables } from './fonts'
 import '@/styles/globals.css'
@@ -30,11 +32,18 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Render every page per request, never at build time: the CSP nonce (src/proxy.ts)
+  // only exists on a live request, and a page built ahead of time would ship its
+  // scripts without it, so the browser would block them all.
+  await connection()
+  // For the scripts we add ourselves (gtag.js). Next.js stamps its own.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <html lang="en" className={fontVariables}>
       <body className={`${dmSans.className} antialiased`}>
@@ -46,7 +55,7 @@ export default function RootLayout({
               <ToastViewport />
               <TestOtpPopup />
               {/* Off unless NEXT_PUBLIC_GA_MEASUREMENT_ID is set (production only). */}
-              <GoogleAnalytics />
+              <GoogleAnalytics nonce={nonce} />
             </AuthProvider>
           </I18nProvider>
         </GoogleOAuthProvider>

@@ -321,5 +321,8 @@
     "fileTooLarge": "This file is too big. Documents can be up to 5 MB.",
     "fileTypeNotAllowed": "This type of file can't be uploaded here.",
     "fileUnreadable": "We couldn't read this file. Please choose another one."
+  },
+  "fieldErrors": {
+    "nameText": "{{field}} can only contain letters, numbers, spaces and . , - & / ( ) ' and must include a letter"
   }
 }

@@ -11,7 +11,7 @@
 
 import i18n from '@/i18n/config'
 import { toSupportedLanguage, type SupportedLanguage } from '@/i18n/languages'
-import { AUTH_USER_KEY, type UserRole } from '@/lib/api'
+import { getSessionRole, type UserRole } from '@/lib/api'
 import { cleanPath, cleanReferrer } from '@/lib/analyticsPath'
 
 // A malformed value is treated as unset: it ends up in a script URL.
@@ -67,16 +67,12 @@ export function analyticsRole(role: UserRole): Role {
   return role === 'JOB_SEEKER' ? 'seeker' : 'employer'
 }
 
-// Read from storage, not React state: AuthContext.login() writes storage before it
+// Read from lib/api.ts, not React state: AuthContext.login() sets it before it
 // returns, so an event fired right after a sign-up already counts the new role.
+// Memory only, like the rest of the session.
 function currentRole(): Role | 'guest' {
-  try {
-    const stored = window.localStorage.getItem(AUTH_USER_KEY)
-    const role = stored ? (JSON.parse(stored) as { role?: UserRole }).role : undefined
-    return role ? analyticsRole(role) : 'guest'
-  } catch {
-    return 'guest'
-  }
+  const role = getSessionRole()
+  return role ? analyticsRole(role) : 'guest'
 }
 
 let configured = false

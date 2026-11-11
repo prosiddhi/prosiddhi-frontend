@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { SignInPrompt } from '../SignInPrompt'
 import { authAPI, classifyRegisterError, employerAPI, type CompanySize } from '@/lib/api'
+import { NAME_TEXT_KEY, isValidNameText, splitServerFieldErrors } from '@/lib/nameText'
+import { FieldError, INVALID_CLS } from '@/components/form/FieldError'
 import { COMPANY_ADDRESS_MAX_LENGTH, COMPANY_NAME_MAX_LENGTH, GST_INPUT_MAX_LENGTH, isValidGstNumber, isValidRegistrationNumber, normaliseIdentifier } from '@/lib/businessIdentifiers'
 import { useIdentifierErrors, type IdentifierErrors } from '@/hooks/useIdentifierErrors'
 import { IdentifierError } from '@/components/form/IdentifierError'
@@ -47,6 +49,14 @@ export default function CompanyDetailsPage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [termsMissing, setTermsMissing] = useState(false)
   const [error, setError] = useState('')
+  // The BE's own message for the company name, from the last failed Create account.
+  const [companyNameServerError, setCompanyNameServerError] = useState('')
+  // Letters, numbers and basic punctuation only. The message shows as soon as the value is wrong
+  // and Create account stays off until it is fixed.
+  const companyNameRuleError = !isValidNameText(form.companyName)
+    ? t(NAME_TEXT_KEY, { field: t('employerRegister:companyDetails.companyName') })
+    : ''
+  const companyNameError = companyNameRuleError || companyNameServerError
   // EMAIL_ALREADY_REGISTERED: another account owns the login email; offers a way back to change it.
   const [emailTaken, setEmailTaken] = useState(false)
   // Set when we send the user away on purpose, so the guard below does not redirect to
@@ -104,6 +114,7 @@ export default function CompanyDetailsPage() {
   const set = (name: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }))
     if (error) setError('')
+    if (name === 'companyName') setCompanyNameServerError('')
     if (name === 'gstNumber' || name === 'registrationNumber') {
       identifiers.clear(name)
     }
@@ -120,6 +131,7 @@ export default function CompanyDetailsPage() {
     // Each attempt starts clean: the inline messages and any banner from the last try.
     identifiers.reset()
     setError('')
+    setCompanyNameServerError('')
     setEmailTaken(false)
 
     if (!form.companyName.trim() || form.companyName.trim().length < 2) {
@@ -225,7 +237,10 @@ export default function CompanyDetailsPage() {
       const failure = classifyRegisterError(err)
       switch (failure.kind) {
         case 'fields':
-          setError(Object.values(failure.fields).flat().join(' '))
+          // A message for the company name goes under that input; the rest keep the banner.
+          const { shown, rest } = splitServerFieldErrors(failure.fields, (path) => path === 'companyName')
+          setCompanyNameServerError(shown.companyName ?? '')
+          setError(rest.join(' '))
           break
         case 'phoneUnverified':
           // Three causes, one message — see the account screen. Send them back
@@ -300,7 +315,8 @@ export default function CompanyDetailsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyName')} <span className="text-red-500">*</span></label>
-                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('employerRegister:companyDetails.companyNamePlaceholder')} disabled={loading} className={inputCls} />
+                <input type="text" value={form.companyName} onChange={(e) => set('companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('employerRegister:companyDetails.companyNamePlaceholder')} disabled={loading} aria-invalid={companyNameError ? true : undefined} aria-describedby={companyNameError ? 'company-name-error' : undefined} className={companyNameError ? `${inputCls} ${INVALID_CLS}` : inputCls} />
+                <FieldError id="company-name-error" message={companyNameError} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.companyEmail')} <span className="text-red-500">*</span></label>
@@ -361,7 +377,7 @@ export default function CompanyDetailsPage() {
             </button>
             <button
               onClick={handleNext}
-              disabled={loading}
+              disabled={loading || !!companyNameRuleError}
               className="px-8 py-3 bg-primary-50 text-primary-100 rounded-lg hover:bg-primary-60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-w-[120px]"
             >
               {loading ? t('employerRegister:account.creating') : t('employerRegister:account.createAccount')}

@@ -11,17 +11,21 @@ import {
 } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  AUTH_TOKEN_KEY,
   AUTH_TOKEN_REFRESHED_EVENT,
   AUTH_UNAUTHORIZED_EVENT,
-  AUTH_USER_KEY,
+  LEGACY_SESSION_KEYS,
   accountEndedReason,
   endServerSession,
+  getAuthToken,
   jobSeekerAPI,
   PROFILE_READ_TIMEOUT_MS,
+  restoreSession,
+  setAuthToken,
+  setSessionRole,
   type AuthUser,
   type SeekerProfile,
 } from '@/lib/api'
+import { announceSession, onSessionEvent } from '@/lib/sessionChannel'
 import {
   profileReadOutcome,
   profileSyncStatus,
@@ -112,9 +116,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 /**
  * AuthProvider — single source of truth for the session.
  *
- * - Persists `{ token, user }` to localStorage (`auth_token` / `auth_user`).
- * - Hydrates from storage on mount (window-guarded) so a refresh keeps the
- *   session.
+ * - Keeps `{ token, user }` in MEMORY only: the token in lib/api.ts, the user in
+ *   React state. Nothing about the session is written to localStorage or
+ *   sessionStorage, so a script that gets onto a page has no token to carry off.
+ * - On mount, restores the session from the HttpOnly refresh cookie
+ *   (`restoreSession`: a new access token plus the user), so a reload, a new tab or
+ *   a reopened browser stays signed in. `isLoading` holds until it answers.
+ * - Keeps tabs in step with a BroadcastChannel (lib/sessionChannel.ts): a sign-out
+ *   in one tab signs out the others; a sign-in in one is picked up by the others.
  * - Subscribes to the `auth:unauthorized` window event dispatched by
  *   `lib/api.ts` on a 401 → logs out + redirects to /login. This keeps the API
  *   client framework-free (no router import in lib/api.ts).
@@ -129,21 +138,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Hydrate from storage once on mount.
+  // Whose seeker profile has been settled this page load, and how. Set only when a request
+  // settles (or a login brings a fresh flag), never to "loading": that is derived below.
+  const [sync, setSync] = useState<ProfileSyncRecord>(null)
+
+  // Restore the session once on mount, from the refresh cookie (memory is empty on
+  // every load). The reply carries the user and a fresh `needsJobPreferences`, so it
+  // counts as fresh as a login for the profile read below.
   useEffect(() => {
+    // Older builds saved the session in localStorage. Remove it, once: the cookie,
+    // not that copy, is what brings the session back now.
     try {
-      const storedToken = window.localStorage.getItem(AUTH_TOKEN_KEY)
-      const storedUser = window.localStorage.getItem(AUTH_USER_KEY)
-      if (storedToken && storedUser) {
-        setToken(storedToken)
-        setUser(JSON.parse(storedUser) as AuthUser)
-      }
+      for (const key of LEGACY_SESSION_KEYS) window.localStorage.removeItem(key)
     } catch {
-      // Corrupt storage — clear it and start fresh.
-      window.localStorage.removeItem(AUTH_TOKEN_KEY)
-      window.localStorage.removeItem(AUTH_USER_KEY)
-    } finally {
+      // Storage blocked: then nothing was saved there either.
+    }
+
+    let active = true
+    restoreSession().then((outcome) => {
+      if (!active) return
+      if (outcome.kind === 'ok') {
+        setToken(outcome.token)
+        setUser(outcome.user)
+        setSync(syncAfterLogin(outcome.user))
+      }
+      // 'ended' or 'unavailable': signed out for now. A server that could not be
+      // reached leaves the cookie alone, so the next load tries again.
       setIsLoading(false)
+    })
+    return () => {
+      active = false
     }
   }, [])
 
@@ -155,16 +179,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loggingOutToRef = useRef<string | null>(null)
   const loggingOutTo = useCallback(() => loggingOutToRef.current, [])
 
-  // Whose seeker profile has been settled this page load, and how. Set only when a request
-  // settles (or a login brings a fresh flag), never to "loading": that is derived below.
-  const [sync, setSync] = useState<ProfileSyncRecord>(null)
-
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     loggingOutToRef.current = null
-    window.localStorage.setItem(AUTH_TOKEN_KEY, newToken)
-    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser))
+    // Memory only. The refresh cookie the BE set with this sign-in is what brings
+    // the session back after a reload.
+    setAuthToken(newToken)
+    setSessionRole(newUser.role)
     setToken(newToken)
     setUser(newUser)
+    // Other open tabs pick the session up through the shared cookie.
+    announceSession('signed-in')
     // A login reply carries the flag, so it is already as fresh as a profile read would be.
     // One without it (the register reply, an older BE) is confirmed by the read below.
     setSync(syncAfterLogin(newUser))
@@ -179,13 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // (several in-flight calls all answering 403 PASSWORD_CHANGE_REQUIRED) is one
       // render, not one per call.
       if ((Object.keys(patch) as (keyof AuthUser)[]).every((k) => prev[k] === patch[k])) return prev
-      const next = { ...prev, ...patch }
-      try {
-        window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full / unavailable — state still holds the update for this session.
-      }
-      return next
+      // State only: the user is not stored anywhere. A reload gets it fresh from the BE.
+      return { ...prev, ...patch }
     })
   }, [])
 
@@ -211,10 +230,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // goes with it, but never awaited: the UI signs out at once, and the call is
       // best effort with its own timeout. Local state is cleared whatever it does.
       void endServerSession()
-      window.localStorage.removeItem(AUTH_TOKEN_KEY)
-      window.localStorage.removeItem(AUTH_USER_KEY)
+      setAuthToken(null)
+      setSessionRole(null)
       setToken(null)
       setUser(null)
+      announceSession('signed-out')
       router.push(safeInternalPath(redirectTo) ?? '/login')
       // No router.refresh() here — setUser(null) changes the identity, and the
       // identity effect purges the cache for every transition including this
@@ -278,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (reason && !token) return
       const to = reason ? `${ACCOUNT_ENDED_LOGIN}${reason}` : '/login'
       loggingOutToRef.current = to
-      // Storage was already cleared by lib/api.ts; sync state + redirect.
+      // lib/api.ts already dropped the in-memory token; sync state + redirect.
       setToken(null)
       setUser(null)
       // Already on /login with no ended-account reason: the form is showing, and a bare
@@ -290,8 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized)
   }, [router, token])
 
-  // A token refresh in THIS tab stored a new access token (lib/api.ts). The storage
-  // event below never fires in the tab that made the write, so state is told here.
+  // A token refresh in this tab put a new access token in memory (lib/api.ts).
   useEffect(() => {
     const onTokenRefreshed = (e: Event) => {
       const next = (e as CustomEvent<{ token?: string }>).detail?.token
@@ -301,41 +320,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_TOKEN_REFRESHED_EVENT, onTokenRefreshed)
   }, [])
 
-  // Another tab changed the session in localStorage: a refresh, a sign-in as someone
-  // else, or a sign-out. Storage is the source of truth, so follow it. Only ever
-  // reads what the other tab wrote; this tab writes nothing here, so a stale tab
-  // cannot overwrite a newer token.
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.storageArea !== window.localStorage) return
-      // `key === null` is localStorage.clear().
-      if (e.key !== null && e.key !== AUTH_TOKEN_KEY && e.key !== AUTH_USER_KEY) return
-
-      if (e.key === null || (e.key === AUTH_TOKEN_KEY && e.newValue === null)) {
-        // Signed out elsewhere. No server call (the other tab made it) and nothing
-        // to clear. Skip if this tab is already signed out.
-        if (!token) return
-        loggingOutToRef.current = '/login'
-        setToken(null)
-        setUser(null)
-        router.push('/login')
-        return
-      }
-      if (e.key === AUTH_TOKEN_KEY && e.newValue) {
-        setToken(e.newValue)
-        return
-      }
-      if (e.key === AUTH_USER_KEY && e.newValue) {
-        try {
-          setUser(JSON.parse(e.newValue) as AuthUser)
-        } catch {
-          // Unreadable value from the other tab — keep the user we have.
+  // Another tab signed in or out (lib/sessionChannel.ts). Only the event arrives,
+  // never a token. Each tab refreshes its own token when it expires, so there is
+  // no token to share between tabs.
+  useEffect(
+    () =>
+      onSessionEvent((event) => {
+        if (event === 'signed-out') {
+          // No server call (the other tab made it). Skip if this tab is already out.
+          if (!getAuthToken()) return
+          loggingOutToRef.current = '/login'
+          setAuthToken(null)
+          setSessionRole(null)
+          setToken(null)
+          setUser(null)
+          router.push('/login')
+          return
         }
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [router, token])
+        // Signed in elsewhere, as this person or someone else: fetch this tab's own
+        // token and user through the shared cookie. A change of person is handled by
+        // the identity effect above (it purges the route cache).
+        restoreSession().then((outcome) => {
+          if (outcome.kind !== 'ok') return
+          loggingOutToRef.current = null
+          setToken(outcome.token)
+          setUser(outcome.user)
+          setSync(syncAfterLogin(outcome.user))
+        })
+      }),
+    [router]
+  )
 
   // React to 403 PASSWORD_CHANGE_REQUIRED from the API client: the session is
   // fine, but an admin reset the password after we stored the user. Flag it and
