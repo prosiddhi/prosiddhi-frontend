@@ -91,12 +91,19 @@ export default function RegisterExperiencePage() {
     // So choosing the same file again fires onChange again.
     e.target.value = ''
     if (!file) return
-    // Job seekers upload PDF, JPG or PNG only: that is all POST /jobseekers/register
-    // takes. (Word files used to be offered here and were refused at the LAST step.)
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    // PDF, JPG, PNG and Word: what POST /jobseekers/register takes (the backend allowed Word for
+    // seekers on 2026-11-12). A type it refuses must be refused here, or it fails at the LAST step.
+    const validTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]
     if (!validTypes.includes(file.type)) {
       setDocumentError(t('auth:experience.invalidDocument'))
-    } else if (file.type === 'application/pdf' && file.size > MAX_DOCUMENT_BYTES) {
+    } else if (!file.type.startsWith('image/') && file.size > MAX_DOCUMENT_BYTES) {
       // Said now, on this step -- not after the seeker has verified a phone and chosen a password.
       setDocumentError(t('common:uploadErrors.fileTooLarge'))
     } else {
@@ -324,7 +331,7 @@ export default function RegisterExperiencePage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   onChange={handleDocumentUpload}
                   className="hidden"
                 />
@@ -527,7 +534,7 @@ export default function RegisterExperiencePage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               onChange={handleDocumentUpload}
               className="hidden"
             />

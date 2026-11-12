@@ -1380,7 +1380,7 @@ function SeekerProfileContent() {
               <ProfileCard icon={FileText} title={t('profile:seeker.documents')}>
                 <DocumentsSection
                   allowedTypes={[...SEEKER_DOC_TYPES]}
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   list={jobSeekerAPI.listDocuments}
                   upload={jobSeekerAPI.uploadDocument}
                   remove={jobSeekerAPI.deleteDocument}
