@@ -22,6 +22,7 @@ import {
 import { PasswordRequirementsChecklist } from '@/components/auth/PasswordRequirementsChecklist'
 import { DeleteAccountModal } from '@/components/settings/DeleteAccountModal'
 import { NotificationPrefsSection } from '@/components/settings/NotificationPrefsSection'
+import { BlockedUsersSection } from '@/components/settings/BlockedUsersSection'
 import {
   passwordInputCls,
   eyeToggleCls,
@@ -521,6 +522,9 @@ export function SettingsView({ showFooter = true }: { showFooter?: boolean }) {
             </section>
 
             <NotificationPrefsSection isEmployer={isEmployer} />
+
+            {/* Blocked users (R1-10), right after Notifications as in the app. */}
+            <BlockedUsersSection />
 
             {/* Change password — or, for a Google-only account, set its first password */}
             <section className={cardCls} aria-busy={passwordLoading}>

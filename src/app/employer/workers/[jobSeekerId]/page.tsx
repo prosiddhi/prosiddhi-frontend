@@ -14,7 +14,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { ReportBlockActions } from '@/components/safety/ReportBlockActions'
 import { PreferredCities } from '@/components/employer/PreferredCities'
 import { useCredits } from '@/hooks/useCredits'
 import { ApiError, candidateAPI, type CandidateProfile, type Wallet } from '@/lib/api'
@@ -40,6 +41,7 @@ import { track } from '@/lib/analytics'
 function CandidateContent() {
   const { t } = useTranslation()
   const params = useParams<{ jobSeekerId: string }>()
+  const router = useRouter()
   const jobSeekerId = params.jobSeekerId
 
   const [profile, setProfile] = useState<CandidateProfile | null>(null)
@@ -256,6 +258,17 @@ function CandidateContent() {
                   </div>
                 </div>
               )}
+
+              {/* Report or block this candidate (R1-10), quiet and last. A block
+                  returns to the candidate list; the candidate is gone from it and
+                  from search, and is never told. */}
+              <ReportBlockActions
+                className="px-1"
+                targetType="JOB_SEEKER"
+                targetId={profile.id}
+                targetName={profile.fullName}
+                onBlocked={() => router.push('/employer/workers')}
+              />
             </div>
           )}
         </div>
