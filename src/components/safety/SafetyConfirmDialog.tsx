@@ -35,16 +35,23 @@ export function SafetyConfirmDialog({
   onConfirm,
   onCancel,
 }: SafetyConfirmDialogProps) {
+  // Lock the page behind the dialog while it is mounted, and put the old value back
+  // on close so another open dialog keeps its own lock. Separate from the Escape
+  // listener below, which re-attaches whenever `busy` or `onCancel` changes.
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !busy) onCancel()
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = 'unset'
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [busy, onCancel])
 
   const confirmCls =
