@@ -49,8 +49,26 @@ export function assertDocumentSize(file: File): void {
   }
 }
 
-/** The file to put in the FormData: size-checked, and shrunk when it is a big image. */
+/**
+ * The file name endings the backend takes as a document (its DOCUMENTS list in
+ * config/multer.ts). `accept` on the file input is only a hint, and the dialog's
+ * "All files" overrides it, so check here too. This is a courtesy, not security:
+ * the backend decides by the file's bytes.
+ */
+const DOCUMENT_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.jpe', '.jfif', '.pjpeg', '.pjp', '.png', '.doc', '.docx', '.rtf']
+
+/** Throws UploadFileError('FILE_TYPE_NOT_ALLOWED') for a name the backend would refuse, such as sample.html. */
+export function assertDocumentType(file: File): void {
+  // Trailing dots and spaces are ignored, as the backend does: 'Resume.pdf.' is a PDF.
+  const name = file.name.toLowerCase().replace(/[\s.]+$/, '')
+  if (!DOCUMENT_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+    throw new UploadFileError('FILE_TYPE_NOT_ALLOWED', "This type of file can't be uploaded here.")
+  }
+}
+
+/** The file to put in the FormData: type- and size-checked, and shrunk when it is a big image. */
 export async function prepareUpload(file: File, kind: ImageKind): Promise<File> {
+  if (kind === 'document') assertDocumentType(file)
   assertDocumentSize(file)
   return shrinkImage(file, kind)
 }
