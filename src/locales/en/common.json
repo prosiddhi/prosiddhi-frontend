@@ -324,5 +324,81 @@
   },
   "fieldErrors": {
     "nameText": "{{field}} can only contain letters, numbers, spaces and . , - & / ( ) ' and must include a letter"
+  },
+  "safety": {
+    "actions": {
+      "reportEmployer": "Report employer",
+      "blockEmployer": "Block employer",
+      "reportCandidate": "Report candidate",
+      "blockCandidate": "Block candidate"
+    },
+    "reasons": {
+      "seeker": {
+        "SCAM_OR_FRAUD": "Scam or fraud",
+        "ASKED_FOR_MONEY": "They asked me for money",
+        "HARASSMENT_OR_ABUSE": "Harassment or abuse",
+        "FAKE_PROFILE_OR_JOB": "Fake company or job",
+        "INAPPROPRIATE_CONTENT": "Offensive or inappropriate content",
+        "OTHER": "Something else"
+      },
+      "employer": {
+        "SCAM_OR_FRAUD": "Scam or fraud",
+        "ASKED_FOR_MONEY": "They asked for money",
+        "HARASSMENT_OR_ABUSE": "Harassment or abuse",
+        "FAKE_PROFILE_OR_JOB": "Fake profile",
+        "INAPPROPRIATE_CONTENT": "Offensive or inappropriate content",
+        "OTHER": "Something else"
+      }
+    },
+    "report": {
+      "title": "Report {{name}}",
+      "intro": "Tell us what went wrong. Our team will look into it, and they will not be told who reported them.",
+      "reasonLabel": "What is the problem?",
+      "detailsLabel": "More details",
+      "detailsOptional": "(optional)",
+      "detailsPlaceholder": "Add anything that helps us understand what happened",
+      "detailsRequired": "Please describe the problem in at least {{min}} characters.",
+      "noMarkup": "Please do not use < or > in your message.",
+      "charCount": "{{current}}/{{max}}",
+      "cancel": "Cancel",
+      "submit": "Send report",
+      "submitting": "Sending…",
+      "successTitle": "Thank you for telling us",
+      "successBody": "Our team will look into it. If you do not want to see them again, you can also block them.",
+      "done": "Done"
+    },
+    "block": {
+      "title": "Block {{name}}?",
+      "bodyEmployer": "You won't see their jobs, and they won't see your profile or applications. You can unblock them any time in Settings → Blocked users.",
+      "bodyCandidate": "They won't see your jobs or be able to apply, and you won't see them in search or applicants. You can unblock them any time in Settings → Blocked users.",
+      "confirm": "Block",
+      "confirming": "Blocking…",
+      "cancel": "Cancel",
+      "done": "{{name}} blocked"
+    },
+    "blocked": {
+      "title": "Blocked users",
+      "intro": "People you have blocked can't see you, and you won't see them. Unblock someone to see each other again.",
+      "empty": "You haven't blocked anyone.",
+      "blockedOn": "Blocked on {{date}}",
+      "unblock": "Unblock",
+      "unblocking": "Unblocking…",
+      "confirmTitle": "Unblock {{name}}?",
+      "confirmBody": "You will be able to see each other again.",
+      "confirm": "Unblock",
+      "cancel": "Cancel",
+      "unblocked": "{{name}} unblocked",
+      "loadMore": "Load more",
+      "loadError": "We could not load your blocked users.",
+      "retry": "Try again"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "alreadyReported": "You've already reported this. Our team is looking into it.",
+      "rateLimited": "You have sent many reports today. Please try again tomorrow.",
+      "notAvailable": "This account is no longer available.",
+      "alreadyUnblocked": "This person is already unblocked.",
+      "seatSuspended": "Your seat on this company account is paused. Ask your company admin to restore it."
+    }
   }
 }

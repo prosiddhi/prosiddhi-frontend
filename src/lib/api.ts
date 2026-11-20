@@ -3612,6 +3612,102 @@ export const notificationAPI = {
   },
 }
 
+// ---------------------------------------------------------------------------
+// Report and block a person (R1-10). Apple and Google require both for apps where
+// people contact each other. Contract: prosiddhi-backend
+// docs/tasks/backend-2026-11-17-report-block.md §1, verified against backend main
+// (user-report / block routes, validators and services).
+//
+// Who may act on whom: a job SEEKER reports or blocks an EMPLOYER (the whole
+// company); an EMPLOYER user (owner or active team member) reports or blocks a
+// JOB_SEEKER. `targetId` is always the PROFILE id — `job.employer.id` (Employer.id)
+// or the candidate's `jobSeeker.id` / `profile.id` (JobSeeker.id) — never a user id.
+//
+// A block is two-way in effect: both sides stop seeing each other. The blocked
+// side is NEVER told; for them the other side simply isn't there.
+// ---------------------------------------------------------------------------
+
+export type SafetyTargetType = 'EMPLOYER' | 'JOB_SEEKER'
+
+/** The fixed reasons (decision D-6). The labels differ by side; the value sent does not. */
+export const USER_REPORT_REASONS = [
+  'SCAM_OR_FRAUD',
+  'ASKED_FOR_MONEY',
+  'HARASSMENT_OR_ABUSE',
+  'FAKE_PROFILE_OR_JOB',
+  'INAPPROPRIATE_CONTENT',
+  'OTHER',
+] as const
+export type UserReportReason = (typeof USER_REPORT_REASONS)[number]
+
+/** `details`: optional for every reason but OTHER, where 5–1000 characters are required. */
+export const REPORT_DETAILS_MIN = 5
+export const REPORT_DETAILS_MAX = 1000
+
+export interface ReportUserInput {
+  targetType: SafetyTargetType
+  targetId: string
+  reason: UserReportReason
+  details?: string
+  /** The job the report came from, if any. The BE drops it silently if it doesn't fit. */
+  jobId?: string
+}
+
+export interface BlockedUser {
+  /** The BLOCK id — what unblock takes. */
+  id: string
+  targetType: SafetyTargetType
+  /** The blocked side's profile id. */
+  targetId: string
+  /** Company name (or an individual employer's full name), or the seeker's full name. */
+  displayName: string
+  createdAt: string
+}
+
+export interface BlockedUsersPage {
+  items: BlockedUser[]
+  pagination: JobsPagination
+}
+
+export const safetyAPI = {
+  // POST /api/user-reports → 201 { id, createdAt }.
+  // Errors (branch on `code`): 409 USER_REPORT_ALREADY_OPEN (one open report per
+  // target), 429 RATE_LIMITED (5 user reports a day), 404 REPORT_TARGET_NOT_FOUND,
+  // 400 REPORT_TARGET_NOT_ALLOWED (wrong side), 400 with field `errors` (bad body,
+  // OTHER without details, details with < or >).
+  reportUser: async (input: ReportUserInput) => {
+    return apiRequest<{ id: string; createdAt: string }>('/user-reports', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
+  // POST /api/blocks → 201 the new block, or 200 the existing one: blocking twice is
+  // never an error. 404 BLOCK_TARGET_NOT_FOUND, 400 REPORT_TARGET_NOT_ALLOWED.
+  block: async (targetType: SafetyTargetType, targetId: string) => {
+    return apiRequest<Omit<BlockedUser, 'displayName'>>('/blocks', {
+      method: 'POST',
+      body: JSON.stringify({ targetType, targetId }),
+    })
+  },
+
+  // DELETE /api/blocks/:id → { id, unblocked: true }. Only your own side's block
+  // (any active user of the same company, for an employer). 404 BLOCK_NOT_FOUND for
+  // any other id — never 403, so ids don't leak.
+  unblock: async (blockId: string) => {
+    return apiRequest<{ id: string; unblocked: true }>(`/blocks/${encodeURIComponent(blockId)}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // GET /api/blocks?page=&limit= → { items, pagination }. Your side's blocks, newest
+  // first; limit ≤ 50 (default 20).
+  listBlocks: async (params: { page?: number; limit?: number } = {}) => {
+    const { page = 1, limit = 20 } = params
+    return apiRequest<BlockedUsersPage>(`/blocks?page=${page}&limit=${limit}`)
+  },
+}
+
 // TODO(thread-b): admin client (adminAPI) intentionally NOT defined here — the
 // admin console is moving to the standalone `prosiddhi-admin` repo (2026-06-08).
 // If the admin-removal thread touches this file, this marker is the seam.
@@ -3631,6 +3727,7 @@ const api = {
   teamAPI,
   chatAPI,
   notificationAPI,
+  safetyAPI,
 }
 
 export default api
