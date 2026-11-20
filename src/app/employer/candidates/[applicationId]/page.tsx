@@ -4,8 +4,9 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Suspense, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ScheduleInterviewModal } from '@/components/employer/ScheduleInterviewModal'
+import { ReportBlockActions } from '@/components/safety/ReportBlockActions'
 import { employerAPI, resolveMediaUrl, type EmployerApplicationItem } from '@/lib/api'
 import { formatDate, relativeTime } from '@/lib/jobFormat'
 import { formatInterviewTime } from '@/lib/timeFormat'
@@ -34,6 +35,7 @@ function CandidateDetailContent() {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
   const params = useParams()
+  const router = useRouter()
   const applicationId = Array.isArray(params.applicationId) ? params.applicationId[0] : (params.applicationId as string)
 
   const [app, setApp] = useState<EmployerApplicationItem | null>(null)
@@ -367,6 +369,20 @@ function CandidateDetailContent() {
                     </button>
                   )}
                 </div>
+              )}
+
+              {/* Report or block this candidate (R1-10), quiet and last. A block
+                  returns to the list this page was opened from; the candidate is
+                  gone from it and from search, and is never told. */}
+              {seeker?.id && (
+                <ReportBlockActions
+                  className="mt-6 pt-4 border-t border-gray-100"
+                  targetType="JOB_SEEKER"
+                  targetId={seeker.id}
+                  targetName={seeker.fullName || t('employer:candidateDetail.candidateFallback')}
+                  jobId={app.job?.id}
+                  onBlocked={() => router.push(candidatesReturnUrl(searchParams.get('from'), app.job?.id))}
+                />
               )}
             </div>
           )}
