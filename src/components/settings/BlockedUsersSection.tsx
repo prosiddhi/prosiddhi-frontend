@@ -15,8 +15,9 @@ import { SafetyConfirmDialog } from '@/components/safety/SafetyConfirmDialog'
 // Notifications, as in the app (mobile task M-5).
 //
 // GET /blocks is paged (20 a page). "Load more" asks for the next page. An unblock
-// removes the row at once; if more pages exist, the list reloads from the start,
-// because the server's pages have shifted by one and the next page would skip a row.
+// removes the row at once and the list stays as it is. The server's pages have then
+// shifted up by one, so the next page would skip a row: "Load more" counts the rows
+// removed since the last fetch and steps back that many pages' worth (see loadMore).
 // For an employer these are the COMPANY's blocks: any active teammate's block shows.
 
 const PAGE_SIZE = 20
@@ -30,12 +31,14 @@ export function BlockedUsersSection() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  // Rows taken out of the list since the last fetch; each one moved the server's pages up by one.
+  const [removed, setRemoved] = useState(0)
 
   const [confirming, setConfirming] = useState<BlockedUser | null>(null)
   const [unblocking, setUnblocking] = useState(false)
   const [unblockErrorKey, setUnblockErrorKey] = useState('')
 
-  // First page: on mount, on Retry, and after an unblock that shifted the pages.
+  // First page: on mount and on Retry.
   useEffect(() => {
     let active = true
     safetyAPI
@@ -44,6 +47,7 @@ export function BlockedUsersSection() {
         if (!active) return
         setItems(res.items)
         setPage(1)
+        setRemoved(0)
         setHasNext(res.pagination.hasNextPage)
         setLoadFailed(false)
       })
@@ -67,10 +71,16 @@ export function BlockedUsersSection() {
   const loadMore = async () => {
     setLoadingMore(true)
     try {
-      const res = await safetyAPI.listBlocks({ page: page + 1, limit: PAGE_SIZE })
-      // Skip anything already shown, in case the list moved since the last page.
+      // 20 rows loaded, one unblocked: the server's next unseen row now sits at the end
+      // of page 1, not the start of page 2. Step back one page per 20 rows removed.
+      const removedAtStart = removed
+      const nextPage = page + 1 - Math.ceil(removedAtStart / PAGE_SIZE)
+      const res = await safetyAPI.listBlocks({ page: nextPage, limit: PAGE_SIZE })
+      // Skip anything already shown: the step back re-reads a few rows we have.
       setItems((prev) => [...prev, ...res.items.filter((b) => !prev.some((p) => p.id === b.id))])
-      setPage(page + 1)
+      setPage(nextPage)
+      // Only the removals this fetch accounted for: an unblock while it was in flight still counts.
+      setRemoved((n) => n - removedAtStart)
       setHasNext(res.pagination.hasNextPage)
     } catch {
       showToast(t('common:safety.blocked.loadError'), 'error')
@@ -79,13 +89,10 @@ export function BlockedUsersSection() {
     }
   }
 
-  const removeRow = useCallback(
-    (block: BlockedUser) => {
-      setItems((prev) => prev.filter((b) => b.id !== block.id))
-      if (hasNext) setReloadKey((k) => k + 1)
-    },
-    [hasNext]
-  )
+  const removeRow = (block: BlockedUser) => {
+    setItems((prev) => prev.filter((b) => b.id !== block.id))
+    setRemoved((n) => n + 1)
+  }
 
   const handleUnblock = async () => {
     if (!confirming) return
@@ -141,11 +148,12 @@ export function BlockedUsersSection() {
         </div>
       )}
 
-      {!loading && !loadFailed && items.length === 0 && (
+      {/* Empty only when the server has nothing more either: every loaded row may have been unblocked while more pages remain. */}
+      {!loading && !loadFailed && items.length === 0 && !hasNext && (
         <p className="text-sm text-[#717182] py-4">{t('common:safety.blocked.empty')}</p>
       )}
 
-      {!loading && !loadFailed && items.length > 0 && (
+      {!loading && !loadFailed && (items.length > 0 || hasNext) && (
         <>
           <ul className="divide-y divide-[#eee] mt-2">
             {items.map((block) => (

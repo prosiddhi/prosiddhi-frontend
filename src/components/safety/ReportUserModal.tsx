@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, CheckCircle2, Flag, Loader2, X } from 'lucide-react'
 import {
+  ApiError,
   REPORT_DETAILS_MAX,
   REPORT_DETAILS_MIN,
   USER_REPORT_REASONS,
@@ -49,14 +50,35 @@ export function ReportUserModal({ onClose, onReported, targetType, targetId, tar
   // An i18n key, resolved at render time so it follows a language switch.
   const [errorKey, setErrorKey] = useState('')
   const [success, setSuccess] = useState(false)
+  // The server said a report on this person is already open: sending it again only fails.
+  const [alreadyReported, setAlreadyReported] = useState(false)
 
-  // Lock the page behind the dialog while it is mounted.
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // While the dialog is mounted: lock the page behind it and move focus into it, and
+  // put both back as they were on close (so another open dialog keeps its own lock,
+  // and the keyboard user lands back on the button they pressed).
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousFocus = document.activeElement as HTMLElement | null
     document.body.style.overflow = 'hidden'
+    dialogRef.current?.focus()
     return () => {
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = previousOverflow
+      // The button may be gone by now (the Report button hides after a report).
+      if (previousFocus?.isConnected) previousFocus.focus()
     }
   }, [])
+
+  // Escape closes it, as the block dialog does, unless a send is in flight.
+  useEffect(() => {
+    if (submitting) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [submitting, onClose])
 
   // A seeker reports an employer, so sees the seeker-side labels, and the other way round.
   const labelSide = targetType === 'EMPLOYER' ? 'seeker' : 'employer'
@@ -67,7 +89,7 @@ export function ReportUserModal({ onClose, onReported, targetType, targetId, tar
     : detailsNeeded && trimmed.length < REPORT_DETAILS_MIN
       ? 'common:safety.report.detailsRequired'
       : ''
-  const canSubmit = reason !== null && !detailsProblem && !submitting
+  const canSubmit = reason !== null && !detailsProblem && !submitting && !alreadyReported
 
   const handleSubmit = async () => {
     if (!canSubmit || !reason) return
@@ -84,6 +106,11 @@ export function ReportUserModal({ onClose, onReported, targetType, targetId, tar
       setSuccess(true)
       onReported?.()
     } catch (err) {
+      // Already reported: show the message, stop Submit, and hide the Report button as after a success.
+      if (err instanceof ApiError && err.code === 'USER_REPORT_ALREADY_OPEN') {
+        setAlreadyReported(true)
+        onReported?.()
+      }
       setErrorKey(safetyErrorKey(err))
     } finally {
       setSubmitting(false)
@@ -95,10 +122,12 @@ export function ReportUserModal({ onClose, onReported, targetType, targetId, tar
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
 
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="report-user-title"
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[520px] max-h-[calc(100vh-2rem)] overflow-y-auto"
+        className="relative outline-none bg-white rounded-2xl shadow-2xl w-full max-w-[520px] max-h-[calc(100vh-2rem)] overflow-y-auto"
       >
         <button
           onClick={onClose}
@@ -170,7 +199,7 @@ export function ReportUserModal({ onClose, onReported, targetType, targetId, tar
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm sm:text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-50 focus:border-transparent resize-none"
               />
               <div className="flex justify-between items-start gap-3 mt-1 mb-4">
-                <span className={`text-xs ${detailsProblem === 'common:safety.report.noMarkup' ? 'text-red-600' : 'text-gray-400'}`}>
+                <span className={`text-xs ${detailsProblem && details.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>
                   {detailsProblem ? t(detailsProblem, { min: REPORT_DETAILS_MIN }) : ''}
                 </span>
                 <span className="text-xs text-gray-400 flex-shrink-0">

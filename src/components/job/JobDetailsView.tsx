@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categoryLabel } from '@/lib/categoryLabel'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
@@ -106,7 +106,6 @@ interface JobDetailsViewProps {
 export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter = true }: JobDetailsViewProps) {
   const { t } = useTranslation()
   const params = useParams()
-  const router = useRouter()
   const jobId = String(params?.id ?? '')
 
   const [job, setJob] = useState<Job | null>(null)
@@ -555,7 +554,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                       main column. A block leaves the page: the employer's jobs are
                       gone for this seeker from now on. */}
                   {isSeeker && (
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 empty:hidden">
                       {!hasReported && (
                         <button
                           onClick={() => setIsReportModalOpen(true)}
@@ -571,7 +570,7 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                           targetId={job.employer.id}
                           targetName={companyOf(job, t('seeker:jobCard.company'))}
                           jobId={job.id}
-                          onBlocked={() => router.push('/job-feed')}
+                          onBlocked={onBack}
                         />
                       )}
                     </div>
