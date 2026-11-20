@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categoryLabel } from '@/lib/categoryLabel'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Footer } from '@/components/home/Footer'
 import { ApplyModal } from '@/components/job/ApplyModal'
 import { ContactRecruiterModal } from '@/components/job/ContactRecruiterModal'
 import { EMPLOYER_CONTACT_VISIBLE } from '@/lib/features'
 import { ReportJobModal } from '@/components/job/ReportJobModal'
+import { ReportBlockActions } from '@/components/safety/ReportBlockActions'
 import { jobSeekerAPI, ApiError, type Job } from '@/lib/api'
 import { appliedCtaMeta } from '@/lib/applicationStatus'
 import { loginForJobHref } from '@/lib/publicJobs'
@@ -105,6 +106,7 @@ interface JobDetailsViewProps {
 export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter = true }: JobDetailsViewProps) {
   const { t } = useTranslation()
   const params = useParams()
+  const router = useRouter()
   const jobId = String(params?.id ?? '')
 
   const [job, setJob] = useState<Job | null>(null)
@@ -548,16 +550,31 @@ export function JobDetailsView({ backLabel, onBack, unavailableOn404, showFooter
                   )}
 
                   {/* Report this job (PJP-152) — trust affordance for scam/abusive
-                      posts. Seeker-only, and deliberately the last, quietest thing
-                      in the main column. */}
-                  {isSeeker && !hasReported && (
-                    <button
-                      onClick={() => setIsReportModalOpen(true)}
-                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors pt-2"
-                    >
-                      <Flag className="w-4 h-4" />
-                      {t('seeker:jobDetails.reportJob')}
-                    </button>
+                      posts — then report or block the employer itself (R1-10).
+                      Seeker-only, and deliberately the last, quietest things in the
+                      main column. A block leaves the page: the employer's jobs are
+                      gone for this seeker from now on. */}
+                  {isSeeker && (
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2">
+                      {!hasReported && (
+                        <button
+                          onClick={() => setIsReportModalOpen(true)}
+                          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-500 transition-colors"
+                        >
+                          <Flag className="w-4 h-4" />
+                          {t('seeker:jobDetails.reportJob')}
+                        </button>
+                      )}
+                      {job.employer?.id && (
+                        <ReportBlockActions
+                          targetType="EMPLOYER"
+                          targetId={job.employer.id}
+                          targetName={companyOf(job, t('seeker:jobCard.company'))}
+                          jobId={job.id}
+                          onBlocked={() => router.push('/job-feed')}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
 
