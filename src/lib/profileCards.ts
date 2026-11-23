@@ -13,7 +13,7 @@
  * is", so none of them can be cleared from here. That is existing behaviour and is not changed.
  */
 import type { ProfileWorkExperience, SeekerProfile, SeekerProfileUpdate, TaxonomyTriple } from '@/lib/api'
-import { isAtLeast18, toDateInput } from '@/lib/dateInput'
+import { isAtLeast18, isNotInFuture, toDateInput } from '@/lib/dateInput'
 import { nameProblem } from '@/lib/nameValidation'
 
 /** A city as these helpers see it: only its id is ever sent. */
@@ -141,6 +141,17 @@ export function jobPatch(
 const endDateOf = (r: ProfileWorkExperience): string => (r.currentlyWorking ? '' : (r.endDate ?? ''))
 
 /**
+ * True when the row's end date is before its start date. A current job has no end date, so it never is.
+ * The page's inline hint and the save check both ask this, so they agree on what "before" means. (Save
+ * does not refuse an untouched saved row, but the hint still shows for it.) The same day is fine.
+ * Both dates are YYYY-MM-DD, so text order is date order.
+ */
+export function endsBeforeStart(r: ProfileWorkExperience): boolean {
+  const end = endDateOf(r)
+  return !!end && !!r.startDate && end < r.startDate
+}
+
+/**
  * Only rows with BOTH a position and a start date go out: the BE requires both. The list
  * FULL-REPLACES the server's, so the key is always present, `[]` when no row qualifies.
  */
@@ -160,7 +171,7 @@ export function experiencePatch(rows: ProfileWorkExperience[]): Pick<SeekerProfi
   return { workExperiences }
 }
 
-export type ExperienceProblem = 'position' | 'startDate' | 'endDate'
+export type ExperienceProblem = 'position' | 'startDate' | 'endDate' | 'futureDate' | 'endBeforeStart'
 
 /**
  * The first rule a filled-in row breaks, with its 1-based place in the list, or null. Every row the
@@ -170,11 +181,12 @@ export type ExperienceProblem = 'position' | 'startDate' | 'endDate'
  * `saved` is the list the server holds. A row that is exactly one of those (each saved row matches at
  * most one draft row) is untouched, and only the end-date rule is waived for it: the BE has never
  * required an end date, so an older row may lack one, and the seeker must not have to invent history to
- * save something else. A new or changed row gets every rule.
+ * save something else. A new or changed row gets every rule. The end-date, date-order and future-date
+ * rules are the portal's own, so an older row that breaks them is left alone the same way.
  *
  * experiencePatch drops a row without a position or a start date, and the list FULL-REPLACES the
  * server's, so without these two rules for EVERY row a save would quietly send a shorter list (an empty
- * one when it is the only row) and delete saved experience. The end-date rule is the portal's own.
+ * one when it is the only row) and delete saved experience.
  */
 export function experienceProblem(
   rows: ProfileWorkExperience[],
@@ -190,7 +202,14 @@ export function experienceProblem(
     if (untouched) unmatched.splice(at, 1)
     if (!v.position) return { row: i + 1, problem: 'position' }
     if (!v.startDate) return { row: i + 1, problem: 'startDate' }
-    if (!untouched && !v.currentlyWorking && !v.endDate) return { row: i + 1, problem: 'endDate' }
+    if (untouched) continue
+    if (!v.currentlyWorking && !v.endDate) return { row: i + 1, problem: 'endDate' }
+    // A current job has no end date, so only an end date that will be sent is checked.
+    const end = endDateOf(r)
+    if (!isNotInFuture(v.startDate) || (end && !isNotInFuture(end))) {
+      return { row: i + 1, problem: 'futureDate' }
+    }
+    if (endsBeforeStart(r)) return { row: i + 1, problem: 'endBeforeStart' }
   }
   return null
 }

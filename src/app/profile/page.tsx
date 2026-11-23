@@ -79,6 +79,7 @@ import {
   CARD_IDS,
   aboutProblem,
   experienceProblem,
+  endsBeforeStart,
   bodyLanded,
   cardActivity,
   cardDirty,
@@ -102,6 +103,7 @@ import {
 } from '@/lib/profileCards'
 import { Field } from '@/components/form/Field'
 import { DatePicker, yearsAgoISO } from '@/components/form/DatePicker'
+import { todayISO } from '@/lib/dateInput'
 
 // Local editable work-experience row (carries a stable key for the list).
 interface ExpRow extends ProfileWorkExperience {
@@ -178,6 +180,8 @@ const EXPERIENCE_PROBLEM_KEY: Record<ExperienceProblem, string> = {
   position: 'profile:seeker.experienceProblem.position',
   startDate: 'profile:seeker.experienceProblem.startDate',
   endDate: 'profile:seeker.experienceProblem.endDate',
+  futureDate: 'profile:seeker.experienceProblem.futureDate',
+  endBeforeStart: 'profile:seeker.experienceProblem.endBeforeStart',
 }
 
 // SUSPENDED is the only other state a seeker who can reach this page could
@@ -1335,14 +1339,16 @@ function SeekerProfileContent() {
                             <input value={exp.companyName ?? ''} onChange={(e) => setExp(exp.key, 'companyName', e.target.value)} maxLength={COMPANY_NAME_MAX_LENGTH} placeholder={t('profile:seeker.companyPlaceholder')} className={expFieldError(exp, 'companyName', t('profile:seeker.company')) ? `${seekerInputCls} ${INVALID_CLS}` : seekerInputCls} />
                           </Field>
                           <Field label={t('profile:seeker.startDate')} className={seekerLabelCls}>
-                            <DatePicker value={exp.startDate ?? ''} disabled={cardBusy('experience')} onChange={(v) => setExp(exp.key, 'startDate', v)} className={seekerInputCls} />
+                            <DatePicker value={exp.startDate ?? ''} max={todayISO()} disabled={cardBusy('experience')} onChange={(v) => setExp(exp.key, 'startDate', v)} className={seekerInputCls} />
                           </Field>
-                          <Field label={t('profile:seeker.endDate')} className={seekerLabelCls}>
+                          <Field label={t('profile:seeker.endDate')} className={seekerLabelCls} error={endsBeforeStart(exp) ? t('profile:seeker.endBeforeStartField') : undefined}>
                             <DatePicker
                               value={exp.endDate ?? ''}
+                              min={exp.startDate || undefined}
+                              max={todayISO()}
                               disabled={exp.currentlyWorking || !!cardBusy('experience')}
                               onChange={(v) => setExp(exp.key, 'endDate', v)}
-                              className={`${seekerInputCls} disabled:bg-gray-100`}
+                              className={`${seekerInputCls} disabled:bg-gray-100 ${endsBeforeStart(exp) ? INVALID_CLS : ''}`}
                             />
                           </Field>
                         </div>
