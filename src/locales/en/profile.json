@@ -132,12 +132,15 @@
     "companyPlaceholder": "Company name",
     "startDate": "Start Date",
     "endDate": "End Date",
+    "endBeforeStartField": "End date cannot be before the start date",
     "currentlyWorking": "I currently work here",
     "experienceHint": "Empty work experience details will not be saved. If you want to remove an existing entry, use the delete option.",
     "experienceProblem": {
       "position": "Work experience {{row}}: add a position.",
       "startDate": "Work experience {{row}}: add a start date.",
-      "endDate": "Work experience {{row}}: add an end date, or tick \"I currently work here\"."
+      "endDate": "Work experience {{row}}: add an end date, or tick \"I currently work here\".",
+      "futureDate": "Work experience {{row}}: dates cannot be in the future.",
+      "endBeforeStart": "Work experience {{row}}: the end date cannot be before the start date."
     },
     "saving": "Saving…",
     "saved": "Saved",
