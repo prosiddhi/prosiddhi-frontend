@@ -6,6 +6,24 @@ export function toDateInput(iso?: string | null): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** Today as YYYY-MM-DD by the local calendar. Use it as a picker's `max`. */
+export function todayISO(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+/**
+ * True when `iso` (a YYYY-MM-DD string) is today or earlier. No age rule: for dates
+ * that only need to be in the past, such as a company's founded date. ISO dates
+ * sort correctly as text, so no `Date` parsing (and no timezone shift). Callers
+ * must pass a well-formed ISO date.
+ */
+export function isNotInFuture(iso: string): boolean {
+  return iso <= todayISO()
+}
+
 /**
  * Mirrors the BE `dateOfBirthSchema` refinement (auth.validator.ts): the date
  * must be in the past AND indicate age >= 18. Same calendar arithmetic — the

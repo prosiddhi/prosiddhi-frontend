@@ -88,6 +88,7 @@
     "emailInvalid": "Please enter a valid company email",
     "addressTooShort": "Company address must be at least 5 characters",
     "foundedInvalid": "Please enter a valid founded date",
+    "foundedFuture": "Founded date cannot be in the future",
     "sizeRequired": "Please select the company size",
     "cinRequired": "Please enter the company registration number (CIN)",
     "registerFailed": "Could not register the business. Please try again.",

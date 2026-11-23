@@ -17,6 +17,7 @@ import { checkEmail } from '@/lib/email'
 import { useEmployerRegistration } from '../EmployerRegistrationContext'
 import { track } from '@/lib/analytics'
 import { DatePicker } from '@/components/form/DatePicker'
+import { isNotInFuture, todayISO } from '@/lib/dateInput'
 import { AcceptTermsCheckbox } from '@/components/legal/AcceptTermsCheckbox'
 
 const SIZE_VALUES: CompanySize[] = [
@@ -148,8 +149,13 @@ export default function CompanyDetailsPage() {
       setError(t('employerRegister:companyDetails.addressTooShort'))
       return
     }
-    if (!form.companyFoundedDate || isNaN(Date.parse(form.companyFoundedDate))) {
+    // Must be a real YYYY-MM-DD: the future check below compares it as text.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.companyFoundedDate) || isNaN(Date.parse(form.companyFoundedDate))) {
       setError(t('employerRegister:companyDetails.foundedInvalid'))
+      return
+    }
+    if (!isNotInFuture(form.companyFoundedDate)) {
+      setError(t('employerRegister:companyDetails.foundedFuture'))
       return
     }
     if (!form.companySize) {
@@ -328,7 +334,7 @@ export default function CompanyDetailsPage() {
               </div>
               <div>
                 <label htmlFor={foundedId} className="block text-sm font-medium text-black mb-2">{t('employerRegister:companyDetails.foundedDate')} <span className="text-red-500">*</span></label>
-                <DatePicker id={foundedId} value={form.companyFoundedDate} onChange={(v) => set('companyFoundedDate', v)} disabled={loading} minYear={1800} className={inputCls} />
+                <DatePicker id={foundedId} value={form.companyFoundedDate} onChange={(v) => set('companyFoundedDate', v)} disabled={loading} minYear={1800} max={todayISO()} className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-2" htmlFor="company-size">{t('employerRegister:companyDetails.companySize')} <span className="text-red-500">*</span></label>
