@@ -15,7 +15,7 @@ import { AccountStatusIndicator } from '@/components/profile/AccountStatusIndica
 import { inputCls, fieldLabelCls, sectionHeadingCls, sectionHeadingIconCls } from '@/components/profile/profileStyles'
 import { useAuth } from '@/contexts/AuthContext'
 import { verificationStatusPill, verificationStatusIcon } from '@/lib/applicationStatus'
-import { toDateInput } from '@/lib/dateInput'
+import { isNotInFuture, todayISO, toDateInput } from '@/lib/dateInput'
 import {
   employerAPI,
   resolveMediaUrl,
@@ -172,6 +172,7 @@ function EmployerProfileContent() {
   // Original name — so the DEF-030 rule fires only on an edit, never on a legacy
   // value loaded from the server.
   const originalFullName = useRef('')
+  const originalFoundedDate = useRef('')
   // Original GST/CIN — to detect a change that triggers BE re-verification.
   const originalGst = useRef('')
   const originalReg = useRef('')
@@ -211,6 +212,7 @@ function EmployerProfileContent() {
     setGstNumber(e?.gstNumber ?? '')
     setRegistrationNumber(e?.registrationNumber ?? '')
     originalFullName.current = (e?.fullName ?? '').trim()
+    originalFoundedDate.current = toDateInput(e?.companyFoundedDate)
     // Normalised, so a legacy row stored lower-case or padded (before the BE began
     // normalising) still compares equal to itself and is not seen as an edit.
     originalGst.current = normaliseIdentifier(e?.gstNumber ?? '')
@@ -324,7 +326,13 @@ function EmployerProfileContent() {
   const fullNameError = serverErrors.fullName
   const companyEmailError = serverErrors.companyEmail
   const companyAddressError = serverErrors.companyAddress
-  const hasNameTextError = !isValidNameText(designation) || !isValidNameText(companyName)
+  // The picker greys out future days. Only a date the employer CHANGED is checked, so an
+  // account whose stored date is already in the future can still save other edits.
+  const foundedError =
+    companyFoundedDate !== originalFoundedDate.current && !isNotInFuture(companyFoundedDate)
+      ? t('employerRegister:companyDetails.foundedFuture')
+      : undefined
+  const hasNameTextError = !isValidNameText(designation) || !isValidNameText(companyName) || !!foundedError
   const clearServerError = (field: string) =>
     setServerErrors((prev) => {
       if (!(field in prev)) return prev
@@ -631,8 +639,8 @@ function EmployerProfileContent() {
                         <Field label={t('profile:employer.companyAddress')} className={fieldLabelCls} full error={companyAddressError}>
                           <input value={companyAddress} onChange={(e) => { setCompanyAddress(e.target.value); clearServerError('companyAddress') }} maxLength={COMPANY_ADDRESS_MAX_LENGTH} placeholder={t('profile:employer.companyAddressPlaceholder')} className={invalidCls(companyAddressError)} />
                         </Field>
-                        <Field label={t('profile:employer.foundedDate')} className={fieldLabelCls}>
-                          <DatePicker value={companyFoundedDate} onChange={setCompanyFoundedDate} minYear={1800} className={inputCls} />
+                        <Field label={t('profile:employer.foundedDate')} className={fieldLabelCls} error={foundedError}>
+                          <DatePicker value={companyFoundedDate} onChange={setCompanyFoundedDate} minYear={1800} max={todayISO()} className={invalidCls(foundedError)} />
                         </Field>
                         <Field label={t('profile:employer.companySize')} className={fieldLabelCls}>
                           <select value={companySize} onChange={(e) => setCompanySize(e.target.value as CompanySize)} className={inputCls}>
