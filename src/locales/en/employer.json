@@ -683,6 +683,10 @@
     "noneRunningTitle": "No plan is running right now",
     "noneRunningBody": "Your earlier plans have ended. Buy a plan to keep hiring."
   },
+  "docsPending": {
+    "title": "Your account is not approved yet",
+    "body": "Upload your business documents from your profile to start the review. You can post jobs and buy plans once an admin approves your account."
+  },
   "docsReview": {
     "title": "Your documents are being reviewed",
     "sla": "We review your documents within 48 hours."
