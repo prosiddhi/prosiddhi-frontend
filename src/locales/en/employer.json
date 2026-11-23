@@ -163,6 +163,7 @@
     "statusUnknown": "We couldn't set up your payment just now. You have not been charged for this attempt. Please try again in a minute.",
     "planNotFound": "We couldn't find this plan. Please refresh the page and choose a plan again.",
     "planUnavailable": "This plan is no longer available. Please refresh the page and choose another plan.",
+    "accountNotActive": "Your account is not approved yet. You can buy a plan once an admin approves it.",
     "checkoutFailed": "Couldn't start checkout. Please try again.",
     "successTitle": "Payment successful",
     "successBody": "{{post}} Job Posts and {{download}} Candidate Unlocks were added to your balance.",
@@ -258,6 +259,8 @@
     }
   },
   "plans": {
+    "docsPendingTitle": "Your account is not approved yet",
+    "docsPendingBody": "Upload your business documents from your profile to start the review. You can buy a plan once an admin approves your account.",
     "navLabel": "Plans",
     "heading": "Plans & pricing",
     "subheading": "Buy job posts. Choose a plan that fits how much you hire.",
@@ -455,6 +458,7 @@
     "checkingCredits": "Checking your balance…",
     "notActiveTitle": "Employer account is not active",
     "notActiveBody": "Your profile is awaiting admin approval. You can post jobs once it is approved.",
+    "notActiveDocsBody": "Upload your business documents from your profile to start the review. You can post jobs once an admin approves your account.",
     "backToDashboard": "Back to dashboard"
   },
   "postGate": {

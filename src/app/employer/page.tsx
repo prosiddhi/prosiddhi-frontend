@@ -251,7 +251,7 @@ function EmployerDashboardContent() {
               failing request never blanks the others. */}
           {/* With admin. Only PENDING_ADMIN_APPROVAL: a business that has not
               uploaded yet (PENDING_DOCUMENTS) has no review running, so the
-              2-working-days promise would be false for them. A single-user
+              48-hour promise would be false for them. A single-user
               employer has no documents: what the admin reviews is the account. */}
           {accountStatus === 'PENDING_ADMIN_APPROVAL' && (
             <div className="mb-6 sm:mb-8 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">

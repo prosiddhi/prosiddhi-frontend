@@ -136,10 +136,21 @@ function NewJobContent() {
               <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-black">{t('employer:jobNew.notActiveTitle')}</p>
-                <p className="text-sm text-[#717182] mt-1">{t('employer:jobNew.notActiveBody')}</p>
-                <Link href="/employer" className="inline-block mt-4 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
-                  {t('employer:jobNew.backToDashboard')}
-                </Link>
+                {/* Only a business is ever PENDING_DOCUMENTS: its review has not started, so
+                    "awaiting approval" would hide the step that is actually blocking it. */}
+                <p className="text-sm text-[#717182] mt-1">
+                  {t(orgStatus === 'PENDING_DOCUMENTS' ? 'employer:jobNew.notActiveDocsBody' : 'employer:jobNew.notActiveBody')}
+                </p>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm font-medium">
+                  {orgStatus === 'PENDING_DOCUMENTS' && (
+                    <Link href="/employer/profile" className="text-primary-50 hover:text-primary-60 transition-colors">
+                      {t('employerRegister:underReview.uploadDocs')}
+                    </Link>
+                  )}
+                  <Link href="/employer" className="text-primary-50 hover:text-primary-60 transition-colors">
+                    {t('employer:jobNew.backToDashboard')}
+                  </Link>
+                </div>
               </div>
             </div>
           ) : walletLoading ? (

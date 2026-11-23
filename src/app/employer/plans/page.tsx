@@ -11,13 +11,14 @@ import { Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft, Clock, Plus } from 'lucide-react'
 import { PricingPlans } from '@/components/employer/PricingPlans'
 import { PrivatePlan } from '@/components/employer/PrivatePlan'
 import { TopUpModal } from '@/components/employer/TopUpModal'
 import { EmployerHeader } from '@/components/employer/EmployerHeader'
 import { PAGE_BOX } from '@/lib/layout'
 import { useCredits } from '@/hooks/useCredits'
+import { employerAPI } from '@/lib/api'
 import { track } from '@/lib/analytics'
 
 function PlansContent() {
@@ -32,6 +33,27 @@ function PlansContent() {
   // top-up. Unknown role (still loading, or the wallet failed) → no button.
   const { wallet } = useCredits()
   const canBuy = wallet?.role === 'OWNER'
+
+  // Checkout is refused until an admin approves the account, so say so before the buyer fills the
+  // form in. A business that has not uploaded its documents has no review running, so it is told
+  // to upload them instead of to wait. Only for the owner, whose own record is the organisation's.
+  // A failed read shows nothing: checkout still refuses, with its own message.
+  const [pendingStatus, setPendingStatus] = useState<'PENDING_ADMIN_APPROVAL' | 'PENDING_DOCUMENTS' | null>(null)
+  const docsPending = pendingStatus === 'PENDING_DOCUMENTS'
+  useEffect(() => {
+    if (!canBuy) return
+    let ignore = false
+    employerAPI
+      .getProfile()
+      .then((p) => {
+        const status = p?.accountStatus
+        if (!ignore) setPendingStatus(status === 'PENDING_ADMIN_APPROVAL' || status === 'PENDING_DOCUMENTS' ? status : null)
+      })
+      .catch(() => {})
+    return () => {
+      ignore = true
+    }
+  }, [canBuy])
   // /employer/plans?plan=<code> is the private link for a hidden plan: it shows just
   // that plan. The public list below never contains a hidden plan.
   const planCode = useSearchParams().get('plan')?.trim() || undefined
@@ -69,6 +91,24 @@ function PlansContent() {
               buttons are simply hidden. */}
           {wallet && !canBuy && (
             <p className="text-sm text-[#717182] mb-4">{t('employer:myPlans.ownerBuysNote')}</p>
+          )}
+          {canBuy && pendingStatus && (
+            <div role="status" className="mb-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
+              <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-secondary-70">
+                  {t(docsPending ? 'employer:plans.docsPendingTitle' : 'employer:accountReview.title')}
+                </p>
+                <p className="text-sm text-secondary-70">
+                  {t(docsPending ? 'employer:plans.docsPendingBody' : 'employer:accountReview.body')}
+                </p>
+                {docsPending && (
+                  <Link href="/employer/profile" className="inline-block mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
+                    {t('employerRegister:underReview.uploadDocs')}
+                  </Link>
+                )}
+              </div>
+            </div>
           )}
           {planCode ? <PrivatePlan key={planCode} planCode={planCode} canBuy={canBuy} /> : <PricingPlans canBuy={canBuy} />}
         </div>

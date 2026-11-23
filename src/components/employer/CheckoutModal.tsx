@@ -161,6 +161,11 @@ const CHECKOUT_REFUSALS = new Map<string, { key: string; final?: boolean }>([
   ['PLAN_UNAVAILABLE', { key: 'employer:checkout.planUnavailable' }],
 ])
 
+// The BE 400 when the organisation's account is not ACTIVE yet (billing.service
+// createCheckout). It carries no error code, so it is matched on status + message, as the
+// post-a-job page does. The refusal is before any order, so nothing was charged.
+const ACCOUNT_NOT_ACTIVE_RE = /account is not active/i
+
 // The BE's rule for the invoice address, checked on the trimmed value.
 const BILLING_ADDRESS_MIN = 5
 const BILLING_ADDRESS_MAX = 500
@@ -459,6 +464,8 @@ export function CheckoutModal({
       } else if (refusal) {
         setError(t(refusal.key))
         if (refusal.final) setPaymentPending(true)
+      } else if (e instanceof ApiError && e.status === 400 && ACCOUNT_NOT_ACTIVE_RE.test(e.message)) {
+        setError(t('employer:checkout.accountNotActive'))
       } else {
         setError(e instanceof Error ? e.message : t('employer:checkout.checkoutFailed'))
       }
