@@ -212,6 +212,8 @@ function EmployerDashboardContent() {
   const [unlockedCount, setUnlockedCount] = useState<number | null>(null)
   const [accountStatus, setAccountStatus] = useState<string | null>(null)
   const [isIndividual, setIsIndividual] = useState(false)
+  // Documents are a business's step. An individual is never asked for them.
+  const docsPending = accountStatus === 'PENDING_DOCUMENTS' && !isIndividual
 
   // Supplementary and independent of the panels: each hides its card on failure
   // instead of showing an error, so neither can hold the panels up.
@@ -249,20 +251,30 @@ function EmployerDashboardContent() {
 
           {/* Each panel below loads, fails and retries on its own, so one slow or
               failing request never blanks the others. */}
-          {/* With admin. Only PENDING_ADMIN_APPROVAL: a business that has not
-              uploaded yet (PENDING_DOCUMENTS) has no review running, so the
-              48-hour promise would be false for them. A single-user
-              employer has no documents: what the admin reviews is the account. */}
-          {accountStatus === 'PENDING_ADMIN_APPROVAL' && (
+          {/* With the admin (an individual has no documents, so no 48-hour promise), or a business
+              that has not uploaded yet: no review is running, so it is told to upload, not to wait. */}
+          {(accountStatus === 'PENDING_ADMIN_APPROVAL' || docsPending) && (
             <div className="mb-6 sm:mb-8 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
               <Clock className="w-5 h-5 text-secondary-70 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-secondary-70">
-                  {t(isIndividual ? 'employer:accountReview.title' : 'employer:docsReview.title')}
-                </p>
-                <p className="text-sm text-secondary-70">
-                  {t(isIndividual ? 'employer:accountReview.body' : 'employer:docsReview.sla')}
-                </p>
+                {docsPending ? (
+                  <>
+                    <p className="text-sm font-semibold text-secondary-70">{t('employer:docsPending.title')}</p>
+                    <p className="text-sm text-secondary-70">{t('employer:docsPending.body')}</p>
+                    <Link href="/employer/profile" className="inline-block mt-2 text-sm font-medium text-primary-50 hover:text-primary-60 transition-colors">
+                      {t('employerRegister:underReview.uploadDocs')}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-secondary-70">
+                      {t(isIndividual ? 'employer:accountReview.title' : 'employer:docsReview.title')}
+                    </p>
+                    <p className="text-sm text-secondary-70">
+                      {t(isIndividual ? 'employer:accountReview.body' : 'employer:docsReview.sla')}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}
